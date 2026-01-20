@@ -42,8 +42,8 @@ const caveat = Caveat({
 })
 
 export const metadata: Metadata = {
-  title: "Le Nez — Olfactory Deduction",
-  description: "A daily word-guessing game for fragrance enthusiasts. Deduce the mystery perfume from evolving clues.",
+  title: "Eauxle — Olfactory Deduction",
+  description: "A daily fragrance guessing game. Deduce the mystery perfume from evolving clues.",
   keywords: ["perfume", "fragrance", "game", "wordle", "puzzle", "olfactory"],
   icons: {
     icon: [
