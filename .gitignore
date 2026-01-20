@@ -1,0 +1,51 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# bottles images
+/img/bottles
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files
+.env.local
+.env
+
+# migrations
+/supabase/migrations
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+
+# python
+__pycache__/
+*.py[cod]
+
+# data
+/data/*.csv
+!/data/dataset_sample.csv
+
+# logs
+*.log
+/scripts/*.log
+/scripts/*.csv
+
+# reports
+/lighthouse-report*
+/lighthouse.json
+git_status_full.txt

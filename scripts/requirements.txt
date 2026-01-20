@@ -1,0 +1,7 @@
+pandas
+numpy
+supabase
+python-dotenv
+tqdm
+psycopg2-binary
+boto3

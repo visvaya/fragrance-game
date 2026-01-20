@@ -1,0 +1,25 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      rampTo: 20
+      name: "Ramp up to peak load"
+    - duration: 60
+      arrivalRate: 20
+      name: "Sustained load (approx 100 concurrent users)"
+  plugins:
+    ensure: {}
+    expect: {}
+  ensure:
+    p95: 500
+    maxErrorRate: 1
+
+scenarios:
+  - flow:
+      - log: "New virtual user started"
+      - get:
+          url: "/"
+          expect:
+            - statusCode: 200
+      - think: 2
