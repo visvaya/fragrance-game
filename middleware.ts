@@ -13,29 +13,24 @@ const ratelimit = new Ratelimit({
 });
 
 export async function middleware(request: NextRequest) {
-    // Only rate limit API routes and Server Actions (if triggered via POST to /)
-    // But strictly speaking, middleware runs on paths.
-    // We'll trust the config matcher to apply this only to API routes if desired,
-    // or generally to api-like behaviour.
+    // Only rate limit API routes
+    if (request.nextUrl.pathname.startsWith('/api')) {
+        const ip = request.headers.get('x-forwarded-for') ?? 'unknown';
+        const { success, limit, reset, remaining } = await ratelimit.limit(ip);
 
-    // Get IP address
-    const ip = request.headers.get('x-forwarded-for') ?? 'unknown';
-
-    // Execute rate limiting
-    const { success, limit, reset, remaining } = await ratelimit.limit(ip);
-
-    if (!success) {
-        return NextResponse.json(
-            { error: 'Rate limit exceeded. Please try again later.' },
-            {
-                status: 429,
-                headers: {
-                    'X-RateLimit-Limit': limit.toString(),
-                    'X-RateLimit-Remaining': remaining.toString(),
-                    'X-RateLimit-Reset': reset.toString(),
-                },
-            }
-        );
+        if (!success) {
+            return NextResponse.json(
+                { error: 'Rate limit exceeded. Please try again later.' },
+                {
+                    status: 429,
+                    headers: {
+                        'X-RateLimit-Limit': limit.toString(),
+                        'X-RateLimit-Remaining': remaining.toString(),
+                        'X-RateLimit-Reset': reset.toString(),
+                    },
+                }
+            );
+        }
     }
 
     // Add security headers to all responses
@@ -68,5 +63,15 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: '/api/:path*',
+    matcher: [
+        /*
+         * Match all request paths except for:
+         * 1. /api/auth/callback/ (handled by Supabase Auth Helpers automatic routing if needed, though usually fine to have headers)
+         * 2. /_next/ (Next.js internals)
+         * 3. /_static (inside /public)
+         * 4. /favicon.ico, /sitemap.xml, /robots.txt (static files)
+         * 5. all root files ending in .svg, .png, .jpg, .jpeg, .gif, .webp
+         */
+        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    ],
 };

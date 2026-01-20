@@ -29,7 +29,9 @@ export async function trackEvent(
         // Ensure events are flushed immediately for serverless environments
         await client.shutdown()
     } catch (error) {
-        console.error('Failed to track event:', error)
+        // Sanitize error logging
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Failed to track event (sanitized):', errorMessage.replace(/\n/g, ' '));
     }
 }
 
@@ -45,6 +47,8 @@ export async function identifyUser(
         })
         await client.shutdown()
     } catch (error) {
-        console.error('Failed to identify user:', error)
+        // Sanitize error logging to prevent log injection
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Failed to identify user (sanitized):', errorMessage.replace(/\n/g, ' '));
     }
 }
