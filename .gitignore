@@ -49,3 +49,5 @@ __pycache__/
 /lighthouse-report*
 /lighthouse.json
 git_status_full.txt
+/reports/
+git_status_full.txt
