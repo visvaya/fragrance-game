@@ -12,7 +12,7 @@ const ratelimit = new Ratelimit({
     analytics: true,
 });
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     // Only rate limit API routes
     if (request.nextUrl.pathname.startsWith('/api')) {
         const ip = request.headers.get('x-forwarded-for') ?? 'unknown';

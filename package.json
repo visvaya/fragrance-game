@@ -2,6 +2,15 @@
   "name": "eauxle",
   "version": "0.1.0",
   "private": true,
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@sentry/cli",
+      "core-js",
+      "esbuild",
+      "protobufjs",
+      "sharp"
+    ]
+  },
   "scripts": {
     "build": "next build",
     "dev": "next dev",
