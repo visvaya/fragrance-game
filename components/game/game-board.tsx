@@ -3,7 +3,6 @@
 import { useGame } from "./game-provider"
 import { RevealImage } from "./RevealImage"
 import { MetaClues } from "./clues/meta-clues"
-import { AccordsClues } from "./clues/accords-clues"
 import { PyramidClues } from "./clues/pyramid-clues"
 import { AttemptLog } from "./attempt-log"
 
@@ -20,7 +19,7 @@ export function GameBoard() {
 
       {/* Clues Section */}
       <section className="border-t border-border pt-6 flex flex-col gap-8">
-        <AccordsClues />
+
         <PyramidClues />
       </section>
 

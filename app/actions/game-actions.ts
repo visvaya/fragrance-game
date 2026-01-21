@@ -10,13 +10,37 @@ import { trackEvent, identifyUser } from '@/lib/analytics-server';
 
 // --- Types ---
 
+import { MAX_GUESSES } from '@/lib/constants';
+
+// --- Types ---
+
 export interface DailyChallenge {
     id: string;
     challenge_date: string;
     mode: string;
     grace_deadline_at_utc: string;
     snapshot_metadata: any;
-    // NO perfume_id exposed here!
+    // Public clues (safe to expose, progressively masked on client)
+    clues: {
+        brand: string;
+        perfumer: string;
+        year: number;
+        gender: string;
+        notes: {
+            top: string[];
+            heart: string[];
+            base: string[];
+        };
+        // accords removed as per user request
+    }
+}
+
+export interface GuessHistoryItem {
+    perfumeId: string;
+    perfumeName: string;
+    brandName: string;
+    timestamp: string;
+    isCorrect: boolean;
 }
 
 export interface StartGameResponse {
@@ -25,6 +49,7 @@ export interface StartGameResponse {
     imageUrl: string | null;
     revealState: RevealState;
     graceDeadline: string;
+    guesses: GuessHistoryItem[];
 }
 
 export interface GuessResult {
@@ -76,7 +101,54 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
         throw new Error('Failed to fetch daily challenge');
     }
 
-    return data as DailyChallenge;
+    // Now securely fetch the perfume details for clues using Admin Client
+    // We need the ID from the protected table to look up the perfume details
+    const adminSupabase = createAdminClient();
+    const { data: challengePrivate } = await adminSupabase
+        .from('daily_challenges')
+        .select('perfume_id')
+        .eq('id', data.id)
+        .single();
+
+    if (!challengePrivate) {
+        throw new Error('Challenge integrity error');
+    }
+
+    const { data: perfume } = await adminSupabase
+        .from('perfumes')
+        .select(`
+            name,
+            release_year,
+            gender,
+            top_notes,
+            middle_notes,
+            base_notes,
+            perfumers,
+            brands (name)
+        `)
+        .eq('id', challengePrivate.perfume_id)
+        .single();
+
+    if (!perfume) {
+        throw new Error('Perfume not found for challenge');
+    }
+
+    const brandName = perfume.brands && !Array.isArray(perfume.brands) ? (perfume.brands as any).name : 'Unknown';
+
+    return {
+        ...data,
+        clues: {
+            brand: brandName,
+            perfumer: perfume.perfumers && perfume.perfumers.length > 0 ? perfume.perfumers.join(', ') : 'Unknown',
+            year: perfume.release_year || 0,
+            gender: perfume.gender || 'Unisex',
+            notes: {
+                top: perfume.top_notes || [],
+                heart: perfume.middle_notes || [],
+                base: perfume.base_notes || []
+            }
+        }
+    } as DailyChallenge;
 }
 
 export async function startGame(challengeId: string): Promise<StartGameResponse> {
@@ -90,7 +162,7 @@ export async function startGame(challengeId: string): Promise<StartGameResponse>
     // Check if session already exists
     const { data: existingSession } = await supabase
         .from('game_sessions')
-        .select('id, last_nonce, attempts_count')
+        .select('id, last_nonce, attempts_count, guesses')
         .eq('player_id', user.id)
         .eq('challenge_id', challengeId)
         .eq('status', 'active')
@@ -106,12 +178,40 @@ export async function startGame(challengeId: string): Promise<StartGameResponse>
 
         const imageUrl = await getImageUrlForStep(existingSession.id);
 
+        // Enrich guess history
+        const rawGuesses = (existingSession.guesses as any[]) || [];
+        const enrichedGuesses: GuessHistoryItem[] = [];
+
+        if (rawGuesses.length > 0) {
+            const adminSupabase = createAdminClient();
+            // Collect all perfume IDs to fetch details in bulk (optimization)
+            // Or just iterate if list is small (max 6) -> iterating is fine for <10 items
+            for (const guess of rawGuesses) {
+                const { data: p } = await adminSupabase
+                    .from('perfumes')
+                    .select('name, brands(name)')
+                    .eq('id', guess.perfumeId)
+                    .single();
+
+                if (p) {
+                    enrichedGuesses.push({
+                        perfumeId: guess.perfumeId,
+                        perfumeName: p.name,
+                        brandName: (p.brands as any)?.name || 'Unknown',
+                        timestamp: guess.timestamp,
+                        isCorrect: guess.isCorrect
+                    });
+                }
+            }
+        }
+
         return {
             sessionId: existingSession.id,
             nonce: String(existingSession.last_nonce),
             imageUrl: imageUrl,
             revealState: getRevealPercentages(existingSession.attempts_count + 1),
-            graceDeadline: graceQuery.data?.grace_deadline_at_utc
+            graceDeadline: graceQuery.data?.grace_deadline_at_utc,
+            guesses: enrichedGuesses
         };
     }
 
@@ -166,7 +266,8 @@ export async function startGame(challengeId: string): Promise<StartGameResponse>
         nonce: nonce,
         imageUrl: imageUrl,
         revealState: getRevealPercentages(1),
-        graceDeadline: graceQuery.data?.grace_deadline_at_utc
+        graceDeadline: graceQuery.data?.grace_deadline_at_utc,
+        guesses: []
     };
 }
 
@@ -212,8 +313,8 @@ export async function getImageUrlForStep(sessionId: string) {
     // attempts=0 -> Step 1
     // attempts=1 -> Step 2
     // ...
-    // attempts>=5 -> Step 6 (Reveal)
-    const step = Math.min(session.attempts_count + 1, 6);
+    // attempts>=MAX_GUESSES -> Step 6 (Reveal)
+    const step = Math.min(session.attempts_count + 1, MAX_GUESSES);
     const key = assets[`image_key_step_${step}` as keyof typeof assets];
 
     // Use environment variable for assets host, fallback to example if not set

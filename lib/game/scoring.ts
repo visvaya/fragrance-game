@@ -1,27 +1,29 @@
 
+import { MAX_GUESSES } from '@/lib/constants';
+
 /**
  * Scoring and Reveal Logic for Fragrance Game
  */
 
 export interface RevealState {
-  blur: number;       // Blur radius in px
-  radialMask: number; // Percentage (0-100)
-  brandLetters: number; // Percentage (0-100) of brand letters revealed
-  perfumerLetters: number; // Percentage (0-100) of perfumer letters revealed
-  yearMask: string;   // '----' or full year
-  showGender: boolean;
+    blur: number;       // Blur radius in px
+    radialMask: number; // Percentage (0-100)
+    brandLetters: number; // Percentage (0-100) of brand letters revealed
+    perfumerLetters: number; // Percentage (0-100) of perfumer letters revealed
+    yearMask: string;   // '----' or full year
+    showGender: boolean;
 }
 
 export type GameStatus = 'active' | 'won' | 'lost' | 'abandoned';
 
 export interface GameResult {
-  status: GameStatus;
-  score: number;
-  scoreRaw: number;
-  attempts: number;
-  timeSeconds: number; // Duration of the game
-  isRanked: boolean;
-  rankedReason?: string;
+    status: GameStatus;
+    score: number;
+    scoreRaw: number;
+    attempts: number;
+    timeSeconds: number; // Duration of the game
+    isRanked: boolean;
+    rankedReason?: string;
 }
 
 const ATTEMPT_SCORES = [1000, 700, 490, 343, 240, 168];
@@ -31,10 +33,10 @@ const ATTEMPT_SCORES = [1000, 700, 490, 343, 240, 168];
  * Formula: 1000 * (0.7 ^ (attempts - 1))
  */
 export function calculateBaseScore(attempts: number): number {
-  if (attempts < 1) return 1000;
-  if (attempts > 6) return 0; // Should be handled as lost game
-  // Use pre-calculated values to avoid floating point drift and ensure exact match with spec
-  return ATTEMPT_SCORES[attempts - 1];
+    if (attempts < 1) return 1000;
+    if (attempts > MAX_GUESSES) return 0; // Should be handled as lost game
+    // Use pre-calculated values to avoid floating point drift and ensure exact match with spec
+    return ATTEMPT_SCORES[attempts - 1];
 }
 
 /**
@@ -42,9 +44,9 @@ export function calculateBaseScore(attempts: number): number {
  * Formula: base_score * (1 + xsolve_score * 0.3)
  */
 export function calculateFinalScore(baseScore: number, xsolveScore: number): number {
-  if (baseScore <= 0) return 0;
-  // Apply bonus and strict rounding to integer
-  return Math.round(baseScore * (1 + (xsolveScore * 0.3)));
+    if (baseScore <= 0) return 0;
+    // Apply bonus and strict rounding to integer
+    return Math.round(baseScore * (1 + (xsolveScore * 0.3)));
 }
 
 /**
@@ -52,7 +54,7 @@ export function calculateFinalScore(baseScore: number, xsolveScore: number): num
  */
 export function getRevealPercentages(attempt: number): RevealState {
     // Ensure attempt is clamped 1-6
-    const safeAttempt = Math.max(1, Math.min(6, attempt));
+    const safeAttempt = Math.max(1, Math.min(MAX_GUESSES, attempt));
 
     switch (safeAttempt) {
         case 1:
@@ -68,8 +70,8 @@ export function getRevealPercentages(attempt: number): RevealState {
         case 6:
             return { blur: 0, radialMask: 100, brandLetters: 100, perfumerLetters: 100, yearMask: 'FULL', showGender: true };
         default:
-             // Fallback to attempt 1
-             return { blur: 32, radialMask: 0, brandLetters: 0, perfumerLetters: 0, yearMask: '----', showGender: false };
+            // Fallback to attempt 1
+            return { blur: 32, radialMask: 0, brandLetters: 0, perfumerLetters: 0, yearMask: '----', showGender: false };
     }
 }
 
@@ -85,12 +87,12 @@ export function revealLetters(text: string, percentage: number): string {
 
     const chars = text.split('');
     const revealTarget = Math.ceil((text.replace(/[\s-]/g, '').length * percentage) / 100);
-    
+
     // Simple center-outward logic for whole string
     // Better UX: Reveal center-outward per WORD (token)?
     // Spec says: "Letters revealed from center of token outward" -> assuming whole string for simplicity first or as per prompt "token center outward".
     // Let's implement per-token (word) center-outward as it looks better for multi-word brands like "Yves Saint Laurent".
-    
+
     return text.split(/(\s+|-)/).map(token => {
         if (/^[\s-]+$/.test(token)) return token; // Separator
         return revealTokenCenterOutward(token, percentage);
@@ -100,22 +102,22 @@ export function revealLetters(text: string, percentage: number): string {
 function revealTokenCenterOutward(token: string, percentage: number): string {
     const len = token.length;
     if (len === 0) return token;
-    
+
     // Number of letters to show in this token
     const countToShow = Math.ceil(len * (percentage / 100));
-    
+
     if (countToShow >= len) return token;
     if (countToShow <= 0) return '•'.repeat(len);
 
     const centerIndex = Math.floor((len - 1) / 2);
     const indicesToShow = new Set<number>();
-    
+
     // Always show center char first
     indicesToShow.add(centerIndex);
-    
+
     let left = centerIndex - 1;
     let right = centerIndex + 1;
-    
+
     while (indicesToShow.size < countToShow) {
         // Expand outward: Right, then Left (arbitrary preference, or alternate)
         // Let's alternate Right -> Left
@@ -128,7 +130,7 @@ function revealTokenCenterOutward(token: string, percentage: number): string {
             left--;
         }
     }
-    
+
     // Build result
     let result = '';
     for (let i = 0; i < len; i++) {

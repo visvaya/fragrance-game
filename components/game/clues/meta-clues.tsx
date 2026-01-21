@@ -3,7 +3,7 @@
 import { useGame } from "../game-provider"
 
 export function MetaClues() {
-  const { getRevealedBrand, getRevealedPerfumer, getRevealedYear, revealLevel } = useGame()
+  const { getRevealedBrand, getRevealedPerfumer, getRevealedYear, revealLevel, dailyPerfume } = useGame()
 
   const clues = [
     { label: "House / Brand", value: getRevealedBrand() },
@@ -11,7 +11,7 @@ export function MetaClues() {
     { label: "Year", value: getRevealedYear() },
     {
       label: "Gender",
-      value: revealLevel >= 5 ? "Masculine" : "???",
+      value: revealLevel >= 5 ? dailyPerfume.gender : "???",
     },
   ]
 

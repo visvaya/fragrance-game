@@ -2,23 +2,24 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
 import { usePostHog } from 'posthog-js/react'
-import { getDailyChallenge, startGame, submitGuess } from "@/app/actions/game-actions"
+import { getDailyChallenge, startGame, submitGuess, type DailyChallenge } from "@/app/actions/game-actions"
 import { createClient } from "@/lib/supabase/client"
+import { MAX_GUESSES } from "@/lib/constants"
 
-// Sample perfume data for demonstration (Fallback / Static part)
-const DAILY_PERFUME = {
-  id: 1,
-  name: "Terre d'Hermès",
-  brand: "Hermès",
-  perfumer: "Jean-Claude Ellena",
-  year: 2006,
-  gender: "Masculine",
+// Skeleton / Default for initialization (prevents null checks everywhere)
+const SKELETON_PERFUME = {
+  id: "skeleton",
+  name: "Loading...",
+  brand: "Loading...",
+  perfumer: "Loading...",
+  year: 2024,
+  gender: "Masculine", // Fallback
   notes: {
-    top: ["Orange", "Grapefruit", "Bergamot"],
-    heart: ["Pepper", "Geranium", "Patchouli"],
-    base: ["Vetiver", "Cedar", "Benzoin"],
+    top: ["?", "?", "?"],
+    heart: ["?", "?", "?"],
+    base: ["?", "?", "?"],
   },
-  accords: ["Woody", "Earthy", "Citrus", "Aromatic", "Fresh Spicy"],
+  // Accords removed
   imageUrl: "/placeholder.svg?height=400&width=400",
 }
 
@@ -43,12 +44,11 @@ type GameContextType = {
   attempts: Attempt[]
   gameState: GameState
   revealLevel: number
-  dailyPerfume: typeof DAILY_PERFUME
+  dailyPerfume: typeof SKELETON_PERFUME
   makeGuess: (perfumeName: string, brand: string, perfumeId: string) => void
   getRevealedBrand: () => string
   getRevealedPerfumer: () => string
   getRevealedYear: () => string
-  getVisibleAccords: () => { visible: string[]; hidden: number }
   getVisibleNotes: () => { top: string[] | null; heart: string[] | null; base: string[] }
   getBlurLevel: () => number
   getPotentialScore: () => number
@@ -67,6 +67,7 @@ export function useGame() {
 
 // Utility function to reveal letters from center outward
 function revealLetters(text: string, percentage: number): string {
+  if (!text) return "";
   const separators = /[\s\-'.&]/
   const tokens = text.split(separators)
   const separatorMatches = text.match(separators) || []
@@ -129,8 +130,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg?height=400&width=400")
   const [loading, setLoading] = useState(true)
   const [sessionId, setSessionId] = useState<string | null>(null)
+  const [dailyPerfume, setDailyPerfume] = useState<typeof SKELETON_PERFUME>(SKELETON_PERFUME)
 
   const [nonce, setNonce] = useState<string>("") // Add nonce state
+  const maxAttempts = MAX_GUESSES
 
   // Initialize Game (with proper auth sequencing)
   useEffect(() => {
@@ -152,11 +155,57 @@ export function GameProvider({ children }: { children: ReactNode }) {
         const challenge = await getDailyChallenge()
         if (challenge) {
           posthog.capture('daily_challenge_viewed', { challenge_number: challenge.id })
+
+          // Setup Daily Perfume Clues
+          if (challenge.clues) {
+            setDailyPerfume({
+              id: "daily",
+              name: "Mystery Perfume", // Name is secret!
+              brand: challenge.clues.brand,
+              perfumer: challenge.clues.perfumer,
+              year: challenge.clues.year,
+              gender: challenge.clues.gender,
+              notes: challenge.clues.notes,
+              imageUrl: "/placeholder.svg" // Will be overwritten by session
+            });
+          }
+
           const session = await startGame(challenge.id)
           setSessionId(session.sessionId)
           setNonce(session.nonce) // Store nonce
           if (session.imageUrl) {
             setImageUrl(session.imageUrl)
+          }
+
+          // Hydrate Attempts
+          if (session.guesses && session.guesses.length > 0) {
+            const enrichedAttempts: Attempt[] = session.guesses.map(g => {
+              const isCorrect = g.isCorrect;
+              // For hydrating feedback, if we don't have detailed diff from server in StartGameResponse,
+              // we can infer rudimentary feedback or wait for a better implementation.
+              // For now, if "isCorrect" is true, everything is matched.
+              // If false, we can't easily know "close" matches without storing diffs in DB.
+              // Let's assume partial/wrong for now unless correct.
+              // BETTER: Compare with challenge.clues which we just fetched!
+
+              const brandMatch = g.brandName.toLowerCase() === challenge.clues.brand.toLowerCase();
+
+              return {
+                guess: g.perfumeName,
+                brand: g.brandName,
+                feedback: {
+                  brandMatch,
+                  perfumerMatch: isCorrect, // approximated
+                  yearMatch: isCorrect ? "correct" : "wrong", // approximated
+                  notesMatch: isCorrect ? "full" : "partial" // approximated
+                }
+              };
+            });
+            setAttempts(enrichedAttempts);
+
+            const lastGuess = session.guesses[session.guesses.length - 1];
+            if (lastGuess.isCorrect) setGameState("won");
+            else if (session.guesses.length >= maxAttempts) setGameState("lost");
           }
         }
       } catch (e) {
@@ -169,10 +218,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // Merge dynamic image into the daily perfume object
-  const activePerfume = { ...DAILY_PERFUME, imageUrl }
+  const activePerfume = { ...dailyPerfume, imageUrl }
 
   const currentAttempt = attempts.length + 1
-  const maxAttempts = 5
   const revealLevel = Math.min(currentAttempt, maxAttempts)
 
 
@@ -181,8 +229,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (gameState !== "playing" || attempts.length >= maxAttempts || !sessionId) return
 
       try {
-        // BRIDGE IMPLEMENTATION:
-        // Now using real perfumeId from Autocomplete
         const result = await submitGuess(sessionId, perfumeId, nonce)
 
         if (result.imageUrl) {
@@ -194,7 +240,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
 
         const feedback: AttemptFeedback = {
-          brandMatch: brand.toLowerCase() === DAILY_PERFUME.brand.toLowerCase(),
+          brandMatch: brand.toLowerCase() === dailyPerfume.brand.toLowerCase(),
           perfumerMatch: false,
           yearMatch: "wrong",
           notesMatch: "partial",
@@ -211,61 +257,54 @@ export function GameProvider({ children }: { children: ReactNode }) {
         if (result.gameStatus === 'won') {
           setGameState("won")
         } else if (attempts.length + 1 >= maxAttempts) {
-          setGameState("lost")
+          setGameState("lost") // Fixed: use local attempts length
         }
 
       } catch (error) {
         console.error("Guess submission failed:", error)
       }
     },
-    [attempts.length, gameState, maxAttempts, sessionId, nonce],
+    [attempts.length, gameState, maxAttempts, sessionId, nonce, dailyPerfume.brand],
   )
 
 
   const getRevealedBrand = useCallback(() => {
-    const percentages = [0.15, 0.3, 0.5, 0.75, 1.0]
-    return revealLetters(DAILY_PERFUME.brand, percentages[revealLevel - 1])
-  }, [revealLevel])
+    const percentages = [0.15, 0.3, 0.5, 0.75, 1.0, 1.0] // Adjusted for 6 attempts
+    return revealLetters(dailyPerfume.brand, percentages[Math.min(revealLevel - 1, 5)])
+  }, [revealLevel, dailyPerfume.brand])
 
   const getRevealedPerfumer = useCallback(() => {
-    const percentages = [0.1, 0.25, 0.45, 0.7, 1.0]
-    return revealLetters(DAILY_PERFUME.perfumer, percentages[revealLevel - 1])
-  }, [revealLevel])
+    const percentages = [0.1, 0.25, 0.45, 0.7, 1.0, 1.0] // Adjusted for 6 attempts
+    return revealLetters(dailyPerfume.perfumer, percentages[Math.min(revealLevel - 1, 5)])
+  }, [revealLevel, dailyPerfume.perfumer])
 
   const getRevealedYear = useCallback(() => {
-    const year = DAILY_PERFUME.year.toString()
+    const year = dailyPerfume.year.toString()
     if (revealLevel === 1) return year.slice(0, 2) + "––"
     if (revealLevel === 2) return year.slice(0, 3) + "–"
     return year
-  }, [revealLevel])
+  }, [revealLevel, dailyPerfume.year])
 
-  const getVisibleAccords = useCallback(() => {
-    const percentages = [0.25, 0.5, 0.75, 1.0, 1.0]
-    const visibleCount = Math.ceil(DAILY_PERFUME.accords.length * percentages[revealLevel - 1])
-    return {
-      visible: DAILY_PERFUME.accords.slice(0, visibleCount),
-      hidden: DAILY_PERFUME.accords.length - visibleCount,
-    }
-  }, [revealLevel])
+  // Removed getVisibleAccords
 
   const getVisibleNotes = useCallback(() => {
     // Level 1: only base, Level 2: base + heart, Level 3+: all
     return {
-      top: revealLevel >= 3 ? DAILY_PERFUME.notes.top : null,
-      heart: revealLevel >= 2 ? DAILY_PERFUME.notes.heart : null,
-      base: DAILY_PERFUME.notes.base,
+      top: revealLevel >= 3 ? dailyPerfume.notes.top : null,
+      heart: revealLevel >= 2 ? dailyPerfume.notes.heart : null,
+      base: dailyPerfume.notes.base,
     }
-  }, [revealLevel])
+  }, [revealLevel, dailyPerfume.notes])
 
   const getBlurLevel = useCallback(() => {
-    // 5 levels of blur: 24px -> 18px -> 12px -> 6px -> 0px
-    const blurLevels = [24, 18, 12, 6, 0]
-    return blurLevels[revealLevel - 1]
+    // 6 levels of blur: 32px -> 24px -> 16px -> 10px -> 4px -> 0px
+    const blurLevels = [32, 24, 16, 10, 4, 0]
+    return blurLevels[Math.min(revealLevel - 1, 5)]
   }, [revealLevel])
 
   const getPotentialScore = useCallback(() => {
-    const baseScores = [1000, 700, 450, 250, 100]
-    return baseScores[Math.min(currentAttempt - 1, 4)]
+    const baseScores = [1000, 700, 490, 343, 240, 168]
+    return baseScores[Math.min(currentAttempt - 1, 5)]
   }, [currentAttempt])
 
   return (
@@ -281,7 +320,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         getRevealedBrand,
         getRevealedPerfumer,
         getRevealedYear,
-        getVisibleAccords,
+        // getVisibleAccords removed
         getVisibleNotes,
         getBlurLevel,
         getPotentialScore,
