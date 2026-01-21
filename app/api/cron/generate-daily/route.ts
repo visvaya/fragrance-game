@@ -58,13 +58,13 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // 3. Get recently used perfume IDs (last 30 days)
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 30);
+        // 3. Get recently used perfume IDs (last 365 days = 1 year)
+        const oneYearAgo = new Date();
+        oneYearAgo.setUTCDate(oneYearAgo.getUTCDate() - 365);
         const { data: recentChallenges } = await adminSupabase
             .from('daily_challenges')
             .select('perfume_id')
-            .gte('challenge_date', thirtyDaysAgo.toISOString().split('T')[0]);
+            .gte('challenge_date', oneYearAgo.toISOString().split('T')[0]);
 
         const usedPerfumeIds = recentChallenges?.map(c => c.perfume_id) || [];
 
