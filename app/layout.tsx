@@ -14,6 +14,7 @@ import "./globals.css"
 const geistSans = Geist({
   subsets: ["latin"],
   variable: "--font-geist-sans",
+  display: "swap",
 })
 
 /**
@@ -22,6 +23,7 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-geist-mono",
+  display: "swap",
 })
 
 /**
@@ -30,6 +32,7 @@ const geistMono = Geist_Mono({
 const playfair = Playfair_Display({
   subsets: ["latin"],
   variable: "--font-playfair",
+  display: "swap",
 })
 
 /**
@@ -39,6 +42,7 @@ const caveat = Caveat({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-caveat",
+  display: "swap",
 })
 
 export const metadata: Metadata = {

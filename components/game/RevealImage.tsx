@@ -15,6 +15,7 @@ export function RevealImage() {
                 src={dailyPerfume.imageUrl || "/placeholder.svg"}
                 alt="Mystery perfume bottle"
                 fill
+                sizes="(max-width: 768px) 100vw, 40vw"
                 className="object-cover transition-all duration-700"
                 priority
             />
