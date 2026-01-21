@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+.eslintcache
 
 # next.js
 /.next/
@@ -48,6 +49,5 @@ __pycache__/
 # reports
 /lighthouse-report*
 /lighthouse.json
-git_status_full.txt
 /reports/
 git_status_full.txt
