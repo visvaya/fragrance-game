@@ -52,6 +52,13 @@ export interface StartGameResponse {
     guesses: GuessHistoryItem[];
 }
 
+export interface AttemptFeedback {
+    brandMatch: boolean;
+    perfumerMatch: boolean;
+    yearMatch: "correct" | "close" | "wrong";
+    notesMatch: "full" | "partial" | "none";
+}
+
 export interface GuessResult {
     result: 'correct' | 'incorrect';
     newNonce: string;
@@ -60,12 +67,7 @@ export interface GuessResult {
     gameStatus: 'active' | 'won' | 'lost';
     finalScore?: number;
     message?: string;
-    feedback?: {
-        year?: string;
-        brand?: string; // Partial reveal
-        perfumer?: string; // Partial reveal
-        gender?: boolean;
-    }
+    feedback: AttemptFeedback;
 }
 
 // --- Helpers ---
@@ -362,7 +364,13 @@ export async function submitGuess(
             result: 'incorrect',
             newNonce: String(session.last_nonce),
             revealState: getRevealPercentages(6),
-            gameStatus: session.status as any
+            gameStatus: session.status as any,
+            feedback: {
+                brandMatch: false,
+                perfumerMatch: false,
+                yearMatch: "wrong",
+                notesMatch: "none"
+            }
         };
     }
 
@@ -386,7 +394,37 @@ export async function submitGuess(
     const nextAttempts = currentAttempts + 1;
     const isGameOver = isCorrect || nextAttempts >= 6;
 
-    // 4. Update Session (as User - enforces RLS ownership)
+    // 4. Calculate Feedback (fetch both perfumes to compare)
+    const [guessedPerfumeRes, answerPerfumeRes] = await Promise.all([
+        adminSupabase
+            .from('perfumes')
+            .select('brand_id, release_year')
+            .eq('id', perfumeId)
+            .single(),
+        adminSupabase
+            .from('perfumes')
+            .select('brand_id, release_year')
+            .eq('id', challenge.perfume_id)
+            .single()
+    ]);
+
+    const guessedPerfume = guessedPerfumeRes.data;
+    const answerPerfume = answerPerfumeRes.data;
+
+    const feedback: AttemptFeedback = {
+        brandMatch: guessedPerfume?.brand_id === answerPerfume?.brand_id,
+        perfumerMatch: false, // TODO: implement perfumer matching
+        yearMatch: (() => {
+            if (!guessedPerfume?.release_year || !answerPerfume?.release_year) return "wrong";
+            const diff = Math.abs(guessedPerfume.release_year - answerPerfume.release_year);
+            if (diff === 0) return "correct";
+            if (diff <= 5) return "close";
+            return "wrong";
+        })(),
+        notesMatch: "partial" // TODO: implement notes matching
+    };
+
+    // 5. Update Session (as User - enforces RLS ownership)
     const newNonce = generateNonce();
 
     // Append guess to history
@@ -423,7 +461,7 @@ export async function submitGuess(
         perfume_id: perfumeId
     }, user.id);
 
-    // 5. Finalize Game if Over
+    // 6. Finalize Game if Over
     let finalScore = 0;
     if (isGameOver) {
         // Fetch Target Perfume Data using Admin Client to ensure we can get xsolve_score
@@ -468,10 +506,10 @@ export async function submitGuess(
         }, user.id);
     }
 
-    // 6. Get Next Image URL
+    // 7. Get Next Image URL
     const nextImageUrl = await getImageUrlForStep(sessionId);
 
-    // 7. Return Result
+    // 8. Return Result
     return {
         result: isCorrect ? 'correct' : 'incorrect',
         newNonce: newNonce,
@@ -479,5 +517,6 @@ export async function submitGuess(
         revealState: getRevealPercentages(nextAttempts),
         gameStatus: isCorrect ? 'won' : (nextAttempts >= 6 ? 'lost' : 'active'),
         finalScore: isGameOver ? finalScore : undefined,
+        feedback: feedback
     };
 }

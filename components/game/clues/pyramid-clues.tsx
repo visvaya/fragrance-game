@@ -7,9 +7,9 @@ export function PyramidClues() {
   const notes = getVisibleNotes()
 
   const levels = [
-    { name: "Top Notes", notes: notes.top, nameEn: "Top" },
-    { name: "Heart Notes", notes: notes.heart, nameEn: "Heart" },
-    { name: "Base Notes", notes: notes.base, nameEn: "Base" },
+    { name: "Top", notes: notes.top, nameEn: "Top" },
+    { name: "Heart", notes: notes.heart, nameEn: "Heart" },
+    { name: "Base", notes: notes.base, nameEn: "Base" },
   ]
 
   return (
@@ -20,7 +20,7 @@ export function PyramidClues() {
         {levels.map((level) => (
           <li key={level.name} className="grid grid-cols-[70px_1fr] items-center">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{level.name}</span>
-            {level.notes ? (
+            {level.notes && level.notes.length > 0 ? (
               <span className="text-sm text-foreground">{level.notes.join(", ")}</span>
             ) : (
               <span className="text-sm text-muted-foreground/50 tracking-widest">? ? ? ?</span>

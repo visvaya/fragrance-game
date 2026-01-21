@@ -16,7 +16,8 @@ export type PerfumeSuggestion = {
 
 export async function searchPerfumes(
     query: string,
-    sessionId?: string
+    sessionId?: string,
+    currentAttempt?: number
 ): Promise<PerfumeSuggestion[]> {
     // 1. Input Validation
     const result = autocompleteSchema.safeParse({ query, sessionId });
@@ -36,20 +37,8 @@ export async function searchPerfumes(
     }
 
     // 3. Brand Masking Sync
-    let attemptsCount = 0;
-    if (validatedSessionId) {
-        const { data: session, error } = await supabase
-            .from('game_sessions')
-            .select('attempts_count, player_id')
-            .eq('id', validatedSessionId)
-            .single();
-
-        if (session && !error) {
-            if (user && session.player_id === user.id) {
-                attemptsCount = session.attempts_count ?? 0;
-            }
-        }
-    }
+    // Use currentAttempt from client instead of querying DB
+    const attemptsCount = currentAttempt ?? 0;
 
     // 4. Database Query
     // Using the updated perfumes_public view which now includes brand_name and concentration_name

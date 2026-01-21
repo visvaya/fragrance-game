@@ -27,7 +27,7 @@ export function GameInput() {
 
       setIsLoading(true)
       try {
-        const results = await searchPerfumes(query, sessionId || undefined)
+        const results = await searchPerfumes(query, sessionId || undefined, currentAttempt)
         setSuggestions(results)
       } catch (error) {
         console.error("Autocomplete failed:", error)

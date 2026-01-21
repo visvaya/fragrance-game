@@ -49,7 +49,7 @@ type GameContextType = {
   getRevealedBrand: () => string
   getRevealedPerfumer: () => string
   getRevealedYear: () => string
-  getVisibleNotes: () => { top: string[] | null; heart: string[] | null; base: string[] }
+  getVisibleNotes: () => { top: string[] | null; heart: string[] | null; base: string[] | null }
   getBlurLevel: () => number
   getPotentialScore: () => number
   sessionId: string | null // Exposed for Autocomplete context
@@ -239,12 +239,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
           setNonce(result.newNonce)
         }
 
-        const feedback: AttemptFeedback = {
-          brandMatch: brand.toLowerCase() === dailyPerfume.brand.toLowerCase(),
-          perfumerMatch: false,
-          yearMatch: "wrong",
-          notesMatch: "partial",
-        }
+        // Use server feedback (proper implementation)
+        const feedback = result.feedback
 
         const newAttempt: Attempt = {
           guess: perfumeName,
@@ -257,7 +253,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         if (result.gameStatus === 'won') {
           setGameState("won")
         } else if (attempts.length + 1 >= maxAttempts) {
-          setGameState("lost") // Fixed: use local attempts length
+          setGameState("lost")
         }
 
       } catch (error) {
@@ -292,7 +288,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return {
       top: revealLevel >= 3 ? dailyPerfume.notes.top : null,
       heart: revealLevel >= 2 ? dailyPerfume.notes.heart : null,
-      base: dailyPerfume.notes.base,
+      base: revealLevel >= 1 ? dailyPerfume.notes.base : null,
     }
   }, [revealLevel, dailyPerfume.notes])
 

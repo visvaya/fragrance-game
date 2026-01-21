@@ -3,7 +3,7 @@
 import { useGame } from "./game-provider"
 import { MarkerCircle } from "./marker-circle"
 
-const ROMAN_NUMERALS = ["I", "II", "III", "IV", "V"]
+const ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI"]
 
 export function AttemptLog() {
   const { attempts, maxAttempts } = useGame()
