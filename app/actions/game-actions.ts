@@ -32,6 +32,8 @@ export interface DailyChallenge {
             base: string[];
         };
         // accords removed as per user request
+        isLinear: boolean;
+        xsolve: number;
     }
 }
 
@@ -54,9 +56,10 @@ export interface StartGameResponse {
 
 export interface AttemptFeedback {
     brandMatch: boolean;
-    perfumerMatch: boolean;
+    perfumerMatch: "full" | "partial" | "none";
     yearMatch: "correct" | "close" | "wrong";
-    notesMatch: "full" | "partial" | "none";
+    yearDirection: "higher" | "lower" | "equal";
+    notesMatch: number; // 0-1 matches
 }
 
 export interface GuessResult {
@@ -68,9 +71,70 @@ export interface GuessResult {
     finalScore?: number;
     message?: string;
     feedback: AttemptFeedback;
+    guessedPerfumers?: string[];
 }
 
 // --- Helpers ---
+
+/**
+ * Calculates Jaccard similarity between two sets of notes.
+ */
+function cleanNote(note: string): string {
+    let t = note.trim();
+    t = t.replace(/[™®]/g, '');
+    t = t.replace(/\bLa Réunion\b/gi, '');
+    const removeWords = ['absolute', 'scenttrek', 'orpur', 'co2', 'concrete', 'otto', 'nectar', 'material', 'resinoid', 'oxide'];
+    const pattern = new RegExp(`\\b(${removeWords.join('|')})\\b`, 'gi');
+    t = t.replace(pattern, '');
+    t = t.replace(/\(.*?\)/g, '');
+    t = t.replace(/\s+/g, ' ').trim();
+    t = t.replace(/[,\-]$/, '').trim();
+    return t.toLowerCase();
+}
+
+function calculateNotesMatch(
+    guessNotes: { top: string[], heart: string[], base: string[] },
+    answerNotes: { top: string[], heart: string[], base: string[] }
+): number {
+    const guessSet = new Set([
+        ...(guessNotes.top || []).map(n => cleanNote(n)),
+        ...(guessNotes.heart || []).map(n => cleanNote(n)),
+        ...(guessNotes.base || []).map(n => cleanNote(n))
+    ]);
+
+    const answerSet = new Set([
+        ...(answerNotes.top || []).map(n => cleanNote(n)),
+        ...(answerNotes.heart || []).map(n => cleanNote(n)),
+        ...(answerNotes.base || []).map(n => cleanNote(n))
+    ]);
+
+    const intersection = new Set([...guessSet].filter(note => answerSet.has(note)));
+    const union = new Set([...guessSet, ...answerSet]);
+
+    return union.size === 0 ? 0 : intersection.size / union.size;
+}
+
+function calculatePerfumerMatch(
+    guessPerfumers: string[] | null,
+    answerPerfumers: string[] | null
+): "full" | "partial" | "none" {
+    if (!guessPerfumers || !answerPerfumers) return "none";
+
+    // Normalize logic slightly different for names? Standard trim/lower is usually enough
+    const guessSet = new Set(guessPerfumers.map(p => p.toLowerCase().trim()));
+    const answerSet = new Set(answerPerfumers.map(p => p.toLowerCase().trim()));
+
+    if (guessSet.size === 0 || answerSet.size === 0) return "none";
+
+    let matchCount = 0;
+    for (const p of guessSet) {
+        if (answerSet.has(p)) matchCount++;
+    }
+
+    if (matchCount === answerSet.size && guessSet.size === answerSet.size) return "full";
+    if (matchCount > 0) return "partial";
+    return "none";
+}
 
 /**
  * Generates a crypto-safe 64-bit signed integer for use as a nonce.
@@ -122,6 +186,8 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
             name,
             release_year,
             gender,
+            is_linear,
+            xsolve_score,
             top_notes,
             middle_notes,
             base_notes,
@@ -148,7 +214,9 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
                 top: perfume.top_notes || [],
                 heart: perfume.middle_notes || [],
                 base: perfume.base_notes || []
-            }
+            },
+            isLinear: perfume.is_linear || false,
+            xsolve: perfume.xsolve_score || 0
         }
     } as DailyChallenge;
 }
@@ -367,9 +435,10 @@ export async function submitGuess(
             gameStatus: session.status as any,
             feedback: {
                 brandMatch: false,
-                perfumerMatch: false,
+                perfumerMatch: "none",
                 yearMatch: "wrong",
-                notesMatch: "none"
+                yearDirection: "equal",
+                notesMatch: 0
             }
         };
     }
@@ -398,12 +467,12 @@ export async function submitGuess(
     const [guessedPerfumeRes, answerPerfumeRes] = await Promise.all([
         adminSupabase
             .from('perfumes')
-            .select('brand_id, release_year')
+            .select('brand_id, release_year, top_notes, middle_notes, base_notes, perfumers')
             .eq('id', perfumeId)
             .single(),
         adminSupabase
             .from('perfumes')
-            .select('brand_id, release_year')
+            .select('brand_id, release_year, top_notes, middle_notes, base_notes, perfumers')
             .eq('id', challenge.perfume_id)
             .single()
     ]);
@@ -411,17 +480,33 @@ export async function submitGuess(
     const guessedPerfume = guessedPerfumeRes.data;
     const answerPerfume = answerPerfumeRes.data;
 
+    if (!guessedPerfume || !answerPerfume) {
+        throw new Error('Perfume comparison data missing');
+    }
+
+    // Year Logic
+    const yearDiff = (guessedPerfume.release_year || 0) - (answerPerfume.release_year || 0);
+    let yearMatch: "correct" | "close" | "wrong" = "wrong";
+    if (yearDiff === 0) yearMatch = "correct";
+    else if (Math.abs(yearDiff) <= 3) yearMatch = "close";
+
     const feedback: AttemptFeedback = {
-        brandMatch: guessedPerfume?.brand_id === answerPerfume?.brand_id,
-        perfumerMatch: false, // TODO: implement perfumer matching
-        yearMatch: (() => {
-            if (!guessedPerfume?.release_year || !answerPerfume?.release_year) return "wrong";
-            const diff = Math.abs(guessedPerfume.release_year - answerPerfume.release_year);
-            if (diff === 0) return "correct";
-            if (diff <= 5) return "close";
-            return "wrong";
-        })(),
-        notesMatch: "partial" // TODO: implement notes matching
+        brandMatch: guessedPerfume.brand_id === answerPerfume.brand_id,
+        perfumerMatch: calculatePerfumerMatch(guessedPerfume.perfumers, answerPerfume.perfumers),
+        yearMatch: yearMatch,
+        yearDirection: yearDiff > 0 ? "lower" : yearDiff < 0 ? "higher" : "equal",
+        notesMatch: calculateNotesMatch(
+            {
+                top: guessedPerfume.top_notes || [],
+                heart: guessedPerfume.middle_notes || [],
+                base: guessedPerfume.base_notes || []
+            },
+            {
+                top: answerPerfume.top_notes || [],
+                heart: answerPerfume.middle_notes || [],
+                base: answerPerfume.base_notes || []
+            }
+        )
     };
 
     // 5. Update Session (as User - enforces RLS ownership)
@@ -430,6 +515,13 @@ export async function submitGuess(
     // Append guess to history
     const guessEntry = {
         perfumeId,
+        perfumeName: '', // Will adhere to DB structure in JSONB? DB stores objects. 
+        // Existing history stores { perfumeId, timestamp, isCorrect }.
+        // Wait, start session logic reads: `guess.brandName` etc.
+        // We should store minimal data or full data?
+        // Checking existing `guessEntry`: `perfumeId, timestamp, isCorrect`.
+        // The implementation plan doesn't specify changing this (except "Capture perfumers in Attempt type" which is Frontend).
+        // Backend stores JSONB.
         timestamp: new Date().toISOString(),
         isCorrect
     };
@@ -517,6 +609,32 @@ export async function submitGuess(
         revealState: getRevealPercentages(nextAttempts),
         gameStatus: isCorrect ? 'won' : (nextAttempts >= 6 ? 'lost' : 'active'),
         finalScore: isGameOver ? finalScore : undefined,
-        feedback: feedback
+        feedback: feedback,
+        guessedPerfumers: guessedPerfume?.perfumers || []
     };
+}
+
+/**
+ * DEBUG ONLY: Resets the current game session by deleting it from the database.
+ * User must start a new game after reset.
+ */
+export async function resetGame(sessionId: string): Promise<{ success: boolean }> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error('Unauthorized');
+
+    // RLS ensures user can only delete their own session
+    const { error } = await supabase
+        .from('game_sessions')
+        .delete()
+        .eq('id', sessionId)
+        .eq('player_id', user.id);
+
+    if (error) {
+        console.error('Reset failed:', error);
+        return { success: false };
+    }
+
+    return { success: true };
 }

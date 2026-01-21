@@ -6,8 +6,8 @@ export function MetaClues() {
   const { getRevealedBrand, getRevealedPerfumer, getRevealedYear, revealLevel, dailyPerfume } = useGame()
 
   const clues = [
-    { label: "House / Brand", value: getRevealedBrand() },
-    { label: "Nose / Perfumer", value: getRevealedPerfumer() },
+    { label: "Brand", value: getRevealedBrand() },
+    { label: "Perfumer", value: getRevealedPerfumer() },
     { label: "Year", value: getRevealedYear() },
     {
       label: "Gender",

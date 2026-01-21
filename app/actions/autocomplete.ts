@@ -40,13 +40,12 @@ export async function searchPerfumes(
     // Use currentAttempt from client instead of querying DB
     const attemptsCount = currentAttempt ?? 0;
 
-    // 4. Database Query
-    // Using the updated perfumes_public view which now includes brand_name and concentration_name
+    // 4. Database Query using RPC with unaccent support
     const { data: perfumes, error: dbError } = await supabase
-        .from('perfumes_public')
-        .select('id, name, release_year, brand_name, concentration_name')
-        .or(`name.ilike.%${validatedQuery}%,brand_name.ilike.%${validatedQuery}%`)
-        .limit(10);
+        .rpc('search_perfumes_unaccent', {
+            search_query: validatedQuery,
+            result_limit: 10
+        });
 
     if (dbError) {
         console.error('Autocomplete DB Error:', dbError);

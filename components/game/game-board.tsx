@@ -5,9 +5,10 @@ import { RevealImage } from "./RevealImage"
 import { MetaClues } from "./clues/meta-clues"
 import { PyramidClues } from "./clues/pyramid-clues"
 import { AttemptLog } from "./attempt-log"
+import { DifficultyDisplay } from "./difficulty-display"
 
 export function GameBoard() {
-  const { gameState, dailyPerfume } = useGame()
+  const { gameState, dailyPerfume, xsolveScore } = useGame()
 
   return (
     <div className="flex flex-col gap-8">
@@ -34,12 +35,14 @@ export function GameBoard() {
               <p className="font-[family-name:var(--font-hand)] text-3xl text-primary mb-2">Magnifique!</p>
               <p className="font-[family-name:var(--font-playfair)] text-xl italic">{dailyPerfume.name}</p>
               <p className="text-muted-foreground text-sm mt-1">by {dailyPerfume.brand}</p>
+              <DifficultyDisplay score={xsolveScore} />
             </div>
           ) : (
             <div>
               <p className="font-[family-name:var(--font-hand)] text-3xl text-destructive mb-2">The answer was...</p>
               <p className="font-[family-name:var(--font-playfair)] text-xl italic">{dailyPerfume.name}</p>
               <p className="text-muted-foreground text-sm mt-1">by {dailyPerfume.brand}</p>
+              <DifficultyDisplay score={xsolveScore} />
             </div>
           )}
         </div>

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
 import { usePostHog } from 'posthog-js/react'
-import { getDailyChallenge, startGame, submitGuess, type DailyChallenge } from "@/app/actions/game-actions"
+import { getDailyChallenge, startGame, submitGuess, resetGame, type DailyChallenge } from "@/app/actions/game-actions"
 import { createClient } from "@/lib/supabase/client"
 import { MAX_GUESSES } from "@/lib/constants"
 
@@ -19,20 +19,23 @@ const SKELETON_PERFUME = {
     heart: ["?", "?", "?"],
     base: ["?", "?", "?"],
   },
-  // Accords removed
+  isLinear: false,
+  xsolve: 0,
   imageUrl: "/placeholder.svg?height=400&width=400",
 }
 
 export type AttemptFeedback = {
   brandMatch: boolean
-  perfumerMatch: boolean
+  perfumerMatch: "full" | "partial" | "none"
   yearMatch: "correct" | "close" | "wrong"
-  notesMatch: "full" | "partial" | "none"
+  yearDirection: "higher" | "lower" | "equal"
+  notesMatch: number
 }
 
 export type Attempt = {
   guess: string
   brand: string
+  perfumers?: string[]
   feedback: AttemptFeedback
 }
 
@@ -52,7 +55,9 @@ type GameContextType = {
   getVisibleNotes: () => { top: string[] | null; heart: string[] | null; base: string[] | null }
   getBlurLevel: () => number
   getPotentialScore: () => number
-  sessionId: string | null // Exposed for Autocomplete context
+  sessionId: string | null
+  resetGame: () => Promise<void>;
+  xsolveScore: number
 }
 
 const GameContext = createContext<GameContextType | null>(null)
@@ -131,6 +136,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [dailyPerfume, setDailyPerfume] = useState<typeof SKELETON_PERFUME>(SKELETON_PERFUME)
+  const [discoveredPerfumers, setDiscoveredPerfumers] = useState<Set<string>>(new Set())
 
   const [nonce, setNonce] = useState<string>("") // Add nonce state
   const maxAttempts = MAX_GUESSES
@@ -166,6 +172,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
               year: challenge.clues.year,
               gender: challenge.clues.gender,
               notes: challenge.clues.notes,
+              isLinear: challenge.clues.isLinear,
+              xsolve: challenge.clues.xsolve,
               imageUrl: "/placeholder.svg" // Will be overwritten by session
             });
           }
@@ -195,9 +203,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
                 brand: g.brandName,
                 feedback: {
                   brandMatch,
-                  perfumerMatch: isCorrect, // approximated
+                  perfumerMatch: isCorrect ? "full" : "none", // approximated
                   yearMatch: isCorrect ? "correct" : "wrong", // approximated
-                  notesMatch: isCorrect ? "full" : "partial" // approximated
+                  yearDirection: "equal", // basic fallback
+                  notesMatch: isCorrect ? 1 : 0 // approximated
                 }
               };
             });
@@ -216,6 +225,29 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
     initGame()
   }, [])
+
+  // Track discovered perfumers
+  useEffect(() => {
+    const newDiscovered = new Set(discoveredPerfumers);
+    attempts.forEach(attempt => {
+      if (attempt.feedback.perfumerMatch === "full" || attempt.feedback.perfumerMatch === "partial") {
+        const guessPerfumers = attempt.perfumers || [];
+        const answerPerfumers = dailyPerfume.perfumer.split(',').map(p => p.trim().toLowerCase());
+
+        guessPerfumers.forEach(p => {
+          if (answerPerfumers.includes(p.trim().toLowerCase())) {
+            const originalName = dailyPerfume.perfumer.split(',').find(n => n.trim().toLowerCase() === p.trim().toLowerCase());
+            if (originalName) newDiscovered.add(originalName.trim());
+          }
+        });
+
+        if (attempt.feedback.perfumerMatch === "full") {
+          dailyPerfume.perfumer.split(',').forEach(p => newDiscovered.add(p.trim()));
+        }
+      }
+    });
+    setDiscoveredPerfumers(newDiscovered);
+  }, [attempts, dailyPerfume.perfumer]);
 
   // Merge dynamic image into the daily perfume object
   const activePerfume = { ...dailyPerfume, imageUrl }
@@ -245,6 +277,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         const newAttempt: Attempt = {
           guess: perfumeName,
           brand,
+          perfumers: result.guessedPerfumers,
           feedback,
         }
 
@@ -263,23 +296,105 @@ export function GameProvider({ children }: { children: ReactNode }) {
     [attempts.length, gameState, maxAttempts, sessionId, nonce, dailyPerfume.brand],
   )
 
+  const handleReset = useCallback(async () => {
+    if (!sessionId) {
+      console.warn('No session to reset');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Call server action to delete session
+      const result = await resetGame(sessionId);
+
+      if (result.success) {
+        // Clear all local state
+        setAttempts([]);
+        setGameState('playing');
+        setNonce('');
+        setSessionId(null);
+        setImageUrl('/placeholder.svg');
+
+        // Reinitialize game
+        const challenge = await getDailyChallenge();
+        if (challenge) {
+          // Re-setup clues
+          setDailyPerfume({
+            id: "daily",
+            name: "Mystery Perfume",
+            brand: challenge.clues.brand,
+            perfumer: challenge.clues.perfumer,
+            year: challenge.clues.year,
+            gender: challenge.clues.gender,
+            notes: challenge.clues.notes,
+            isLinear: challenge.clues.isLinear,
+            xsolve: challenge.clues.xsolve,
+            imageUrl: "/placeholder.svg"
+          });
+
+          // Start fresh session
+          const newSession = await startGame(challenge.id);
+          setSessionId(newSession.sessionId);
+          setNonce(newSession.nonce);
+          if (newSession.imageUrl) {
+            setImageUrl(newSession.imageUrl);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Reset failed:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [sessionId]);
+
 
   const getRevealedBrand = useCallback(() => {
-    const percentages = [0.15, 0.3, 0.5, 0.75, 1.0, 1.0] // Adjusted for 6 attempts
+    // Instant reveal if matched
+    if (attempts.some(a => a.feedback.brandMatch)) return dailyPerfume.brand;
+
+    const percentages = [0, 0, 0.1, 0.3, 0.6, 1.0]; // 0/0/10/30/60/100
     return revealLetters(dailyPerfume.brand, percentages[Math.min(revealLevel - 1, 5)])
-  }, [revealLevel, dailyPerfume.brand])
+  }, [revealLevel, dailyPerfume.brand, attempts])
 
   const getRevealedPerfumer = useCallback(() => {
-    const percentages = [0.1, 0.25, 0.45, 0.7, 1.0, 1.0] // Adjusted for 6 attempts
-    return revealLetters(dailyPerfume.perfumer, percentages[Math.min(revealLevel - 1, 5)])
-  }, [revealLevel, dailyPerfume.perfumer])
+    const perfumers = dailyPerfume.perfumer.split(',').map(p => p.trim());
+
+    // Full reveal if all discovered OR game won (implicit by attempts check? no, need specific check)
+    // Actually, if we want typical "Instant Reveal" on match, we handled singular discovery.
+    // If the whole perfumer field matches, we reveal all.
+    // Logic: If any attempt match is 'full', show all.
+    if (attempts.some(a => a.feedback.perfumerMatch === "full")) return dailyPerfume.perfumer;
+
+    // Check coverage
+    if (perfumers.every(p => discoveredPerfumers.has(p))) return dailyPerfume.perfumer;
+
+    return perfumers.map(p => {
+      if (discoveredPerfumers.has(p)) return p;
+      // Progressive fallback for undiscovered ones
+      const percentages = [0, 0, 0.1, 0.3, 0.6, 1.0]; // 0/0/10/30/60/100
+      return revealLetters(p, percentages[Math.min(revealLevel - 1, 5)]);
+    }).join(', ');
+  }, [revealLevel, dailyPerfume.perfumer, discoveredPerfumers, attempts])
 
   const getRevealedYear = useCallback(() => {
+    // Instant reveal if matched
+    if (attempts.some(a => a.feedback.yearMatch === "correct")) return dailyPerfume.year.toString();
+
     const year = dailyPerfume.year.toString()
-    if (revealLevel === 1) return year.slice(0, 2) + "––"
-    if (revealLevel === 2) return year.slice(0, 3) + "–"
-    return year
-  }, [revealLevel, dailyPerfume.year])
+    // Adjusted logic: conceal more initially?
+    // Old: Level 1=XX––, Level 2=XXX–
+    // New Percentages: 0/0/10/30... 
+    // For year (4 chars), 10% is 0 chars. 30% is 1 char. 60% is 2 chars.
+    // Let's map revealLevel to explicit masking for year since it's short.
+
+    if (revealLevel >= 6) return year;
+    if (revealLevel >= 5) return year.slice(0, 3) + "–"; // 60% -> 3 chars (75%)
+    if (revealLevel >= 4) return year.slice(0, 2) + "––"; // 30% -> 2 chars (50%)
+    if (revealLevel >= 3) return year.slice(0, 1) + "–––"; // 10% -> 1 char (25%)
+    return "––––"; // 0%
+  }, [revealLevel, dailyPerfume.year, attempts])
 
   // Removed getVisibleAccords
 
@@ -321,6 +436,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         getBlurLevel,
         getPotentialScore,
         sessionId,
+        resetGame: handleReset, // NEW
+        xsolveScore: dailyPerfume.xsolve,
       }}
     >
       {children}

@@ -1,0 +1,59 @@
+'use client';
+
+import { RotateCcw } from 'lucide-react';
+import { useState } from 'react';
+import { useGame } from './game-provider';
+
+export function ResetButton() {
+    const { resetGame } = useGame();
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [isResetting, setIsResetting] = useState(false);
+
+    const handleConfirmedReset = async () => {
+        setIsResetting(true);
+        try {
+            await resetGame();
+        } finally {
+            setIsResetting(false);
+            setShowConfirm(false);
+        }
+    };
+
+    if (!showConfirm) {
+        return (
+            <button
+                onClick={() => setShowConfirm(true)}
+                className="fixed top-4 right-4 bg-amber-500/20 border border-amber-500 
+                   text-amber-200 px-3 py-1.5 rounded text-sm hover:bg-amber-500/30
+                   transition-colors flex items-center gap-2 z-50"
+                title="Debug: Reset game session"
+            >
+                <RotateCcw size={14} />
+                Debug Reset
+            </button>
+        );
+    }
+
+    return (
+        <div className="fixed top-4 right-4 bg-charcoal border border-amber-500 
+                    text-cream px-4 py-2 rounded shadow-lg z-50">
+            <p className="text-sm mb-2">Reset game session?</p>
+            <div className="flex gap-2">
+                <button
+                    onClick={handleConfirmedReset}
+                    disabled={isResetting}
+                    className="bg-amber-500 px-3 py-1 rounded text-sm hover:bg-amber-600 disabled:opacity-50 text-charcoal font-semibold"
+                >
+                    {isResetting ? 'Resetting...' : 'Confirm'}
+                </button>
+                <button
+                    onClick={() => setShowConfirm(false)}
+                    disabled={isResetting}
+                    className="bg-cream/10 px-3 py-1 rounded text-sm hover:bg-cream/20 disabled:opacity-50 text-cream"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+    );
+}
