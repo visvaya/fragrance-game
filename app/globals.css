@@ -3,11 +3,13 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Le Nez - French Perfumery Theme */
+/* Eauxle - French Perfumery Theme */
 :root {
   /* Primary palette - elegant cream and amber */
-  --background: oklch(0.98 0.005 85); /* Off-white paper */
-  --foreground: oklch(0.18 0.01 260); /* Ink charcoal */
+  --background: oklch(0.98 0.005 85);
+  /* Off-white paper */
+  --foreground: oklch(0.18 0.01 260);
+  /* Ink charcoal */
 
   --card: oklch(0.97 0.008 85);
   --card-foreground: oklch(0.18 0.01 260);
@@ -16,7 +18,8 @@
   --popover-foreground: oklch(0.18 0.01 260);
 
   /* Amber accent - the signature marker color */
-  --primary: oklch(0.72 0.16 55); /* Rich amber/resin */
+  --primary: oklch(0.72 0.16 55);
+  /* Rich amber/resin */
   --primary-foreground: oklch(0.98 0.005 85);
 
   --secondary: oklch(0.94 0.01 85);
@@ -25,7 +28,8 @@
   --muted: oklch(0.92 0.01 85);
   --muted-foreground: oklch(0.45 0.01 260);
 
-  --accent: oklch(0.72 0.16 55); /* Amber accent */
+  --accent: oklch(0.72 0.16 55);
+  /* Amber accent */
   --accent-foreground: oklch(0.98 0.005 85);
 
   --destructive: oklch(0.55 0.2 25);
@@ -104,6 +108,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -115,9 +120,11 @@
     stroke-dashoffset: 100;
     opacity: 0;
   }
+
   20% {
     opacity: 1;
   }
+
   100% {
     stroke-dashoffset: 0;
     opacity: 1;
@@ -133,6 +140,7 @@
   from {
     filter: blur(var(--blur-start)) grayscale(100%);
   }
+
   to {
     filter: blur(var(--blur-end)) grayscale(var(--grayscale-end));
   }

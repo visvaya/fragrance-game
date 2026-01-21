@@ -25,7 +25,7 @@ export function GameFooter() {
         </div>
 
         {/* Copyright */}
-        <p className="text-xs text-muted-foreground">© 2025 Le Nez. Designed for Fragheads.</p>
+        <p className="text-xs text-muted-foreground">© 2025 Eauxle. Designed for Fragheads.</p>
 
         {/* Decorative handwritten note */}
         <p className="font-[family-name:var(--font-hand)] text-lg text-primary/60 mt-2 rotate-[-2deg]">

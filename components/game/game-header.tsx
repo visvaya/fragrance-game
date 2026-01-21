@@ -36,7 +36,7 @@ export function GameHeader() {
 
         {/* Logo */}
         <h1 className="font-[family-name:var(--font-playfair)] text-2xl font-bold tracking-tight uppercase text-foreground">
-          Le Nez
+          Eauxle
         </h1>
 
         {/* Right controls */}
