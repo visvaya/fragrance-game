@@ -16,6 +16,20 @@ const nextConfig = {
       },
     ],
   },
+  poweredByHeader: false,
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Server',
+            value: '', // Attempt to obscure Server header
+          },
+        ],
+      },
+    ]
+  },
 }
 
 export default withSentryConfig(nextConfig, {
