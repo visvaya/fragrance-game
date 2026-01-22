@@ -44,7 +44,7 @@ export async function searchPerfumes(
     const { data: perfumes, error: dbError } = await supabase
         .rpc('search_perfumes_unaccent', {
             search_query: validatedQuery,
-            result_limit: 10
+            limit_count: 10
         });
 
     if (dbError) {
@@ -59,8 +59,8 @@ export async function searchPerfumes(
         // Flattened view returns brand_name directly
         const brandName = p.brand_name ?? 'Unknown Brand';
         const maskedBrand = maskBrand(brandName, attemptsCount);
-        const maskedYear = maskYear(p.release_year, attemptsCount);
-        const concentration = p.concentration_name ? ` ${p.concentration_name}` : '';
+        const maskedYear = maskYear(p.year, attemptsCount);
+        const concentration = p.concentration ? ` ${p.concentration}` : '';
 
         const displayName = `${maskedBrand} - ${p.name}${concentration} (${maskedYear})`;
 
