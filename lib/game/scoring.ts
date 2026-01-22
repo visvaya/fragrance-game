@@ -76,69 +76,93 @@ export function getRevealPercentages(attempt: number): RevealState {
 }
 
 /**
- * Reveals a percentage of letters in a string, starting from the center outward.
- * Separators (spaces, hyphens) are always visible.
- * Hidden letters are replaced with '•'.
+ * Progressively reveals letters in a string from center outward PER WORD
+ * @param text - Text to reveal
+ * @param percentage - 0-1 matches 0-100%
+ * @returns Masked string preserving separators (spaces only)
  */
 export function revealLetters(text: string, percentage: number): string {
+    // Handle floating point percentage (0.15 vs 15) if needed, based on usage in game-provider
+    // Plan uses 0-100 logic (percentage >= 100).
+    // GameProvider uses [0, 0.15...] (0-1).
+    // Let's normalize. If percentage <= 1, assume it's float (unless 1=1%).
+    // Standardize on 0-100 internally or handle input. 
+    // Plan passed "percentage" to Math.round(length * (percentage/100)).
+    // So Plan expects 0-100.
+    // GameProvider passes floats 0.15.
+    // Let's adjust inputs:
+    const pct = percentage <= 1 ? percentage * 100 : percentage;
+
     if (!text) return "";
-    if (percentage <= 0) return text.replace(/[^\s-]/g, '•'); // Hide all except separators
-    if (percentage >= 100) return text;
+    if (pct >= 100) return text;
 
-    const chars = text.split('');
-    const revealTarget = Math.ceil((text.replace(/[\s-]/g, '').length * percentage) / 100);
+    // Separator: ONLY space (always visible, splits words)
+    // Letters: ALL other characters including hyphen, period, ampersand, apostrof (masked as •)
+    const SEPARATOR_REGEX = /(\s+)/;
 
-    // Simple center-outward logic for whole string
-    // Better UX: Reveal center-outward per WORD (token)?
-    // Spec says: "Letters revealed from center of token outward" -> assuming whole string for simplicity first or as per prompt "token center outward".
-    // Let's implement per-token (word) center-outward as it looks better for multi-word brands like "Yves Saint Laurent".
+    // Split into words by space only (capturing separators)
+    const tokens = text.split(SEPARATOR_REGEX);
 
-    return text.split(/(\s+|-)/).map(token => {
-        if (/^[\s-]+$/.test(token)) return token; // Separator
-        return revealTokenCenterOutward(token, percentage);
-    }).join('');
+    const revealedTokens = tokens.map(token => {
+        // If token is just whitespace, return as is
+        if (/^\s+$/.test(token)) return token;
+
+        // Mask entire word at 0%
+        if (pct === 0) return "•".repeat(token.length);
+
+        const chars = token.split("");
+        const lettersToReveal = Math.round(chars.length * (pct / 100));
+
+        if (lettersToReveal >= chars.length) return token;
+
+        const order = generateCenterOutOrder(chars.length);
+        const revealed = new Set(order.slice(0, lettersToReveal));
+
+        return chars.map((c, i) => revealed.has(i) ? c : "•").join("");
+    });
+
+    return revealedTokens.join("");
 }
 
-function revealTokenCenterOutward(token: string, percentage: number): string {
-    const len = token.length;
-    if (len === 0) return token;
+/**
+ * Generate indices in center-out order for a word
+ * Result: [center... toward end... toward beginning]
+ */
+function generateCenterOutOrder(length: number): number[] {
+    const center = Math.floor(length / 2);
+    const order: number[] = [];
 
-    // Number of letters to show in this token
-    const countToShow = Math.ceil(len * (percentage / 100));
-
-    if (countToShow >= len) return token;
-    if (countToShow <= 0) return '•'.repeat(len);
-
-    const centerIndex = Math.floor((len - 1) / 2);
-    const indicesToShow = new Set<number>();
-
-    // Always show center char first
-    indicesToShow.add(centerIndex);
-
-    let left = centerIndex - 1;
-    let right = centerIndex + 1;
-
-    while (indicesToShow.size < countToShow) {
-        // Expand outward: Right, then Left (arbitrary preference, or alternate)
-        // Let's alternate Right -> Left
-        if (right < len) {
-            indicesToShow.add(right);
-            right++;
+    // Start from center
+    if (length % 2 === 0) {
+        // Even length: e.g. 4 -> indices 0,1,2,3. Center 2.
+        // Spec says: "Even length: Right-center (matches len/2), then..."
+        // Plan example "Jean" (4): indices 1,2 are center?
+        // Plan: "Jean" (4): Right-center: 2(a), Left-center: 1(e).
+        // My Logic:
+        // center = 2.
+        // Order: center-1 (1), center (2). (Plan said: 2, 3, 1, 0. Wait.)
+        // Let's follow the Plan ALGORITHM precisely:
+        // "Right-center (length/2), then +1...+end, then left-center (-1), then -2...beginning"
+        // length/2 = 2.
+        // So start with 2.
+        order.push(center);
+        // Then +1...
+        for (let i = center + 1; i < length; i++) order.push(i);
+        // Then left-center (center - 1)
+        if (center - 1 >= 0) {
+            order.push(center - 1); // 1
+            // Then -2... beginning
+            for (let i = center - 2; i >= 0; i--) order.push(i);
         }
-        if (indicesToShow.size < countToShow && left >= 0) {
-            indicesToShow.add(left);
-            left--;
-        }
+        // Result for 4: [2, 3, 1, 0]. Matches Plan Example "Jean".
+        return order;
+    } else {
+        // Odd length: center index.
+        order.push(center);
+        // Then toward end
+        for (let i = center + 1; i < length; i++) order.push(i);
+        // Then toward beginning
+        for (let i = center - 1; i >= 0; i--) order.push(i);
+        return order;
     }
-
-    // Build result
-    let result = '';
-    for (let i = 0; i < len; i++) {
-        if (indicesToShow.has(i)) {
-            result += token[i];
-        } else {
-            result += '•';
-        }
-    }
-    return result;
 }

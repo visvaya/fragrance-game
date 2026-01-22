@@ -43,6 +43,8 @@ export interface GuessHistoryItem {
     brandName: string;
     timestamp: string;
     isCorrect: boolean;
+    year?: number;
+    concentration?: string;
 }
 
 export interface StartGameResponse {
@@ -72,6 +74,10 @@ export interface GuessResult {
     message?: string;
     feedback: AttemptFeedback;
     guessedPerfumers?: string[];
+    guessedPerfumeDetails?: {
+        year: number;
+        concentration: string;
+    };
 }
 
 // --- Helpers ---
@@ -259,7 +265,7 @@ export async function startGame(challengeId: string): Promise<StartGameResponse>
             for (const guess of rawGuesses) {
                 const { data: p } = await adminSupabase
                     .from('perfumes')
-                    .select('name, brands(name)')
+                    .select('name, brands(name), release_year, concentration')
                     .eq('id', guess.perfumeId)
                     .single();
 
@@ -269,7 +275,9 @@ export async function startGame(challengeId: string): Promise<StartGameResponse>
                         perfumeName: p.name,
                         brandName: (p.brands as any)?.name || 'Unknown',
                         timestamp: guess.timestamp,
-                        isCorrect: guess.isCorrect
+                        isCorrect: guess.isCorrect,
+                        year: p.release_year,
+                        concentration: p.concentration
                     });
                 }
             }
@@ -467,7 +475,7 @@ export async function submitGuess(
     const [guessedPerfumeRes, answerPerfumeRes] = await Promise.all([
         adminSupabase
             .from('perfumes')
-            .select('brand_id, release_year, top_notes, middle_notes, base_notes, perfumers')
+            .select('brand_id, release_year, top_notes, middle_notes, base_notes, perfumers, concentration')
             .eq('id', perfumeId)
             .single(),
         adminSupabase
@@ -610,7 +618,11 @@ export async function submitGuess(
         gameStatus: isCorrect ? 'won' : (nextAttempts >= 6 ? 'lost' : 'active'),
         finalScore: isGameOver ? finalScore : undefined,
         feedback: feedback,
-        guessedPerfumers: guessedPerfume?.perfumers || []
+        guessedPerfumers: guessedPerfume?.perfumers || [],
+        guessedPerfumeDetails: {
+            year: guessedPerfume?.release_year || 0,
+            concentration: guessedPerfume?.concentration || 'Unknown'
+        }
     };
 }
 

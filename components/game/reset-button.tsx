@@ -23,13 +23,13 @@ export function ResetButton() {
         return (
             <button
                 onClick={() => setShowConfirm(true)}
-                className="fixed top-4 right-4 bg-amber-500/20 border border-amber-500 
-                   text-amber-200 px-3 py-1.5 rounded text-sm hover:bg-amber-500/30
-                   transition-colors flex items-center gap-2 z-50"
+                className="fixed top-4 right-4 text-muted-foreground/50 hover:text-foreground hover:bg-muted/10 
+                   px-3 py-1.5 rounded-md text-sm transition-all duration-200 
+                   flex items-center gap-2 z-50 border border-transparent hover:border-border/20"
                 title="Debug: Reset game session"
             >
                 <RotateCcw size={14} />
-                Debug Reset
+                <span className="hidden sm:inline">Debug Reset</span>
             </button>
         );
     }

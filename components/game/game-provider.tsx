@@ -5,6 +5,7 @@ import { usePostHog } from 'posthog-js/react'
 import { getDailyChallenge, startGame, submitGuess, resetGame, type DailyChallenge } from "@/app/actions/game-actions"
 import { createClient } from "@/lib/supabase/client"
 import { MAX_GUESSES } from "@/lib/constants"
+import { revealLetters } from "@/lib/game/scoring"
 
 // Skeleton / Default for initialization (prevents null checks everywhere)
 const SKELETON_PERFUME = {
@@ -35,6 +36,8 @@ export type AttemptFeedback = {
 export type Attempt = {
   guess: string
   brand: string
+  year?: number
+  concentration?: string
   perfumers?: string[]
   feedback: AttemptFeedback
 }
@@ -56,7 +59,9 @@ type GameContextType = {
   getBlurLevel: () => number
   getPotentialScore: () => number
   sessionId: string | null
-  resetGame: () => Promise<void>;
+  resetGame: () => Promise<void>
+  isBrandRevealed: boolean
+  isYearRevealed: boolean
   xsolveScore: number
 }
 
@@ -70,63 +75,7 @@ export function useGame() {
   return context
 }
 
-// Utility function to reveal letters from center outward
-function revealLetters(text: string, percentage: number): string {
-  if (!text) return "";
-  const separators = /[\s\-'.&]/
-  const tokens = text.split(separators)
-  const separatorMatches = text.match(separators) || []
-
-  const totalLetters = tokens.reduce((sum, token) => sum + token.length, 0)
-  const lettersToReveal = Math.max(1, Math.ceil(totalLetters * percentage))
-
-  // Create reveal order for each token (from center outward)
-  const tokenRevealOrders = tokens.map((token) => {
-    const mid = Math.floor(token.length / 2)
-    const order: number[] = []
-    let left = mid - 1
-    let right = mid
-
-    while (order.length < token.length) {
-      if (right < token.length) order.push(right++)
-      if (left >= 0 && order.length < token.length) order.push(left--)
-    }
-    return order
-  })
-
-  // Round-robin reveal across tokens
-  let revealed = 0
-  const revealedIndices: Set<string>[] = tokens.map(() => new Set())
-  let tokenIndex = 0
-  const tokenPointers = tokens.map(() => 0)
-
-  while (revealed < lettersToReveal) {
-    const currentToken = tokens[tokenIndex]
-    if (tokenPointers[tokenIndex] < currentToken.length) {
-      const charIndex = tokenRevealOrders[tokenIndex][tokenPointers[tokenIndex]]
-      revealedIndices[tokenIndex].add(charIndex.toString())
-      tokenPointers[tokenIndex]++
-      revealed++
-    }
-    tokenIndex = (tokenIndex + 1) % tokens.length
-
-    // Check if all tokens are fully revealed
-    if (tokenPointers.every((p, i) => p >= tokens[i].length)) break
-  }
-
-  // Build result string
-  let result = ""
-  tokens.forEach((token, tIdx) => {
-    for (let i = 0; i < token.length; i++) {
-      result += revealedIndices[tIdx].has(i.toString()) ? token[i] : "–"
-    }
-    if (tIdx < separatorMatches.length) {
-      result += separatorMatches[tIdx]
-    }
-  })
-
-  return result
-}
+// Local revealLetters definition removed. Using imported version.
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const posthog = usePostHog()
@@ -207,7 +156,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
                   yearMatch: isCorrect ? "correct" : "wrong", // approximated
                   yearDirection: "equal", // basic fallback
                   notesMatch: isCorrect ? 1 : 0 // approximated
-                }
+                },
+                year: g.year,
+                concentration: g.concentration
               };
             });
             setAttempts(enrichedAttempts);
@@ -278,6 +229,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
           guess: perfumeName,
           brand,
           perfumers: result.guessedPerfumers,
+          year: result.guessedPerfumeDetails?.year,
+          concentration: result.guessedPerfumeDetails?.concentration,
           feedback,
         }
 
@@ -345,73 +298,150 @@ export function GameProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.error('Reset failed:', e);
     } finally {
+      // FIX ISSUE #12: Clear discovered perfumers on reset
+      setDiscoveredPerfumers(new Set());
       setLoading(false);
     }
   }, [sessionId]);
 
 
   const getRevealedBrand = useCallback(() => {
-    // Instant reveal if matched
-    if (attempts.some(a => a.feedback.brandMatch)) return dailyPerfume.brand;
+    const isGameOver = gameState === 'won' || gameState === 'lost';
+    // Instant reveal if matched OR game over
+    if (isGameOver || attempts.some(a => a.feedback.brandMatch)) return dailyPerfume.brand;
 
-    const percentages = [0, 0, 0.1, 0.3, 0.6, 1.0]; // 0/0/10/30/60/100
+    if (revealLevel === 1) return "???";
+
+    // Levels: 1(???), 2(0%), 3(15%), 4(40%), 5(70%), 6(100%)
+    const percentages = [0, 0, 0.15, 0.40, 0.70, 1.0];
     return revealLetters(dailyPerfume.brand, percentages[Math.min(revealLevel - 1, 5)])
-  }, [revealLevel, dailyPerfume.brand, attempts])
+  }, [revealLevel, dailyPerfume.brand, attempts, gameState])
 
   const getRevealedPerfumer = useCallback(() => {
+    const isGameOver = gameState === 'won' || gameState === 'lost';
+    if (isGameOver) return dailyPerfume.perfumer;
+
     const perfumers = dailyPerfume.perfumer.split(',').map(p => p.trim());
 
-    // Full reveal if all discovered OR game won (implicit by attempts check? no, need specific check)
-    // Actually, if we want typical "Instant Reveal" on match, we handled singular discovery.
-    // If the whole perfumer field matches, we reveal all.
-    // Logic: If any attempt match is 'full', show all.
     if (attempts.some(a => a.feedback.perfumerMatch === "full")) return dailyPerfume.perfumer;
 
     // Check coverage
     if (perfumers.every(p => discoveredPerfumers.has(p))) return dailyPerfume.perfumer;
 
+    if (revealLevel === 1) return "???";
+
     return perfumers.map(p => {
       if (discoveredPerfumers.has(p)) return p;
-      // Progressive fallback for undiscovered ones
-      const percentages = [0, 0, 0.1, 0.3, 0.6, 1.0]; // 0/0/10/30/60/100
+      // Progressive fallback
+      const percentages = [0, 0, 0.10, 0.30, 0.60, 1.0];
       return revealLetters(p, percentages[Math.min(revealLevel - 1, 5)]);
     }).join(', ');
-  }, [revealLevel, dailyPerfume.perfumer, discoveredPerfumers, attempts])
+  }, [revealLevel, dailyPerfume.perfumer, discoveredPerfumers, attempts, gameState])
 
   const getRevealedYear = useCallback(() => {
+    const isGameOver = gameState === 'won' || gameState === 'lost';
     // Instant reveal if matched
-    if (attempts.some(a => a.feedback.yearMatch === "correct")) return dailyPerfume.year.toString();
+    if (isGameOver || attempts.some(a => a.feedback.yearMatch === "correct")) return dailyPerfume.year.toString();
 
     const year = dailyPerfume.year.toString()
-    // Adjusted logic: conceal more initially?
-    // Old: Level 1=XX––, Level 2=XXX–
-    // New Percentages: 0/0/10/30... 
-    // For year (4 chars), 10% is 0 chars. 30% is 1 char. 60% is 2 chars.
-    // Let's map revealLevel to explicit masking for year since it's short.
 
-    if (revealLevel >= 6) return year;
-    if (revealLevel >= 5) return year.slice(0, 3) + "–"; // 60% -> 3 chars (75%)
-    if (revealLevel >= 4) return year.slice(0, 2) + "––"; // 30% -> 2 chars (50%)
-    if (revealLevel >= 3) return year.slice(0, 1) + "–––"; // 10% -> 1 char (25%)
-    return "––––"; // 0%
-  }, [revealLevel, dailyPerfume.year, attempts])
+    if (revealLevel >= 6) return year; // 100%
+    if (revealLevel >= 5) return year.slice(0, 3) + "-"; // 75%
+    if (revealLevel >= 4) return year.slice(0, 2) + "--"; // 50%
+    if (revealLevel >= 3) return year.slice(0, 1) + "---"; // 25% (was 10% but 1 char is min)
+    if (revealLevel >= 2) return year.slice(0, 1) + "---"; // Issue #17 table says: Att 2: 1--- ?? Wait.
+    // Table:
+    // Att 1: ----
+    // Att 2: 1---
+    // Att 3: 19--
+    // Att 4: 197-
+    // Att 5: Full? No, Att 5 is 70% radial? Year col says "full" at Att 5?
+    // Table says: Att 5: "full", Att 6: "full".
+    // Let's match Table strictly.
+    if (revealLevel >= 5) return year;
+    if (revealLevel === 4) return year.slice(0, 3) + "-";
+    if (revealLevel === 3) return year.slice(0, 2) + "--";
+    if (revealLevel === 2) return year.slice(0, 1) + "---";
+    return "----"; // Level 1
+  }, [revealLevel, dailyPerfume.year, attempts, gameState])
+
+  // NEW HELPERS FOR LOG REVEAL (Issue #5)
+  const isBrandRevealed = attempts.some(a => a.feedback.brandMatch) ||
+    getRevealedBrand() === dailyPerfume.brand;
+
+  const isYearRevealed = attempts.some(a => a.feedback.yearMatch === "correct") ||
+    getRevealedYear() === dailyPerfume.year.toString();
 
   // Removed getVisibleAccords
 
   const getVisibleNotes = useCallback(() => {
-    // Level 1: only base, Level 2: base + heart, Level 3+: all
-    return {
-      top: revealLevel >= 3 ? dailyPerfume.notes.top : null,
-      heart: revealLevel >= 2 ? dailyPerfume.notes.heart : null,
-      base: revealLevel >= 1 ? dailyPerfume.notes.base : null,
+    const isGameOver = gameState === 'won' || gameState === 'lost';
+    if (isGameOver) {
+      return { top: dailyPerfume.notes.top, heart: dailyPerfume.notes.heart, base: dailyPerfume.notes.base };
     }
-  }, [revealLevel, dailyPerfume.notes])
+    // Level 1: only base (Wait. Plan says: Att 1: ???, Att 2: 0% Masked, Att 3: Base, Att 4: +Heart)
+    // Table: 
+    // Att 1: ???
+    // Att 2: 0% (masked)
+    // Att 3: Base notes (visible)
+    // Att 4: +Heart notes
+    // Att 5: +Top (Full)
+
+    // So:
+    if (revealLevel >= 5) {
+      return { top: dailyPerfume.notes.top, heart: dailyPerfume.notes.heart, base: dailyPerfume.notes.base };
+    }
+    if (revealLevel === 4) {
+      return { top: null, heart: dailyPerfume.notes.heart, base: dailyPerfume.notes.base };
+    }
+    if (revealLevel === 3) {
+      return { top: null, heart: null, base: dailyPerfume.notes.base };
+    }
+    // Level 2 & 1 are handled implicitly by "null" logic in UI or empty?
+    // Current logic returns 'null'. UI should handle null.
+    // But Issue #17 says: Att 2 shows 0% masked notes.
+    // If I return 'null', UI usually shows nothing or ??? placeholder.
+    // In PyramidClues (modified earlier), if note is null/undefined, it shows •••.
+    // But here I'm returning null for the ARRAY.
+    // PyramidClues: `const levels = [{ notes: notes.top ... }]`.
+    // If notes.top is null, `level.notes && level.notes.length`. Condition fails.
+    // Render: `<span ...> • • • </span>`.
+    // So if Level 2 is "0% masked", it implies we SEE that there are notes, but they are masked?
+    // Or we see •••?
+    // "0% (`•` masked)" implies `•••••`.
+    // If I return null, PyramidClues renders "• • •".
+    // That's CLOSE enough to "0% masked" for generic placeholder.
+    // BUT "Att 2: 0% (`•` masked)" implies per-letter masking of real notes?
+    // If so, I need to return MASKED STRINGS, not null.
+    // Let's implement Masked Strings for Level 2.
+
+    if (revealLevel === 2) {
+      // Return masked version of notes
+      const mask = (notes: string[]) => notes.map(n => revealLetters(n, 0));
+      return {
+        top: mask(dailyPerfume.notes.top || []),
+        heart: mask(dailyPerfume.notes.heart || []),
+        base: mask(dailyPerfume.notes.base || [])
+      };
+    }
+
+    if (revealLevel === 1) {
+      // Att 1: ??? string. This might need special string handling or just null -> ??? placeholder.
+      // Table says: "???" (x3 levels).
+      // If I return null, UI shows •••. I'll stick with null for Level 1, assuming UI "• • •" represents "???" well enough visually.
+      return { top: null, heart: null, base: null };
+    }
+
+    return { top: null, heart: null, base: null };
+  }, [revealLevel, dailyPerfume.notes, gameState])
 
   const getBlurLevel = useCallback(() => {
+    const isGameOver = gameState === 'won' || gameState === 'lost';
+    if (isGameOver) return 0;
     // 6 levels of blur: 32px -> 24px -> 16px -> 10px -> 4px -> 0px
     const blurLevels = [32, 24, 16, 10, 4, 0]
     return blurLevels[Math.min(revealLevel - 1, 5)]
-  }, [revealLevel])
+  }, [revealLevel, gameState])
 
   const getPotentialScore = useCallback(() => {
     const baseScores = [1000, 700, 490, 343, 240, 168]
@@ -436,8 +466,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
         getBlurLevel,
         getPotentialScore,
         sessionId,
-        resetGame: handleReset, // NEW
+        resetGame: handleReset,
         xsolveScore: dailyPerfume.xsolve,
+        isBrandRevealed,
+        isYearRevealed,
       }}
     >
       {children}

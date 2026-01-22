@@ -20,33 +20,40 @@ export function GameBoard() {
 
       {/* Clues Section */}
       <section className="border-t border-border pt-6 flex flex-col gap-8">
-
         <PyramidClues />
+
+        {/* Game Over State - Positioned between Clues and Log */}
+        {gameState !== "playing" && (
+          <div className="text-center py-4 border-t border-dotted border-border mt-2">
+            {gameState === "won" ? (
+              <div className="animate-in fade-in zoom-in duration-500">
+                <p className="font-[family-name:var(--font-hand)] text-4xl text-emerald-600 mb-3 transform -rotate-2">Magnifique!</p>
+                <div className="space-y-1">
+                  <p className="font-[family-name:var(--font-playfair)] text-2xl italic font-semibold">{dailyPerfume.name}</p>
+                  <p className="text-muted-foreground text-sm tracking-widest uppercase">by {dailyPerfume.brand}</p>
+                </div>
+                <div className="mt-4 flex justify-center">
+                  <DifficultyDisplay score={xsolveScore} />
+                </div>
+              </div>
+            ) : (
+              <div className="animate-in fade-in zoom-in duration-500">
+                <p className="font-[family-name:var(--font-hand)] text-3xl text-destructive mb-3">The answer was...</p>
+                <div className="space-y-1">
+                  <p className="font-[family-name:var(--font-playfair)] text-2xl italic font-semibold">{dailyPerfume.name}</p>
+                  <p className="text-muted-foreground text-sm tracking-widest uppercase">by {dailyPerfume.brand}</p>
+                </div>
+                <div className="mt-4 flex justify-center">
+                  <DifficultyDisplay score={xsolveScore} />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       {/* Attempt Log */}
       <AttemptLog />
-
-      {/* Game Over State */}
-      {gameState !== "playing" && (
-        <div className="text-center py-8 border-t border-border">
-          {gameState === "won" ? (
-            <div>
-              <p className="font-[family-name:var(--font-hand)] text-3xl text-primary mb-2">Magnifique!</p>
-              <p className="font-[family-name:var(--font-playfair)] text-xl italic">{dailyPerfume.name}</p>
-              <p className="text-muted-foreground text-sm mt-1">by {dailyPerfume.brand}</p>
-              <DifficultyDisplay score={xsolveScore} />
-            </div>
-          ) : (
-            <div>
-              <p className="font-[family-name:var(--font-hand)] text-3xl text-destructive mb-2">The answer was...</p>
-              <p className="font-[family-name:var(--font-playfair)] text-xl italic">{dailyPerfume.name}</p>
-              <p className="text-muted-foreground text-sm mt-1">by {dailyPerfume.brand}</p>
-              <DifficultyDisplay score={xsolveScore} />
-            </div>
-          )}
-        </div>
-      )}
     </div>
   )
 }
