@@ -77,7 +77,9 @@ export interface GuessResult {
     guessedPerfumeDetails?: {
         year: number;
         concentration: string;
+        gender: string;
     };
+    answerName?: string;
 }
 
 // --- Helpers ---
@@ -388,11 +390,19 @@ export async function getImageUrlForStep(sessionId: string) {
     }
 
     // 4. Determine Step
-    // attempts=0 -> Step 1
-    // attempts=1 -> Step 2
-    // ...
-    // attempts>=MAX_GUESSES -> Step 6 (Reveal)
-    const step = Math.min(session.attempts_count + 1, MAX_GUESSES);
+    // Check if game is WON or LOST -> Show Reveal Image (Step 6)
+    // We already have session.status loaded above? No, we selected specific fields.
+    // Let's refetch status if not present or just assume if attempts >= 6.
+    // Wait, session status is key.
+
+    // Refresh session status to be sure OR use passed param? 
+    // Ideally we query status field.
+    const { data: statusQuery } = await supabase.from('game_sessions').select('status').eq('id', sessionId).single();
+    const isRevealed = statusQuery?.status === 'won' || statusQuery?.status === 'lost';
+
+    const step = isRevealed ? 6 : Math.min(session.attempts_count + 1, MAX_GUESSES);
+
+    // Ensure we access the correct key. properties are image_key_step_1...6
     const key = assets[`image_key_step_${step}` as keyof typeof assets];
 
     // Use environment variable for assets host, fallback to example if not set
@@ -475,12 +485,12 @@ export async function submitGuess(
     const [guessedPerfumeRes, answerPerfumeRes] = await Promise.all([
         adminSupabase
             .from('perfumes')
-            .select('brand_id, release_year, top_notes, middle_notes, base_notes, perfumers, concentration')
+            .select('brand_id, release_year, top_notes, middle_notes, base_notes, perfumers, concentration_id, concentrations(name), gender')
             .eq('id', perfumeId)
             .single(),
         adminSupabase
             .from('perfumes')
-            .select('brand_id, release_year, top_notes, middle_notes, base_notes, perfumers')
+            .select('name, brand_id, release_year, top_notes, middle_notes, base_notes, perfumers')
             .eq('id', challenge.perfume_id)
             .single()
     ]);
@@ -621,8 +631,10 @@ export async function submitGuess(
         guessedPerfumers: guessedPerfume?.perfumers || [],
         guessedPerfumeDetails: {
             year: guessedPerfume?.release_year || 0,
-            concentration: guessedPerfume?.concentration || 'Unknown'
-        }
+            concentration: (guessedPerfume as any)?.concentrations?.name || 'Unknown',
+            gender: guessedPerfume?.gender || 'Unisex'
+        },
+        answerName: isGameOver ? (answerPerfumeRes.data as any)?.name : undefined
     };
 }
 
@@ -630,23 +642,41 @@ export async function submitGuess(
  * DEBUG ONLY: Resets the current game session by deleting it from the database.
  * User must start a new game after reset.
  */
-export async function resetGame(sessionId: string): Promise<{ success: boolean }> {
+export async function resetGame(sessionId: string): Promise<{ success: boolean; error?: string }> {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) throw new Error('Unauthorized');
 
     // RLS ensures user can only delete their own session
-    const { error } = await supabase
+
+    // RLS ensures user can only delete their own session
+    // We use count: 'exact' to verify deletion
+    const { error, count } = await supabase
         .from('game_sessions')
-        .delete()
+        .delete({ count: 'exact' })
         .eq('id', sessionId)
         .eq('player_id', user.id);
 
     if (error) {
-        console.error('Reset failed:', error);
-        return { success: false };
+        console.error('Reset failed with DB error:', error);
+        return { success: false, error: error.message };
     }
+
+    if (count === 0) {
+        console.warn(`[resetGame] No rows deleted for session ${sessionId}. It might not exist or belong to user.`);
+        // Optional debug check
+        const { data: check } = await supabase.from('game_sessions').select('id, player_id').eq('id', sessionId).single();
+        if (check) {
+            console.error(`[resetGame] Session actually exists for user ${check.player_id}, but delete failed (RLS?).`);
+        } else {
+            console.log(`[resetGame] Verified: Session does not exist.`);
+        }
+        return { success: false, error: 'Session not found or ownership mismatch' };
+    }
+
+    // Clear server cache for this path
+    revalidatePath('/');
 
     return { success: true };
 }

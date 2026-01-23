@@ -47,9 +47,17 @@ export function PyramidClues() {
               return (
                 <span
                   key={i}
-                  className={note ? "text-foreground" : "text-muted-foreground/30 font-caveat tracking-widest"}
+                  className="text-foreground"
                 >
-                  {note || "• • •"}
+                  {note ? (
+                    note.split('').map((char, index) => (
+                      <span key={index} className={char === '•' ? "opacity-50 text-muted-foreground" : "text-foreground"}>
+                        {char}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-muted-foreground font-caveat opacity-30">•••</span>
+                  )}
                   {i < slots.length - 1 && <span className="text-muted-foreground/30 mx-1">,</span>}
                 </span>
               )
@@ -80,10 +88,21 @@ export function PyramidClues() {
               {level.name}
             </span>
             {level.notes && level.notes.length > 0 ? (
-              <span className="text-sm text-foreground">{level.notes.join(", ")}</span>
+              <span className="text-sm">
+                {level.notes.map((note, noteIndex) => (
+                  <span key={noteIndex}>
+                    {note.split('').map((char, charIndex) => (
+                      <span key={charIndex} className={char === '•' ? "opacity-50 text-muted-foreground" : "text-foreground"}>
+                        {char}
+                      </span>
+                    ))}
+                    {noteIndex < level.notes!.length - 1 && ", "}
+                  </span>
+                ))}
+              </span>
             ) : (
-              <span className="text-sm text-muted-foreground/30 tracking-widest font-caveat">
-                • • •
+              <span className="text-sm text-muted-foreground font-caveat opacity-30">
+                •••
               </span>
             )}
           </li>

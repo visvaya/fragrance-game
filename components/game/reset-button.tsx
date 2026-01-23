@@ -4,8 +4,11 @@ import { RotateCcw } from 'lucide-react';
 import { useState } from 'react';
 import { useGame } from './game-provider';
 
+// TODO: REMOVE BEFORE PRODUCTION
+// This component allows resetting the game state for debugging purposes.
 export function ResetButton() {
     const { resetGame } = useGame();
+    // ... existing logic ...
     const [showConfirm, setShowConfirm] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
 

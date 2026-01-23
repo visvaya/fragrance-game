@@ -10,18 +10,19 @@ import { revealLetters } from "@/lib/game/scoring"
 // Skeleton / Default for initialization (prevents null checks everywhere)
 const SKELETON_PERFUME = {
   id: "skeleton",
-  name: "Loading...",
-  brand: "Loading...",
-  perfumer: "Loading...",
-  year: 2024,
-  gender: "Masculine", // Fallback
+  name: "•••" as string,
+  brand: "•••" as string,
+  perfumer: "•••" as string,
+  year: "•••" as string | number,
+  concentration: undefined as string | undefined,
+  gender: "•••" as string, // Fallback
   notes: {
-    top: ["?", "?", "?"],
-    heart: ["?", "?", "?"],
-    base: ["?", "?", "?"],
+    top: ["•••", "•••", "•••"],
+    heart: ["•••", "•••", "•••"],
+    base: ["•••", "•••", "•••"],
   },
-  isLinear: false,
-  xsolve: 0,
+  isLinear: false as boolean,
+  xsolve: 0 as number,
   imageUrl: "/placeholder.svg?height=400&width=400",
 }
 
@@ -35,11 +36,18 @@ export type AttemptFeedback = {
 
 export type Attempt = {
   guess: string
+  perfumeId?: string // Added ID for strict deduplication
   brand: string
   year?: number
   concentration?: string
+  gender?: string
   perfumers?: string[]
   feedback: AttemptFeedback
+  snapshot?: {
+    brandRevealed: boolean
+    yearRevealed: boolean
+    genderRevealed: boolean
+  }
 }
 
 type GameState = "playing" | "won" | "lost"
@@ -62,6 +70,8 @@ type GameContextType = {
   resetGame: () => Promise<void>
   isBrandRevealed: boolean
   isYearRevealed: boolean
+  isGenderRevealed: boolean
+  getRevealedGender: () => string
   xsolveScore: number
 }
 
@@ -123,7 +133,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
               notes: challenge.clues.notes,
               isLinear: challenge.clues.isLinear,
               xsolve: challenge.clues.xsolve,
-              imageUrl: "/placeholder.svg" // Will be overwritten by session
+              imageUrl: "/placeholder.svg", // Will be overwritten by session
+              concentration: undefined
             });
           }
 
@@ -149,6 +160,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
               return {
                 guess: g.perfumeName,
+                perfumeId: g.perfumeId, // Map ID from history
                 brand: g.brandName,
                 feedback: {
                   brandMatch,
@@ -175,11 +187,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
       }
     }
     initGame()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Track discovered perfumers
   useEffect(() => {
-    const newDiscovered = new Set(discoveredPerfumers);
+    const newDiscovered = new Set<string>();
     attempts.forEach(attempt => {
       if (attempt.feedback.perfumerMatch === "full" || attempt.feedback.perfumerMatch === "partial") {
         const guessPerfumers = attempt.perfumers || [];
@@ -206,6 +219,34 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const currentAttempt = attempts.length + 1
   const revealLevel = Math.min(currentAttempt, maxAttempts)
 
+  const getRevealedBrandHelper = (currentLevel: number) => {
+    const isGameOver = gameState === 'won' || gameState === 'lost';
+    // Logic extraction for consistency if needed, but we keep simple
+    if (currentLevel === 1) return "•••";
+    const percentages = [0, 0, 0.15, 0.40, 0.70, 1.0];
+    return revealLetters(dailyPerfume.brand, percentages[Math.min(currentLevel - 1, 5)])
+  };
+
+  const getRevealedYearHelper = (currentLevel: number) => {
+    // Level 1 (0 att): ••••
+    if (currentLevel >= 5) return dailyPerfume.year.toString();
+    if (currentLevel === 4) return dailyPerfume.year.toString().slice(0, 3) + "•";
+    if (currentLevel === 3) return dailyPerfume.year.toString().slice(0, 2) + "••";
+    if (currentLevel === 2) return dailyPerfume.year.toString().slice(0, 1) + "•••";
+    return "••••";
+  }
+
+  // NEW HELPERS FOR LOG REVEAL (Moved up for dependency usage)
+  const isBrandRevealed = attempts.some(a => a.feedback.brandMatch) ||
+    getRevealedBrandHelper(revealLevel) === dailyPerfume.brand;
+
+  const isYearRevealed = attempts.some(a => a.feedback.yearMatch === "correct") ||
+    getRevealedYearHelper(revealLevel) === dailyPerfume.year.toString();
+
+  const isGenderRevealed = attempts.some(a =>
+    a.snapshot?.genderRevealed || a.gender?.toLowerCase() === dailyPerfume.gender.toLowerCase()
+  );
+
 
   const makeGuess = useCallback(
     async (perfumeName: string, brand: string, perfumeId: string) => {
@@ -225,19 +266,85 @@ export function GameProvider({ children }: { children: ReactNode }) {
         // Use server feedback (proper implementation)
         const feedback = result.feedback
 
+        // Calculate snapshot state BEFORE adding this attempt (isXRevealed is based on previous attempts)
+        // Check if THIS guess reveals anything new
+        const thisBrandRevealed = brand.toLowerCase() === dailyPerfume.brand.toLowerCase();
+        const thisYearRevealed = String(result.guessedPerfumeDetails?.year) === String(dailyPerfume.year);
+        // Assume gender match if available, otherwise strict check? 
+        // We rely on dailyPerfume.gender comparison.
+        const thisGenderRevealed = result.guessedPerfumeDetails?.gender?.toLowerCase() === dailyPerfume.gender.toLowerCase();
+
+        const snapshot = {
+          brandRevealed: isBrandRevealed || thisBrandRevealed,
+          yearRevealed: isYearRevealed || thisYearRevealed,
+          // We need a getter for current gender revealed state similar to others
+          genderRevealed: attempts.some(a => a.snapshot?.genderRevealed) || thisGenderRevealed // simplified "isGenderRevealed" check
+          // Better: use the helper implementation logic inline or ensure isGenderRevealed is updated
+        };
+        // Correction: referencing `isGenderRevealed` inside makeGuess (which uses useCallback) might satisfy if dependency correct.
+        // But `makeGuess` has explicit dependencies. 
+        // Let's re-calculate "current global state" inside here to be safe, or optimize.
+        // Actually, we can define `isGenderRevealed` variable inside render and use it.
+        // However, `attempts` is in dependency.
+        const currentGenderRevealed = attempts.some(a => {
+          // For past attempts, we assume they store if they revealed it, 
+          // OR we check if they matched.
+          // Ideally we check if ANY previous attempt matched gender.
+          // We don't store genderMatch in feedback currently?
+          // We need gender in Attempt to check? Or just trust snapshot?
+          return a.snapshot?.genderRevealed || (a.year === undefined && false); // Fallback
+          // Wait, standardizing:
+        }) || false;
+
+        // Let's rely on robust logic:
+        const guessGender = result.guessedPerfumeDetails?.gender;
+        const matchedGender = guessGender?.toLowerCase() === dailyPerfume.gender.toLowerCase();
+
+        // We need to know if it was ALREADY revealed.
+        // `isGenderRevealed` from context/scope.
+        const wasGenderRevealed = attempts.some(a => {
+          // Check if any previous attempt matched gender
+          // We don't strictly have gender in Attempt unless we add it or infer from snapshot.
+          // But we can check `snapshot.genderRevealed`.
+          return a.snapshot?.genderRevealed;
+        });
+
+        const newSnapshot = {
+          brandRevealed: isBrandRevealed || thisBrandRevealed,
+          yearRevealed: isYearRevealed || thisYearRevealed,
+          genderRevealed: wasGenderRevealed || matchedGender
+        };
+
         const newAttempt: Attempt = {
           guess: perfumeName,
+          perfumeId: perfumeId, // Store ID
           brand,
           perfumers: result.guessedPerfumers,
           year: result.guessedPerfumeDetails?.year,
           concentration: result.guessedPerfumeDetails?.concentration,
           feedback,
+          snapshot: newSnapshot,
+          // Store gender for history if needed, though mostly for snapshot
+          gender: result.guessedPerfumeDetails?.gender
         }
 
         setAttempts((prev) => [...prev, newAttempt])
 
+        if (result.answerName) {
+          setDailyPerfume(prev => ({
+            ...prev,
+            name: result.answerName!,
+            // If the last guess was correct (game won), its concentration is likely the answer's concentration
+            concentration: result.gameStatus === 'won' ? result.guessedPerfumeDetails?.concentration : prev.concentration
+          }));
+        }
+
         if (result.gameStatus === 'won') {
           setGameState("won")
+          // FIX: Force set reveal image on win
+          if (result.imageUrl) {
+            setImageUrl(result.imageUrl)
+          }
         } else if (attempts.length + 1 >= maxAttempts) {
           setGameState("lost")
         }
@@ -246,33 +353,39 @@ export function GameProvider({ children }: { children: ReactNode }) {
         console.error("Guess submission failed:", error)
       }
     },
-    [attempts.length, gameState, maxAttempts, sessionId, nonce, dailyPerfume.brand],
+    [attempts, gameState, maxAttempts, sessionId, nonce, dailyPerfume, isBrandRevealed, isYearRevealed],
   )
 
   const handleReset = useCallback(async () => {
     if (!sessionId) {
-      console.warn('No session to reset');
+      console.warn('[GameProvider] No session to reset');
       return;
     }
 
     try {
       setLoading(true);
-
-      // Call server action to delete session
+      // 1. Call server action to delete session
       const result = await resetGame(sessionId);
 
       if (result.success) {
-        // Clear all local state
+        // 2. Clear all local state immediately
         setAttempts([]);
         setGameState('playing');
         setNonce('');
         setSessionId(null);
-        setImageUrl('/placeholder.svg');
+        setDailyPerfume(SKELETON_PERFUME);
+        setImageUrl('/placeholder.svg'); // Temporary clear
+        setDiscoveredPerfumers(new Set());
 
-        // Reinitialize game
+        setDiscoveredPerfumers(new Set());
+
+        // 3. Force a substantial delay to let React process the clear and ensure no racer with server
+        await new Promise(resolve => setTimeout(resolve, 150));
+
+        // 4. Reinitialize game from scratch
         const challenge = await getDailyChallenge();
         if (challenge) {
-          // Re-setup clues
+          // Re-setup skeleton with new challenge data (but still masked)
           setDailyPerfume({
             id: "daily",
             name: "Mystery Perfume",
@@ -283,23 +396,28 @@ export function GameProvider({ children }: { children: ReactNode }) {
             notes: challenge.clues.notes,
             isLinear: challenge.clues.isLinear,
             xsolve: challenge.clues.xsolve,
-            imageUrl: "/placeholder.svg"
+            imageUrl: "/placeholder.svg",
+            concentration: undefined
           });
 
           // Start fresh session
           const newSession = await startGame(challenge.id);
-          setSessionId(newSession.sessionId);
-          setNonce(newSession.nonce);
-          if (newSession.imageUrl) {
-            setImageUrl(newSession.imageUrl);
+
+          if (newSession) {
+            setSessionId(newSession.sessionId);
+            setNonce(newSession.nonce);
+
+            // Add a one-time cache buster for the reset to override any browser stubbornness
+            const busterUrl = newSession.imageUrl ? `${newSession.imageUrl}?reset=${Date.now()}` : '/placeholder.svg';
+            setImageUrl(busterUrl);
           }
         }
+      } else {
+        console.error('[GameProvider] Reset backend action failed.');
       }
     } catch (e) {
-      console.error('Reset failed:', e);
+      console.error('[GameProvider] Reset failed with error:', e);
     } finally {
-      // FIX ISSUE #12: Clear discovered perfumers on reset
-      setDiscoveredPerfumers(new Set());
       setLoading(false);
     }
   }, [sessionId]);
@@ -307,12 +425,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const getRevealedBrand = useCallback(() => {
     const isGameOver = gameState === 'won' || gameState === 'lost';
-    // Instant reveal if matched OR game over
     if (isGameOver || attempts.some(a => a.feedback.brandMatch)) return dailyPerfume.brand;
 
-    if (revealLevel === 1) return "???";
+    if (revealLevel === 1) return "•••";
 
-    // Levels: 1(???), 2(0%), 3(15%), 4(40%), 5(70%), 6(100%)
+    // Levels: 1(•••), 2(0%), 3(15%), 4(40%), 5(70%), 6(100%)
     const percentages = [0, 0, 0.15, 0.40, 0.70, 1.0];
     return revealLetters(dailyPerfume.brand, percentages[Math.min(revealLevel - 1, 5)])
   }, [revealLevel, dailyPerfume.brand, attempts, gameState])
@@ -328,7 +445,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     // Check coverage
     if (perfumers.every(p => discoveredPerfumers.has(p))) return dailyPerfume.perfumer;
 
-    if (revealLevel === 1) return "???";
+    if (revealLevel === 1) return "•••";
 
     return perfumers.map(p => {
       if (discoveredPerfumers.has(p)) return p;
@@ -340,84 +457,78 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const getRevealedYear = useCallback(() => {
     const isGameOver = gameState === 'won' || gameState === 'lost';
-    // Instant reveal if matched
     if (isGameOver || attempts.some(a => a.feedback.yearMatch === "correct")) return dailyPerfume.year.toString();
 
-    const year = dailyPerfume.year.toString()
+    const year = dailyPerfume.year.toString();
 
-    if (revealLevel >= 6) return year; // 100%
-    if (revealLevel >= 5) return year.slice(0, 3) + "-"; // 75%
-    if (revealLevel >= 4) return year.slice(0, 2) + "--"; // 50%
-    if (revealLevel >= 3) return year.slice(0, 1) + "---"; // 25% (was 10% but 1 char is min)
-    if (revealLevel >= 2) return year.slice(0, 1) + "---"; // Issue #17 table says: Att 2: 1--- ?? Wait.
-    // Table:
-    // Att 1: ----
-    // Att 2: 1---
-    // Att 3: 19--
-    // Att 4: 197-
-    // Att 5: Full? No, Att 5 is 70% radial? Year col says "full" at Att 5?
-    // Table says: Att 5: "full", Att 6: "full".
-    // Let's match Table strictly.
-    if (revealLevel >= 5) return year;
-    if (revealLevel === 4) return year.slice(0, 3) + "-";
-    if (revealLevel === 3) return year.slice(0, 2) + "--";
-    if (revealLevel === 2) return year.slice(0, 1) + "---";
-    return "----"; // Level 1
+    // Level 1 (0 att): ••••
+    // Level 2 (1 att): 1•••
+    // Level 3 (2 att): 19••
+    // Level 4 (3 att): 197•
+    // Level 5 (4 att): 1979 (Full)
+    // Level 6 (5 att): 1979 (Full)
+
+    if (revealLevel >= 5) return year; // Changed from 4 to 5 for full reveal
+    if (revealLevel === 4) return year.slice(0, 3) + "•";
+    if (revealLevel === 3) return year.slice(0, 2) + "••";
+    if (revealLevel === 2) return year.slice(0, 1) + "•••";
+    return "••••"; // Level 1
   }, [revealLevel, dailyPerfume.year, attempts, gameState])
 
-  // NEW HELPERS FOR LOG REVEAL (Issue #5)
-  const isBrandRevealed = attempts.some(a => a.feedback.brandMatch) ||
-    getRevealedBrand() === dailyPerfume.brand;
+  // NEW HELPERS FOR LOG REVEAL (Issue #5) - MOVED UP
+  // Keeping these declarations here would cause shadowing or unused vars if we didn't remove them.
+  // We removed them from here and put them before makeGuess.
+  // Logic is preserved.
 
-  const isYearRevealed = attempts.some(a => a.feedback.yearMatch === "correct") ||
-    getRevealedYear() === dailyPerfume.year.toString();
+  const getRevealedGender = useCallback(() => {
+    const isGameOver = gameState === 'won' || gameState === 'lost';
+    if (isGameOver || isGenderRevealed) return dailyPerfume.gender;
+    return "Unknown"; // Or masked? Plan says "Reveal Gender on Game Over"
+  }, [gameState, isGenderRevealed, dailyPerfume.gender]);
 
   // Removed getVisibleAccords
 
   const getVisibleNotes = useCallback(() => {
     const isGameOver = gameState === 'won' || gameState === 'lost';
-    if (isGameOver) {
+    const hasPerfectNotes = attempts.some(a => a.feedback.notesMatch >= 1.0);
+
+    if (isGameOver || hasPerfectNotes) {
       return { top: dailyPerfume.notes.top, heart: dailyPerfume.notes.heart, base: dailyPerfume.notes.base };
     }
-    // Level 1: only base (Wait. Plan says: Att 1: ???, Att 2: 0% Masked, Att 3: Base, Att 4: +Heart)
-    // Table: 
-    // Att 1: ???
-    // Att 2: 0% (masked)
-    // Att 3: Base notes (visible)
-    // Att 4: +Heart notes
-    // Att 5: +Top (Full)
 
-    // So:
+    // New Progression:
+    // Level 1: ••• (Generic)
+    // Level 2: Masked Strings (0% revealed letters)
+    // Level 3: Top Revealed, Heart/Base Masked
+    // Level 4: Top+Heart Revealed, Base Masked
+    // Level 5+: All Revealed
+
+    const mask = (notes: string[]) => notes.map(n => revealLetters(n, 0)); // 0% reveal -> masked strings
+
     if (revealLevel >= 5) {
       return { top: dailyPerfume.notes.top, heart: dailyPerfume.notes.heart, base: dailyPerfume.notes.base };
     }
+
     if (revealLevel === 4) {
-      return { top: null, heart: dailyPerfume.notes.heart, base: dailyPerfume.notes.base };
+      // Top REVEALED, Heart REVEALED, Base MASKED
+      return {
+        top: dailyPerfume.notes.top,
+        heart: dailyPerfume.notes.heart,
+        base: mask(dailyPerfume.notes.base || [])
+      };
     }
+
     if (revealLevel === 3) {
-      return { top: null, heart: null, base: dailyPerfume.notes.base };
+      // Top REVEALED, Heart MASKED, Base MASKED
+      return {
+        top: dailyPerfume.notes.top,
+        heart: mask(dailyPerfume.notes.heart || []),
+        base: mask(dailyPerfume.notes.base || [])
+      };
     }
-    // Level 2 & 1 are handled implicitly by "null" logic in UI or empty?
-    // Current logic returns 'null'. UI should handle null.
-    // But Issue #17 says: Att 2 shows 0% masked notes.
-    // If I return 'null', UI usually shows nothing or ??? placeholder.
-    // In PyramidClues (modified earlier), if note is null/undefined, it shows •••.
-    // But here I'm returning null for the ARRAY.
-    // PyramidClues: `const levels = [{ notes: notes.top ... }]`.
-    // If notes.top is null, `level.notes && level.notes.length`. Condition fails.
-    // Render: `<span ...> • • • </span>`.
-    // So if Level 2 is "0% masked", it implies we SEE that there are notes, but they are masked?
-    // Or we see •••?
-    // "0% (`•` masked)" implies `•••••`.
-    // If I return null, PyramidClues renders "• • •".
-    // That's CLOSE enough to "0% masked" for generic placeholder.
-    // BUT "Att 2: 0% (`•` masked)" implies per-letter masking of real notes?
-    // If so, I need to return MASKED STRINGS, not null.
-    // Let's implement Masked Strings for Level 2.
 
     if (revealLevel === 2) {
-      // Return masked version of notes
-      const mask = (notes: string[]) => notes.map(n => revealLetters(n, 0));
+      // All MASKED STRINGS
       return {
         top: mask(dailyPerfume.notes.top || []),
         heart: mask(dailyPerfume.notes.heart || []),
@@ -425,15 +536,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
       };
     }
 
-    if (revealLevel === 1) {
-      // Att 1: ??? string. This might need special string handling or just null -> ??? placeholder.
-      // Table says: "???" (x3 levels).
-      // If I return null, UI shows •••. I'll stick with null for Level 1, assuming UI "• • •" represents "???" well enough visually.
-      return { top: null, heart: null, base: null };
-    }
-
+    // Level 1: Generic placeholer handled by UI (returning null) or we can return special strings?
+    // Plan says: "Level 1: ••• (Generic)". 
+    // If we return null, PyramidClues renders generic dots.
     return { top: null, heart: null, base: null };
-  }, [revealLevel, dailyPerfume.notes, gameState])
+    return { top: null, heart: null, base: null };
+  }, [revealLevel, dailyPerfume.notes, gameState, attempts])
 
   const getBlurLevel = useCallback(() => {
     const isGameOver = gameState === 'won' || gameState === 'lost';
@@ -470,6 +578,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         xsolveScore: dailyPerfume.xsolve,
         isBrandRevealed,
         isYearRevealed,
+        isGenderRevealed,
+        getRevealedGender,
       }}
     >
       {children}

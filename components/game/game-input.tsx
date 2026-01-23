@@ -6,9 +6,10 @@ import { useState, useRef, useEffect } from "react"
 import { Search, Loader2 } from "lucide-react"
 import { useGame } from "./game-provider"
 import { searchPerfumes, type PerfumeSuggestion } from "@/app/actions/autocomplete"
+import { toast } from "sonner" // Import toast
 
 export function GameInput() {
-  const { currentAttempt, maxAttempts, gameState, makeGuess, getPotentialScore, sessionId } = useGame()
+  const { currentAttempt, maxAttempts, gameState, makeGuess, getPotentialScore, sessionId, attempts } = useGame()
   const [query, setQuery] = useState("")
   const [suggestions, setSuggestions] = useState<PerfumeSuggestion[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -38,7 +39,7 @@ export function GameInput() {
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [query, sessionId])
+  }, [query, sessionId, currentAttempt])
 
   // Handle click outside
   useEffect(() => {
@@ -133,16 +134,76 @@ export function GameInput() {
         {/* Suggestions dropdown */}
         {showSuggestions && suggestions.length > 0 && (
           <div className="absolute bottom-full left-0 w-full mb-2 bg-background border border-border max-h-52 overflow-y-auto">
-            {suggestions.map((perfume, index) => (
-              <button
-                key={perfume.perfume_id}
-                onClick={() => handleSelect(perfume)}
-                className={`w-full px-4 py-3 text-left text-sm border-b border-muted last:border-b-0 transition-colors duration-200 ${selectedIndex === index ? "bg-muted text-primary" : "hover:bg-muted/50 hover:text-primary"
-                  }`}
-              >
-                <span className="text-foreground">{perfume.display_name}</span>
-              </button>
-            ))}
+            {suggestions.map((perfume, index) => {
+              // Check duplicate (Using ID is more robust, fallback to name)
+              const isDuplicate = attempts.some(a =>
+                (a.perfumeId && a.perfumeId === perfume.perfume_id) ||
+                (!a.perfumeId && a.guess.toLowerCase() === perfume.name.toLowerCase())
+              );
+
+              return (
+                <button
+                  key={perfume.perfume_id}
+                  onClick={() => handleSelect(perfume)}
+                  disabled={isDuplicate}
+                  className={`w-full px-4 py-3 text-left text-sm border-b border-muted last:border-b-0 transition-colors duration-200 
+                  ${isDuplicate ? "opacity-50 cursor-not-allowed bg-muted/20" : ""}
+                  ${selectedIndex === index && !isDuplicate ? "bg-muted text-primary" : ""}
+                  ${!isDuplicate ? "hover:bg-muted/50 hover:text-primary" : ""}
+                `}
+                >
+                  <span className="text-foreground flex flex-wrap gap-x-1 items-center">
+                    {/* Brand Masked */}
+                    <span>
+                      {perfume.brand_masked.split('').map((char, i) => (
+                        <span key={i} className={char === '•' ? "opacity-30 text-muted-foreground" : "text-foreground"}>
+                          {char}
+                        </span>
+                      ))}
+                    </span>
+
+                    <span className="text-muted-foreground">•</span>
+
+                    {/* Name (if duplicate, maybe strike-through? Optional. Just opacity is fine per plan) */}
+                    <span className={isDuplicate ? "line-through decoration-muted-foreground" : ""}>{perfume.name}</span>
+
+                    {/* Concentration */}
+                    {perfume.concentration && (
+                      <>
+                        <span className="text-muted-foreground">•</span>
+                        <span>{perfume.concentration}</span>
+                      </>
+                    )}
+
+                    {/* Year Masked */}
+                    {perfume.year && (
+                      <>
+                        <span className="text-muted-foreground">•</span>
+                        <span>
+                          {perfume.year.includes('•') ? (
+                            // If it contains dots, apply masking logic: 
+                            // If full placeholder "••••", use opacity-30 (lighter)
+                            // If partial "19••", use opacity-50 for dots
+                            perfume.year === "••••" ? (
+                              <span className="opacity-30 tracking-widest text-muted-foreground">••••</span>
+                            ) : (
+                              perfume.year.split('').map((char, i) => (
+                                <span key={i} className={char === '•' ? "opacity-30 text-muted-foreground" : "text-foreground"}>
+                                  {char}
+                                </span>
+                              ))
+                            )
+                          ) : (
+                            // Fully revealed year
+                            <span>{perfume.year}</span>
+                          )}
+                        </span>
+                      </>
+                    )}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         )}
 
