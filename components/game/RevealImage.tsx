@@ -10,7 +10,7 @@ export function RevealImage() {
     // because dailyPerfume.imageUrl is now the specific step variant from the server.
 
     return (
-        <div className="relative aspect-square bg-muted border border-border overflow-hidden">
+        <div className="relative aspect-square w-full h-full bg-muted border border-border overflow-hidden">
             <Image
                 src={dailyPerfume.imageUrl || "/placeholder.svg"}
                 alt="Mystery perfume bottle"

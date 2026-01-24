@@ -23,11 +23,11 @@ export function StatsModal({ open, onClose }: StatsModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-5 bg-foreground/30 backdrop-blur-sm animate-in fade-in duration-300"
+      className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-foreground/30 backdrop-blur-sm animate-in fade-in duration-300"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-background border border-foreground p-8 animate-in slide-in-from-bottom-4 duration-300"
+        className="w-full max-w-md glass-panel p-8 animate-in slide-in-from-bottom-4 duration-300 rounded-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -74,9 +74,8 @@ export function StatsModal({ open, onClose }: StatsModalProps) {
                 <span className="w-5 text-right text-muted-foreground">{index + 1}</span>
                 <div className="flex-1 bg-muted h-5">
                   <div
-                    className={`h-full flex items-center justify-end px-2 text-xs text-primary-foreground transition-all duration-500 ${
-                      isHighest ? "bg-primary" : "bg-foreground"
-                    }`}
+                    className={`h-full flex items-center justify-end px-2 text-xs text-primary-foreground transition-all duration-500 ${isHighest ? "bg-primary" : "bg-foreground"
+                      }`}
                     style={{ width: `${Math.max(width, count > 0 ? 10 : 0)}%` }}
                   >
                     {count > 0 && count}

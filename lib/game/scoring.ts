@@ -58,20 +58,20 @@ export function getRevealPercentages(attempt: number): RevealState {
 
     switch (safeAttempt) {
         case 1:
-            return { blur: 32, radialMask: 0, brandLetters: 0, perfumerLetters: 0, yearMask: '----', showGender: false };
+            return { blur: 10, radialMask: 0, brandLetters: 0, perfumerLetters: 0, yearMask: '----', showGender: false };
         case 2:
-            return { blur: 24, radialMask: 10, brandLetters: 0, perfumerLetters: 0, yearMask: '1---', showGender: false };
+            return { blur: 9.5, radialMask: 10, brandLetters: 0, perfumerLetters: 0, yearMask: '1---', showGender: false };
         case 3:
-            return { blur: 16, radialMask: 25, brandLetters: 15, perfumerLetters: 10, yearMask: '19--', showGender: false };
+            return { blur: 8.5, radialMask: 25, brandLetters: 15, perfumerLetters: 10, yearMask: '19--', showGender: false };
         case 4:
-            return { blur: 10, radialMask: 45, brandLetters: 40, perfumerLetters: 30, yearMask: '197-', showGender: false };
+            return { blur: 7.5, radialMask: 45, brandLetters: 40, perfumerLetters: 30, yearMask: '197-', showGender: false };
         case 5:
-            return { blur: 4, radialMask: 70, brandLetters: 70, perfumerLetters: 60, yearMask: 'FULL', showGender: true };
+            return { blur: 6, radialMask: 70, brandLetters: 70, perfumerLetters: 60, yearMask: 'FULL', showGender: true };
         case 6:
             return { blur: 0, radialMask: 100, brandLetters: 100, perfumerLetters: 100, yearMask: 'FULL', showGender: true };
         default:
             // Fallback to attempt 1
-            return { blur: 32, radialMask: 0, brandLetters: 0, perfumerLetters: 0, yearMask: '----', showGender: false };
+            return { blur: 10, radialMask: 0, brandLetters: 0, perfumerLetters: 0, yearMask: '----', showGender: false };
     }
 }
 

@@ -93,7 +93,7 @@ export function GameInput() {
 
   if (gameState !== "playing") {
     return (
-      <div className="sticky bottom-0 w-full max-w-[640px] bg-background border-t border-border px-5 py-6">
+      <div className="sticky bottom-0 w-full max-w-[640px] bg-background border-t border-border px-5 py-6 z-40">
         <div className="text-center">
           <p className="font-[family-name:var(--font-hand)] text-xl text-primary">
             Come back tomorrow for a new challenge!
@@ -104,7 +104,7 @@ export function GameInput() {
   }
 
   return (
-    <div className="sticky bottom-0 w-full max-w-[640px] bg-background border-t border-muted/50 px-5 py-5 z-40">
+    <div className="sticky bottom-0 w-full max-w-[640px] bg-background/80 border-t border-muted/50 px-5 pt-5 pb-[env(safe-area-inset-bottom,20px)] z-40 frosted-glass backdrop-blur-md">
       <div ref={wrapperRef} className="relative">
         {/* Status bar */}
         <div className="flex justify-between text-[10px] uppercase tracking-wide text-muted-foreground mb-2">
@@ -133,7 +133,7 @@ export function GameInput() {
 
         {/* Suggestions dropdown */}
         {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute bottom-full left-0 w-full mb-2 bg-background border border-border max-h-52 overflow-y-auto">
+          <div data-lenis-prevent className="absolute bottom-full left-0 w-full mb-2 glass-panel max-h-52 overflow-y-auto rounded-xl">
             {suggestions.map((perfume, index) => {
               // Check duplicate (Using ID is more robust, fallback to name)
               const isDuplicate = attempts.some(a =>

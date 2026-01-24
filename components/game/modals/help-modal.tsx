@@ -1,6 +1,6 @@
 "use client"
 
-import { X } from "lucide-react"
+import { X, Waves } from "lucide-react"
 import { MarkerCircle } from "../marker-circle"
 
 interface HelpModalProps {
@@ -13,11 +13,11 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-5 bg-foreground/30 backdrop-blur-sm animate-in fade-in duration-300"
+      className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-foreground/30 backdrop-blur-sm animate-in fade-in duration-300"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-background border border-foreground p-8 animate-in slide-in-from-bottom-4 duration-300"
+        className="w-full max-w-md glass-panel p-8 animate-in slide-in-from-bottom-4 duration-300 rounded-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -59,15 +59,19 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
           {/* Feedback legend */}
           <div className="bg-muted/50 p-4 space-y-2 mt-4">
             <div className="flex items-center gap-3">
-              <MarkerCircle letter="✓" />
+              <MarkerCircle letter="✓" className="w-5 h-5" />
               <span className="text-muted-foreground">Circled = Correct match</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="font-[family-name:var(--font-hand)] text-xl text-primary">~</span>
-              <span className="text-muted-foreground">Tilde = Close / Partial</span>
+              <span className="flex items-center justify-center w-5 h-5">
+                <Waves className="w-4 h-4 text-muted-foreground opacity-50 transform -skew-x-12" strokeWidth={1.5} />
+              </span>
+              <span className="text-muted-foreground">Waves = Close / Partial</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="font-[family-name:var(--font-hand)] text-xl text-muted-foreground">×</span>
+              <span className="flex items-center justify-center w-5 h-5 opacity-50">
+                <X className="w-4 h-4 text-muted-foreground transform -skew-x-12" strokeWidth={1.5} />
+              </span>
               <span className="text-muted-foreground">Cross = Incorrect</span>
             </div>
           </div>

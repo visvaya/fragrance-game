@@ -6,13 +6,14 @@ import { PostHogProvider } from "@/components/providers/posthog-provider"
 import { SentryProvider } from "@/components/providers/sentry-provider"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Analytics } from "@vercel/analytics/next"
+import { SmoothScrollProvider } from "@/components/providers/smooth-scroll-provider"
 import "./globals.css"
 
 /**
  * Geist Sans - główny font body (zgodnie z project-rules)
  */
 const geistSans = Geist({
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   variable: "--font-geist-sans",
   display: "swap",
 })
@@ -21,7 +22,7 @@ const geistSans = Geist({
  * Geist Mono - font dla kodu
  */
 const geistMono = Geist_Mono({
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   variable: "--font-geist-mono",
   display: "swap",
 })
@@ -30,7 +31,7 @@ const geistMono = Geist_Mono({
  * Playfair Display - elegancki font dla nagłówków (zgodnie z project-rules)
  */
 const playfair = Playfair_Display({
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   variable: "--font-playfair",
   display: "swap",
 })
@@ -39,7 +40,7 @@ const playfair = Playfair_Display({
  * Caveat - font odręczny dla akcentów (zgodnie z project-rules)
  */
 const caveat = Caveat({
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-caveat",
   display: "swap",
@@ -69,7 +70,10 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#FDFBF7",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FDFBF7" },
+    { media: "(prefers-color-scheme: dark)", color: "#1F1F22" },
+  ],
   width: "device-width",
   initialScale: 1,
 }
@@ -87,7 +91,9 @@ export default function RootLayout({
       >
         <SentryProvider>
           <PostHogProvider>
-            {children}
+            <SmoothScrollProvider>
+              {children}
+            </SmoothScrollProvider>
           </PostHogProvider>
         </SentryProvider>
         <Analytics />

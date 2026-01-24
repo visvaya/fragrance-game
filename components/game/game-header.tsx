@@ -5,6 +5,7 @@ import { Menu, HelpCircle, BarChart3, ChevronDown } from "lucide-react"
 import { HelpModal } from "./modals/help-modal"
 import { StatsModal } from "./modals/stats-modal"
 import { cn } from "@/lib/utils"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 export function GameHeader() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -15,23 +16,36 @@ export function GameHeader() {
 
   return (
     <>
-      <nav className="w-full max-w-[640px] px-5 py-5 flex justify-between items-center border-b border-border relative z-50">
+      <nav className="sticky top-0 w-full max-w-[640px] px-5 pb-5 pt-[calc(1.25rem+env(safe-area-inset-top))] flex justify-between items-center border-b border-border/50 backdrop-blur-md bg-background/80 z-20 frosted-glass">
         {/* Left controls */}
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="text-foreground hover:text-primary transition-colors duration-300"
-            aria-label="Open menu"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => setHelpOpen(true)}
-            className="text-foreground hover:text-primary transition-colors duration-300"
-            aria-label="How to play"
-          >
-            <HelpCircle className="w-5 h-5" />
-          </button>
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  className="text-foreground hover:text-primary transition-colors duration-300"
+                  aria-label="Open menu"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Menu</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setHelpOpen(true)}
+                  className="text-foreground hover:text-primary transition-colors duration-300"
+                  aria-label="How to play"
+                >
+                  <HelpCircle className="w-5 h-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>How to play</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         {/* Logo */}
@@ -41,26 +55,39 @@ export function GameHeader() {
 
         {/* Right controls */}
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => setLangOpen(!langOpen)}
-            className="flex items-center gap-1 text-sm font-semibold text-foreground hover:text-primary transition-colors duration-300"
-          >
-            {currentLang}
-            <ChevronDown className="w-3 h-3" />
-          </button>
-          <button
-            onClick={() => setStatsOpen(true)}
-            className="text-foreground hover:text-primary transition-colors duration-300"
-            aria-label="View statistics"
-          >
-            <BarChart3 className="w-5 h-5" />
-          </button>
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setLangOpen(!langOpen)}
+                  className="flex items-center gap-1 text-sm font-semibold text-foreground hover:text-primary transition-colors duration-300"
+                >
+                  {currentLang}
+                  <ChevronDown className="w-3 h-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Language</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setStatsOpen(true)}
+                  className="text-foreground hover:text-primary transition-colors duration-300"
+                  aria-label="View statistics"
+                >
+                  <BarChart3 className="w-5 h-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Statistics</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         {/* Menu Dropdown */}
         <div
           className={cn(
-            "absolute top-full left-5 mt-2 w-56 bg-background border border-foreground flex-col transition-all duration-300",
+            "absolute top-full left-5 mt-2 w-56 glass-panel flex-col transition-all duration-300 rounded-md overflow-hidden",
             menuOpen ? "flex opacity-100 translate-y-0" : "hidden opacity-0 -translate-y-2",
           )}
         >
@@ -88,7 +115,7 @@ export function GameHeader() {
         {/* Language Dropdown */}
         <div
           className={cn(
-            "absolute top-full right-5 mt-2 w-24 bg-background border border-foreground flex-col transition-all duration-300",
+            "absolute top-full right-5 mt-2 w-24 glass-panel flex-col transition-all duration-300 rounded-md overflow-hidden",
             langOpen ? "flex opacity-100 translate-y-0" : "hidden opacity-0 -translate-y-2",
           )}
         >

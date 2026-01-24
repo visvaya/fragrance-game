@@ -546,8 +546,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const getBlurLevel = useCallback(() => {
     const isGameOver = gameState === 'won' || gameState === 'lost';
     if (isGameOver) return 0;
-    // 6 levels of blur: 32px -> 24px -> 16px -> 10px -> 4px -> 0px
-    const blurLevels = [32, 24, 16, 10, 4, 0]
+    // 6 levels of blur matching table
+    const blurLevels = [10, 9.5, 8.5, 7.5, 6, 0]
     return blurLevels[Math.min(revealLevel - 1, 5)]
   }, [revealLevel, gameState])
 

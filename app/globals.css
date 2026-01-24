@@ -35,6 +35,15 @@
   --destructive: oklch(0.55 0.2 25);
   --destructive-foreground: oklch(0.98 0.005 85);
 
+  --success: oklch(0.85 0.1 140);
+  --success-foreground: oklch(0.18 0.01 260);
+
+  --warning: oklch(0.85 0.15 70);
+  --warning-foreground: oklch(0.18 0.01 260);
+
+  --info: oklch(0.85 0.05 240);
+  --info-foreground: oklch(0.18 0.01 260);
+
   --border: oklch(0.88 0.01 85);
   --border-strong: oklch(0.18 0.01 260);
   --input: oklch(0.92 0.01 85);
@@ -60,6 +69,63 @@
   --sidebar-ring: oklch(0.72 0.16 55);
 }
 
+.dark {
+  /* Noir / Midnight Theme */
+  --background: oklch(0.15 0.02 260);
+  --foreground: oklch(0.98 0.005 85);
+
+  --card: oklch(0.18 0.02 260);
+  --card-foreground: oklch(0.98 0.005 85);
+
+  --popover: oklch(0.15 0.02 260);
+  --popover-foreground: oklch(0.98 0.005 85);
+
+  --primary: oklch(0.72 0.16 55);
+  --primary-foreground: oklch(0.18 0.01 260);
+
+  --secondary: oklch(0.18 0.02 260);
+  --secondary-foreground: oklch(0.98 0.005 85);
+
+  --muted: oklch(0.25 0.02 260);
+  --muted-foreground: oklch(0.65 0.01 260);
+
+  --accent: oklch(0.72 0.16 55);
+  --accent-foreground: oklch(0.18 0.01 260);
+
+  --destructive: oklch(0.45 0.15 25);
+  --destructive-foreground: oklch(0.98 0.005 85);
+
+  --success: oklch(0.65 0.1 140);
+  --success-foreground: oklch(0.98 0.005 85);
+
+  --warning: oklch(0.85 0.15 70);
+  /* Keep warning bright enough or adjust if needed, DS doesn't specify dark warning explicitly but implies desaturation */
+  --warning-foreground: oklch(0.18 0.01 260);
+
+  --info: oklch(0.85 0.05 240);
+  --info-foreground: oklch(0.18 0.01 260);
+
+  --border: oklch(0.25 0.02 260);
+  --border-strong: oklch(0.40 0.02 260);
+  --input: oklch(0.25 0.02 260);
+  --ring: oklch(0.72 0.16 55);
+
+  --chart-1: oklch(0.72 0.16 55);
+  --chart-2: oklch(0.65 0.12 85);
+  --chart-3: oklch(0.55 0.08 260);
+  --chart-4: oklch(0.75 0.14 45);
+  --chart-5: oklch(0.6 0.1 35);
+
+  --sidebar: oklch(0.15 0.02 260);
+  --sidebar-foreground: oklch(0.98 0.005 85);
+  --sidebar-primary: oklch(0.72 0.16 55);
+  --sidebar-primary-foreground: oklch(0.98 0.005 85);
+  --sidebar-accent: oklch(0.25 0.02 260);
+  --sidebar-accent-foreground: oklch(0.98 0.005 85);
+  --sidebar-border: oklch(0.25 0.02 260);
+  --sidebar-ring: oklch(0.72 0.16 55);
+}
+
 @theme inline {
   --font-sans: "Inter", "Inter Fallback", system-ui, sans-serif;
   --font-serif: "Playfair Display", "Georgia", serif;
@@ -81,6 +147,12 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-input: var(--input);
@@ -110,8 +182,28 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground relative;
   }
+
+  /* Noise Texture (Cold Press Paper) */
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    mix-blend-mode: multiply;
+  }
+}
+
+@utility bg-gradient-amber {
+  background: linear-gradient(135deg, oklch(0.72 0.16 55) 0%, oklch(0.68 0.18 50) 100%);
 }
 
 /* Custom handwritten marker circle animation */
@@ -162,4 +254,91 @@
   border-radius: 50%;
   transform: rotate(-1deg);
   opacity: 0.7;
+}
+
+
+/* Glassmorphism utility - Frosted Vellum */
+/* We define the texture on a pseudo-element to control its z-index and opacity independently */
+.frosted-glass,
+.glass-panel {
+  /* No position set here! Let the component decide (sticky, relative, absolute) */
+  /* ensuring the component creates a stacking context is up to the component's position prop or isolation */
+}
+
+/* Shared noise texture */
+.frosted-glass::before,
+.glass-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.05;
+  /* Seamless match with body */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.glass-panel {
+  /* glass-panel implies a container, so we enforce relative positioning here */
+  /* overflow-hidden is risky for popovers, let's remove it or keep it? 
+     Dropdowns usually need rounded corners clipped. Keeping it. 
+     If sticky header breaks, it's because .frosted-glass forced relative. Now it doesn't. */
+  @apply relative bg-background/80 backdrop-blur-md border border-border/50 shadow-xl overflow-hidden;
+}
+
+/* Lenis Recommended CSS */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+/* Premium Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(0.72 0.16 55 / 0.3);
+  /* Amber with opacity */
+  border-radius: 999px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.72 0.16 55 / 0.6);
+}
+
+/* Remove default scrollbar for cleaner look in some contexts if needed */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }

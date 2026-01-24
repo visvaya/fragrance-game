@@ -16,20 +16,40 @@ export function PyramidClues() {
     ].filter(Boolean)
 
     // Progressive reveal logic
-    let visibleCount = 0
-    if (revealLevel >= 3) {
-      visibleCount = mergedNotes.length // 100%
+    // Progressive reveal logic (Linear)
+    // Level 1: Generic placeholders (•••, •••, •••)
+    // Level 2: Masked notes (all notes, but masked e.g. •••••)
+    // Level 3: 1/3 notes revealed (from end)
+    // Level 4: 2/3 notes revealed (from end)
+    // Level 5+: All notes revealed
+
+    let displayNotes: string[] = []
+
+    if (revealLevel === 1) {
+      // 3 generic dots
+      displayNotes = ["•••", "•••", "•••"]
     } else if (revealLevel === 2) {
-      visibleCount = Math.ceil(mergedNotes.length * 0.5) // 50%
-    } else if (revealLevel === 1) {
-      visibleCount = Math.ceil(mergedNotes.length * (1 / 3)) // 33%
+      // All notes masked (0% reveal)
+      displayNotes = mergedNotes.map(n => n.replace(/[a-zA-Z0-9]/g, '•'))
+    } else if (revealLevel === 3) {
+      // 1/3 revealed from end, rest masked
+      const count = Math.ceil(mergedNotes.length * (1 / 3))
+      displayNotes = mergedNotes.map((n, i) => {
+        // if index is in the last 'count', show it. Else mask it.
+        if (i >= mergedNotes.length - count) return n
+        return n.replace(/[a-zA-Z0-9]/g, '•')
+      })
+    } else if (revealLevel === 4) {
+      // 2/3 revealed from end
+      const count = Math.ceil(mergedNotes.length * (2 / 3))
+      displayNotes = mergedNotes.map((n, i) => {
+        if (i >= mergedNotes.length - count) return n
+        return n.replace(/[a-zA-Z0-9]/g, '•')
+      })
+    } else {
+      // Level 5+ -> All
+      displayNotes = mergedNotes
     }
-
-    // Reveal from END (last notes first)
-    const visibleNotes = visibleCount > 0 ? mergedNotes.slice(-visibleCount) : []
-
-    // Always render 3 visual slots for linear perfumes
-    const slots = [0, 1, 2]
 
     return (
       <div>
@@ -42,26 +62,16 @@ export function PyramidClues() {
             Linear
           </span>
           <div className="flex flex-wrap gap-2 text-sm">
-            {slots.map((i) => {
-              const note = visibleNotes[i]
-              return (
-                <span
-                  key={i}
-                  className="text-foreground"
-                >
-                  {note ? (
-                    note.split('').map((char, index) => (
-                      <span key={index} className={char === '•' ? "opacity-50 text-muted-foreground" : "text-foreground"}>
-                        {char}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-muted-foreground font-caveat opacity-30">•••</span>
-                  )}
-                  {i < slots.length - 1 && <span className="text-muted-foreground/30 mx-1">,</span>}
-                </span>
-              )
-            })}
+            {displayNotes.map((note, i) => (
+              <span key={i} className="text-foreground">
+                {note.split('').map((char, index) => (
+                  <span key={index} className={char === '•' ? "opacity-30 text-muted-foreground" : "text-foreground"}>
+                    {char}
+                  </span>
+                ))}
+                {i < displayNotes.length - 1 && <span className="text-muted-foreground/30 mx-1">,</span>}
+              </span>
+            ))}
           </div>
         </div>
       </div>

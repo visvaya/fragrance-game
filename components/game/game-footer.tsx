@@ -1,6 +1,6 @@
 export function GameFooter() {
   return (
-    <footer className="w-full bg-secondary border-t border-border mt-auto">
+    <footer className="w-full bg-secondary border-t border-border mt-auto pb-[env(safe-area-inset-bottom)]">
       <div className="max-w-[640px] mx-auto px-5 py-10 flex flex-col items-center gap-4">
         {/* Links */}
         <div className="flex gap-6">

@@ -45,6 +45,7 @@ export interface GuessHistoryItem {
     isCorrect: boolean;
     year?: number;
     concentration?: string;
+    gender?: string;
 }
 
 export interface StartGameResponse {
@@ -267,7 +268,7 @@ export async function startGame(challengeId: string): Promise<StartGameResponse>
             for (const guess of rawGuesses) {
                 const { data: p } = await adminSupabase
                     .from('perfumes')
-                    .select('name, brands(name), release_year, concentration')
+                    .select('name, brands(name), release_year, concentrations(name), gender')
                     .eq('id', guess.perfumeId)
                     .single();
 
@@ -279,7 +280,8 @@ export async function startGame(challengeId: string): Promise<StartGameResponse>
                         timestamp: guess.timestamp,
                         isCorrect: guess.isCorrect,
                         year: p.release_year,
-                        concentration: p.concentration
+                        concentration: (p as any).concentrations?.name,
+                        gender: p.gender
                     });
                 }
             }

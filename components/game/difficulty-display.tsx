@@ -10,7 +10,7 @@ export function DifficultyDisplay({ score }: { score: number }) {
                 score >= 0.35 ? "Easy" : "Beginner";
 
     return (
-        <div className="flex items-center justify-center gap-2 mt-2">
+        <div className="flex items-center justify-center gap-2">
             <span className="text-xs text-muted-foreground uppercase tracking-wide">Difficulty</span>
             <div className="flex text-amber-500 text-sm">
                 {Array.from({ length: 5 }, (_, i) => (
