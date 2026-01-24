@@ -69,21 +69,45 @@ export async function GET(request: NextRequest) {
         const usedPerfumeIds = recentChallenges?.map(c => c.perfume_id) || [];
 
         // 4. Select random perfume from eligible pool
+        // 4. Select random perfume from eligible pool
         // Eligible = has assets + not used recently + is_active
-        let query = adminSupabase
-            .from('perfume_assets')
-            .select('perfume_id, perfumes!inner(is_uncertain)')
-            .not('image_key_step_1', 'is', null) // Must have at least step 1 image
-            .eq('perfumes.is_uncertain', false); // Only certain perfumes
 
-        if (usedPerfumeIds.length > 0) {
-            query = query.not('perfume_id', 'in', `(${usedPerfumeIds.join(',')})`);
+        const fetchCandidates = async (excludeIds: string[]) => {
+            let query = adminSupabase
+                .from('perfume_assets')
+                .select('perfume_id, perfumes!inner(is_uncertain)')
+                .not('image_key_step_1', 'is', null) // Must have at least step 1 image
+                .eq('perfumes.is_uncertain', false); // Only certain perfumes
+
+            if (excludeIds.length > 0) {
+                query = query.not('perfume_id', 'in', `(${excludeIds.join(',')})`);
+            }
+            return await query;
+        };
+
+        // Attempt 1: Strict (exclude last 365 days)
+        let { data: eligiblePerfumes, error: eligibleError } = await fetchCandidates(usedPerfumeIds);
+
+        // Attempt 2: Fallback (exclude last 7 days only)
+        if (!eligibleError && (!eligiblePerfumes || eligiblePerfumes.length === 0)) {
+            console.warn('[CRON] No fresh perfumes found (365 days). Switching to fallback mode (7 days exclusion).');
+
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 7);
+            const { data: recentChallenges7d } = await adminSupabase
+                .from('daily_challenges')
+                .select('perfume_id')
+                .gte('challenge_date', sevenDaysAgo.toISOString().split('T')[0]);
+
+            const usedLast7Days = recentChallenges7d?.map(c => c.perfume_id) || [];
+
+            const fallbackResult = await fetchCandidates(usedLast7Days);
+            eligiblePerfumes = fallbackResult.data;
+            eligibleError = fallbackResult.error;
         }
 
-        const { data: eligiblePerfumes, error: eligibleError } = await query;
-
         if (eligibleError || !eligiblePerfumes || eligiblePerfumes.length === 0) {
-            console.error('[CRON] No eligible perfumes found:', eligibleError);
+            console.error('[CRON] No eligible perfumes found even after fallback:', eligibleError);
             return NextResponse.json(
                 { error: 'No eligible perfumes available' },
                 { status: 500 }
