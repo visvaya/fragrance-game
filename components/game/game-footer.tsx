@@ -1,7 +1,11 @@
 export function GameFooter() {
   return (
     <footer className="w-full bg-secondary border-t border-border mt-auto pb-[env(safe-area-inset-bottom)]">
-      <div className="max-w-[640px] mx-auto px-5 py-10 flex flex-col items-center gap-4">
+      <div className="max-w-[640px] mx-auto px-5 py-10 flex flex-col items-center gap-4 relative">
+        {/* Helper Text - moved from GameInput */}
+        <p className="absolute right-7 top-2 font-[family-name:var(--font-hand)] text-sm text-primary/70 rotate-[-3deg] pointer-events-none whitespace-nowrap">
+          Select from list ↑
+        </p>
         {/* Links */}
         <div className="flex gap-6">
           <a

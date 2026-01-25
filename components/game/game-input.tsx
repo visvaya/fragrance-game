@@ -143,7 +143,7 @@ export function GameInput() {
 
   if (gameState !== "playing") {
     return (
-      <div className="sticky bottom-0 w-full max-w-[640px] z-40">
+      <div className="sticky bottom-0 w-full max-w-[640px] z-30">
         <div className="relative border-t border-x-0 sm:border-x border-border/50 px-5 pt-[6px] pb-[calc(8px+env(safe-area-inset-bottom,20px))] backdrop-blur-md bg-background/70 rounded-t-none sm:rounded-t-md transition-colors duration-500 ease-in-out">
           {/* Input-like look for closed state */}
           <div className="relative">
@@ -157,10 +157,10 @@ export function GameInput() {
   }
 
   return (
-    <div className="sticky bottom-0 w-full max-w-[640px] z-40">
+    <div className="sticky bottom-0 w-full max-w-[640px] z-30">
       <div
         ref={wrapperRef}
-        className={`relative border-t border-x-0 sm:border-x border-border/50 px-5 pt-[6px] pb-[calc(8px+env(safe-area-inset-bottom,20px))] backdrop-blur-md transition-colors duration-500 ease-in-out ${showSuggestions ? "bg-background" : "bg-background/70"} ${showSuggestions && suggestions.length > 0 ? "rounded-t-none" : "rounded-t-none sm:rounded-t-md"}`}
+        className={`relative border-t border-x-0 sm:border-x border-border/50 px-5 pt-[6px] pb-4 backdrop-blur-md transition-colors duration-500 ease-in-out ${showSuggestions ? "bg-background" : "bg-background/70"} ${showSuggestions && suggestions.length > 0 ? "rounded-t-none" : "rounded-t-none sm:rounded-t-md"}`}
       >
         {/* Input */}
         <div className="relative">
@@ -173,6 +173,7 @@ export function GameInput() {
               setShowSuggestions(true);
             }}
             onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setShowSuggestions(false)}
             onKeyDown={handleKeyDown}
             placeholder="Type perfume name..."
             className="w-full py-3 pr-10 font-[family-name:var(--font-playfair)] text-lg text-foreground bg-transparent border-b-2 border-border focus:border-primary outline-none transition-colors duration-300 placeholder:font-sans placeholder:text-sm placeholder:italic placeholder:text-muted-foreground"
@@ -220,7 +221,7 @@ export function GameInput() {
 
         {/* Suggestions dropdown */}
         {showSuggestions && suggestions.length > 0 && (
-          <div ref={listRef} data-lenis-prevent className="!absolute bottom-full left-[-1px] w-[calc(100%+2px)] bg-background border-t border-x border-muted/50 rounded-t-md !overflow-y-auto max-h-52 touch-pan-y shadow-none">
+          <div ref={listRef} onMouseDown={(e) => e.preventDefault()} data-lenis-prevent className="!absolute bottom-full left-[-1px] w-[calc(100%+2px)] bg-background border-t border-x border-b border-border/50 rounded-t-md !overflow-y-auto max-h-80 sm:max-h-60 touch-pan-y shadow-none">
             {suggestions.map((perfume, index) => {
               // Check duplicate (Using ID is more robust, fallback to name)
               const isDuplicate = attempts.some(a =>
@@ -311,9 +312,8 @@ export function GameInput() {
       </div>
 
       {/* Handwritten annotation - Outside wrapper, aligned right */}
-      <p className="absolute right-6 -bottom-[30px] pb-[env(safe-area-inset-bottom,20px)] font-[family-name:var(--font-hand)] text-sm text-primary/70 rotate-[-3deg] pointer-events-none whitespace-nowrap z-50">
-        Select from list ↑
-      </p>
+      {/* Transparent Safe Area Spacer */}
+      <div className="w-full h-[env(safe-area-inset-bottom,20px)] pointer-events-none" />
     </div>
   )
 }

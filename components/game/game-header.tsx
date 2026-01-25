@@ -13,6 +13,7 @@ export function GameHeader() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+
   const [statsOpen, setStatsOpen] = useState(false)
   const [currentLang, setCurrentLang] = useState("EN")
 
@@ -20,18 +21,18 @@ export function GameHeader() {
     <>
       <nav
         className={cn(
-          "relative w-full max-w-[640px] px-5 pb-5 pt-[calc(1.25rem+env(safe-area-inset-top))] flex justify-between items-center border-b border-x-0 sm:border-x border-border/50 bg-background rounded-b-none sm:rounded-b-md transition-all duration-200",
-          (menuOpen || langOpen) ? "z-50" : "z-20"
+          "relative w-full max-w-[640px] px-5 pb-5 pt-[calc(1.25rem+env(safe-area-inset-top))] flex justify-between items-center border-b border-x-0 sm:border-x border-border/50 bg-background/70 backdrop-blur-md rounded-b-none sm:rounded-b-md transition-all duration-200",
+          (menuOpen || langOpen) ? "z-40" : "z-20"
         )}
       >
         {/* Left controls */}
-        <div className="flex items-center gap-3 md:gap-4">
-          <TooltipProvider delayDuration={0}>
+        <div className="flex items-center gap-1 md:gap-2">
+          <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   onClick={() => setMenuOpen(!menuOpen)}
-                  className="text-foreground hover:text-primary transition-colors duration-300 p-1"
+                  className="text-foreground hover:text-primary transition-colors duration-300 p-3"
                   aria-label="Open menu"
                 >
                   <Menu className="w-5 h-5" />
@@ -44,7 +45,7 @@ export function GameHeader() {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => setHelpOpen(true)}
-                  className="text-foreground hover:text-primary transition-colors duration-300 p-1 relative"
+                  className="text-foreground hover:text-primary transition-colors duration-300 p-3 relative"
                   aria-label="How to play"
                 >
                   <HelpCircle className="w-5 h-5" />
@@ -67,12 +68,12 @@ export function GameHeader() {
             <ResetButton />
           </div>
 
-          <TooltipProvider delayDuration={0}>
+          <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   onClick={() => setLangOpen(!langOpen)}
-                  className="flex items-center gap-1 text-sm font-semibold text-foreground hover:text-primary transition-colors duration-300 p-1"
+                  className="flex items-center gap-1 text-sm font-semibold text-foreground hover:text-primary transition-colors duration-300 p-3"
                 >
                   {currentLang}
                   <ChevronDown className="w-3 h-3" />
@@ -85,7 +86,7 @@ export function GameHeader() {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => setStatsOpen(true)}
-                  className="text-foreground hover:text-primary transition-colors duration-300 p-1"
+                  className="text-foreground hover:text-primary transition-colors duration-300 p-3"
                   aria-label="View statistics"
                 >
                   <BarChart3 className="w-5 h-5" />

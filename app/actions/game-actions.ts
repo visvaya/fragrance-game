@@ -718,8 +718,6 @@ export async function resetGame(sessionId: string): Promise<{ success: boolean; 
         return { success: false, error: deleteError.message };
     }
 
-
-
     revalidatePath('/');
     return { success: true };
 }

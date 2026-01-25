@@ -1,5 +1,7 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import { X, Waves } from "lucide-react"
 import { MarkerCircle } from "../marker-circle"
 
@@ -9,19 +11,35 @@ interface HelpModalProps {
 }
 
 export function HelpModal({ open, onClose }: HelpModalProps) {
-  if (!open) return null
+  const [mounted, setMounted] = useState(false)
 
-  return (
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = 'unset'
+      }
+    }
+  }, [open])
+
+  if (!open || !mounted) return null
+
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-foreground/30 backdrop-blur-sm animate-in fade-in duration-300"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-background border border-border shadow-xl overflow-hidden p-8 animate-in slide-in-from-bottom-4 duration-300 rounded-xl"
+        className="w-full max-w-md bg-background border border-border shadow-xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300 rounded-xl flex flex-col max-h-[85vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-center mb-6 pb-4 border-b border-border">
+        <div className="flex justify-between items-center p-6 pb-4 border-b border-border shrink-0">
           <h2 className="font-[family-name:var(--font-playfair)] text-xl italic text-foreground">How to Play</h2>
           <button
             onClick={onClose}
@@ -33,7 +51,10 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
         </div>
 
         {/* Content */}
-        <div className="space-y-4 text-sm leading-relaxed text-foreground">
+        <div
+          className="space-y-4 text-sm leading-relaxed text-foreground p-6 pt-4 overflow-y-auto"
+          data-lenis-prevent
+        >
           <p>
             <strong>Deduce the mystery fragrance.</strong>
           </p>
@@ -90,6 +111,7 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
           </p>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
