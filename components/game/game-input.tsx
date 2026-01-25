@@ -8,11 +8,18 @@ import { useGame } from "./game-provider"
 import { searchPerfumes, type PerfumeSuggestion } from "@/app/actions/autocomplete"
 import { toast } from "sonner" // Import toast
 
+import { useMountTransition } from "@/hooks/use-mount-transition"
+
 export function GameInput() {
   const { currentAttempt, maxAttempts, gameState, makeGuess, getPotentialScore, sessionId, attempts, loading: gameLoading } = useGame()
   const [query, setQuery] = useState("")
   const [suggestions, setSuggestions] = useState<PerfumeSuggestion[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+
+  // Animation state
+  const shouldShowList = showSuggestions && suggestions.length > 0
+  const hasTransitionedIn = useMountTransition(shouldShowList, 200) // 200ms matches duration-200
+
   const [isLoading, setIsLoading] = useState(false)
   const [isError, setIsError] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
@@ -83,23 +90,6 @@ export function GameInput() {
   }, [])
 
   const handleSelect = (perfume: PerfumeSuggestion) => {
-    // Pass everything needed: name, brand (masked if needed, but here we pass real brand from backend?), 
-    // Wait, makeGuess takes (name, brand, id). 
-    // If the suggestion has a masked brand, we should probably pass the UNMASKED name if possible?
-    // Actually, `searchPerfumes` returns `name` (unmasked?) and `brand_masked`.
-    // Let's check the action again. It selects `name` and `brand_name` from VIEW.
-    // The VIEW `perfumes_public` HAS `brand_name`? 
-    // Yes, the action returns `name` (raw) and `brand_masked` (logic).
-    // Ideally we pass the raw brand if available, or just what we show.
-    // `makeGuess` in provider calculates feedback. 
-    // If we pass MASKED brand, the feedback might be wrong if it compares string equality.
-    // However, the `submitGuess` on server uses ID, so it is robust.
-    // The client-side feedback in `makeGuess` (fake feedback) might use the strings.
-    // Let's rely on the Server Action's result primarily.
-    // We update GameInput to pass `perfume.brand_masked` or `perfume.display_name`?
-    // Let's pass `perfume.brand_masked` for now as the "brand" argument, 
-    // trusting the server `submitGuess` deals with the real check.
-
     makeGuess(perfume.name, perfume.brand_masked, perfume.perfume_id)
     setQuery("")
     setSuggestions([])
@@ -158,70 +148,83 @@ export function GameInput() {
 
   return (
     <div className="sticky bottom-0 w-full max-w-[640px] z-30">
-      <div
-        ref={wrapperRef}
-        className={`relative border-t border-x-0 sm:border-x border-border/50 px-5 pt-[6px] pb-4 backdrop-blur-md transition-colors duration-500 ease-in-out ${showSuggestions ? "bg-background" : "bg-background/70"} ${showSuggestions && suggestions.length > 0 ? "rounded-t-none" : "rounded-t-none sm:rounded-t-md"}`}
-      >
-        {/* Input */}
-        <div className="relative">
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setShowSuggestions(true);
-            }}
-            onFocus={() => setShowSuggestions(true)}
-            onBlur={() => setShowSuggestions(false)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type perfume name..."
-            className="w-full py-3 pr-10 font-[family-name:var(--font-playfair)] text-lg text-foreground bg-transparent border-b-2 border-border focus:border-primary outline-none transition-colors duration-300 placeholder:font-sans placeholder:text-sm placeholder:italic placeholder:text-muted-foreground"
-          />
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 pointer-events-none flex items-center justify-center">
-            {/* Search Icon */}
-            <div
-              className={`absolute transition-all duration-300 ease-out ${!isLoading && !gameLoading && !isError
-                ? "opacity-100 rotate-0 scale-100"
-                : "opacity-0 -rotate-90 scale-50"
-                }`}
-            >
-              <Search className="w-5 h-5 text-muted-foreground" />
-            </div>
+      <div ref={wrapperRef} className="relative">
 
-            {/* Loader Icon */}
-            <div
-              className={`absolute transition-all duration-300 ease-out ${isLoading || gameLoading
-                ? "opacity-100 scale-100"
-                : "opacity-0 scale-50"
-                }`}
-            >
-              <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
-            </div>
+        {/* Input Surface (Visual Layer) */}
+        <div
+          className={`relative z-20 border-t border-x-0 sm:border-x border-border/50 px-5 pt-[6px] pb-[calc(16px+env(safe-area-inset-bottom,20px))] backdrop-blur-md transition-colors duration-500 ease-in-out ${shouldShowList || hasTransitionedIn ? "bg-background rounded-t-none" : "bg-background/70 rounded-t-none sm:rounded-t-md"}`}
+        >
+          {/* Input */}
+          <div className="relative">
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setShowSuggestions(false)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type perfume name..."
+              className="w-full py-3 pr-10 font-[family-name:var(--font-playfair)] text-lg text-foreground bg-transparent border-b-2 border-border focus:border-primary outline-none transition-colors duration-300 placeholder:font-sans placeholder:text-sm placeholder:italic placeholder:text-muted-foreground"
+            />
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 pointer-events-none flex items-center justify-center">
+              {/* Search Icon */}
+              <div
+                className={`absolute transition-all duration-300 ease-out ${!isLoading && !gameLoading && !isError
+                  ? "opacity-100 rotate-0 scale-100"
+                  : "opacity-0 -rotate-90 scale-50"
+                  }`}
+              >
+                <Search className="w-5 h-5 text-muted-foreground" />
+              </div>
 
-            {/* Error Icon */}
-            <div
-              className={`absolute transition-all duration-300 ease-out ${!isLoading && !gameLoading && isError
-                ? "opacity-100 rotate-0 scale-100"
-                : "opacity-0 rotate-90 scale-50"
-                }`}
-            >
-              <X className="w-5 h-5 text-destructive" />
+              {/* Loader Icon */}
+              <div
+                className={`absolute transition-all duration-300 ease-out ${isLoading || gameLoading
+                  ? "opacity-100 scale-100"
+                  : "opacity-0 scale-50"
+                  }`}
+              >
+                <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+              </div>
+
+              {/* Error Icon */}
+              <div
+                className={`absolute transition-all duration-300 ease-out ${!isLoading && !gameLoading && isError
+                  ? "opacity-100 rotate-0 scale-100"
+                  : "opacity-0 rotate-90 scale-50"
+                  }`}
+              >
+                <X className="w-5 h-5 text-destructive" />
+              </div>
             </div>
+          </div>
+
+          {/* Status bar */}
+          <div className="flex justify-between items-center text-[10px] uppercase tracking-wide text-muted-foreground mt-3">
+            <span>
+              Attempt {currentAttempt} / {maxAttempts}
+            </span>
+            <span className="text-primary font-semibold">Potential Score: {getPotentialScore()}</span>
           </div>
         </div>
 
-        {/* Status bar */}
-        <div className="flex justify-between items-center text-[10px] uppercase tracking-wide text-muted-foreground mt-3">
-          <span>
-            Attempt {currentAttempt} / {maxAttempts}
-          </span>
-          <span className="text-primary font-semibold">Potential Score: {getPotentialScore()}</span>
-        </div>
-
-        {/* Suggestions dropdown */}
-        {showSuggestions && suggestions.length > 0 && (
-          <div ref={listRef} onMouseDown={(e) => e.preventDefault()} data-lenis-prevent className="!absolute bottom-full left-[-1px] w-[calc(100%+2px)] bg-background border-t border-x border-b border-border/50 rounded-t-md !overflow-y-auto max-h-80 sm:max-h-60 touch-pan-y shadow-none">
+        {/* Suggestions dropdown (Behind Input Surface) */}
+        {(hasTransitionedIn || shouldShowList) && (
+          <div
+            ref={listRef}
+            onMouseDown={(e) => e.preventDefault()}
+            data-lenis-prevent
+            className={`!absolute bottom-full left-0 w-full bg-background border-t border-x border-border/50 rounded-t-md !overflow-y-auto max-h-56 touch-pan-y shadow-none z-10
+              ${shouldShowList
+                ? "animate-in slide-in-from-bottom-12 fade-in duration-200 ease-out"
+                : "animate-out slide-out-to-bottom-12 fade-out duration-200 ease-in"
+              }
+            `}
+          >
             {suggestions.map((perfume, index) => {
               // Check duplicate (Using ID is more robust, fallback to name)
               const isDuplicate = attempts.some(a =>
@@ -310,10 +313,6 @@ export function GameInput() {
           </div>
         )}
       </div>
-
-      {/* Handwritten annotation - Outside wrapper, aligned right */}
-      {/* Transparent Safe Area Spacer */}
-      <div className="w-full h-[env(safe-area-inset-bottom,20px)] pointer-events-none" />
     </div>
   )
 }
