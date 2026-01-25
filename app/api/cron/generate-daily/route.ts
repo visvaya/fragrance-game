@@ -10,10 +10,8 @@ import { createAdminClient } from '@/lib/supabase/server';
  * 
  * Logic:
  * 1. Verify authorization
- * 2. Check if tomorrow's challenge already exists
- * 3. Select random perfume from eligible pool (not used in last 30 days)
- * 4. Insert new daily_challenge record
- * 5. Return success/failure status
+ * 2. Self-Healing: Check if TODAY's challenge exists. If not, generate it.
+ * 3. Future-Proofing: Check if TOMORROW's challenge exists. If not, generate it.
  */
 export async function GET(request: NextRequest) {
     // 1. Security Check: Verify CRON_SECRET
@@ -38,137 +36,137 @@ export async function GET(request: NextRequest) {
 
     try {
         const adminSupabase = createAdminClient();
+        const results = [];
+
+        // Check TODAY (Self-Healing)
+        const todayStr = new Date().toISOString().split('T')[0];
+        results.push(await ensureChallenge(adminSupabase, todayStr));
+
+        // Check TOMORROW (Standard)
         const tomorrow = new Date();
         tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-        const tomorrowDate = tomorrow.toISOString().split('T')[0]; // YYYY-MM-DD
-
-        // 2. Check if challenge already exists for tomorrow
-        const { data: existingChallenge } = await adminSupabase
-            .from('daily_challenges')
-            .select('id')
-            .eq('challenge_date', tomorrowDate)
-            .single();
-
-        if (existingChallenge) {
-            console.log(`[CRON] Challenge for ${tomorrowDate} already exists`);
-            return NextResponse.json({
-                status: 'skipped',
-                message: 'Challenge already exists',
-                date: tomorrowDate
-            });
-        }
-
-        // 3. Get recently used perfume IDs (last 365 days = 1 year)
-        const oneYearAgo = new Date();
-        oneYearAgo.setUTCDate(oneYearAgo.getUTCDate() - 365);
-        const { data: recentChallenges } = await adminSupabase
-            .from('daily_challenges')
-            .select('perfume_id')
-            .gte('challenge_date', oneYearAgo.toISOString().split('T')[0]);
-
-        const usedPerfumeIds = recentChallenges?.map(c => c.perfume_id) || [];
-
-        // 4. Select random perfume from eligible pool
-        // 4. Select random perfume from eligible pool
-        // Eligible = has assets + not used recently + is_active
-
-        const fetchCandidates = async (excludeIds: string[]) => {
-            let query = adminSupabase
-                .from('perfume_assets')
-                .select('perfume_id, perfumes!inner(is_uncertain)')
-                .not('image_key_step_1', 'is', null) // Must have at least step 1 image
-                .eq('perfumes.is_uncertain', false); // Only certain perfumes
-
-            if (excludeIds.length > 0) {
-                query = query.not('perfume_id', 'in', `(${excludeIds.join(',')})`);
-            }
-            return await query;
-        };
-
-        // Attempt 1: Strict (exclude last 365 days)
-        let { data: eligiblePerfumes, error: eligibleError } = await fetchCandidates(usedPerfumeIds);
-
-        // Attempt 2: Fallback (exclude last 7 days only)
-        if (!eligibleError && (!eligiblePerfumes || eligiblePerfumes.length === 0)) {
-            console.warn('[CRON] No fresh perfumes found (365 days). Switching to fallback mode (7 days exclusion).');
-
-            const sevenDaysAgo = new Date();
-            sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 7);
-            const { data: recentChallenges7d } = await adminSupabase
-                .from('daily_challenges')
-                .select('perfume_id')
-                .gte('challenge_date', sevenDaysAgo.toISOString().split('T')[0]);
-
-            const usedLast7Days = recentChallenges7d?.map(c => c.perfume_id) || [];
-
-            const fallbackResult = await fetchCandidates(usedLast7Days);
-            eligiblePerfumes = fallbackResult.data;
-            eligibleError = fallbackResult.error;
-        }
-
-        if (eligibleError || !eligiblePerfumes || eligiblePerfumes.length === 0) {
-            console.error('[CRON] No eligible perfumes found even after fallback:', eligibleError);
-            return NextResponse.json(
-                { error: 'No eligible perfumes available' },
-                { status: 500 }
-            );
-        }
-
-        // Random selection
-        const selectedPerfume = eligiblePerfumes[Math.floor(Math.random() * eligiblePerfumes.length)];
-
-        // 5. Get current max challenge_number
-        const { data: maxChallenge } = await adminSupabase
-            .from('daily_challenges')
-            .select('challenge_number')
-            .order('challenge_number', { ascending: false })
-            .limit(1)
-            .single();
-
-        const nextChallengeNumber = (maxChallenge?.challenge_number || 0) + 1;
-
-        // 6. Insert new challenge
-        const graceDeadline = new Date(tomorrow);
-        graceDeadline.setUTCHours(23, 59, 59, 999); // End of tomorrow
-
-        const { data: newChallenge, error: insertError } = await adminSupabase
-            .from('daily_challenges')
-            .insert({
-                perfume_id: selectedPerfume.perfume_id,
-                challenge_date: tomorrowDate,
-                challenge_number: nextChallengeNumber,
-                mode: 'standard',
-                seed_hash: `auto-${Date.now()}`,
-                grace_deadline_at_utc: graceDeadline.toISOString(),
-                snapshot_metadata: {}
-            })
-            .select()
-            .single();
-
-        if (insertError) {
-            console.error('[CRON] Failed to insert challenge:', insertError);
-            return NextResponse.json(
-                { error: 'Database insertion failed', details: insertError.message },
-                { status: 500 }
-            );
-        }
-
-        console.log(`[CRON] ✅ Generated challenge #${nextChallengeNumber} for ${tomorrowDate}`);
+        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+        results.push(await ensureChallenge(adminSupabase, tomorrowStr));
 
         return NextResponse.json({
             status: 'success',
-            challenge: {
-                id: newChallenge.id,
-                challenge_number: nextChallengeNumber,
-                challenge_date: tomorrowDate
-            }
+            results
         });
 
     } catch (error) {
         console.error('[CRON] Unexpected error:', error);
         return NextResponse.json(
-            { error: 'Internal server error' },
+            { error: 'Internal server error', details: error instanceof Error ? error.message : String(error) },
             { status: 500 }
         );
     }
+}
+
+async function ensureChallenge(supabase: any, dateStr: string) {
+    // 1. Check if exists
+    const { data: existing } = await supabase
+        .from('daily_challenges')
+        .select('id, challenge_number, perfume_id')
+        .eq('challenge_date', dateStr)
+        .single();
+
+    if (existing) {
+        return { date: dateStr, status: 'exists', id: existing.id };
+    }
+
+    console.log(`[CRON] Generating missing challenge for ${dateStr}...`);
+
+    // 2. Fetch exclusion list (Last 30 days is sufficient to avoid recent repeats, keeping pool healthy)
+    const exclusionDate = new Date();
+    exclusionDate.setUTCDate(exclusionDate.getUTCDate() - 30);
+
+    const { data: recentChallenges } = await supabase
+        .from('daily_challenges')
+        .select('perfume_id')
+        .gte('challenge_date', exclusionDate.toISOString().split('T')[0]);
+
+    const excludeIds = recentChallenges?.map((c: any) => c.perfume_id) || [];
+
+    // 3. Fetch Candidates
+    let query = supabase
+        .from('perfume_assets')
+        .select('perfume_id, perfumes!inner(is_uncertain)')
+        .not('image_key_step_1', 'is', null) // Must have assets
+        .eq('perfumes.is_uncertain', false); // Must be verified
+
+    if (excludeIds.length > 0) {
+        query = query.not('perfume_id', 'in', `(${excludeIds.join(',')})`);
+    }
+
+    let { data: candidates, error } = await query;
+
+    // Fallback: If pool exhausted (unlikely), try excluding only last 7 days
+    if (error || !candidates || candidates.length === 0) {
+        console.warn(`[CRON] Pool exhausted for ${dateStr}. Retrying with 7-day exclusion.`);
+
+        const shortExclusionDate = new Date();
+        shortExclusionDate.setUTCDate(shortExclusionDate.getUTCDate() - 7);
+        const { data: recent7 } = await supabase
+            .from('daily_challenges')
+            .select('perfume_id')
+            .gte('challenge_date', shortExclusionDate.toISOString().split('T')[0]);
+
+        const excludeIds7 = recent7?.map((c: any) => c.perfume_id) || [];
+
+        let retryQuery = supabase
+            .from('perfume_assets')
+            .select('perfume_id, perfumes!inner(is_uncertain)')
+            .not('image_key_step_1', 'is', null)
+            .eq('perfumes.is_uncertain', false);
+
+        if (excludeIds7.length > 0) {
+            retryQuery = retryQuery.not('perfume_id', 'in', `(${excludeIds7.join(',')})`);
+        }
+
+        const retryResult = await retryQuery;
+        candidates = retryResult.data;
+        error = retryResult.error;
+    }
+
+    if (error || !candidates || candidates.length === 0) {
+        throw new Error(`No eligible perfumes found for ${dateStr}. Error: ${error?.message}`);
+    }
+
+    // 4. Random Selection
+    const selected = candidates[Math.floor(Math.random() * candidates.length)];
+
+    // 5. Get Next Challenge Number
+    const { data: maxChallenge } = await supabase
+        .from('daily_challenges')
+        .select('challenge_number')
+        .order('challenge_number', { ascending: false })
+        .limit(1)
+        .single();
+
+    const nextNumber = (maxChallenge?.challenge_number || 0) + 1;
+
+    // 6. Insert
+    const deadline = new Date(dateStr);
+    deadline.setUTCHours(23, 59, 59, 999);
+
+    const { data: newChallenge, error: insertError } = await supabase
+        .from('daily_challenges')
+        .insert({
+            perfume_id: selected.perfume_id,
+            challenge_date: dateStr,
+            challenge_number: nextNumber,
+            mode: 'standard',
+            seed_hash: `auto-${Date.now()}`,
+            grace_deadline_at_utc: deadline.toISOString(),
+            snapshot_metadata: {}
+        })
+        .select()
+        .single();
+
+    if (insertError) {
+        throw new Error(`Failed to insert challenge for ${dateStr}: ${insertError.message}`);
+    }
+
+    console.log(`[CRON] ✅ Created challenge #${nextNumber} for ${dateStr}`);
+    return { date: dateStr, status: 'created', id: newChallenge.id, perfume_id: selected.perfume_id };
 }

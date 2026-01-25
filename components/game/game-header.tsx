@@ -1,11 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Menu, HelpCircle, BarChart3, ChevronDown } from "lucide-react"
 import { HelpModal } from "./modals/help-modal"
 import { StatsModal } from "./modals/stats-modal"
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+
+import { ResetButton } from "./reset-button"
 
 export function GameHeader() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -16,15 +18,20 @@ export function GameHeader() {
 
   return (
     <>
-      <nav className="sticky top-0 w-full max-w-[640px] px-5 pb-5 pt-[calc(1.25rem+env(safe-area-inset-top))] flex justify-between items-center border-b border-border/50 backdrop-blur-md bg-background/80 z-20 frosted-glass">
+      <nav
+        className={cn(
+          "relative w-full max-w-[640px] px-5 pb-5 pt-[calc(1.25rem+env(safe-area-inset-top))] flex justify-between items-center border-b border-x-0 sm:border-x border-border/50 bg-background rounded-b-none sm:rounded-b-md transition-all duration-200",
+          (menuOpen || langOpen) ? "z-50" : "z-20"
+        )}
+      >
         {/* Left controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 md:gap-4">
           <TooltipProvider delayDuration={0}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   onClick={() => setMenuOpen(!menuOpen)}
-                  className="text-foreground hover:text-primary transition-colors duration-300"
+                  className="text-foreground hover:text-primary transition-colors duration-300 p-1"
                   aria-label="Open menu"
                 >
                   <Menu className="w-5 h-5" />
@@ -37,7 +44,7 @@ export function GameHeader() {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => setHelpOpen(true)}
-                  className="text-foreground hover:text-primary transition-colors duration-300"
+                  className="text-foreground hover:text-primary transition-colors duration-300 p-1 relative"
                   aria-label="How to play"
                 >
                   <HelpCircle className="w-5 h-5" />
@@ -49,18 +56,23 @@ export function GameHeader() {
         </div>
 
         {/* Logo */}
-        <h1 className="font-[family-name:var(--font-playfair)] text-2xl font-bold tracking-tight uppercase text-foreground">
+        <h1 className="font-[family-name:var(--font-playfair)] text-2xl font-bold tracking-tight uppercase text-foreground absolute left-1/2 transform -translate-x-1/2">
           Eauxle
         </h1>
 
         {/* Right controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 md:gap-4">
+          {/* Reset Button (Debug) placed before Language */}
+          <div className="relative">
+            <ResetButton />
+          </div>
+
           <TooltipProvider delayDuration={0}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   onClick={() => setLangOpen(!langOpen)}
-                  className="flex items-center gap-1 text-sm font-semibold text-foreground hover:text-primary transition-colors duration-300"
+                  className="flex items-center gap-1 text-sm font-semibold text-foreground hover:text-primary transition-colors duration-300 p-1"
                 >
                   {currentLang}
                   <ChevronDown className="w-3 h-3" />
@@ -73,7 +85,7 @@ export function GameHeader() {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => setStatsOpen(true)}
-                  className="text-foreground hover:text-primary transition-colors duration-300"
+                  className="text-foreground hover:text-primary transition-colors duration-300 p-1"
                   aria-label="View statistics"
                 >
                   <BarChart3 className="w-5 h-5" />
@@ -87,7 +99,7 @@ export function GameHeader() {
         {/* Menu Dropdown */}
         <div
           className={cn(
-            "absolute top-full left-5 mt-2 w-56 glass-panel flex-col transition-all duration-300 rounded-md overflow-hidden",
+            "!absolute top-full left-5 mt-2 w-56 bg-background border border-border/50 shadow-xl flex-col transition-all duration-300 rounded-md overflow-hidden",
             menuOpen ? "flex opacity-100 translate-y-0" : "hidden opacity-0 -translate-y-2",
           )}
         >
@@ -115,7 +127,7 @@ export function GameHeader() {
         {/* Language Dropdown */}
         <div
           className={cn(
-            "absolute top-full right-5 mt-2 w-24 glass-panel flex-col transition-all duration-300 rounded-md overflow-hidden",
+            "!absolute top-full right-16 mt-2 w-24 bg-background border border-border/50 shadow-xl flex-col transition-all duration-300 rounded-md overflow-hidden",
             langOpen ? "flex opacity-100 translate-y-0" : "hidden opacity-0 -translate-y-2",
           )}
         >

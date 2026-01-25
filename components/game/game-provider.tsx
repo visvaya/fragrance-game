@@ -47,6 +47,8 @@ export type Attempt = {
     brandRevealed: boolean
     yearRevealed: boolean
     genderRevealed: boolean
+    guessMaskedBrand: string
+    guessMaskedYear: string
   }
 }
 
@@ -73,6 +75,7 @@ type GameContextType = {
   isGenderRevealed: boolean
   getRevealedGender: () => string
   xsolveScore: number
+  loading: boolean
 }
 
 const GameContext = createContext<GameContextType | null>(null)
@@ -147,31 +150,69 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
           // Hydrate Attempts
           if (session.guesses && session.guesses.length > 0) {
-            const enrichedAttempts: Attempt[] = session.guesses.map(g => {
+            // Reconstruct history with correct progressive disclosure snapshots
+            const enrichedAttempts: Attempt[] = [];
+            // Track running state for hydration replay
+            // We need to simulate the "game state" at each step to determine what was revealed
+            const percentages = [0, 0, 0.15, 0.40, 0.70, 1.0]; // Same as getRevealedBrandHelper
+
+            session.guesses.forEach((g, index) => {
+              const currentLevel = index + 1;
               const isCorrect = g.isCorrect;
-              // For hydrating feedback, if we don't have detailed diff from server in StartGameResponse,
-              // we can infer rudimentary feedback or wait for a better implementation.
-              // For now, if "isCorrect" is true, everything is matched.
-              // If false, we can't easily know "close" matches without storing diffs in DB.
-              // Let's assume partial/wrong for now unless correct.
-              // BETTER: Compare with challenge.clues which we just fetched!
 
+              // 1. Did this specific guess match?
               const brandMatch = g.brandName.toLowerCase() === challenge.clues.brand.toLowerCase();
+              const yearMatchDiff = (g.year || 0) - challenge.clues.year;
+              const yearMatch = isCorrect ? "correct" : (Math.abs(yearMatchDiff) <= 3 && yearMatchDiff !== 0 ? "close" : (yearMatchDiff === 0 ? "correct" : "wrong"));
 
-              return {
+              // 2. Was it revealed by PREVIOUS attempts (or this one)?
+              // Running check: Is it revealed by ANY guess up to now?
+              // Optimization: We can check just the enrichedAttempts so far.
+              const anyBrandMatch = enrichedAttempts.some(a => a.feedback.brandMatch) || brandMatch;
+              const anyYearMatch = enrichedAttempts.some(a => a.feedback.yearMatch === "correct") || yearMatch === "correct";
+
+              // 3. Was it revealed by LEVEL logic?
+              // Calculate Clues for Snapshot (Use GUESS values)
+              const { guessMaskedBrand, guessMaskedYear } = calculateMaskedValues(currentLevel, g.brandName, g.year || 0);
+
+              // Check Reveal Status for Global State (Use ANSWER values) - needed for boolean flags
+              // Note: game logic says "isBrandRevealed" if dailyPerfume.brand is revealed. 
+              // But here we are setting flags on the attempt snapshot for HISTORICAL rendering?
+              // Attempt-log uses (feedback.brandMatch || snapshot.brandRevealed).
+              // "brandRevealed" means "Is the ANSWER brand revealed at this step?".
+
+              const { guessMaskedBrand: answerClueBrand, guessMaskedYear: answerClueYear } = calculateMaskedValues(currentLevel, challenge.clues.brand, challenge.clues.year);
+              const brandRevealedByLevel = answerClueBrand === challenge.clues.brand;
+              const yearRevealedByLevel = answerClueYear === challenge.clues.year.toString();
+
+              // 4. Gender logic (simplified)
+              const genderMatch = g.gender?.toLowerCase() === challenge.clues.gender.toLowerCase();
+              const anyGenderMatch = enrichedAttempts.some(a => a.snapshot?.genderRevealed) || genderMatch;
+
+              const snapshot = {
+                brandRevealed: anyBrandMatch || brandRevealedByLevel,
+                yearRevealed: anyYearMatch || yearRevealedByLevel,
+                genderRevealed: anyGenderMatch,
+                guessMaskedBrand,
+                guessMaskedYear
+              };
+
+              enrichedAttempts.push({
                 guess: g.perfumeName,
-                perfumeId: g.perfumeId, // Map ID from history
+                perfumeId: g.perfumeId,
                 brand: g.brandName,
-                feedback: {
+                feedback: g.feedback || {
                   brandMatch,
-                  perfumerMatch: isCorrect ? "full" : "none", // approximated
-                  yearMatch: isCorrect ? "correct" : "wrong", // approximated
-                  yearDirection: "equal", // basic fallback
-                  notesMatch: isCorrect ? 1 : 0 // approximated
+                  perfumerMatch: isCorrect ? "full" : "none", // approximated fallback
+                  yearMatch: yearMatch as "correct" | "close" | "wrong",
+                  yearDirection: yearMatchDiff > 0 ? "lower" : (yearMatchDiff < 0 ? "higher" : "equal"),
+                  notesMatch: isCorrect ? 1 : 0 // approximated fallback
                 },
                 year: g.year,
-                concentration: g.concentration
-              };
+                concentration: g.concentration,
+                gender: g.gender,
+                snapshot
+              });
             });
             setAttempts(enrichedAttempts);
 
@@ -234,6 +275,29 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (currentLevel === 3) return dailyPerfume.year.toString().slice(0, 2) + "••";
     if (currentLevel === 2) return dailyPerfume.year.toString().slice(0, 1) + "•••";
     return "••••";
+  }
+
+  // --- Snapshot Helper (DRY) ---
+  // --- Snapshot Helper (DRY) ---
+  const calculateMaskedValues = (level: number, targetBrand: string, targetYear: number | string) => {
+    // Brand
+    const brandPercentages = [0, 0, 0.15, 0.40, 0.70, 1.0];
+    const guessMaskedBrand = level === 1
+      ? "•••"
+      : revealLetters(targetBrand, brandPercentages[Math.min(level - 1, 5)]);
+
+    // Year
+    let guessMaskedYear = "••••";
+
+    if (targetYear) {
+      const yearStr = targetYear.toString();
+      if (level >= 5) guessMaskedYear = yearStr;
+      else if (level === 4) guessMaskedYear = yearStr.slice(0, 3) + "•";
+      else if (level === 3) guessMaskedYear = yearStr.slice(0, 2) + "••";
+      else if (level === 2) guessMaskedYear = yearStr.slice(0, 1) + "•••";
+    }
+
+    return { guessMaskedBrand, guessMaskedYear };
   }
 
   // NEW HELPERS FOR LOG REVEAL (Moved up for dependency usage)
@@ -309,10 +373,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
           return a.snapshot?.genderRevealed;
         });
 
+        // Calculate snapshot state INCLUDING the effect of the current attempt (level increment)
+        const nextAttemptsCount = attempts.length + 1;
+
+        // Calculate Clues for Snapshot (Use GUESS values)
+        const { guessMaskedBrand, guessMaskedYear } = calculateMaskedValues(nextAttemptsCount, brand, result.guessedPerfumeDetails?.year || 0);
+
+        // Check Reveal Status for Global State (Use ANSWER values)
+        const { guessMaskedBrand: answerClueBrand, guessMaskedYear: answerClueYear } = calculateMaskedValues(nextAttemptsCount, dailyPerfume.brand, dailyPerfume.year);
+
+        const brandRevealedByLevel = answerClueBrand === dailyPerfume.brand;
+        const yearRevealedByLevel = answerClueYear === dailyPerfume.year.toString();
+
         const newSnapshot = {
-          brandRevealed: isBrandRevealed || thisBrandRevealed,
-          yearRevealed: isYearRevealed || thisYearRevealed,
-          genderRevealed: wasGenderRevealed || matchedGender
+          brandRevealed: isBrandRevealed || thisBrandRevealed || brandRevealedByLevel,
+          yearRevealed: isYearRevealed || thisYearRevealed || yearRevealedByLevel,
+          genderRevealed: wasGenderRevealed || matchedGender,
+          guessMaskedBrand,
+          guessMaskedYear
         };
 
         const newAttempt: Attempt = {
@@ -334,8 +412,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
           setDailyPerfume(prev => ({
             ...prev,
             name: result.answerName!,
-            // If the last guess was correct (game won), its concentration is likely the answer's concentration
-            concentration: result.gameStatus === 'won' ? result.guessedPerfumeDetails?.concentration : prev.concentration
+            // Fix: Use answerConcentration if provided (covers both win and loss scenarios correctly)
+            concentration: result.answerConcentration
           }));
         }
 
@@ -579,7 +657,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         isBrandRevealed,
         isYearRevealed,
         isGenderRevealed,
-        getRevealedGender,
+        getRevealedGender: () => dailyPerfume.gender || "Unisex",
+        loading
       }}
     >
       {children}

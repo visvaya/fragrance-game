@@ -46,6 +46,7 @@ export interface GuessHistoryItem {
     year?: number;
     concentration?: string;
     gender?: string;
+    feedback?: AttemptFeedback;
 }
 
 export interface StartGameResponse {
@@ -81,6 +82,7 @@ export interface GuessResult {
         gender: string;
     };
     answerName?: string;
+    answerConcentration?: string;
 }
 
 // --- Helpers ---
@@ -244,8 +246,9 @@ export async function startGame(challengeId: string): Promise<StartGameResponse>
         .select('id, last_nonce, attempts_count, guesses')
         .eq('player_id', user.id)
         .eq('challenge_id', challengeId)
-        .eq('status', 'active')
-        .single();
+        .order('start_time', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
     if (existingSession) {
         // RESUME EXISTING SESSION
@@ -281,7 +284,8 @@ export async function startGame(challengeId: string): Promise<StartGameResponse>
                         isCorrect: guess.isCorrect,
                         year: p.release_year,
                         concentration: (p as any).concentrations?.name,
-                        gender: p.gender
+                        gender: p.gender,
+                        feedback: guess.feedback // Pass through stored feedback
                     });
                 }
             }
@@ -492,7 +496,7 @@ export async function submitGuess(
             .single(),
         adminSupabase
             .from('perfumes')
-            .select('name, brand_id, release_year, top_notes, middle_notes, base_notes, perfumers')
+            .select('name, brand_id, release_year, top_notes, middle_notes, base_notes, perfumers, concentrations(name)')
             .eq('id', challenge.perfume_id)
             .single()
     ]);
@@ -542,6 +546,8 @@ export async function submitGuess(
         // Checking existing `guessEntry`: `perfumeId, timestamp, isCorrect`.
         // The implementation plan doesn't specify changing this (except "Capture perfumers in Attempt type" which is Frontend).
         // Backend stores JSONB.
+        // Capture feedback for hydration
+        feedback: feedback,
         timestamp: new Date().toISOString(),
         isCorrect
     };
@@ -636,7 +642,8 @@ export async function submitGuess(
             concentration: (guessedPerfume as any)?.concentrations?.name || 'Unknown',
             gender: guessedPerfume?.gender || 'Unisex'
         },
-        answerName: isGameOver ? (answerPerfumeRes.data as any)?.name : undefined
+        answerName: isGameOver ? (answerPerfumeRes.data as any)?.name : undefined,
+        answerConcentration: isGameOver ? (answerPerfumeRes.data as any)?.concentrations?.name : undefined
     };
 }
 
@@ -650,35 +657,69 @@ export async function resetGame(sessionId: string): Promise<{ success: boolean; 
 
     if (!user) throw new Error('Unauthorized');
 
-    // RLS ensures user can only delete their own session
+    let targetChallengeId: string | null = null;
 
-    // RLS ensures user can only delete their own session
-    // We use count: 'exact' to verify deletion
-    const { error, count } = await supabase
+    // 1. Try to Identify challenge from the session
+    const { data: sessionData } = await supabase
+        .from('game_sessions')
+        .select('challenge_id')
+        .eq('id', sessionId)
+        .eq('player_id', user.id)
+        .maybeSingle();
+
+    if (sessionData) {
+        targetChallengeId = sessionData.challenge_id;
+    } else {
+        // Fallback: If session doesn't exist (already deleted?), assume User wants to reset TODAY's challenge.
+        // This breaks the loop where Client has an invalid SessionID and can't reset.
+        console.warn(`[resetGame] Session ${sessionId} not found. Falling back to current daily challenge.`);
+        const { data: daily } = await supabase
+            .from('daily_challenges_public')
+            .select('id')
+            .eq('challenge_date', new Date().toISOString().split('T')[0])
+            .single();
+
+        if (daily) {
+            targetChallengeId = daily.id;
+        }
+    }
+
+    if (!targetChallengeId) {
+        // If we still can't find what to reset, just tell the client to clear their state.
+        // Returning 'true' allows the client to wipe the invalid session ID.
+        console.warn('[resetGame] Could not determine challenge ID. Forcing client-side reset only.');
+        return { success: true };
+    }
+
+    // 2. "Deep Reset": Delete ALL sessions AND RESULTS for this user and challenge
+
+    // 2a. Delete RESULTS first (Foreign Key Constraint)
+    const { error: resultDeleteError } = await supabase
+        .from('game_results')
+        .delete({ count: 'exact' })
+        .eq('player_id', user.id)
+        .eq('challenge_id', targetChallengeId);
+
+    if (resultDeleteError) {
+        // Log but continue? No, if this fails, session delete will likely fail too.
+        console.error('Reset failed deleting results:', resultDeleteError);
+        return { success: false, error: resultDeleteError.message };
+    }
+
+    // 2b. Delete Sessions
+    const { error: deleteError, count } = await supabase
         .from('game_sessions')
         .delete({ count: 'exact' })
-        .eq('id', sessionId)
-        .eq('player_id', user.id);
+        .eq('player_id', user.id)
+        .eq('challenge_id', targetChallengeId);
 
-    if (error) {
-        console.error('Reset failed with DB error:', error);
-        return { success: false, error: error.message };
+    if (deleteError) {
+        console.error('Reset failed with DB error:', deleteError);
+        return { success: false, error: deleteError.message };
     }
 
-    if (count === 0) {
-        console.warn(`[resetGame] No rows deleted for session ${sessionId}. It might not exist or belong to user.`);
-        // Optional debug check
-        const { data: check } = await supabase.from('game_sessions').select('id, player_id').eq('id', sessionId).single();
-        if (check) {
-            console.error(`[resetGame] Session actually exists for user ${check.player_id}, but delete failed (RLS?).`);
-        } else {
-            console.log(`[resetGame] Verified: Session does not exist.`);
-        }
-        return { success: false, error: 'Session not found or ownership mismatch' };
-    }
 
-    // Clear server cache for this path
+
     revalidatePath('/');
-
     return { success: true };
 }

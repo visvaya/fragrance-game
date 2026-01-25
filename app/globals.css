@@ -195,10 +195,11 @@
     height: 100%;
     pointer-events: none;
     z-index: -1;
-    opacity: 0.05;
+    opacity: 0.07;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
     background-repeat: repeat;
     mix-blend-mode: multiply;
+    pointer-events: none;
   }
 }
 
@@ -256,36 +257,12 @@
   opacity: 0.7;
 }
 
-
-/* Glassmorphism utility - Frosted Vellum */
-/* We define the texture on a pseudo-element to control its z-index and opacity independently */
-.frosted-glass,
-.glass-panel {
-  /* No position set here! Let the component decide (sticky, relative, absolute) */
-  /* ensuring the component creates a stacking context is up to the component's position prop or isolation */
-}
-
-/* Shared noise texture */
-.frosted-glass::before,
-.glass-panel::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  opacity: 0.05;
-  /* Seamless match with body */
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  mix-blend-mode: multiply;
-  pointer-events: none;
-}
-
 .glass-panel {
   /* glass-panel implies a container, so we enforce relative positioning here */
   /* overflow-hidden is risky for popovers, let's remove it or keep it? 
      Dropdowns usually need rounded corners clipped. Keeping it. 
      If sticky header breaks, it's because .frosted-glass forced relative. Now it doesn't. */
-  @apply relative bg-background/80 backdrop-blur-md border border-border/50 shadow-xl overflow-hidden;
+  @apply relative bg-background/70 backdrop-blur-md border border-border/50 shadow-xl overflow-hidden;
 }
 
 /* Lenis Recommended CSS */

@@ -3,20 +3,38 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
-import { Search, Loader2 } from "lucide-react"
+import { Search, Loader2, X } from "lucide-react"
 import { useGame } from "./game-provider"
 import { searchPerfumes, type PerfumeSuggestion } from "@/app/actions/autocomplete"
 import { toast } from "sonner" // Import toast
 
 export function GameInput() {
-  const { currentAttempt, maxAttempts, gameState, makeGuess, getPotentialScore, sessionId, attempts } = useGame()
+  const { currentAttempt, maxAttempts, gameState, makeGuess, getPotentialScore, sessionId, attempts, loading: gameLoading } = useGame()
   const [query, setQuery] = useState("")
   const [suggestions, setSuggestions] = useState<PerfumeSuggestion[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isError, setIsError] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  const previousAttemptsLengthRef = useRef(attempts.length)
+
+  // Detect incorrect guess to show error state
+  useEffect(() => {
+    // If attempts increased
+    if (attempts.length > previousAttemptsLengthRef.current) {
+      const lastAttempt = attempts[attempts.length - 1]
+      // Check if the last attempt was NOT a full match (game not won)
+      if (gameState !== "won") {
+        setIsError(true)
+        const timer = setTimeout(() => setIsError(false), 2000)
+        return () => clearTimeout(timer)
+      }
+    }
+    previousAttemptsLengthRef.current = attempts.length
+  }, [attempts, gameState])
 
   // Debounced search
   useEffect(() => {
@@ -38,8 +56,20 @@ export function GameInput() {
       }
     }, 300)
 
+    setSelectedIndex(-1) // Reset selection on query change/search start
+
     return () => clearTimeout(timer)
   }, [query, sessionId, currentAttempt])
+
+  // Scroll into view logic
+  useEffect(() => {
+    if (selectedIndex >= 0 && listRef.current) {
+      const activeItem = listRef.current.children[selectedIndex] as HTMLElement
+      if (activeItem) {
+        activeItem.scrollIntoView({ block: "nearest", behavior: "smooth" })
+      }
+    }
+  }, [selectedIndex])
 
   // Handle click outside
   useEffect(() => {
@@ -77,63 +107,120 @@ export function GameInput() {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (suggestions.length === 0) return
+
     if (e.key === "ArrowDown") {
       e.preventDefault()
-      setSelectedIndex((prev) => Math.min(prev + 1, suggestions.length - 1))
+      // Cyclic navigation: (current + 1) % length
+      setSelectedIndex((prev) => (prev + 1) % suggestions.length)
     } else if (e.key === "ArrowUp") {
       e.preventDefault()
-      setSelectedIndex((prev) => Math.max(prev - 1, -1))
+      // Cyclic navigation: (current - 1 + length) % length
+      setSelectedIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length)
     } else if (e.key === "Enter") {
       e.preventDefault()
+
+      let perfumeToSelect = null
       if (selectedIndex >= 0 && suggestions[selectedIndex]) {
-        handleSelect(suggestions[selectedIndex])
+        perfumeToSelect = suggestions[selectedIndex]
+      } else if (suggestions.length === 1) {
+        perfumeToSelect = suggestions[0]
+      }
+
+      if (perfumeToSelect) {
+        // Check for duplicates before selecting
+        const isDuplicate = attempts.some(a =>
+          (a.perfumeId && a.perfumeId === perfumeToSelect.perfume_id) ||
+          (!a.perfumeId && a.guess.toLowerCase() === perfumeToSelect.name.toLowerCase())
+        );
+
+        if (!isDuplicate) {
+          handleSelect(perfumeToSelect)
+        }
       }
     }
   }
 
   if (gameState !== "playing") {
     return (
-      <div className="sticky bottom-0 w-full max-w-[640px] bg-background border-t border-border px-5 py-6 z-40">
-        <div className="text-center">
-          <p className="font-[family-name:var(--font-hand)] text-xl text-primary">
-            Come back tomorrow for a new challenge!
-          </p>
+      <div className="sticky bottom-0 w-full max-w-[640px] z-40">
+        <div className="relative border-t border-x-0 sm:border-x border-border/50 px-5 pt-[6px] pb-[calc(8px+env(safe-area-inset-bottom,20px))] backdrop-blur-md bg-background/70 rounded-t-none sm:rounded-t-md transition-colors duration-500 ease-in-out">
+          {/* Input-like look for closed state */}
+          <div className="relative">
+            <div className="w-full py-3 text-center text-lg text-primary font-[family-name:var(--font-hand)]">
+              Come back tomorrow for a new challenge!
+            </div>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="sticky bottom-0 w-full max-w-[640px] bg-background/80 border-t border-muted/50 px-5 pt-5 pb-[env(safe-area-inset-bottom,20px)] z-40 frosted-glass backdrop-blur-md">
-      <div ref={wrapperRef} className="relative">
-        {/* Status bar */}
-        <div className="flex justify-between text-[10px] uppercase tracking-wide text-muted-foreground mb-2">
-          <span>
-            Attempt {currentAttempt} / {maxAttempts}
-          </span>
-          <span className="text-primary font-semibold">Potential Score: {getPotentialScore()}</span>
-        </div>
-
+    <div className="sticky bottom-0 w-full max-w-[640px] z-40">
+      <div
+        ref={wrapperRef}
+        className={`relative border-t border-x-0 sm:border-x border-border/50 px-5 pt-[6px] pb-[calc(8px+env(safe-area-inset-bottom,20px))] backdrop-blur-md transition-colors duration-500 ease-in-out ${showSuggestions ? "bg-background" : "bg-background/70"} ${showSuggestions && suggestions.length > 0 ? "rounded-t-none" : "rounded-t-none sm:rounded-t-md"}`}
+      >
         {/* Input */}
         <div className="relative">
           <input
             ref={inputRef}
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setShowSuggestions(true);
+            }}
             onFocus={() => setShowSuggestions(true)}
             onKeyDown={handleKeyDown}
             placeholder="Type perfume name..."
             className="w-full py-3 pr-10 font-[family-name:var(--font-playfair)] text-lg text-foreground bg-transparent border-b-2 border-border focus:border-primary outline-none transition-colors duration-300 placeholder:font-sans placeholder:text-sm placeholder:italic placeholder:text-muted-foreground"
           />
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none flex items-center justify-center">
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-5 h-5" />}
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 pointer-events-none flex items-center justify-center">
+            {/* Search Icon */}
+            <div
+              className={`absolute transition-all duration-300 ease-out ${!isLoading && !gameLoading && !isError
+                ? "opacity-100 rotate-0 scale-100"
+                : "opacity-0 -rotate-90 scale-50"
+                }`}
+            >
+              <Search className="w-5 h-5 text-muted-foreground" />
+            </div>
+
+            {/* Loader Icon */}
+            <div
+              className={`absolute transition-all duration-300 ease-out ${isLoading || gameLoading
+                ? "opacity-100 scale-100"
+                : "opacity-0 scale-50"
+                }`}
+            >
+              <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+            </div>
+
+            {/* Error Icon */}
+            <div
+              className={`absolute transition-all duration-300 ease-out ${!isLoading && !gameLoading && isError
+                ? "opacity-100 rotate-0 scale-100"
+                : "opacity-0 rotate-90 scale-50"
+                }`}
+            >
+              <X className="w-5 h-5 text-destructive" />
+            </div>
           </div>
+        </div>
+
+        {/* Status bar */}
+        <div className="flex justify-between items-center text-[10px] uppercase tracking-wide text-muted-foreground mt-3">
+          <span>
+            Attempt {currentAttempt} / {maxAttempts}
+          </span>
+          <span className="text-primary font-semibold">Potential Score: {getPotentialScore()}</span>
         </div>
 
         {/* Suggestions dropdown */}
         {showSuggestions && suggestions.length > 0 && (
-          <div data-lenis-prevent className="absolute bottom-full left-0 w-full mb-2 glass-panel max-h-52 overflow-y-auto rounded-xl">
+          <div ref={listRef} data-lenis-prevent className="!absolute bottom-full left-[-1px] w-[calc(100%+2px)] bg-background border-t border-x border-muted/50 rounded-t-md !overflow-y-auto max-h-52 touch-pan-y shadow-none">
             {suggestions.map((perfume, index) => {
               // Check duplicate (Using ID is more robust, fallback to name)
               const isDuplicate = attempts.some(a =>
@@ -145,18 +232,22 @@ export function GameInput() {
                 <button
                   key={perfume.perfume_id}
                   onClick={() => handleSelect(perfume)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onMouseEnter={() => setSelectedIndex(index)}
                   disabled={isDuplicate}
                   className={`w-full px-4 py-3 text-left text-sm border-b border-muted last:border-b-0 transition-colors duration-200 
-                  ${isDuplicate ? "opacity-50 cursor-not-allowed bg-muted/20" : ""}
-                  ${selectedIndex === index && !isDuplicate ? "bg-muted text-primary" : ""}
-                  ${!isDuplicate ? "hover:bg-muted/50 hover:text-primary" : ""}
+                  ${isDuplicate ? "cursor-not-allowed" : ""}
+                  ${isDuplicate && selectedIndex !== index ? "opacity-50 bg-muted/20" : ""}
+                  ${selectedIndex === index ? "bg-muted text-primary" : ""}
+                  ${isDuplicate && selectedIndex === index ? "opacity-70" : ""} 
+                  ${!isDuplicate && selectedIndex !== index ? "hover:bg-muted/50 hover:text-primary" : ""}
                 `}
                 >
-                  <span className="text-foreground flex flex-wrap gap-x-1 items-center">
+                  <span className="text-foreground flex flex-wrap gap-x-1 items-baseline">
                     {/* Brand Masked */}
-                    <span>
+                    <span className="inline-flex items-baseline">
                       {perfume.brand_masked.split('').map((char, i) => (
-                        <span key={i} className={char === '•' ? "opacity-30 text-muted-foreground" : "text-foreground"}>
+                        <span key={i} className={`${char === '•' ? "opacity-30 text-muted-foreground" : "text-foreground"} whitespace-pre`}>
                           {char}
                         </span>
                       ))}
@@ -165,7 +256,18 @@ export function GameInput() {
                     <span className="text-muted-foreground">•</span>
 
                     {/* Name (if duplicate, maybe strike-through? Optional. Just opacity is fine per plan) */}
-                    <span className={isDuplicate ? "line-through decoration-muted-foreground" : ""}>{perfume.name}</span>
+                    {/* Name with highlighting */}
+                    <span className={isDuplicate ? "line-through decoration-muted-foreground" : ""}>
+                      {(() => {
+                        if (!query || query.length < 2) return perfume.name;
+                        // Escape special regex characters in query
+                        const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        const parts = perfume.name.split(new RegExp(`(${safeQuery})`, 'gi'));
+                        return parts.map((part, i) =>
+                          part.toLowerCase() === query.toLowerCase() ? <b key={i} className="font-bold">{part}</b> : part
+                        );
+                      })()}
+                    </span>
 
                     {/* Concentration */}
                     {perfume.concentration && (
@@ -179,7 +281,7 @@ export function GameInput() {
                     {perfume.year && (
                       <>
                         <span className="text-muted-foreground">•</span>
-                        <span>
+                        <span className="inline-flex items-baseline">
                           {perfume.year.includes('•') ? (
                             // If it contains dots, apply masking logic: 
                             // If full placeholder "••••", use opacity-30 (lighter)
@@ -188,7 +290,7 @@ export function GameInput() {
                               <span className="opacity-30 tracking-widest text-muted-foreground">••••</span>
                             ) : (
                               perfume.year.split('').map((char, i) => (
-                                <span key={i} className={char === '•' ? "opacity-30 text-muted-foreground" : "text-foreground"}>
+                                <span key={i} className={`${char === '•' ? "opacity-30 text-muted-foreground" : "text-foreground"} whitespace-pre`}>
                                   {char}
                                 </span>
                               ))
@@ -206,12 +308,12 @@ export function GameInput() {
             })}
           </div>
         )}
-
-        {/* Handwritten annotation */}
-        <p className="absolute -right-2 -bottom-6 font-[family-name:var(--font-hand)] text-sm text-primary/70 rotate-[-3deg]">
-          Select from list ↑
-        </p>
       </div>
+
+      {/* Handwritten annotation - Outside wrapper, aligned right */}
+      <p className="absolute right-6 -bottom-[30px] pb-[env(safe-area-inset-bottom,20px)] font-[family-name:var(--font-hand)] text-sm text-primary/70 rotate-[-3deg] pointer-events-none whitespace-nowrap z-50">
+        Select from list ↑
+      </p>
     </div>
   )
 }

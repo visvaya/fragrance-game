@@ -3,12 +3,12 @@
 import { RotateCcw } from 'lucide-react';
 import { useState } from 'react';
 import { useGame } from './game-provider';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // TODO: REMOVE BEFORE PRODUCTION
 // This component allows resetting the game state for debugging purposes.
 export function ResetButton() {
     const { resetGame } = useGame();
-    // ... existing logic ...
     const [showConfirm, setShowConfirm] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
 
@@ -24,37 +24,41 @@ export function ResetButton() {
 
     if (!showConfirm) {
         return (
-            <button
-                onClick={() => setShowConfirm(true)}
-                className="fixed top-4 right-4 text-muted-foreground/50 hover:text-foreground hover:bg-muted/10 
-                   px-3 py-1.5 rounded-md text-sm transition-all duration-200 
-                   flex items-center gap-2 z-50 border border-transparent hover:border-border/20"
-                title="Debug: Reset game session"
-            >
-                <RotateCcw size={14} />
-                <span className="hidden sm:inline">Debug Reset</span>
-            </button>
+            <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <button
+                            onClick={() => setShowConfirm(true)}
+                            className="text-foreground/70 hover:text-primary transition-colors duration-300 flex items-center justify-center p-1"
+                            aria-label="Reset Game"
+                        >
+                            <RotateCcw size={18} />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Debug: Reset game session</TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
         );
     }
 
     return (
-        <div className="fixed top-4 right-4 bg-charcoal border border-amber-500 
-                    text-cream px-4 py-2 rounded shadow-lg z-50">
-            <p className="text-sm mb-2">Reset game session?</p>
-            <div className="flex gap-2">
-                <button
-                    onClick={handleConfirmedReset}
-                    disabled={isResetting}
-                    className="bg-amber-500 px-3 py-1 rounded text-sm hover:bg-amber-600 disabled:opacity-50 text-charcoal font-semibold"
-                >
-                    {isResetting ? 'Resetting...' : 'Confirm'}
-                </button>
+        <div className="absolute top-full right-0 mt-2 bg-card border border-border 
+                    text-card-foreground px-4 py-2 rounded shadow-lg z-50 w-max">
+            <p className="text-sm mb-2 font-semibold">Reset session?</p>
+            <div className="flex gap-2 justify-end">
                 <button
                     onClick={() => setShowConfirm(false)}
                     disabled={isResetting}
-                    className="bg-cream/10 px-3 py-1 rounded text-sm hover:bg-cream/20 disabled:opacity-50 text-cream"
+                    className="text-xs px-2 py-1 hover:underline disabled:opacity-50"
                 >
                     Cancel
+                </button>
+                <button
+                    onClick={handleConfirmedReset}
+                    disabled={isResetting}
+                    className="bg-primary text-primary-foreground px-3 py-1 rounded text-xs hover:bg-primary/90 disabled:opacity-50 font-semibold"
+                >
+                    {isResetting ? '...' : 'Confirm'}
                 </button>
             </div>
         </div>

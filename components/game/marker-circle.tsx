@@ -1,6 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface MarkerCircleProps {
   letter: string
@@ -9,8 +10,8 @@ interface MarkerCircleProps {
 }
 
 export function MarkerCircle({ letter, title, className }: MarkerCircleProps) {
-  return (
-    <span title={title} className={cn("relative inline-flex items-center justify-center w-6 h-6", className)}>
+  const content = (
+    <span className={cn("relative inline-flex items-center justify-center w-6 h-6 focus:outline-none", className)} tabIndex={0}>
       {/* SVG hand-drawn circle */}
       <svg className="absolute inset-0 w-full h-full marker-circle" viewBox="0 0 24 24" fill="none">
         <ellipse
@@ -37,7 +38,20 @@ export function MarkerCircle({ letter, title, className }: MarkerCircleProps) {
       </svg>
 
       {/* Letter */}
-      <span className="relative z-10 text-sm font-medium text-success dark:text-success">{letter}</span>
+      <span className="relative z-10 text-[10px] font-medium text-success dark:text-success">{letter}</span>
     </span>
+  )
+
+  if (!title) return content
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {content}
+      </TooltipTrigger>
+      <TooltipContent>
+        {title}
+      </TooltipContent>
+    </Tooltip>
   )
 }

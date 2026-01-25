@@ -17,7 +17,7 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md glass-panel p-8 animate-in slide-in-from-bottom-4 duration-300 rounded-xl"
+        className="w-full max-w-md bg-background border border-border shadow-xl overflow-hidden p-8 animate-in slide-in-from-bottom-4 duration-300 rounded-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

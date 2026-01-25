@@ -13,7 +13,7 @@ export function GameBoard() {
   return (
     <div className="flex flex-col gap-8">
       {/* Mystery Section - Image + Meta */}
-      <section className="grid grid-cols-[1fr_1.6fr] gap-6 items-center">
+      <section className="flex flex-col md:grid md:grid-cols-[1fr_1.3fr] gap-6 items-stretch">
         {/* Force remount on session change/reset to clear image cache state */}
         <RevealImage key={useGame().sessionId || 'no-session'} />
         <MetaClues />
