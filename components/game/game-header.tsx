@@ -5,7 +5,7 @@ import { Menu, HelpCircle, BarChart3, ChevronDown } from "lucide-react"
 import { HelpModal } from "./modals/help-modal"
 import { StatsModal } from "./modals/stats-modal"
 import { cn } from "@/lib/utils"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 import { ResetButton } from "./reset-button"
 
@@ -21,39 +21,37 @@ export function GameHeader() {
     <>
       <nav
         className={cn(
-          "relative w-full max-w-[640px] px-5 pb-5 pt-[calc(1.25rem+env(safe-area-inset-top))] flex justify-between items-center border-b border-x-0 sm:border-x border-border/50 bg-background/70 backdrop-blur-md rounded-b-none sm:rounded-b-md transition-all duration-200",
+          "relative w-full max-w-[640px] px-5 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] flex justify-between items-center border-b border-x-0 sm:border-x border-border/50 bg-background/70 backdrop-blur-md rounded-b-none sm:rounded-b-md transition-all duration-200",
           (menuOpen || langOpen) ? "z-40" : "z-20"
         )}
       >
         {/* Left controls */}
         <div className="flex items-center gap-1 md:gap-2">
-          <TooltipProvider delayDuration={300}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setMenuOpen(!menuOpen)}
-                  className="text-foreground hover:text-primary transition-colors duration-300 p-3"
-                  aria-label="Open menu"
-                >
-                  <Menu className="w-5 h-5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Menu</TooltipContent>
-            </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="text-foreground hover:text-primary transition-colors duration-300 p-2"
+                aria-label="Open menu"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Menu</TooltipContent>
+          </Tooltip>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setHelpOpen(true)}
-                  className="text-foreground hover:text-primary transition-colors duration-300 p-3 relative"
-                  aria-label="How to play"
-                >
-                  <HelpCircle className="w-5 h-5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>How to play</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setHelpOpen(true)}
+                className="text-foreground hover:text-primary transition-colors duration-300 p-2 relative"
+                aria-label="How to play"
+              >
+                <HelpCircle className="w-5 h-5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>How to play</TooltipContent>
+          </Tooltip>
         </div>
 
         {/* Logo */}
@@ -68,33 +66,31 @@ export function GameHeader() {
             <ResetButton />
           </div>
 
-          <TooltipProvider delayDuration={300}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setLangOpen(!langOpen)}
-                  className="flex items-center gap-1 text-sm font-semibold text-foreground hover:text-primary transition-colors duration-300 p-3"
-                >
-                  {currentLang}
-                  <ChevronDown className="w-3 h-3" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Language</TooltipContent>
-            </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setLangOpen(!langOpen)}
+                className="flex items-center gap-1 text-sm font-semibold text-foreground hover:text-primary transition-colors duration-300 p-2"
+              >
+                {currentLang}
+                <ChevronDown className="w-3 h-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Language</TooltipContent>
+          </Tooltip>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setStatsOpen(true)}
-                  className="text-foreground hover:text-primary transition-colors duration-300 p-3"
-                  aria-label="View statistics"
-                >
-                  <BarChart3 className="w-5 h-5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Statistics</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setStatsOpen(true)}
+                className="text-foreground hover:text-primary transition-colors duration-300 p-2"
+                aria-label="View statistics"
+              >
+                <BarChart3 className="w-5 h-5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Statistics</TooltipContent>
+          </Tooltip>
         </div>
 
         {/* Menu Dropdown */}

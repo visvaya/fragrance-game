@@ -7,6 +7,7 @@ import { SentryProvider } from "@/components/providers/sentry-provider"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Analytics } from "@vercel/analytics/next"
 import { SmoothScrollProvider } from "@/components/providers/smooth-scroll-provider"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import "./globals.css"
 
 /**
@@ -93,7 +94,9 @@ export default function RootLayout({
         <SentryProvider>
           <PostHogProvider>
             <SmoothScrollProvider>
-              {children}
+              <TooltipProvider delayDuration={300}>
+                {children}
+              </TooltipProvider>
             </SmoothScrollProvider>
           </PostHogProvider>
         </SentryProvider>
