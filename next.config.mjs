@@ -37,7 +37,7 @@ const nextConfig = {
   },
 }
 
-export default withSentryConfig(nextConfig, {
+const serverConfig = withSentryConfig(nextConfig, {
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options
 
@@ -64,3 +64,7 @@ export default withSentryConfig(nextConfig, {
   // Automatically tree-shake Sentry logger statements to reduce bundle size
   disableLogger: true,
 });
+
+import createNextIntlPlugin from 'next-intl/plugin';
+const withNextIntl = createNextIntlPlugin();
+export default withNextIntl(serverConfig);

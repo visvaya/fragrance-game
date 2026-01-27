@@ -5,14 +5,19 @@ import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import { Search, Loader2, X } from "lucide-react"
 import { useGame } from "./game-provider"
+import { cn } from "@/lib/utils"
 import { searchPerfumes, type PerfumeSuggestion } from "@/app/actions/autocomplete"
 import { toast } from "sonner" // Import toast
+import { useTranslations } from "next-intl"
 
 import { useMountTransition } from "@/hooks/use-mount-transition"
 
+
 export function GameInput() {
   const { currentAttempt, maxAttempts, gameState, makeGuess, getPotentialScore, sessionId, attempts, loading: gameLoading } = useGame()
+  const t = useTranslations('Game.input')
   const [query, setQuery] = useState("")
+
   const [suggestions, setSuggestions] = useState<PerfumeSuggestion[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
 
@@ -133,13 +138,16 @@ export function GameInput() {
 
   if (gameState !== "playing") {
     return (
-      <div className="sticky bottom-0 w-full max-w-[640px] z-30">
-        <div className="relative border-t border-x-0 sm:border-x border-border/50 px-5 pt-[6px] pb-[calc(8px+env(safe-area-inset-bottom,20px))] backdrop-blur-md bg-background/70 rounded-t-none sm:rounded-t-md transition-colors duration-500 ease-in-out">
+      <div className={cn(
+        "sticky bottom-0 w-full z-30 mx-auto",
+        useGame().uiPreferences.layoutMode === 'wide' ? "max-w-5xl" : "max-w-xl"
+      )}>
+        <div className="relative border-t border-x-0 sm:border-x border-border/50 px-5 py-4 backdrop-blur-md bg-background/80 sm:rounded-t-md transition-colors duration-500 ease-in-out">
           {/* Input-like look for closed state */}
-          <div className="relative">
-            <div className="w-full py-3 text-center text-lg text-primary font-[family-name:var(--font-hand)]">
-              Come back tomorrow for a new challenge!
-            </div>
+          <div className="relative flex justify-center items-center">
+            <span className="text-lg text-primary font-[family-name:var(--font-hand)]">
+              {t('closed')}
+            </span>
           </div>
         </div>
       </div>
@@ -147,12 +155,15 @@ export function GameInput() {
   }
 
   return (
-    <div className="sticky bottom-0 w-full max-w-[640px] z-30">
+    <div className={cn(
+      "sticky bottom-0 w-full z-30 transition-all duration-300 mx-auto",
+      useGame().uiPreferences.layoutMode === 'wide' ? "max-w-5xl" : "max-w-xl"
+    )}>
       <div ref={wrapperRef} className="relative">
 
         {/* Input Surface (Visual Layer) */}
         <div
-          className={`relative z-20 border-t border-x-0 sm:border-x border-border/50 px-5 pt-[6px] pb-[calc(16px+env(safe-area-inset-bottom,20px))] backdrop-blur-md transition-colors duration-500 ease-in-out ${shouldShowList || hasTransitionedIn ? "bg-background rounded-t-none" : "bg-background/70 rounded-t-none sm:rounded-t-md"}`}
+          className={`relative z-20 backdrop-blur-md border-t border-x-0 sm:border-x border-border/50 px-5 pt-[6px] pb-[calc(16px+env(safe-area-inset-bottom,20px))] transition-colors duration-200 ease-in-out ${shouldShowList || hasTransitionedIn ? "bg-background rounded-t-none" : (showSuggestions ? "bg-background rounded-t-none sm:rounded-t-md" : "bg-background/70 rounded-t-none sm:rounded-t-md")}`}
         >
           {/* Input */}
           <div className="relative">
@@ -167,7 +178,7 @@ export function GameInput() {
               onFocus={() => setShowSuggestions(true)}
               onBlur={() => setShowSuggestions(false)}
               onKeyDown={handleKeyDown}
-              placeholder="Type perfume name..."
+              placeholder={t('placeholder')}
               className="w-full py-3 pr-10 font-[family-name:var(--font-playfair)] text-lg text-foreground bg-transparent border-b-2 border-border focus:border-primary outline-none transition-colors duration-300 placeholder:font-sans placeholder:text-sm placeholder:italic placeholder:text-muted-foreground"
             />
             <div className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 pointer-events-none flex items-center justify-center">
@@ -206,10 +217,11 @@ export function GameInput() {
           {/* Status bar */}
           <div className="flex justify-between items-center text-[10px] uppercase tracking-wide text-muted-foreground mt-3">
             <span>
-              Attempt {currentAttempt} / {maxAttempts}
+              {t('attempt')} {currentAttempt} / {maxAttempts}
             </span>
-            <span className="text-primary font-semibold">Potential Score: {getPotentialScore()}</span>
+            <span className="text-primary font-semibold">{t('score')}: {getPotentialScore()}</span>
           </div>
+
         </div>
 
         {/* Suggestions dropdown (Behind Input Surface) */}
@@ -218,7 +230,7 @@ export function GameInput() {
             ref={listRef}
             onMouseDown={(e) => e.preventDefault()}
             data-lenis-prevent
-            className={`!absolute bottom-full left-0 w-full bg-background border-t border-x border-border/50 rounded-t-md !overflow-y-auto max-h-56 touch-pan-y shadow-none z-10
+            className={`!absolute bottom-full left-0 w-full bg-background border-t border-x border-border/50 rounded-t-md !overflow-y-auto max-h-56 touch-pan-y z-10
               ${shouldShowList
                 ? "animate-in slide-in-from-bottom-12 fade-in duration-200 ease-out"
                 : "animate-out slide-out-to-bottom-12 fade-out duration-200 ease-in"
@@ -250,11 +262,14 @@ export function GameInput() {
                   <span className="text-foreground flex flex-wrap gap-x-1 items-baseline">
                     {/* Brand Masked */}
                     <span className="inline-flex items-baseline">
-                      {perfume.brand_masked.split('').map((char, i) => (
-                        <span key={i} className={`${char === '•' ? "opacity-30 text-muted-foreground" : "text-foreground"} whitespace-pre`}>
-                          {char}
-                        </span>
-                      ))}
+                      {perfume.brand_masked.split('').map((char, i) => {
+                        const isFullHidden = /^•+$/.test(perfume.brand_masked)
+                        return (
+                          <span key={i} className={`${char === '•' ? `font-mono ${isFullHidden ? "opacity-30" : "opacity-40"} text-muted-foreground` : "text-foreground"} whitespace-pre`}>
+                            {char}
+                          </span>
+                        )
+                      })}
                     </span>
 
                     <span className="text-muted-foreground">•</span>
@@ -286,15 +301,15 @@ export function GameInput() {
                       <>
                         <span className="text-muted-foreground">•</span>
                         <span className="inline-flex items-baseline">
-                          {perfume.year.includes('•') ? (
+                          {perfume.year.includes('_') ? (
                             // If it contains dots, apply masking logic: 
-                            // If full placeholder "••••", use opacity-30 (lighter)
-                            // If partial "19••", use opacity-50 for dots
-                            perfume.year === "••••" ? (
-                              <span className="opacity-30 tracking-widest text-muted-foreground">••••</span>
+                            // If full placeholder "____", use opacity-30 (lighter)
+                            // If partial "19__", use opacity-50 for dots
+                            perfume.year === "____" ? (
+                              <span className="opacity-30 font-mono tracking-widest text-muted-foreground">____</span>
                             ) : (
                               perfume.year.split('').map((char, i) => (
-                                <span key={i} className={`${char === '•' ? "opacity-30 text-muted-foreground" : "text-foreground"} whitespace-pre`}>
+                                <span key={i} className={`${char === '_' ? "font-mono opacity-40 text-muted-foreground" : "text-foreground"} whitespace-pre`}>
                                   {char}
                                 </span>
                               ))

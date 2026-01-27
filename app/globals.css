@@ -3,6 +3,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+html.large-text {
+  font-size: 112.5%;
+  /* 18px base */
+}
+
 /* Eauxle - French Perfumery Theme */
 :root {
   /* Primary palette - elegant cream and amber */
@@ -70,24 +75,25 @@
 }
 
 .dark {
-  /* Noir / Midnight Theme */
-  --background: oklch(0.15 0.02 260);
-  --foreground: oklch(0.98 0.005 85);
+  /* Noir / Midnight Theme - Balanced Warm Charcoal */
+  --background: oklch(0.24 0.02 85);
+  /* Balanced darkness */
+  --foreground: oklch(0.90 0.01 85);
 
-  --card: oklch(0.18 0.02 260);
+  --card: oklch(0.27 0.02 85);
   --card-foreground: oklch(0.98 0.005 85);
 
-  --popover: oklch(0.15 0.02 260);
+  --popover: oklch(0.24 0.02 85);
   --popover-foreground: oklch(0.98 0.005 85);
 
   --primary: oklch(0.72 0.16 55);
   --primary-foreground: oklch(0.18 0.01 260);
 
-  --secondary: oklch(0.18 0.02 260);
+  --secondary: oklch(0.23 0.02 85);
   --secondary-foreground: oklch(0.98 0.005 85);
 
-  --muted: oklch(0.25 0.02 260);
-  --muted-foreground: oklch(0.65 0.01 260);
+  --muted: oklch(0.26 0.02 85);
+  --muted-foreground: oklch(0.65 0.01 85);
 
   --accent: oklch(0.72 0.16 55);
   --accent-foreground: oklch(0.18 0.01 260);
@@ -99,15 +105,14 @@
   --success-foreground: oklch(0.98 0.005 85);
 
   --warning: oklch(0.85 0.15 70);
-  /* Keep warning bright enough or adjust if needed, DS doesn't specify dark warning explicitly but implies desaturation */
   --warning-foreground: oklch(0.18 0.01 260);
 
   --info: oklch(0.85 0.05 240);
   --info-foreground: oklch(0.18 0.01 260);
 
-  --border: oklch(0.25 0.02 260);
-  --border-strong: oklch(0.40 0.02 260);
-  --input: oklch(0.25 0.02 260);
+  --border: oklch(0.40 0.02 85);
+  --border-strong: oklch(0.50 0.02 85);
+  --input: oklch(0.29 0.02 85);
   --ring: oklch(0.72 0.16 55);
 
   --chart-1: oklch(0.72 0.16 55);
@@ -116,13 +121,13 @@
   --chart-4: oklch(0.75 0.14 45);
   --chart-5: oklch(0.6 0.1 35);
 
-  --sidebar: oklch(0.15 0.02 260);
+  --sidebar: oklch(0.24 0.02 85);
   --sidebar-foreground: oklch(0.98 0.005 85);
   --sidebar-primary: oklch(0.72 0.16 55);
   --sidebar-primary-foreground: oklch(0.98 0.005 85);
-  --sidebar-accent: oklch(0.25 0.02 260);
+  --sidebar-accent: oklch(0.27 0.02 85);
   --sidebar-accent-foreground: oklch(0.98 0.005 85);
-  --sidebar-border: oklch(0.25 0.02 260);
+  --sidebar-border: oklch(0.29 0.02 85);
   --sidebar-ring: oklch(0.72 0.16 55);
 }
 
@@ -177,13 +182,21 @@
 }
 
 @layer base {
+
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring/50 ease-in-out;
+    transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, opacity, box-shadow, filter, backdrop-filter;
+    transition-duration: 300ms;
+  }
+
+  html {
+    @apply bg-background text-foreground;
   }
 
   body {
-    @apply bg-background text-foreground relative;
-    /* Creates stacking context so ::before (z-index: -1) sits atop the background color */
+    @apply text-foreground relative transition-colors duration-300 ease-in-out min-h-screen;
+    isolation: isolate;
+    /* Creates stacking context so z-index: -1 pseudo-element sits above background */
   }
 
   /* Noise Texture (Cold Press Paper) */
@@ -201,6 +214,13 @@
     background-repeat: repeat;
     mix-blend-mode: multiply;
     pointer-events: none;
+  }
+
+  /* Dark mode adjustment for texture */
+  .dark body::before {
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
   }
 }
 
@@ -238,6 +258,21 @@
   to {
     filter: blur(var(--blur-end)) grayscale(var(--grayscale-end));
   }
+}
+
+/* Flash Error Animation */
+@keyframes flash-error {
+  0% {
+    background-color: oklch(0.55 0.2 25 / 0.1);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+.animate-flash-error {
+  animation: flash-error 1.5s ease-out forwards;
 }
 
 /* Handwritten underline effect */

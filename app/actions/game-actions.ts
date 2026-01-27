@@ -25,6 +25,7 @@ export interface DailyChallenge {
         brand: string;
         perfumer: string;
         year: number;
+        concentration: string;
         gender: string;
         notes: {
             top: string[];
@@ -203,7 +204,8 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
             middle_notes,
             base_notes,
             perfumers,
-            brands (name)
+            brands (name),
+            concentrations (name)
         `)
         .eq('id', challengePrivate.perfume_id)
         .single();
@@ -213,6 +215,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     }
 
     const brandName = perfume.brands && !Array.isArray(perfume.brands) ? (perfume.brands as any).name : 'Unknown';
+    const concentrationName = perfume.concentrations && !Array.isArray(perfume.concentrations) ? (perfume.concentrations as any).name : 'Unknown';
 
     return {
         ...data,
@@ -220,6 +223,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
             brand: brandName,
             perfumer: perfume.perfumers && perfume.perfumers.length > 0 ? perfume.perfumers.join(', ') : 'Unknown',
             year: perfume.release_year || 0,
+            concentration: concentrationName,
             gender: perfume.gender || 'Unisex',
             notes: {
                 top: perfume.top_notes || [],

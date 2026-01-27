@@ -1,0 +1,160 @@
+{
+  "Metadata": {
+    "title": "Eauxle — Olfactory Deduction",
+    "description": "A daily fragrance guessing game. Deduce the mystery perfume from evolving clues."
+  },
+  "Common": {
+    "title": "Guess the Perfume",
+    "description": "Daily perfume guessing game"
+  },
+  "Game": {
+    "start": "Start Game",
+    "submit": "Submit Guess",
+    "notes": {
+      "head": "Head Notes",
+      "heart": "Heart Notes",
+      "base": "Base Notes"
+    },
+    "input": {
+      "placeholder": "Guess the fragrance...",
+      "closed": "Come back tomorrow for new essence...",
+      "attempt": "Attempt",
+      "score": "Potential Score"
+    }
+  },
+  "Header": {
+    "menu": "Menu",
+    "help": "How to play",
+    "language": "Language",
+    "stats": "Statistics",
+    "archive": "Archive",
+    "about": "About Project",
+    "appearance": "Appearance",
+    "wideLayout": "Wide Layout",
+    "largeText": "Large Text",
+    "darkMode": "Dark Mode",
+    "support": "Support Us"
+  },
+  "Footer": {
+    "selectHelper": "Select from list ↑",
+    "contact": "Contact",
+    "privacy": "Privacy Policy",
+    "terms": "Terms",
+    "copyright": "© 2025 Eauxle. Designed for Fragheads.",
+    "slogan": "Train your nose, one day at a time..."
+  },
+  "GameBoard": {
+    "magnifique": "Magnifique!",
+    "answerWas": "The answer was...",
+    "by": "by"
+  },
+  "HelpModal": {
+    "title": "How to Play",
+    "intro": "Deduce the mystery fragrance.",
+    "description": "Every day, a new perfume is selected. You have 5 attempts to guess it based on evolving clues.",
+    "cluesTitle": "Clues:",
+    "cluesDesc": "The image clears up, and more clues help narrow down the year, gender, and family.",
+    "feedbackTitle": "Feedback Icons:",
+    "feedbackDesc": "tell you how close you are.",
+    "feedbackCorrect": "Correct match",
+    "feedbackClose": "Partial match",
+    "feedbackWrong": "Incorrect",
+    "scoreTitle": "Scoring:",
+    "scoreDesc": "Fewer guesses = higher score.",
+    "note": "A new perfume is released every day at midnight.",
+    "ariaClose": "Close"
+  },
+  "StatsModal": {
+    "title": "Statistics",
+    "played": "Played",
+    "winPercent": "Win %",
+    "currentStreak": "Current Streak",
+    "maxStreak": "Max Streak",
+    "distribution": "Guess Distribution",
+    "slogan": "Keep sniffing! 🌸",
+    "ariaClose": "Close"
+  },
+  "ResetButton": {
+    "tooltip": "Give up and see the answer",
+    "question": "Are you sure you want to give up?",
+    "cancel": "Cancel",
+    "confirm": "Reveal Answer",
+    "ariaLabel": "Reset Game"
+  },
+  "GameTooltip": {
+    "ariaLabel": "Show info"
+  },
+  "RevealImage": {
+    "visualEvidence": "Visual Evidence",
+    "altBase": "Mystery perfume base",
+    "altReveal": "Mystery perfume reveal"
+  },
+  "PyramidClues": {
+    "olfactoryProfile": "Olfactory Profile",
+    "linearProfile": "Linear Profile",
+    "pyramid": "Pyramid",
+    "top": "Top",
+    "heart": "Heart",
+    "base": "Base",
+    "hiddenNotes": "Number and length of notes hidden in attempt {attempt}",
+    "hiddenNote": "Hidden in attempt {attempt}",
+    "letters": "{count} letters"
+  },
+  "MetaClues": {
+    "identity": "Identity",
+    "brand": "Brand",
+    "perfumer": "Perfumer",
+    "year": "Year",
+    "concentration": "Concentration",
+    "gender": "Gender",
+    "hiddenAttempt": "Hidden in attempt {attempt}",
+    "fullyHidden": "Fully hidden in attempt {attempt}",
+    "partiallyHidden": "Partially hidden in attempt {attempt}",
+    "hiddenUntil": "Hidden until determined",
+    "letters": "{count} letters"
+  },
+  "AttemptLog": {
+    "title": "Investigation Log",
+    "columns": {
+      "attempt": "#",
+      "attemptTooltip": "Attempt Number",
+      "perfume": "Perfume",
+      "brand": "B",
+      "brandTooltip": "Brand",
+      "perfumer": "P",
+      "perfumerTooltip": "Perfumer",
+      "year": "Y",
+      "yearTooltip": "Year",
+      "gender": "G",
+      "genderTooltip": "Gender",
+      "notes": "Accords",
+      "notesTooltip": "Notes"
+    },
+    "by": "by",
+    "tooltips": {
+      "brandCorrect": "Brand: Correct",
+      "brandIncorrect": "Brand: Incorrect",
+      "perfumerFull": "Perfumer: Full Match",
+      "perfumerPartial": "Perfumer: Partial match",
+      "perfumerIncorrect": "Perfumer: Incorrect",
+      "yearCorrect": "Year: Correct",
+      "yearCloseHigher": "Year: Close. Try a newer year (1-3 years)",
+      "yearCloseLower": "Year: Close. Try an older year (1-3 years)",
+      "yearWrongHigher": "Year: Incorrect. Try a newer year",
+      "yearWrongLower": "Year: Incorrect. Try an older year",
+      "genderUnknown": "Gender: Unknown",
+      "genderCorrect": "Gender: Correct",
+      "genderIncorrect": "Gender: Incorrect",
+      "notesCorrect": "Notes: 100% correct",
+      "notesPercentage": "Notes: {percent}% correct"
+    }
+  },
+  "Difficulty": {
+    "label": "Difficulty",
+    "easy": "Easy",
+    "medium": "Medium",
+    "hard": "Hard",
+    "expert": "Expert",
+    "beginner": "Beginner"
+  }
+}

@@ -5,12 +5,18 @@ import type { NextRequest } from 'next/server';
 
 const redis = Redis.fromEnv();
 
+import createMiddleware from 'next-intl/middleware';
+import { routing } from './i18n/routing';
+
+const intlMiddleware = createMiddleware(routing);
+
 // Global IP limit: 100 requests per minute (DoS protection)
 const ratelimit = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(100, '1 m'),
     analytics: true,
 });
+
 
 export async function proxy(request: NextRequest) {
     // Only rate limit API routes
@@ -33,8 +39,9 @@ export async function proxy(request: NextRequest) {
         }
     }
 
-    // Add security headers to all responses
-    const response = NextResponse.next();
+    // 2. Internationalization (replaces NextResponse.next())
+    const response = intlMiddleware(request);
+
 
     // Cache-Control for sensitive routes
     if (request.nextUrl.pathname.startsWith('/api')) {

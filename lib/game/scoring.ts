@@ -108,7 +108,7 @@ export function revealLetters(text: string, percentage: number): string {
         if (/^\s+$/.test(token)) return token;
 
         // Mask entire word at 0%
-        if (pct === 0) return "•".repeat(token.length);
+        if (pct === 0) return "_".repeat(token.length);
 
         const chars = token.split("");
         const lettersToReveal = Math.round(chars.length * (pct / 100));
@@ -118,7 +118,7 @@ export function revealLetters(text: string, percentage: number): string {
         const order = generateCenterOutOrder(chars.length);
         const revealed = new Set(order.slice(0, lettersToReveal));
 
-        return chars.map((c, i) => revealed.has(i) ? c : "•").join("");
+        return chars.map((c, i) => revealed.has(i) ? c : "_").join("");
     });
 
     return revealedTokens.join("");

@@ -2,30 +2,37 @@
 
 import { useEffect, useRef } from "react"
 import { useGame } from "./game-provider"
+
 import { cn } from "@/lib/utils"
-import { X, ArrowUp, ArrowDown, Waves, Check } from "lucide-react"
+import { X, ArrowUp, ArrowDown, Waves, Check, ScrollText } from "lucide-react"
 import { GameTooltip } from "./game-tooltip"
 
 const ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI"]
 
+import { useTranslations } from "next-intl"
+
 export function AttemptLog() {
   const { attempts, maxAttempts, dailyPerfume, gameState } = useGame()
+  const t = useTranslations('AttemptLog')
   const prevAttemptsLength = useRef(attempts.length)
 
   // Scroll to new attempt
   useEffect(() => {
     if (attempts.length > prevAttemptsLength.current) {
-      const lastIndex = attempts.length - 1
-      const element = document.getElementById(`attempt-${lastIndex}`)
-      if (element) {
-        // Use timeout to ensure DOM is ready and layout is stable
-        setTimeout(() => {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        }, 100)
+      // Only scroll to the new attempt if the game is still playing.
+      // If the game ended (won/lost), the "Game Over" scroll effect (below) takes precedence.
+      if (gameState === 'playing') {
+        const lastIndex = attempts.length - 1
+        const element = document.getElementById(`attempt-${lastIndex}`)
+        if (element) {
+          setTimeout(() => {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          }, 100)
+        }
       }
     }
     prevAttemptsLength.current = attempts.length
-  }, [attempts.length])
+  }, [attempts.length, gameState])
 
   // Scroll to top on game end
   useEffect(() => {
@@ -40,52 +47,68 @@ export function AttemptLog() {
   if (attempts.length === 0) return null
 
   return (
-    <section className="border-t border-border pt-6">
-      <h2 className="font-[family-name:var(--font-playfair)] text-lg italic text-foreground mb-4">Investigation Log</h2>
+    <section className="bg-background p-4 rounded-md border border-border/50">
+      <div className="flex items-center gap-2 mb-4">
+        <ScrollText className="w-4 h-4 text-muted-foreground" />
+        <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground">{t('title')}</h2>
+      </div>
 
       <div className="grid grid-cols-[50px_1fr_minmax(140px,auto)] px-2">
         {/* Header Row - spread into grid columns */}
         <div className="flex justify-center items-center pb-2 border-b-2 border-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          <GameTooltip content="Attempt Number" className="h-9 w-9 justify-center items-center">
-            <span className="text-center cursor-help decoration-dotted underline decoration-muted-foreground/30 underline-offset-2">#</span>
+          <GameTooltip content={t('columns.attemptTooltip')} className="h-9 w-9 justify-center items-center">
+            <span className="text-center cursor-help decoration-dotted underline decoration-muted-foreground/30 underline-offset-2">{t('columns.attempt')}</span>
           </GameTooltip>
         </div>
 
         <div className="flex items-center pb-2 border-b-2 border-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          Perfume
+          {t('columns.perfume')}
         </div>
 
         <div className="grid grid-cols-5 w-full justify-items-center text-center px-1 pb-2 border-b-2 border-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          <GameTooltip content="Brand" className="h-9 w-9 justify-center items-center">
-            <span className="flex justify-center cursor-help decoration-dotted underline decoration-muted-foreground/30 underline-offset-2">B</span>
+          <GameTooltip content={t('columns.brandTooltip')} className="h-9 w-9 justify-center items-center">
+            <span className="flex justify-center cursor-help decoration-dotted underline decoration-muted-foreground/30 underline-offset-2 min-w-8">{t('columns.brand')}</span>
           </GameTooltip>
 
-          <GameTooltip content="Perfumer" className="h-9 w-9 justify-center items-center">
-            <span className="flex justify-center cursor-help decoration-dotted underline decoration-muted-foreground/30 underline-offset-2">P</span>
+          <GameTooltip content={t('columns.perfumerTooltip')} className="h-9 w-9 justify-center items-center">
+            <span className="flex justify-center cursor-help decoration-dotted underline decoration-muted-foreground/30 underline-offset-2 min-w-8">{t('columns.perfumer')}</span>
           </GameTooltip>
 
-          <GameTooltip content="Year" className="h-9 w-9 justify-center items-center">
-            <span className="flex justify-center cursor-help decoration-dotted underline decoration-muted-foreground/30 underline-offset-2">Y</span>
+          <GameTooltip content={t('columns.yearTooltip')} className="h-9 w-9 justify-center items-center">
+            <span className="flex justify-center cursor-help decoration-dotted underline decoration-muted-foreground/30 underline-offset-2 min-w-8">{t('columns.year')}</span>
           </GameTooltip>
 
-          <GameTooltip content="Gender" className="h-9 w-9 justify-center items-center">
-            <span className="flex justify-center cursor-help decoration-dotted underline decoration-muted-foreground/30 underline-offset-2">G</span>
+          <GameTooltip content={t('columns.genderTooltip')} className="h-9 w-9 justify-center items-center">
+            <span className="flex justify-center cursor-help decoration-dotted underline decoration-muted-foreground/30 underline-offset-2 min-w-8">{t('columns.gender')}</span>
           </GameTooltip>
 
-          <GameTooltip content="Notes" className="h-9 w-9 justify-center items-center">
-            <span className="flex justify-center cursor-help decoration-dotted underline decoration-muted-foreground/30 underline-offset-2">N</span>
+          <GameTooltip content={t('columns.notesTooltip')} className="h-9 w-9 justify-center items-center">
+            <span className="flex justify-center cursor-help decoration-dotted underline decoration-muted-foreground/30 underline-offset-2 min-w-8">{t('columns.notes')}</span>
           </GameTooltip>
         </div>
 
         {attempts.map((attempt, index) => (
           <div key={`attempt-${index}`} className="contents group">
-            <div id={`attempt-${index}`} className="flex justify-center items-center py-3 border-b border-muted/30 group-last:border-0 relative z-10">
+            <div
+              id={`attempt-${index}`}
+              className={cn(
+                "flex justify-center items-center py-3 border-b border-muted/30 group-last:border-0 relative z-10 transition-colors group-hover:bg-muted/40"
+              )}
+            >
+              {index === attempts.length - 1 && !attempt.isCorrect && (
+                <div className="absolute inset-0 animate-flash-error pointer-events-none rounded-sm" />
+              )}
               <span className="font-[family-name:var(--font-playfair)] text-muted-foreground text-center block">
                 {ROMAN_NUMERALS[index]}
               </span>
             </div>
 
-            <div className="min-w-0 pr-2 py-3 border-b border-muted/30 group-last:border-0 relative z-10 flex flex-col justify-center">
+            <div className={cn(
+              "min-w-0 pr-2 py-3 border-b border-muted/30 group-last:border-0 relative z-10 flex flex-col justify-center transition-colors group-hover:bg-muted/40"
+            )}>
+              {index === attempts.length - 1 && !attempt.isCorrect && (
+                <div className="absolute inset-0 animate-flash-error pointer-events-none rounded-sm" />
+              )}
               {(() => {
                 const concentration = attempt.concentration || '';
                 let displayName = attempt.guess;
@@ -96,12 +119,14 @@ export function AttemptLog() {
                 return (
                   <>
                     <span className="font-medium text-foreground text-sm sm:text-base">{displayName}</span>
-                    <span className="text-muted-foreground text-xs block sm:inline sm:ml-2">
+                    <span className="text-muted-foreground text-xs block sm:inline sm:ml-2 font-light">
                       {(attempt.feedback.brandMatch || attempt.snapshot?.brandRevealed)
-                        ? `by ${attempt.brand}`
-                        : (attempt.snapshot?.guessMaskedBrand && attempt.snapshot.guessMaskedBrand !== '•••'
-                          ? <span className="opacity-60 tracking-wider text-xs">by {attempt.snapshot.guessMaskedBrand}</span>
-                          : <span className="opacity-30">by •••</span>)
+                        ? `${t('by')} ${attempt.brand}`
+                        : (attempt.snapshot?.guessMaskedBrand && attempt.snapshot.guessMaskedBrand !== '?????'
+                          ? <span className="opacity-60 tracking-wider text-xs">{t('by')} {attempt.snapshot.guessMaskedBrand.split('').map((char, i) => (
+                            <span key={i} className={char === '_' ? "font-mono opacity-40" : ""}>{char}</span>
+                          ))}</span>
+                          : <span className="opacity-30 font-mono tracking-widest text-xs">{t('by')} ?????</span>)
                       }
                     </span>
                     <div className="text-xs text-muted-foreground/70 flex gap-x-2">
@@ -109,9 +134,11 @@ export function AttemptLog() {
                         <span>
                           {(attempt.feedback.yearMatch === "correct" || attempt.snapshot?.yearRevealed)
                             ? attempt.year
-                            : (attempt.snapshot?.guessMaskedYear && attempt.snapshot.guessMaskedYear !== '••••'
-                              ? <span className="opacity-60 tracking-wider">{attempt.snapshot.guessMaskedYear}</span>
-                              : <span className="opacity-30">••••</span>)
+                            : (attempt.snapshot?.guessMaskedYear && attempt.snapshot.guessMaskedYear !== '____'
+                              ? <span className="opacity-60 tracking-wider">{attempt.snapshot.guessMaskedYear.split('').map((char, i) => (
+                                <span key={i} className={char === '_' ? "font-mono opacity-40" : ""}>{char}</span>
+                              ))}</span>
+                              : <span className="opacity-30 font-mono tracking-widest">____</span>)
                           }
                         </span>
                       ) : null}
@@ -128,17 +155,22 @@ export function AttemptLog() {
               })()}
             </div>
 
-            <div className="grid grid-cols-5 w-full items-center font-[family-name:var(--font-hand)] text-xl text-primary px-1 py-3 border-b border-muted/30 group-last:border-0 relative z-10">
+            <div className={cn(
+              "grid grid-cols-5 w-full items-center font-[family-name:var(--font-hand)] text-xl text-primary px-1 py-3 border-b border-muted/30 group-last:border-0 relative z-10 transition-colors group-hover:bg-muted/40"
+            )}>
+              {index === attempts.length - 1 && !attempt.isCorrect && (
+                <div className="absolute inset-0 animate-flash-error pointer-events-none rounded-sm" />
+              )}
               {/* Brand */}
               <div className="flex justify-center items-center h-full">
                 {attempt.feedback.brandMatch ? (
-                  <GameTooltip content="Brand: Correct" className="h-9 w-9 justify-center items-center">
+                  <GameTooltip content={t('tooltips.brandCorrect')} className="h-9 w-9 justify-center items-center">
                     <div className="flex items-center justify-center w-6 h-6">
                       <Check className="w-4 h-4 text-success" />
                     </div>
                   </GameTooltip>
                 ) : (
-                  <GameTooltip content="Brand: Incorrect" className="h-9 w-9 justify-center items-center">
+                  <GameTooltip content={t('tooltips.brandIncorrect')} className="h-9 w-9 justify-center items-center">
                     <span className="opacity-50 cursor-help"><X className="w-4 h-4 text-muted-foreground transform -skew-x-12" strokeWidth={1.5} /></span>
                   </GameTooltip>
                 )}
@@ -147,17 +179,17 @@ export function AttemptLog() {
               {/* Perfumer */}
               <div className="flex justify-center items-center h-full">
                 {attempt.feedback.perfumerMatch === "full" ? (
-                  <GameTooltip content="Perfumer: Full Match" className="h-9 w-9 justify-center items-center">
+                  <GameTooltip content={t('tooltips.perfumerFull')} className="h-9 w-9 justify-center items-center">
                     <div className="flex items-center justify-center w-6 h-6">
                       <Check className="w-4 h-4 text-success" />
                     </div>
                   </GameTooltip>
                 ) : attempt.feedback.perfumerMatch === "partial" ? (
-                  <GameTooltip content="Perfumer: Partial match" className="h-9 w-9 justify-center items-center">
+                  <GameTooltip content={t('tooltips.perfumerPartial')} className="h-9 w-9 justify-center items-center">
                     <span className="cursor-help"><Waves className="w-4 h-4 text-muted-foreground opacity-50 transform -skew-x-12" strokeWidth={1.5} /></span>
                   </GameTooltip>
                 ) : (
-                  <GameTooltip content="Perfumer: Incorrect" className="h-9 w-9 justify-center items-center">
+                  <GameTooltip content={t('tooltips.perfumerIncorrect')} className="h-9 w-9 justify-center items-center">
                     <span className="opacity-50 cursor-help"><X className="w-4 h-4 text-muted-foreground transform -skew-x-12" strokeWidth={1.5} /></span>
                   </GameTooltip>
                 )}
@@ -166,7 +198,7 @@ export function AttemptLog() {
               {/* Year */}
               <div className="flex justify-center items-center h-full">
                 {attempt.feedback.yearMatch === "correct" ? (
-                  <GameTooltip content="Year: Correct" className="h-9 w-9 justify-center items-center">
+                  <GameTooltip content={t('tooltips.yearCorrect')} className="h-9 w-9 justify-center items-center">
                     <div className="flex items-center justify-center w-6 h-6">
                       <Check className="w-4 h-4 text-success" />
                     </div>
@@ -175,8 +207,8 @@ export function AttemptLog() {
                   <div className="flex flex-col items-center justify-center w-full h-full">
                     <GameTooltip content={
                       attempt.feedback.yearMatch === "close"
-                        ? (attempt.feedback.yearDirection === "higher" ? "Year: Close. Try a newer year (1-3 years)" : "Year: Close. Try an older year (1-3 years)")
-                        : (attempt.feedback.yearDirection === "higher" ? "Year: Incorrect. Try a newer year" : "Year: Incorrect. Try an older year")
+                        ? (attempt.feedback.yearDirection === "higher" ? t('tooltips.yearCloseHigher') : t('tooltips.yearCloseLower'))
+                        : (attempt.feedback.yearDirection === "higher" ? t('tooltips.yearWrongHigher') : t('tooltips.yearWrongLower'))
                     } className="h-9 w-9 justify-center items-center">
                       <span
                         className={cn(
@@ -203,7 +235,7 @@ export function AttemptLog() {
 
                   if (guessGender === 'unknown' || targetGender === 'unknown') {
                     return (
-                      <GameTooltip content="Gender: Unknown" className="h-9 w-9 justify-center items-center">
+                      <GameTooltip content={t('tooltips.genderUnknown')} className="h-9 w-9 justify-center items-center">
                         <span className="text-muted-foreground opacity-50 text-base leading-none font-[family-name:var(--font-hand)] cursor-help inline-block px-1">?</span>
                       </GameTooltip>
                     )
@@ -211,7 +243,7 @@ export function AttemptLog() {
 
                   if (guessGender === targetGender) {
                     return (
-                      <GameTooltip content="Gender: Correct" className="h-9 w-9 justify-center items-center">
+                      <GameTooltip content={t('tooltips.genderCorrect')} className="h-9 w-9 justify-center items-center">
                         <div className="flex items-center justify-center w-6 h-6">
                           <Check className="w-4 h-4 text-success" />
                         </div>
@@ -220,7 +252,7 @@ export function AttemptLog() {
                   }
 
                   return (
-                    <GameTooltip content="Gender: Incorrect" className="h-9 w-9 justify-center items-center">
+                    <GameTooltip content={t('tooltips.genderIncorrect')} className="h-9 w-9 justify-center items-center">
                       <span className="opacity-50 cursor-help"><X className="w-4 h-4 text-muted-foreground transform -skew-x-12" strokeWidth={1.5} /></span>
                     </GameTooltip>
                   );
@@ -230,13 +262,13 @@ export function AttemptLog() {
               {/* Notes */}
               <div className="flex justify-center items-center h-full">
                 {attempt.feedback.notesMatch >= 1.0 ? (
-                  <GameTooltip content="Notes: 100% correct" className="h-9 w-9 justify-center items-center">
+                  <GameTooltip content={t('tooltips.notesCorrect')} className="h-9 w-9 justify-center items-center">
                     <div className="flex items-center justify-center w-6 h-6">
                       <Check className="w-5 h-5 text-success" />
                     </div>
                   </GameTooltip>
                 ) : (
-                  <GameTooltip content={`Notes: ${Math.round(attempt.feedback.notesMatch * 100)}% correct`} className="h-9 w-9 justify-center items-center">
+                  <GameTooltip content={t('tooltips.notesPercentage', { percent: Math.round(attempt.feedback.notesMatch * 100) })} className="h-9 w-9 justify-center items-center">
                     <span
                       className={`text-base leading-none flex items-center font-[family-name:var(--font-hand)] cursor-help ${attempt.feedback.notesMatch >= 0.4 ? "text-warning" : "text-muted-foreground opacity-50"}`}
                     >
@@ -268,6 +300,6 @@ export function AttemptLog() {
           )
         })}
       </div>
-    </section>
+    </section >
   )
 }

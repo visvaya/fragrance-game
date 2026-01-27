@@ -8,23 +8,48 @@ import { MAX_GUESSES } from "@/lib/constants"
 import { revealLetters } from "@/lib/game/scoring"
 
 // Skeleton / Default for initialization (prevents null checks everywhere)
+// 1. Skeleton Replacement
 const SKELETON_PERFUME = {
   id: "skeleton",
-  name: "•••" as string,
-  brand: "•••" as string,
-  perfumer: "•••" as string,
-  year: "•••" as string | number,
-  concentration: undefined as string | undefined,
-  gender: "•••" as string, // Fallback
+  name: "?????" as string,
+  brand: "?????" as string,
+  perfumer: "?????" as string,
+  year: "____" as string | number,
+  concentration: undefined as string | undefined, // Starts undefined
+  gender: "?????", // Fallback
   notes: {
-    top: ["•••", "•••", "•••"],
-    heart: ["•••", "•••", "•••"],
-    base: ["•••", "•••", "•••"],
+    top: ["?????", "?????", "?????"],
+    heart: ["?????", "?????", "?????"],
+    base: ["?????", "?????", "?????"],
   },
   isLinear: false as boolean,
   xsolve: 0 as number,
   imageUrl: "/placeholder.svg?height=400&width=400",
 }
+
+// ... inside GameProvider ...
+
+
+// 4. calculateMaskedValues
+const calculateMaskedValues = (level: number, targetBrand: string, targetYear: number | string) => {
+  const brandPercentages = [0, 0, 0.15, 0.40, 0.70, 1.0];
+  const guessMaskedBrand = level === 1
+    ? "?????"
+    : revealLetters(targetBrand, brandPercentages[Math.min(level - 1, 5)]);
+
+  let guessMaskedYear = "____";
+
+  if (targetYear) {
+    const yearStr = targetYear.toString();
+    if (level >= 5) guessMaskedYear = yearStr;
+    else if (level === 4) guessMaskedYear = yearStr.slice(0, 3) + "_";
+    else if (level === 3) guessMaskedYear = yearStr.slice(0, 2) + "__";
+    else if (level === 2) guessMaskedYear = yearStr.slice(0, 1) + "___";
+  }
+
+  return { guessMaskedBrand, guessMaskedYear };
+}
+
 
 export type AttemptFeedback = {
   brandMatch: boolean
@@ -36,6 +61,7 @@ export type AttemptFeedback = {
 
 export type Attempt = {
   guess: string
+  isCorrect?: boolean
   perfumeId?: string // Added ID for strict deduplication
   brand: string
   year?: number
@@ -76,9 +102,19 @@ type GameContextType = {
   getRevealedGender: () => string
   xsolveScore: number
   loading: boolean
+
+  // UI Preferences
+  uiPreferences: {
+    layoutMode: 'narrow' | 'wide'
+    fontScale: 'normal' | 'large'
+    theme: 'light' | 'dark'
+  }
+  toggleLayoutMode: () => void
+  toggleFontScale: () => void
+  toggleTheme: () => void
 }
 
-const GameContext = createContext<GameContextType | null>(null)
+const GameContext = createContext<GameContextType | undefined>(undefined)
 
 export function useGame() {
   const context = useContext(GameContext)
@@ -102,6 +138,69 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const [nonce, setNonce] = useState<string>("") // Add nonce state
   const maxAttempts = MAX_GUESSES
+
+  // UI Preferences State
+  const [layoutMode, setLayoutMode] = useState<'narrow' | 'wide'>('narrow')
+  const [fontScale, setFontScale] = useState<'normal' | 'large'>('normal')
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+
+  const toggleLayoutMode = useCallback(() => {
+    setLayoutMode(prev => {
+      const next = prev === 'narrow' ? 'wide' : 'narrow'
+      localStorage.setItem('fragrance-game-layout', next)
+      return next
+    })
+  }, [])
+
+  const toggleFontScale = useCallback(() => {
+    setFontScale(prev => {
+      const next = prev === 'normal' ? 'large' : 'normal'
+      localStorage.setItem('fragrance-game-font', next)
+      return next
+    })
+  }, [])
+
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => {
+      const next = prev === 'light' ? 'dark' : 'light'
+      localStorage.setItem('fragrance-game-theme', next)
+      return next
+    })
+  }, [])
+
+  // Apply Theme & Font Scale Side Effects
+  useEffect(() => {
+    // Theme
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+
+    // Font Scale (on HTML to scale rems globally)
+    if (fontScale === 'large') {
+      document.documentElement.classList.add('large-text')
+    } else {
+      document.documentElement.classList.remove('large-text')
+    }
+  }, [theme, fontScale])
+
+  // Load preferences from localStorage on mount
+  useEffect(() => {
+    const savedLayout = localStorage.getItem('fragrance-game-layout') as 'narrow' | 'wide'
+    if (savedLayout) {
+      setLayoutMode(savedLayout)
+    } else if (window.innerWidth >= 1024) {
+      // Default to wide on desktop if no preference saved
+      setLayoutMode('wide')
+    }
+
+    const savedFont = localStorage.getItem('fragrance-game-font') as 'normal' | 'large'
+    if (savedFont) setFontScale(savedFont)
+
+    const savedTheme = localStorage.getItem('fragrance-game-theme') as 'light' | 'dark'
+    if (savedTheme) setTheme(savedTheme)
+  }, [])
 
   // Initialize Game (with proper auth sequencing)
   useEffect(() => {
@@ -137,7 +236,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
               isLinear: challenge.clues.isLinear,
               xsolve: challenge.clues.xsolve,
               imageUrl: "/placeholder.svg", // Will be overwritten by session
-              concentration: undefined
+              concentration: challenge.clues.concentration
             });
           }
 
@@ -199,6 +298,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
               enrichedAttempts.push({
                 guess: g.perfumeName,
+                isCorrect: g.isCorrect,
                 perfumeId: g.perfumeId,
                 brand: g.brandName,
                 feedback: g.feedback || {
@@ -263,18 +363,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const getRevealedBrandHelper = (currentLevel: number) => {
     const isGameOver = gameState === 'won' || gameState === 'lost';
     // Logic extraction for consistency if needed, but we keep simple
-    if (currentLevel === 1) return "•••";
+    if (currentLevel === 1) return "?????";
     const percentages = [0, 0, 0.15, 0.40, 0.70, 1.0];
     return revealLetters(dailyPerfume.brand, percentages[Math.min(currentLevel - 1, 5)])
   };
 
   const getRevealedYearHelper = (currentLevel: number) => {
-    // Level 1 (0 att): ••••
+    // Level 1 (0 att): ____
     if (currentLevel >= 5) return dailyPerfume.year.toString();
-    if (currentLevel === 4) return dailyPerfume.year.toString().slice(0, 3) + "•";
-    if (currentLevel === 3) return dailyPerfume.year.toString().slice(0, 2) + "••";
-    if (currentLevel === 2) return dailyPerfume.year.toString().slice(0, 1) + "•••";
-    return "••••";
+    if (currentLevel === 4) return dailyPerfume.year.toString().slice(0, 3) + "_";
+    if (currentLevel === 3) return dailyPerfume.year.toString().slice(0, 2) + "__";
+    if (currentLevel === 2) return dailyPerfume.year.toString().slice(0, 1) + "___";
+    return "____";
   }
 
   // --- Snapshot Helper (DRY) ---
@@ -283,18 +383,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
     // Brand
     const brandPercentages = [0, 0, 0.15, 0.40, 0.70, 1.0];
     const guessMaskedBrand = level === 1
-      ? "•••"
+      ? "?????"
       : revealLetters(targetBrand, brandPercentages[Math.min(level - 1, 5)]);
 
     // Year
-    let guessMaskedYear = "••••";
+    let guessMaskedYear = "____";
 
     if (targetYear) {
       const yearStr = targetYear.toString();
       if (level >= 5) guessMaskedYear = yearStr;
-      else if (level === 4) guessMaskedYear = yearStr.slice(0, 3) + "•";
-      else if (level === 3) guessMaskedYear = yearStr.slice(0, 2) + "••";
-      else if (level === 2) guessMaskedYear = yearStr.slice(0, 1) + "•••";
+      else if (level === 4) guessMaskedYear = yearStr.slice(0, 3) + "_";
+      else if (level === 3) guessMaskedYear = yearStr.slice(0, 2) + "__";
+      else if (level === 2) guessMaskedYear = yearStr.slice(0, 1) + "___";
     }
 
     return { guessMaskedBrand, guessMaskedYear };
@@ -402,8 +502,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
           concentration: result.guessedPerfumeDetails?.concentration,
           feedback,
           snapshot: newSnapshot,
+
           // Store gender for history if needed, though mostly for snapshot
-          gender: result.guessedPerfumeDetails?.gender
+          gender: result.guessedPerfumeDetails?.gender,
+          isCorrect: result.result === 'correct'
         }
 
         setAttempts((prev) => [...prev, newAttempt])
@@ -475,7 +577,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             isLinear: challenge.clues.isLinear,
             xsolve: challenge.clues.xsolve,
             imageUrl: "/placeholder.svg",
-            concentration: undefined
+            concentration: challenge.clues.concentration
           });
 
           // Start fresh session
@@ -505,9 +607,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const isGameOver = gameState === 'won' || gameState === 'lost';
     if (isGameOver || attempts.some(a => a.feedback.brandMatch)) return dailyPerfume.brand;
 
-    if (revealLevel === 1) return "•••";
+    if (revealLevel === 1) return "?????";
 
-    // Levels: 1(•••), 2(0%), 3(15%), 4(40%), 5(70%), 6(100%)
+    // Levels: 1(___), 2(0%), 3(15%), 4(40%), 5(70%), 6(100%)
     const percentages = [0, 0, 0.15, 0.40, 0.70, 1.0];
     return revealLetters(dailyPerfume.brand, percentages[Math.min(revealLevel - 1, 5)])
   }, [revealLevel, dailyPerfume.brand, attempts, gameState])
@@ -523,7 +625,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     // Check coverage
     if (perfumers.every(p => discoveredPerfumers.has(p))) return dailyPerfume.perfumer;
 
-    if (revealLevel === 1) return "•••";
+    if (revealLevel === 1) return "?????";
 
     return perfumers.map(p => {
       if (discoveredPerfumers.has(p)) return p;
@@ -539,18 +641,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     const year = dailyPerfume.year.toString();
 
-    // Level 1 (0 att): ••••
-    // Level 2 (1 att): 1•••
-    // Level 3 (2 att): 19••
-    // Level 4 (3 att): 197•
+    // Level 1 (0 att): ____
+    // Level 2 (1 att): 1___
+    // Level 3 (2 att): 19__
+    // Level 4 (3 att): 197_
     // Level 5 (4 att): 1979 (Full)
     // Level 6 (5 att): 1979 (Full)
 
     if (revealLevel >= 5) return year; // Changed from 4 to 5 for full reveal
-    if (revealLevel === 4) return year.slice(0, 3) + "•";
-    if (revealLevel === 3) return year.slice(0, 2) + "••";
-    if (revealLevel === 2) return year.slice(0, 1) + "•••";
-    return "••••"; // Level 1
+    if (revealLevel === 4) return year.slice(0, 3) + "_";
+    if (revealLevel === 3) return year.slice(0, 2) + "__";
+    if (revealLevel === 2) return year.slice(0, 1) + "___";
+    return "____"; // Level 1
   }, [revealLevel, dailyPerfume.year, attempts, gameState])
 
   // NEW HELPERS FOR LOG REVEAL (Issue #5) - MOVED UP
@@ -614,10 +716,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
       };
     }
 
-    // Level 1: Generic placeholer handled by UI (returning null) or we can return special strings?
-    // Plan says: "Level 1: ••• (Generic)". 
-    // If we return null, PyramidClues renders generic dots.
-    return { top: null, heart: null, base: null };
+    if (revealLevel === 1) {
+      return {
+        top: ["?????", "?????", "?????"],
+        heart: ["?????", "?????", "?????"],
+        base: ["?????", "?????", "?????"]
+      };
+    }
     return { top: null, heart: null, base: null };
   }, [revealLevel, dailyPerfume.notes, gameState, attempts])
 
@@ -658,7 +763,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
         isYearRevealed,
         isGenderRevealed,
         getRevealedGender: () => dailyPerfume.gender || "Unisex",
-        loading
+        loading,
+        uiPreferences: { layoutMode, fontScale, theme },
+        toggleLayoutMode,
+        toggleFontScale,
+        toggleTheme
       }}
     >
       {children}
