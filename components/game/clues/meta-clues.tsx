@@ -39,94 +39,101 @@ export function MetaClues() {
             </span>
 
             {/* Value (Slots or Text) */}
-            <div className="inline-flex items-center rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary gap-x-2 cursor-default min-h-[30px]">
-              <div className="flex flex-wrap gap-x-6 gap-y-2">
-                {(clue.value === "?????" ? ["?????"] : clue.value.split(' ')).map((word, wordIndex) => {
-                  // Logic for generic hidden placeholders vs partial masked words
-                  // Note: "•••" is used as the generic placeholder for Concentration/Gender/Brand(L1)
-
-                  const isGenericPlaceholder = word === "?????";
-
-                  if (isGenericPlaceholder) {
-
-                    let tooltipContent = t('hiddenAttempt', { attempt: currentAttempt });
-                    if (clue.key === 'year') {
-                      tooltipContent = t('fullyHidden', { attempt: currentAttempt });
-                    } else if (clue.key === 'concentration' || clue.key === 'gender') {
-                      tooltipContent = t('hiddenUntil');
-                    }
-
-                    return (
-                      <GameTooltip key={wordIndex} content={tooltipContent}>
-                        <div className="flex gap-1 cursor-help">
-                          {/* Render 5 generic slots for unknown length */}
-                          {[1, 2, 3, 4, 5].map((_, i) => (
-                            <div
-                              key={i}
-                              className="w-3 h-5 border-b border-muted-foreground/30 mx-[1px]"
-                              aria-hidden="true"
-                            />
-                          ))}
-                        </div>
-                      </GameTooltip>
-                    )
-                  }
-
-                  // Masked word logic (using underscores from game-provider)
-                  const isWordMasked = word.includes('_');
-                  let tooltipContent = t('letters', { count: word.length });
-
-                  // Special tooltip for fully/partially hidden Year
-                  if (clue.key === 'year') {
-                    const isFullHidden = /^_+$/.test(word);
-                    tooltipContent = isFullHidden
-                      ? t('fullyHidden', { attempt: currentAttempt })
-                      : t('partiallyHidden', { attempt: currentAttempt });
-                  }
-
-                  const showTooltip = (clue.key === 'brand' || clue.key === 'perfumer' || clue.key === 'year') && isWordMasked;
-
-                  const content = (
-                    <div className="flex flex-wrap gap-1">
-                      {word.split('').map((char, charIndex) => {
-                        const isSlot = char === '_';
-                        if (isSlot) {
-                          return (
-                            <div
-                              key={charIndex}
-                              className="w-3 h-5 border-b border-muted-foreground/30 mx-[1px] transition-all duration-300"
-                              aria-hidden="true"
-                            />
-                          );
-                        }
-                        return (
-                          <div
-                            key={charIndex}
-                            className="w-3 h-5 flex items-end justify-center font-mono text-sm text-foreground border-b border-transparent mx-[1px]"
-                          >
-                            {char}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-
-                  if (showTooltip) {
-                    return (
-                      <GameTooltip key={wordIndex} content={tooltipContent}>
-                        <div className="cursor-help">{content}</div>
-                      </GameTooltip>
-                    );
-                  }
-
-                  return <div key={wordIndex}>{content}</div>
-                })}
-              </div>
-
+            <div className="flex flex-wrap gap-2 w-full">
+              {(clue.key === "perfumer" && clue.value !== "?????") ? (
+                // Split multi-perfumer values into separate badges
+                clue.value.split(', ').map((perfumer, itemIndex) => (
+                  <MetaBadge key={itemIndex} value={perfumer} clueKey={clue.key} currentAttempt={currentAttempt} t={t} />
+                ))
+              ) : (
+                // Single badge for other clues
+                <MetaBadge value={clue.value} clueKey={clue.key} currentAttempt={currentAttempt} t={t} />
+              )}
             </div>
           </div>
         ))}
       </div>
     </div>
   )
+}
+function MetaBadge({ value, clueKey, currentAttempt, t }: { value: string, clueKey: string, currentAttempt: number, t: any }) {
+  const words = value === "?????" ? ["?????"] : value.split(' ');
+
+  return (
+    <div className="inline-flex flex-wrap items-center rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary gap-x-2 gap-y-1 cursor-default min-h-[30px]">
+      {words.map((word, wordIndex) => {
+        const isGenericPlaceholder = word === "?????";
+
+        if (isGenericPlaceholder) {
+          let tooltipContent = t('hiddenAttempt', { attempt: currentAttempt });
+          if (clueKey === 'year') {
+            tooltipContent = t('fullyHidden', { attempt: currentAttempt });
+          } else if (clueKey === 'concentration' || clueKey === 'gender') {
+            tooltipContent = t('hiddenUntil');
+          }
+
+          return (
+            <GameTooltip key={wordIndex} content={tooltipContent}>
+              <div className="flex gap-1 cursor-help">
+                {[1, 2, 3, 4, 5].map((_, i) => (
+                  <div
+                    key={i}
+                    className="w-3 h-5 border-b border-muted-foreground/30 mx-[1px]"
+                    aria-hidden="true"
+                  />
+                ))}
+              </div>
+            </GameTooltip>
+          );
+        }
+
+        const isWordMasked = word.includes('_');
+        let tooltipContent = t('letters', { count: word.length });
+
+        if (clueKey === 'year') {
+          const isFullHidden = /^_+$/.test(word);
+          tooltipContent = isFullHidden
+            ? t('fullyHidden', { attempt: currentAttempt })
+            : t('partiallyHidden', { attempt: currentAttempt });
+        }
+
+        const showTooltip = (clueKey === 'brand' || clueKey === 'perfumer' || clueKey === 'year') && isWordMasked;
+
+        const content = (
+          <div className="flex flex-wrap gap-0.5">
+            {word.split('').map((char, charIndex) => {
+              const isSlot = char === '_';
+              if (isSlot) {
+                return (
+                  <div
+                    key={charIndex}
+                    className="w-3 h-5 border-b border-muted-foreground/30 mx-[1px] transition-all duration-300"
+                    aria-hidden="true"
+                  />
+                );
+              }
+              return (
+                <div
+                  key={charIndex}
+                  className="w-3 h-5 flex items-center justify-center font-mono text-sm leading-none text-foreground border-b border-transparent mx-[1px]"
+                >
+                  {char}
+                </div>
+              );
+            })}
+          </div>
+        );
+
+        if (showTooltip) {
+          return (
+            <GameTooltip key={wordIndex} content={tooltipContent}>
+              <div className="cursor-help">{content}</div>
+            </GameTooltip>
+          );
+        }
+
+        return <div key={wordIndex}>{content}</div>
+      })}
+    </div>
+  );
 }

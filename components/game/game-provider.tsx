@@ -247,6 +247,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
             setImageUrl(session.imageUrl)
           }
 
+          // If session returned answer (game over), update dailyPerfume
+          if (session.answerName) {
+            setDailyPerfume(prev => ({
+              ...prev,
+              name: session.answerName!,
+              concentration: session.answerConcentration
+            }));
+          }
+
           // Hydrate Attempts
           if (session.guesses && session.guesses.length > 0) {
             // Reconstruct history with correct progressive disclosure snapshots

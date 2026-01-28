@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState, useLayoutEffect } from "react"
 import { useGame } from "./game-provider"
 
 import { cn } from "@/lib/utils"
@@ -117,40 +117,54 @@ export function AttemptLog() {
                 }
 
                 return (
-                  <>
-                    <span className="font-medium text-foreground text-sm sm:text-base">{displayName}</span>
-                    <span className="text-muted-foreground text-xs block sm:inline sm:ml-2 font-light">
-                      {(attempt.feedback.brandMatch || attempt.snapshot?.brandRevealed)
-                        ? `${t('by')} ${attempt.brand}`
-                        : (attempt.snapshot?.guessMaskedBrand && attempt.snapshot.guessMaskedBrand !== '?????'
-                          ? <span className="opacity-60 tracking-wider text-xs">{t('by')} {attempt.snapshot.guessMaskedBrand.split('').map((char, i) => (
-                            <span key={i} className={char === '_' ? "font-mono opacity-40" : ""}>{char}</span>
-                          ))}</span>
-                          : <span className="opacity-30 font-mono tracking-widest text-xs">{t('by')} ?????</span>)
-                      }
-                    </span>
-                    <div className="text-xs text-muted-foreground/70 flex gap-x-2">
-                      {attempt.year ? (
-                        <span>
-                          {(attempt.feedback.yearMatch === "correct" || attempt.snapshot?.yearRevealed)
-                            ? attempt.year
-                            : (attempt.snapshot?.guessMaskedYear && attempt.snapshot.guessMaskedYear !== '____'
-                              ? <span className="opacity-60 tracking-wider">{attempt.snapshot.guessMaskedYear.split('').map((char, i) => (
-                                <span key={i} className={char === '_' ? "font-mono opacity-40" : ""}>{char}</span>
-                              ))}</span>
-                              : <span className="opacity-30 font-mono tracking-widest">____</span>)
-                          }
-                        </span>
-                      ) : null}
-
+                  <div className="flex flex-col">
+                    {/* Row 1: Name • Concentration */}
+                    <div className="flex items-center gap-2 min-w-0 w-full overflow-hidden">
+                      <PerfumeNameCell name={displayName} className="shrink min-w-0" />
                       {concentration && concentration !== 'Unknown' && (
-                        <>
-                          <span>•</span>
-                          <span>{concentration}</span>
-                        </>
+                        <div className="flex items-center gap-2 whitespace-nowrap shrink-0">
+                          <span className="text-muted-foreground/40 text-[10px]">•</span>
+                          <span className="text-muted-foreground text-xs font-light">{concentration}</span>
+                        </div>
                       )}
                     </div>
-                  </>
+
+                    {/* Row 2: Brand • Year */}
+                    <div className="flex items-center gap-2 min-w-0 text-xs text-muted-foreground/70 -mt-0.5">
+                      {/* Brand */}
+                      <span className="truncate">
+                        {(attempt.feedback.brandMatch || attempt.snapshot?.brandRevealed)
+                          ? attempt.brand
+                          : (attempt.snapshot?.guessMaskedBrand && attempt.snapshot.guessMaskedBrand !== '?????'
+                            ? <span className="opacity-60 tracking-wider">
+                              {attempt.snapshot.guessMaskedBrand.split('').map((char, i) => (
+                                <span key={i} className={char === '_' ? "font-mono opacity-40" : ""}>{char}</span>
+                              ))}
+                            </span>
+                            : <span className="opacity-30 font-mono tracking-widest">?????</span>)
+                        }
+                      </span>
+
+                      {/* Year */}
+                      {attempt.year ? (
+                        <>
+                          <span className="text-muted-foreground/40 text-[10px] shrink-0">•</span>
+                          <span className="whitespace-nowrap shrink-0">
+                            {(attempt.feedback.yearMatch === "correct" || attempt.snapshot?.yearRevealed)
+                              ? attempt.year
+                              : (attempt.snapshot?.guessMaskedYear && attempt.snapshot.guessMaskedYear !== '____'
+                                ? <span className="opacity-60 tracking-wider">
+                                  {attempt.snapshot.guessMaskedYear.split('').map((char, i) => (
+                                    <span key={i} className={char === '_' ? "font-mono opacity-40" : ""}>{char}</span>
+                                  ))}
+                                </span>
+                                : <span className="opacity-30 font-mono tracking-widest">____</span>)
+                            }
+                          </span>
+                        </>
+                      ) : null}
+                    </div>
+                  </div>
                 )
               })()}
             </div>
@@ -301,5 +315,54 @@ export function AttemptLog() {
         })}
       </div>
     </section >
+  )
+}
+
+function PerfumeNameCell({ name, className }: { name: string, className?: string }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const [isTruncated, setIsTruncated] = useState(false)
+
+  // Use layout effect for measurement
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (el) {
+      setIsTruncated(el.scrollWidth > el.offsetWidth)
+    }
+  }, [name])
+
+  // Re-check on resize
+  useEffect(() => {
+    const handleResize = () => {
+      const el = ref.current
+      if (el) {
+        setIsTruncated(el.scrollWidth > el.offsetWidth)
+      }
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  // Base text styles - always applied to the span with text
+  const textClasses = "font-medium text-foreground text-sm sm:text-base truncate block max-w-full"
+
+  if (isTruncated) {
+    // If truncated, the Root is the GameTooltip (div). 
+    // Pass external layout classes (className) to the Tooltip wrapper.
+    // The inner span just handles text styling.
+    return (
+      <GameTooltip content={name} className={className}>
+        <span ref={ref} className={textClasses}>
+          {name}
+        </span>
+      </GameTooltip>
+    )
+  }
+
+  // If not truncated, the Root is the span.
+  // Combine layout classes and text styles.
+  return (
+    <span ref={ref} className={cn(textClasses, className)}>
+      {name}
+    </span>
   )
 }

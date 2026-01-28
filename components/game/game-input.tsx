@@ -14,7 +14,17 @@ import { useMountTransition } from "@/hooks/use-mount-transition"
 
 
 export function GameInput() {
-  const { currentAttempt, maxAttempts, gameState, makeGuess, getPotentialScore, sessionId, attempts, loading: gameLoading } = useGame()
+  const {
+    currentAttempt,
+    maxAttempts,
+    gameState,
+    makeGuess,
+    getPotentialScore,
+    sessionId,
+    attempts,
+    loading: gameLoading,
+    uiPreferences
+  } = useGame()
   const t = useTranslations('Game.input')
   const [query, setQuery] = useState("")
 
@@ -140,7 +150,7 @@ export function GameInput() {
     return (
       <div className={cn(
         "sticky bottom-0 w-full z-30 mx-auto",
-        useGame().uiPreferences.layoutMode === 'wide' ? "max-w-5xl" : "max-w-xl"
+        uiPreferences.layoutMode === 'wide' ? "max-w-5xl" : "max-w-xl"
       )}>
         <div className="relative border-t border-x-0 sm:border-x border-border/50 px-5 py-4 backdrop-blur-md bg-background/80 sm:rounded-t-md transition-colors duration-500 ease-in-out">
           {/* Input-like look for closed state */}
@@ -157,7 +167,7 @@ export function GameInput() {
   return (
     <div className={cn(
       "sticky bottom-0 w-full z-30 transition-all duration-300 mx-auto",
-      useGame().uiPreferences.layoutMode === 'wide' ? "max-w-5xl" : "max-w-xl"
+      uiPreferences.layoutMode === 'wide' ? "max-w-5xl" : "max-w-xl"
     )}>
       <div ref={wrapperRef} className="relative">
 

@@ -57,6 +57,8 @@ export interface StartGameResponse {
     revealState: RevealState;
     graceDeadline: string;
     guesses: GuessHistoryItem[];
+    answerName?: string;
+    answerConcentration?: string;
 }
 
 export interface AttemptFeedback {
@@ -247,7 +249,7 @@ export async function startGame(challengeId: string): Promise<StartGameResponse>
     // Check if session already exists
     const { data: existingSession } = await supabase
         .from('game_sessions')
-        .select('id, last_nonce, attempts_count, guesses')
+        .select('id, last_nonce, attempts_count, guesses, status')
         .eq('player_id', user.id)
         .eq('challenge_id', challengeId)
         .order('start_time', { ascending: false })
@@ -295,13 +297,39 @@ export async function startGame(challengeId: string): Promise<StartGameResponse>
             }
         }
 
+        // Check if game is over to reveal answer
+        let answerName, answerConcentration;
+        if (existingSession.status === 'won' || existingSession.status === 'lost') {
+            const adminSupabase = createAdminClient();
+            const { data: challenge } = await adminSupabase
+                .from('daily_challenges')
+                .select('perfume_id')
+                .eq('id', challengeId)
+                .single();
+
+            if (challenge) {
+                const { data: p } = await adminSupabase
+                    .from('perfumes')
+                    .select('name, concentrations(name)')
+                    .eq('id', challenge.perfume_id)
+                    .single();
+
+                if (p) {
+                    answerName = p.name;
+                    answerConcentration = (p as any).concentrations?.name;
+                }
+            }
+        }
+
         return {
             sessionId: existingSession.id,
             nonce: String(existingSession.last_nonce),
             imageUrl: imageUrl,
             revealState: getRevealPercentages(existingSession.attempts_count + 1),
             graceDeadline: graceQuery.data?.grace_deadline_at_utc,
-            guesses: enrichedGuesses
+            guesses: enrichedGuesses,
+            answerName,
+            answerConcentration
         };
     }
 

@@ -90,14 +90,14 @@ export function PyramidClues() {
                   // If it's a generic placeholder for "hidden note"
                   if (revealLevel === 1 && (note === "?????")) {
                     return (
-                      <span key={i} className="inline-flex items-center rounded-md border border-border bg-secondary/50 px-2.5 py-0.5 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary gap-1.5 cursor-default">
+                      <span key={i} className="inline-flex items-center rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary gap-x-2 cursor-default min-h-[30px]">
                         <GameTooltip content={t('hiddenNote', { attempt: currentAttempt })}>
                           <div className="flex gap-1 cursor-help">
                             {/* Render 5 generic slots */}
                             {[1, 2, 3, 4, 5].map((_, idx) => (
                               <div
                                 key={idx}
-                                className="w-2.5 h-4 border-b border-muted-foreground/30 mx-[1px]"
+                                className="w-3 h-5 border-b border-muted-foreground/30 mx-[1px]"
                                 aria-hidden="true"
                               />
                             ))}
@@ -108,7 +108,7 @@ export function PyramidClues() {
                   }
 
                   return (
-                    <span key={i} className={`inline-flex items-center rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary gap-1.5 cursor-default`}>
+                    <span key={i} className={`inline-flex items-center rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary gap-x-2 cursor-default min-h-[30px]`}>
                       {words.map((word, wIndex) => {
                         // Check if word contains masking chars
                         const hasMasking = word.includes('_');
@@ -122,7 +122,7 @@ export function PyramidClues() {
                                 return (
                                   <div
                                     key={index}
-                                    className={`w-2 h-4 border-b border-muted-foreground/30 mx-[0.5px] transition-all duration-300 ${isFullHidden ? "opacity-50" : "opacity-70"}`}
+                                    className={`w-3 h-5 border-b border-muted-foreground/30 mx-[1px] transition-all duration-300 ${isFullHidden ? "opacity-50" : "opacity-70"}`}
                                     aria-hidden="true"
                                   />
                                 );
@@ -130,7 +130,7 @@ export function PyramidClues() {
                               return (
                                 <div
                                   key={index}
-                                  className="w-2 h-4 flex items-end justify-center font-mono text-sm text-foreground border-b border-transparent mx-[0.5px]"
+                                  className="w-3 h-5 flex items-center justify-center font-mono text-sm leading-none text-foreground border-b border-transparent mx-[1px]"
                                 >
                                   {char}
                                 </div>
@@ -196,14 +196,14 @@ export function PyramidClues() {
                     // Check if it's the generic placeholder "??????" passed from GameProvider?
                     if (note === "?????") {
                       return (
-                        <span key={noteIndex} className="inline-flex items-center rounded-md border border-border bg-secondary/50 px-2.5 py-0.5 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary gap-1.5 cursor-default">
+                        <span key={noteIndex} className="inline-flex items-center rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary gap-x-2 cursor-default min-h-[30px]">
                           <GameTooltip content={t('hiddenNote', { attempt: currentAttempt })}>
                             <div className="flex gap-1 cursor-help">
                               {/* Render 5 generic slots */}
                               {[1, 2, 3, 4, 5].map((_, idx) => (
                                 <div
                                   key={idx}
-                                  className="w-2.5 h-4 border-b border-muted-foreground/30 mx-[1px]"
+                                  className="w-3 h-5 border-b border-muted-foreground/30 mx-[1px]"
                                   aria-hidden="true"
                                 />
                               ))}
@@ -217,20 +217,20 @@ export function PyramidClues() {
                     // Let's assume standard logic: characters are masked.
 
                     return (
-                      <span key={noteIndex} className={`inline-flex items-center rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary gap-1.5 cursor-default`}>
+                      <span key={noteIndex} className={`inline-flex items-center rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary gap-x-2 cursor-default min-h-[30px]`}>
                         {words.map((word, wIndex) => {
                           const hasMasking = word.includes('_');
                           const showTooltip = hasMasking;
 
                           const content = (
-                            <div className="flex flex-wrap gap-0.5">
+                            <div className="flex flex-wrap gap-1">
                               {word.split('').map((char, index) => {
                                 const isSlot = char === '_';
                                 if (isSlot) {
                                   return (
                                     <div
                                       key={index}
-                                      className={`w-2 h-4 border-b border-muted-foreground/30 mx-[0.5px] transition-all duration-300 ${isFullHidden ? "opacity-50" : "opacity-70"}`}
+                                      className={`w-3 h-5 border-b border-muted-foreground/30 mx-[1px] transition-all duration-300 ${isFullHidden ? "opacity-50" : "opacity-70"}`}
                                       aria-hidden="true"
                                     />
                                   );
@@ -238,7 +238,7 @@ export function PyramidClues() {
                                 return (
                                   <div
                                     key={index}
-                                    className="w-2 h-4 flex items-end justify-center font-mono text-sm text-foreground border-b border-transparent mx-[0.5px]"
+                                    className="w-3 h-5 flex items-center justify-center font-mono text-sm leading-none text-foreground border-b border-transparent mx-[1px]"
                                   >
                                     {char}
                                   </div>
@@ -258,14 +258,14 @@ export function PyramidClues() {
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  <span className="inline-flex items-center rounded-md border border-border bg-secondary/50 px-2.5 py-0.5 text-sm font-medium text-foreground transition-colors duration-300 hover:bg-secondary gap-1.5 cursor-default">
+                  <span className="inline-flex items-center rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary gap-x-2 cursor-default min-h-[30px]">
                     <GameTooltip content={t('hiddenNotes', { attempt: currentAttempt })}>
                       <div className="flex gap-1 cursor-help">
                         {/* Generic placeholder for unknown notes */}
                         {[1, 2, 3].map((_, idx) => (
                           <div
                             key={idx}
-                            className="w-2.5 h-4 border-b border-muted-foreground/30 mx-[1px]"
+                            className="w-3 h-5 border-b border-muted-foreground/30 mx-[1px]"
                             aria-hidden="true"
                           />
                         ))}
