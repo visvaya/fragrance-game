@@ -114,7 +114,7 @@
         "letters": "Liczba liter: {count}"
     },
     "AttemptLog": {
-        "title": "Notes",
+        "title": "Notatnik",
         "columns": {
             "attempt": "#",
             "attemptTooltip": "Numer próby",

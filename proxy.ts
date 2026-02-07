@@ -39,8 +39,14 @@ export async function proxy(request: NextRequest) {
         }
     }
 
-    // 2. Internationalization (replaces NextResponse.next())
-    const response = intlMiddleware(request);
+    // 2. Internationalization
+    let response: NextResponse;
+
+    if (request.nextUrl.pathname.startsWith('/api')) {
+        response = NextResponse.next();
+    } else {
+        response = intlMiddleware(request);
+    }
 
 
     // Cache-Control for sensitive routes

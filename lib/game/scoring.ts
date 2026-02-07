@@ -8,45 +8,53 @@ import { MAX_GUESSES } from '@/lib/constants';
 export interface RevealState {
     blur: number;       // Blur radius in px
     radialMask: number; // Percentage (0-100)
+    grain: number;      // Grain amount (0-100? or arbitrary scale)
     brandLetters: number; // Percentage (0-100) of brand letters revealed
     perfumerLetters: number; // Percentage (0-100) of perfumer letters revealed
+    notes: number;       // Level of notes revealed (0=None, 1=Top, 2=Middle, 3=Base)
     yearMask: string;   // '----' or full year
     showGender: boolean;
 }
 
-export type GameStatus = 'active' | 'won' | 'lost' | 'abandoned';
+export type GameStatus = 'playing' | 'won' | 'lost';
 
 export interface GameResult {
-    status: GameStatus;
-    score: number;
-    scoreRaw: number;
-    attempts: number;
-    timeSeconds: number; // Duration of the game
-    isRanked: boolean;
-    rankedReason?: string;
+    score: number;       // Final calculated score
+    timeTaken: number;   // Seconds from start
+    attempts: number;    // Number of attempts used (1-6)
+    history: string[];   // Array of guessed IDs
 }
 
-const ATTEMPT_SCORES = [1000, 700, 490, 343, 240, 168];
+// Points per attempt (1st attempt = 1000, 6th = 168)
+// Formula: 1000 * (0.7 ^ (attempt - 1))
+export const ATTEMPT_SCORES: Record<number, number> = {
+    1: 1000,
+    2: 700,
+    3: 490,
+    4: 343,
+    5: 240,
+    6: 168
+};
 
 /**
- * Calculates the base score based on the number of attempts used.
- * Formula: 1000 * (0.7 ^ (attempts - 1))
+ * Calculates raw score based on attempt number.
  */
-export function calculateBaseScore(attempts: number): number {
-    if (attempts < 1) return 1000;
-    if (attempts > MAX_GUESSES) return 0; // Should be handled as lost game
-    // Use pre-calculated values to avoid floating point drift and ensure exact match with spec
-    return ATTEMPT_SCORES[attempts - 1];
+export function calculateBaseScore(attempt: number): number {
+    // If somehow out of bounds, clamp
+    if (attempt < 1) return 1000;
+    if (attempt > MAX_GUESSES) return 0;
+    return ATTEMPT_SCORES[attempt] || 0;
 }
 
 /**
- * Calculates the final score including the xSolve difficulty bonus.
- * Formula: base_score * (1 + xsolve_score * 0.3)
+ * Calculates final score including difficulty multiplier (xSolve).
+ * precision: 0 decimal places.
  */
-export function calculateFinalScore(baseScore: number, xsolveScore: number): number {
-    if (baseScore <= 0) return 0;
-    // Apply bonus and strict rounding to integer
-    return Math.round(baseScore * (1 + (xsolveScore * 0.3)));
+export function calculateFinalScore(baseScore: number, xSolve: number): number {
+    // xSolve bonus: +30% for max difficulty (xSolve=1.0)
+    // Formula: baseScore * (1 + (xSolve * 0.3))
+    const multiplier = 1 + (xSolve * 0.3);
+    return Math.round(baseScore * multiplier);
 }
 
 /**
@@ -58,20 +66,25 @@ export function getRevealPercentages(attempt: number): RevealState {
 
     switch (safeAttempt) {
         case 1:
-            return { blur: 10, radialMask: 0, brandLetters: 0, perfumerLetters: 0, yearMask: '----', showGender: false };
+            // Attempt 1: 0% radial, 10px blur, 3% grain. 0% letters. Year ____. Notes: None (User said ___x3, implying hidden)
+            return { blur: 10, radialMask: 0, grain: 3, brandLetters: 0, perfumerLetters: 0, notes: 0, yearMask: '____', showGender: false };
         case 2:
-            return { blur: 9.5, radialMask: 10, brandLetters: 0, perfumerLetters: 0, yearMask: '1---', showGender: false };
+            // Attempt 2: 5% radial, 9.5px blur, 2.5% grain. 0% letters. Year 1___. Notes: None? User said "_ (jak w marce)" which usually means 0% or hidden.
+            return { blur: 9.5, radialMask: 5, grain: 2.5, brandLetters: 0, perfumerLetters: 0, notes: 0, yearMask: '1___', showGender: false };
         case 3:
-            return { blur: 8.5, radialMask: 25, brandLetters: 15, perfumerLetters: 10, yearMask: '19--', showGender: false };
+            // Attempt 3: 8% radial, 8.5px blur, 2% grain. 15% Brand, 10% Perfumer. Notes: Top (Level 1). Year 19__.
+            return { blur: 8.5, radialMask: 8, grain: 2, brandLetters: 15, perfumerLetters: 10, notes: 1, yearMask: '19__', showGender: false };
         case 4:
-            return { blur: 7.5, radialMask: 45, brandLetters: 40, perfumerLetters: 30, yearMask: '197-', showGender: false };
+            // Attempt 4: 11% radial, 7.5px blur, 1.8% grain. 40% Brand, 30% Perfumer. Notes: +Middle (Level 2). Year 197_.
+            return { blur: 7.5, radialMask: 11, grain: 1.8, brandLetters: 40, perfumerLetters: 30, notes: 2, yearMask: '197_', showGender: false };
         case 5:
-            return { blur: 6, radialMask: 70, brandLetters: 70, perfumerLetters: 60, yearMask: 'FULL', showGender: true };
+            // Attempt 5: 13% radial, 6px blur, 1.5% grain. 70% Brand, 60% Perfumer. Notes: +Base (Level 3). Year FULL. Gender TRUE.
+            return { blur: 6, radialMask: 13, grain: 1.5, brandLetters: 70, perfumerLetters: 60, notes: 3, yearMask: 'FULL', showGender: true };
         case 6:
-            return { blur: 0, radialMask: 100, brandLetters: 100, perfumerLetters: 100, yearMask: 'FULL', showGender: true };
+            // Attempt 6: 100% radial, 0px blur, 0% grain. 100% Brand, 100% Perfumer. Notes: All. Year FULL. Gender TRUE.
+            return { blur: 0, radialMask: 100, grain: 0, brandLetters: 100, perfumerLetters: 100, notes: 3, yearMask: 'FULL', showGender: true };
         default:
-            // Fallback to attempt 1
-            return { blur: 10, radialMask: 0, brandLetters: 0, perfumerLetters: 0, yearMask: '----', showGender: false };
+            return { blur: 10, radialMask: 0, grain: 3, brandLetters: 0, perfumerLetters: 0, notes: 0, yearMask: '____', showGender: false };
     }
 }
 
@@ -111,11 +124,11 @@ export function revealLetters(text: string, percentage: number): string {
         if (pct === 0) return "_".repeat(token.length);
 
         const chars = token.split("");
-        const lettersToReveal = Math.round(chars.length * (pct / 100));
+        const lettersToReveal = Math.max(1, Math.round(chars.length * (pct / 100)));
 
         if (lettersToReveal >= chars.length) return token;
 
-        const order = generateCenterOutOrder(chars.length);
+        const order = generateSmartRevealOrder(chars.length);
         const revealed = new Set(order.slice(0, lettersToReveal));
 
         return chars.map((c, i) => revealed.has(i) ? c : "_").join("");
@@ -124,45 +137,43 @@ export function revealLetters(text: string, percentage: number): string {
     return revealedTokens.join("");
 }
 
-/**
- * Generate indices in center-out order for a word
- * Result: [center... toward end... toward beginning]
- */
-function generateCenterOutOrder(length: number): number[] {
-    const center = Math.floor(length / 2);
-    const order: number[] = [];
+function generateSmartRevealOrder(length: number): number[] {
+    if (length <= 1) return [0];
 
-    // Start from center
-    if (length % 2 === 0) {
-        // Even length: e.g. 4 -> indices 0,1,2,3. Center 2.
-        // Spec says: "Even length: Right-center (matches len/2), then..."
-        // Plan example "Jean" (4): indices 1,2 are center?
-        // Plan: "Jean" (4): Right-center: 2(a), Left-center: 1(e).
-        // My Logic:
-        // center = 2.
-        // Order: center-1 (1), center (2). (Plan said: 2, 3, 1, 0. Wait.)
-        // Let's follow the Plan ALGORITHM precisely:
-        // "Right-center (length/2), then +1...+end, then left-center (-1), then -2...beginning"
-        // length/2 = 2.
-        // So start with 2.
-        order.push(center);
-        // Then +1...
-        for (let i = center + 1; i < length; i++) order.push(i);
-        // Then left-center (center - 1)
-        if (center - 1 >= 0) {
-            order.push(center - 1); // 1
-            // Then -2... beginning
-            for (let i = center - 2; i >= 0; i--) order.push(i);
-        }
-        // Result for 4: [2, 3, 1, 0]. Matches Plan Example "Jean".
-        return order;
-    } else {
-        // Odd length: center index.
-        order.push(center);
-        // Then toward end
-        for (let i = center + 1; i < length; i++) order.push(i);
-        // Then toward beginning
-        for (let i = center - 1; i >= 0; i--) order.push(i);
-        return order;
+    // Sub-range to reveal first: indices 1 to length-1 (skipping the first capital letter)
+    const subLength = length - 1;
+    const subStart = 1;
+
+    // Calculate center of the sub-range
+    // e.g. Length 4 (Dior), sub is indices 1,2,3. Center of 3 items is index 1 (relative) -> 1+1=2 (absolute) -> 'o'
+    // e.g. Length 6 (Chanel), sub is 1,2,3,4,5. Center of 5 is index 2 (relative) -> 2+1=3 (absolute) -> 'n'
+    const centerRelative = Math.floor((subLength - 1) / 2);
+    const centerAbsolute = subStart + centerRelative;
+
+    const order: number[] = [];
+    order.push(centerAbsolute);
+
+    let left = centerAbsolute - 1;
+    let right = centerAbsolute + 1;
+
+    // Expand outwards within the sub-range
+    while (left >= subStart || right < length) {
+        // Preference: "middle -> towards end" implies prioritizing right side slightly?
+        // Example Dior: __o_ (2) -> _io_ (2,1) -> _ior (2,1,3).
+        // Let's stick to standard alternating expansion but confined to sub-range.
+        // To match user example _io_ (Left neighbor first?), we should prioritize Left if distances are equal?
+        // Example: 3 (15%) -> _ (index 2 'o').
+        // 4 (40% of 4 = 1.6 -> 2 chars) -> indices 2 and... 1('i'). So Left was picked.
+        // 5 (70% of 4 = 2.8 -> 3 chars) -> indices 2, 1, and 3('r'). Right was picked.
+        // So strategy: Center, Left, Right, Left, Right...
+
+        if (left >= subStart) order.push(left--);
+        if (right < length) order.push(right++);
     }
+
+    // Finally, reveal the first letter (Brand Capital)
+    order.push(0);
+
+    console.log(`SmartReveal(${length}): SubLen=${subLength}, Center=${centerAbsolute}, Order=${JSON.stringify(order)}`);
+    return order;
 }
