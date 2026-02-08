@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/redis';
 import { autocompleteSchema } from '@/lib/validations/game.schema';
 import { maskBrand, maskYear } from '@/lib/utils/brand-masking';
+import { normalizeText } from '@/lib/utils';
 import { z } from 'zod';
 
 export type PerfumeSuggestion = {
@@ -80,23 +81,26 @@ export async function searchPerfumes(
     });
 
     // 6. Custom Sorting: Exact Prefix/Match Priority
-    const lowerQuery = validatedQuery.toLowerCase();
+    const lowerQuery = normalizeText(validatedQuery);
+    const queryTokens = lowerQuery.split(/\s+/).filter(t => t.length > 0);
 
     return transformed.sort((a: PerfumeSuggestion, b: PerfumeSuggestion) => {
-        const nameA = a.name.toLowerCase();
-        const nameB = b.name.toLowerCase();
+        const nameA = normalizeText(a.name);
+        const nameB = normalizeText(b.name);
 
         // --- 1. Token Overlap Score ---
         // For query "marly delina", we want "Parfums de Marly Delina" to win over "Delina Exclusif" (maybe) 
         // OR better: match how many query words are present in target.
-        const queryTokens = lowerQuery.split(/\s+/).filter(t => t.length > 0);
 
         const getScore = (suggestion: PerfumeSuggestion) => {
-            const targetText = (suggestion.name + " " + (suggestion.brand_masked.includes('•') ? suggestion.name : suggestion.brand_masked)).toLowerCase();
+            const normalizedName = normalizeText(suggestion.name);
+            const normalizedBrand = normalizeText(suggestion.brand_masked);
+
+            const targetText = (normalizedName + " " + (suggestion.brand_masked.includes('•') ? normalizedName : normalizedBrand));
             let score = 0;
 
             // Exact full match bonus
-            if (suggestion.name.toLowerCase() === lowerQuery) score += 100;
+            if (normalizedName === lowerQuery) score += 100;
 
             // Token matches
             let matchedTokens = 0;
@@ -106,7 +110,7 @@ export async function searchPerfumes(
             score += matchedTokens * 10;
 
             // Prefix bonus
-            if (suggestion.name.toLowerCase().startsWith(lowerQuery)) score += 5;
+            if (normalizedName.startsWith(lowerQuery)) score += 5;
 
             return score;
         };

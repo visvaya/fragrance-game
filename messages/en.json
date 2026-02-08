@@ -75,10 +75,10 @@
     "ariaClose": "Close"
   },
   "ResetButton": {
-    "tooltip": "Give up and see the answer",
-    "question": "Are you sure you want to give up?",
+    "tooltip": "Give up and reset your progress",
+    "question": "Are you sure you want to reset?",
     "cancel": "Cancel",
-    "confirm": "Reveal Answer",
+    "confirm": "Reset",
     "ariaLabel": "Reset Game"
   },
   "GameTooltip": {

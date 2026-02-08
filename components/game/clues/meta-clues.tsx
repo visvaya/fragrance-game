@@ -74,11 +74,11 @@ function MetaBadge({ value, clueKey, currentAttempt, t }: { value: string, clueK
 
           return (
             <GameTooltip key={wordIndex} content={tooltipContent}>
-              <div className="flex gap-1 cursor-help">
+              <div className="flex cursor-help">
                 {[1, 2, 3, 4, 5].map((_, i) => (
                   <div
                     key={i}
-                    className="w-3 h-5 border-b border-muted-foreground/30 mx-[1px]"
+                    className="w-2.5 h-5 border-b border-muted-foreground/30 mx-[0.5px]"
                     aria-hidden="true"
                   />
                 ))}
@@ -100,14 +100,14 @@ function MetaBadge({ value, clueKey, currentAttempt, t }: { value: string, clueK
         const showTooltip = (clueKey === 'brand' || clueKey === 'perfumer' || clueKey === 'year') && isWordMasked;
 
         const content = (
-          <div className="flex flex-wrap gap-0.5">
+          <div className="flex flex-wrap">
             {word.split('').map((char, charIndex) => {
               const isSlot = char === '_';
               if (isSlot) {
                 return (
                   <div
                     key={charIndex}
-                    className="w-3 h-5 border-b border-muted-foreground/30 mx-[1px] transition-all duration-300"
+                    className="w-2.5 h-5 border-b border-muted-foreground/30 mx-[0.5px] transition-all duration-300"
                     aria-hidden="true"
                   />
                 );
@@ -115,7 +115,7 @@ function MetaBadge({ value, clueKey, currentAttempt, t }: { value: string, clueK
               return (
                 <div
                   key={charIndex}
-                  className="w-3 h-5 flex items-center justify-center font-mono text-sm leading-none text-foreground border-b border-transparent mx-[1px]"
+                  className="w-2.5 h-5 flex items-center justify-center font-mono text-sm leading-none text-foreground border-b border-transparent mx-[0.5px]"
                 >
                   {char}
                 </div>
@@ -134,6 +134,6 @@ function MetaBadge({ value, clueKey, currentAttempt, t }: { value: string, clueK
 
         return <div key={wordIndex}>{content}</div>
       })}
-    </div>
+    </div >
   );
 }

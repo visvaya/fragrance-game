@@ -11,6 +11,7 @@ import { toast } from "sonner" // Import toast
 import { useTranslations } from "next-intl"
 
 import { useMountTransition } from "@/hooks/use-mount-transition"
+import { normalizeText } from "@/lib/utils"
 
 
 export function GameInput() {
@@ -289,12 +290,38 @@ export function GameInput() {
                     <span className={isDuplicate ? "line-through decoration-muted-foreground" : ""}>
                       {(() => {
                         if (!query || query.length < 2) return perfume.name;
-                        // Escape special regex characters in query
-                        const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        const parts = perfume.name.split(new RegExp(`(${safeQuery})`, 'gi'));
-                        return parts.map((part, i) =>
-                          part.toLowerCase() === query.toLowerCase() ? <b key={i} className="font-bold">{part}</b> : part
-                        );
+
+                        const text = perfume.name.normalize('NFC');
+                        const normText = normalizeText(text);
+                        const normQuery = normalizeText(query);
+
+                        if (!normText.includes(normQuery)) return text;
+
+                        const result = [];
+                        let lastIndex = 0;
+                        let currentIndex = normText.indexOf(normQuery);
+
+                        while (currentIndex !== -1) {
+                          if (currentIndex > lastIndex) {
+                            result.push(text.slice(lastIndex, currentIndex));
+                          }
+
+                          const matchEnd = currentIndex + normQuery.length;
+                          result.push(
+                            <b key={`${currentIndex}-${matchEnd}`} className="font-bold">
+                              {text.slice(currentIndex, matchEnd)}
+                            </b>
+                          );
+
+                          lastIndex = matchEnd;
+                          currentIndex = normText.indexOf(normQuery, lastIndex);
+                        }
+
+                        if (lastIndex < text.length) {
+                          result.push(text.slice(lastIndex));
+                        }
+
+                        return result;
                       })()}
                     </span>
 

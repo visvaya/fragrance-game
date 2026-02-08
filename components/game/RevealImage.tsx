@@ -20,6 +20,7 @@ export function RevealImage() {
     const [activeSrc, setActiveSrc] = useState(targetSrc)
     const [fadingInSrc, setFadingInSrc] = useState<string | null>(null)
     const [isFadingInLoaded, setIsFadingInLoaded] = useState(false)
+    const [isZoomed, setIsZoomed] = useState(false)
 
     // Effect: Detect change in targetSrc -> Start Transition
     // Logic: When target changes, it becomes 'fadingInSrc'. We keep the old 'activeSrc' visible behind.
@@ -56,10 +57,23 @@ export function RevealImage() {
             </div>
 
             <div className="flex flex-col items-center justify-center flex-1 gap-4">
-                <div className={cn(
-                    "relative aspect-square w-[80%] md:w-full bg-muted border border-border overflow-hidden rounded-md transition-all duration-300 dark:brightness-[0.85]",
-                    uiPreferences.fontScale === 'large' ? "max-w-[280px]" : "max-w-[240px]"
-                )}>
+                <div
+                    className={cn(
+                        "relative aspect-square w-[80%] md:w-full bg-muted border border-border overflow-hidden rounded-md transition-all duration-300 dark:brightness-[0.85]",
+                        "focus:outline-none",
+                        isZoomed ? "cursor-zoom-out" : "cursor-zoom-in",
+                        uiPreferences.fontScale === 'large' ? "max-w-[280px]" : "max-w-[240px]"
+                    )}
+                    onClick={() => setIsZoomed(!isZoomed)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            setIsZoomed(!isZoomed)
+                        }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                >
 
                     {/* Layer 1: Active Image (Background) */}
                     {/* Always present. If nothing else, shows placeholder. */}
@@ -69,7 +83,10 @@ export function RevealImage() {
                         alt={t('altBase')}
                         fill
                         sizes="(max-width: 768px) 100vw, 40vw"
-                        className="object-cover transition-transform duration-700 ease-in-out hover:scale-110"
+                        className={cn(
+                            "object-cover transition-transform duration-700 ease-in-out",
+                            isZoomed ? "scale-110" : "hover:scale-110"
+                        )}
                         priority
                     />
 
@@ -82,18 +99,21 @@ export function RevealImage() {
                             alt={t('altReveal')}
                             fill
                             sizes="(max-width: 768px) 100vw, 40vw"
-                            className={`object-cover transition-all duration-700 ease-in-out hover:scale-110 ${isFadingInLoaded ? "opacity-100" : "opacity-0"
-                                }`}
+                            className={cn(
+                                "object-cover transition-all duration-700 ease-in-out",
+                                isZoomed ? "scale-110" : "hover:scale-110",
+                                isFadingInLoaded ? "opacity-100" : "opacity-0"
+                            )}
                             onLoad={handleImageLoad}
                             priority
                         />
                     )}
 
                     {/* Decorative corner marks (always on top) */}
-                    <div className="pointer-events-none absolute top-2 left-2 w-4 h-4 border-l-2 border-t-2 border-foreground/20" />
-                    <div className="pointer-events-none absolute top-2 right-2 w-4 h-4 border-r-2 border-t-2 border-foreground/20" />
-                    <div className="pointer-events-none absolute bottom-2 left-2 w-4 h-4 border-l-2 border-b-2 border-foreground/20" />
-                    <div className="pointer-events-none absolute bottom-2 right-2 w-4 h-4 border-r-2 border-b-2 border-foreground/20" />
+                    <div className="pointer-events-none absolute top-2 left-2 w-4 h-4 border-l-2 border-t-2 border-foreground/20 dark:border-foreground" />
+                    <div className="pointer-events-none absolute top-2 right-2 w-4 h-4 border-r-2 border-t-2 border-foreground/20 dark:border-foreground" />
+                    <div className="pointer-events-none absolute bottom-2 left-2 w-4 h-4 border-l-2 border-b-2 border-foreground/20 dark:border-foreground" />
+                    <div className="pointer-events-none absolute bottom-2 right-2 w-4 h-4 border-r-2 border-b-2 border-foreground/20 dark:border-foreground" />
                 </div>
 
 
