@@ -121,6 +121,9 @@ export default async function RootLayout({
         suppressHydrationWarning
       >
         <NextIntlClientProvider messages={messages}>
+          <head>
+            <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} crossOrigin="anonymous" />
+          </head>
           <SentryProvider>
             <PostHogProvider>
               <SmoothScrollProvider>

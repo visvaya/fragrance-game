@@ -52,13 +52,18 @@ export interface GuessHistoryItem {
 
 export interface StartGameResponse {
     sessionId: string;
-    nonce: string; // serialized 64-bit int (string to avoid JS precision loss)
+    nonce: string;
     imageUrl: string | null;
     revealState: RevealState;
     graceDeadline: string;
     guesses: GuessHistoryItem[];
     answerName?: string;
     answerConcentration?: string;
+}
+
+export interface InitializeGameResponse {
+    challenge: DailyChallenge | null;
+    session: StartGameResponse | null;
 }
 
 export interface AttemptFeedback {
@@ -272,28 +277,33 @@ export async function startGame(challengeId: string): Promise<StartGameResponse>
 
         if (rawGuesses.length > 0) {
             const adminSupabase = createAdminClient();
-            // Collect all perfume IDs to fetch details in bulk (optimization)
-            // Or just iterate if list is small (max 6) -> iterating is fine for <10 items
-            for (const guess of rawGuesses) {
-                const { data: p } = await adminSupabase
-                    .from('perfumes')
-                    .select('name, brands(name), release_year, concentrations(name), gender')
-                    .eq('id', guess.perfumeId)
-                    .single();
+            const perfumeIds = rawGuesses.map(g => g.perfumeId);
 
-                if (p) {
-                    enrichedGuesses.push({
-                        perfumeId: guess.perfumeId,
-                        perfumeName: p.name,
-                        brandName: (p.brands as any)?.name || 'Unknown',
-                        timestamp: guess.timestamp,
-                        isCorrect: guess.isCorrect,
-                        year: p.release_year,
-                        concentration: (p as any).concentrations?.name,
-                        gender: p.gender,
-                        feedback: guess.feedback // Pass through stored feedback
-                    });
-                }
+            const { data: perfumes } = await adminSupabase
+                .from('perfumes')
+                .select('id, name, brands(name), release_year, concentrations(name), gender')
+                .in('id', perfumeIds);
+
+            if (perfumes) {
+                // Map to preserve original guess order
+                const perfumeMap = new Map(perfumes.map(p => [p.id, p]));
+
+                rawGuesses.forEach(guess => {
+                    const p = perfumeMap.get(guess.perfumeId);
+                    if (p) {
+                        enrichedGuesses.push({
+                            perfumeId: guess.perfumeId,
+                            perfumeName: p.name,
+                            brandName: (p.brands as any)?.name || 'Unknown',
+                            timestamp: guess.timestamp,
+                            isCorrect: guess.isCorrect,
+                            year: p.release_year,
+                            concentration: (p as any).concentrations?.name,
+                            gender: p.gender,
+                            feedback: guess.feedback
+                        });
+                    }
+                });
             }
         }
 
@@ -389,6 +399,19 @@ export async function startGame(challengeId: string): Promise<StartGameResponse>
     };
 }
 
+export async function initializeGame(): Promise<InitializeGameResponse> {
+    try {
+        const challenge = await getDailyChallenge();
+        if (!challenge) return { challenge: null, session: null };
+
+        const session = await startGame(challenge.id);
+        return { challenge, session };
+    } catch (error) {
+        console.error('Error in initializeGame:', error);
+        return { challenge: null, session: null };
+    }
+}
+
 export async function getImageUrlForStep(sessionId: string) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -443,9 +466,14 @@ export async function getImageUrlForStep(sessionId: string) {
     // Ensure we access the correct key. properties are image_key_step_1...6
     const key = assets[`image_key_step_${step}` as keyof typeof assets];
 
-    // Use environment variable for assets host, fallback to example if not set
-    const assetsHost = process.env.NEXT_PUBLIC_ASSETS_HOST || 'assets.eauxle.com';
-    return `https://${assetsHost}/${key}`;
+    // Use environment variable for assets host
+    // Strict requirement for production, fallback allowed only in dev
+    const assetsHost = process.env.NEXT_PUBLIC_ASSETS_HOST;
+    if (!assetsHost && process.env.NODE_ENV === 'production') {
+        throw new Error('Missing NEXT_PUBLIC_ASSETS_HOST');
+    }
+    const host = assetsHost || 'assets.eauxle.com';
+    return `https://${host}/${key}`;
 }
 
 // Helper for startGame to avoid double-fetching session if not needed, 

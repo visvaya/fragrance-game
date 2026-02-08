@@ -58,6 +58,7 @@ export async function proxy(request: NextRequest) {
     const origin = request.headers.get('origin');
     const allowedOrigins = [
         'http://localhost:3000',
+        ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : []),
         'https://eauxle.vercel.app',
         'https://eauxle.com',
         'https://fragrance-game.vercel.app' // Legacy/Preview domains if needed

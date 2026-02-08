@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
 import { usePostHog } from 'posthog-js/react'
-import { getDailyChallenge, startGame, submitGuess, resetGame, type DailyChallenge } from "@/app/actions/game-actions"
+import { initializeGame, submitGuess, resetGame, type DailyChallenge } from "@/app/actions/game-actions"
 import { createClient } from "@/lib/supabase/client"
 import { MAX_GUESSES } from "@/lib/constants"
 import { revealLetters } from "@/lib/game/scoring"
@@ -218,9 +218,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        // 2. Fetch challenge and start game (only after auth is guaranteed)
-        const challenge = await getDailyChallenge()
-        if (challenge) {
+        // 2. Fetch challenge and start game in ONE server call (reduces round-trips)
+        const { challenge, session } = await initializeGame()
+
+        if (challenge && session) {
           posthog.capture('daily_challenge_viewed', { challenge_number: challenge.id })
 
           // Setup Daily Perfume Clues
@@ -240,7 +241,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
             });
           }
 
-          const session = await startGame(challenge.id)
           setSessionId(session.sessionId)
           setNonce(session.nonce) // Store nonce
           if (session.imageUrl) {
@@ -566,40 +566,36 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setImageUrl('/placeholder.svg'); // Temporary clear
         setDiscoveredPerfumers(new Set());
 
-        setDiscoveredPerfumers(new Set());
-
         // 3. Force a substantial delay to let React process the clear and ensure no racer with server
         await new Promise(resolve => setTimeout(resolve, 150));
 
-        // 4. Reinitialize game from scratch
-        const challenge = await getDailyChallenge();
-        if (challenge) {
+        // 4. Reinitialize game from scratch using the optimized single-call function
+        const { challenge, session } = await initializeGame();
+
+        if (challenge && session) {
           // Re-setup skeleton with new challenge data (but still masked)
-          setDailyPerfume({
-            id: "daily",
-            name: "Mystery Perfume",
-            brand: challenge.clues.brand,
-            perfumer: challenge.clues.perfumer,
-            year: challenge.clues.year,
-            gender: challenge.clues.gender,
-            notes: challenge.clues.notes,
-            isLinear: challenge.clues.isLinear,
-            xsolve: challenge.clues.xsolve,
-            imageUrl: "/placeholder.svg",
-            concentration: challenge.clues.concentration
-          });
-
-          // Start fresh session
-          const newSession = await startGame(challenge.id);
-
-          if (newSession) {
-            setSessionId(newSession.sessionId);
-            setNonce(newSession.nonce);
-
-            // Add a one-time cache buster for the reset to override any browser stubbornness
-            const busterUrl = newSession.imageUrl ? `${newSession.imageUrl}?reset=${Date.now()}` : '/placeholder.svg';
-            setImageUrl(busterUrl);
+          if (challenge.clues) {
+            setDailyPerfume({
+              id: "daily",
+              name: "Mystery Perfume",
+              brand: challenge.clues.brand,
+              perfumer: challenge.clues.perfumer,
+              year: challenge.clues.year,
+              gender: challenge.clues.gender,
+              notes: challenge.clues.notes,
+              isLinear: challenge.clues.isLinear,
+              xsolve: challenge.clues.xsolve,
+              imageUrl: "/placeholder.svg",
+              concentration: challenge.clues.concentration
+            });
           }
+
+          setSessionId(session.sessionId);
+          setNonce(session.nonce);
+
+          // Add a one-time cache buster for the reset to override any browser stubbornness
+          const busterUrl = session.imageUrl ? `${session.imageUrl}?reset=${Date.now()}` : '/placeholder.svg';
+          setImageUrl(busterUrl);
         }
       } else {
         console.error('[GameProvider] Reset backend action failed.');

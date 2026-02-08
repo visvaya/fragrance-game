@@ -9,7 +9,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'pub-2c37ff9f03ea40878492e7f72ef83fe3.r2.dev',
+        hostname: process.env.NEXT_PUBLIC_ASSETS_HOST || 'pub-2c37ff9f03ea40878492e7f72ef83fe3.r2.dev',
         port: '',
         pathname: '/**',
       },
