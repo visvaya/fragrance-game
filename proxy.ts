@@ -75,7 +75,7 @@ export async function proxy(request: NextRequest) {
         'Content-Security-Policy',
         [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' eu.i.posthog.com eu-assets.i.posthog.com *.ingest.de.sentry.io",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' va.vercel-scripts.com eu.i.posthog.com eu-assets.i.posthog.com *.ingest.de.sentry.io",
             "worker-src 'self' blob:",
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: https: *.r2.dev *.supabase.co",

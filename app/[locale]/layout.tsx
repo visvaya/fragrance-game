@@ -17,6 +17,7 @@ const geistSans = Geist({
   subsets: ["latin", "latin-ext"],
   variable: "--font-geist-sans",
   display: "swap",
+  preload: true,
 })
 
 /**
@@ -26,6 +27,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin", "latin-ext"],
   variable: "--font-geist-mono",
   display: "swap",
+  preload: true,
 })
 
 /**
@@ -35,6 +37,7 @@ const playfair = Playfair_Display({
   subsets: ["latin", "latin-ext"],
   variable: "--font-playfair",
   display: "swap",
+  preload: true,
 })
 
 /**
@@ -45,6 +48,7 @@ const caveat = Caveat({
   weight: ["400", "500", "600", "700"],
   variable: "--font-caveat",
   display: "swap",
+  preload: true,
 })
 
 import { getTranslations } from 'next-intl/server';
@@ -116,14 +120,14 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL || ''} crossOrigin="anonymous" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${caveat.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
         <NextIntlClientProvider messages={messages}>
-          <head>
-            <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} crossOrigin="anonymous" />
-          </head>
           <SentryProvider>
             <PostHogProvider>
               <SmoothScrollProvider>

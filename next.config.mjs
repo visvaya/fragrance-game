@@ -5,6 +5,14 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  experimental: {
+    optimizePackageImports: [
+      'lucide-react',
+      'date-fns',
+      'recharts',
+      '@radix-ui/react-icons'
+    ],
+  },
   images: {
     remotePatterns: [
       {
@@ -22,6 +30,23 @@ const nextConfig = {
     ],
   },
   poweredByHeader: false,
+  async rewrites() {
+    const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com';
+    return [
+      {
+        source: "/ingest/static/:path*",
+        destination: `${posthogHost.replace('eu.i', 'eu-assets.i')}/static/:path*`,
+      },
+      {
+        source: "/ingest/:path*",
+        destination: `${posthogHost}/:path*`,
+      },
+      {
+        source: "/ingest/decide",
+        destination: `${posthogHost}/decide`,
+      },
+    ];
+  },
   async headers() {
     return [
       {
@@ -29,7 +54,16 @@ const nextConfig = {
         headers: [
           {
             key: 'Server',
-            value: '', // Attempt to obscure Server header
+            value: '',
+          },
+        ],
+      },
+      {
+        source: '/(.*).(woff2?|png|jpg|jpeg|gif|webp|svg|ico)$',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },
@@ -53,7 +87,7 @@ const serverConfig = withSentryConfig(nextConfig, {
   widenClientFileUpload: true,
 
   // Transpiles SDK to be compatible with IE11 (increases bundle size)
-  transpileClientSDK: true,
+  transpileClientSDK: false, // Modern browsers only
 
   // Routes browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers (increases server load)
   tunnelRoute: "/monitoring",

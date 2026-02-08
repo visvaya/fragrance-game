@@ -87,7 +87,8 @@ export function RevealImage() {
                             "object-cover transition-transform duration-700 ease-in-out",
                             isZoomed ? "scale-110" : "hover:scale-110"
                         )}
-                        priority
+                        priority={true}
+                        loading="eager"
                     />
 
                     {/* Layer 2: Fading In Image (Foreground) */}
