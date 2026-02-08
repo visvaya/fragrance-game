@@ -10,10 +10,11 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
         // Delay PostHog init to reduce TBT - wait for browser idle
         const handleInit = () => {
             posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-                api_host: '/ingest',
+                api_host: '/ph-proxy',
                 ui_host: process.env.NEXT_PUBLIC_POSTHOG_UI_HOST || 'https://eu.posthog.com',
                 person_profiles: 'identified_only',
                 capture_pageview: false,
+                disable_session_recording: true,
                 loaded: (ph) => {
                     if (process.env.NODE_ENV === 'development') console.log('PostHog loaded', ph)
                 }

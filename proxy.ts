@@ -108,6 +108,6 @@ export const config = {
          * 4. /favicon.ico, /sitemap.xml, /robots.txt (static files)
          * 5. all root files ending in .svg, .png, .jpg, .jpeg, .gif, .webp
          */
-        '/((?!_next/static|_next/image|favicon.ico|ingest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+        '/((?!_next/static|_next/image|favicon.ico|ph-proxy|api/db|api/events|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],
 };

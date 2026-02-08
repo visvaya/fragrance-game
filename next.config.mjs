@@ -32,18 +32,25 @@ const nextConfig = {
   poweredByHeader: false,
   async rewrites() {
     const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com';
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://pub-2c37ff9f03ea40878492e7f72ef83fe3.supabase.co';
+
     return [
       {
-        source: "/ingest/static/:path*",
+        source: "/ph-proxy/static/:path*",
         destination: `${posthogHost.replace('eu.i', 'eu-assets.i')}/static/:path*`,
       },
       {
-        source: "/ingest/:path*",
+        source: "/ph-proxy/:path*",
         destination: `${posthogHost}/:path*`,
       },
       {
-        source: "/ingest/decide",
+        source: "/ph-proxy/decide",
         destination: `${posthogHost}/decide`,
+      },
+      // Supabase Proxy
+      {
+        source: "/api/db/:path*",
+        destination: `${supabaseUrl}/:path*`,
       },
     ];
   },
@@ -90,7 +97,7 @@ const serverConfig = withSentryConfig(nextConfig, {
   transpileClientSDK: false, // Modern browsers only
 
   // Routes browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers (increases server load)
-  tunnelRoute: "/monitoring",
+  tunnelRoute: "/api/events",
 
   // Hides source maps from generated client bundles
   hideSourceMaps: true,

@@ -28,5 +28,7 @@ export function createClient() {
         )
     }
 
-    return createBrowserClient(supabaseUrl, supabaseAnonKey)
+    // Use local proxy to bypass uMatrix/AdBlockers
+    const proxyUrl = '/api/db'
+    return createBrowserClient(proxyUrl, supabaseAnonKey)
 }
