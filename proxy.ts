@@ -19,6 +19,7 @@ const ratelimit = new Ratelimit({
 
 
 export async function proxy(request: NextRequest) {
+    // 1. Rate Limiting
     // Only rate limit API routes
     if (request.nextUrl.pathname.startsWith('/api')) {
         const ip = request.headers.get('x-forwarded-for') ?? 'unknown';
@@ -107,6 +108,6 @@ export const config = {
          * 4. /favicon.ico, /sitemap.xml, /robots.txt (static files)
          * 5. all root files ending in .svg, .png, .jpg, .jpeg, .gif, .webp
          */
-        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+        '/((?!_next/static|_next/image|favicon.ico|ingest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],
 };
