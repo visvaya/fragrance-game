@@ -134,11 +134,13 @@ export default async function RootLayout({
   return (
     <html lang={locale || "en"} suppressHydrationWarning>
       <head>
-        <link
-          crossOrigin="anonymous"
-          href={process.env.NEXT_PUBLIC_SUPABASE_URL || ""}
-          rel="preconnect"
-        />
+        {process.env.NEXT_PUBLIC_SUPABASE_URL && (
+          <link
+            crossOrigin="anonymous"
+            href={process.env.NEXT_PUBLIC_SUPABASE_URL}
+            rel="preconnect"
+          />
+        )}
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${caveat.variable} font-sans antialiased`}
