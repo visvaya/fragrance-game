@@ -339,6 +339,7 @@ export function GameInput() {
                 placeholder={t("placeholder")}
                 ref={inputReference}
                 role="combobox"
+                data-testid="game-input"
                 type="text"
                 value={query}
               />
