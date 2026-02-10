@@ -549,8 +549,10 @@ export async function getImageUrlForStep(sessionId: string): Promise<string | nu
   const step = isRevealed ? 6 : Math.min(session.attempts_count + 1, MAX_GUESSES);
   const key = (assets as Record<string, string>)[`image_key_step_${step}`];
 
-  const assetsHost = process.env.NEXT_PUBLIC_ASSETS_HOST ?? "assets.eauxle.com";
-  if (!assetsHost && process.env.NODE_ENV === "production") {
+  // Use || to handle both undefined and empty strings from CI secrets
+  const assetsHost = process.env.NEXT_PUBLIC_ASSETS_HOST || "assets.eauxle.com";
+
+  if (!assetsHost && process.env.NODE_ENV === "production" && !process.env.CI) {
     throw new Error("Missing NEXT_PUBLIC_ASSETS_HOST");
   }
   return `https://${assetsHost}/${key}`;
