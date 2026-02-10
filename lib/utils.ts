@@ -1,19 +1,26 @@
-import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
-
+/**
+ *
+ * @param inputs
+ */
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
+/**
+ *
+ * @param text
+ */
 export function normalizeText(text: string): string {
   return text
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/ł/g, "l")
-    .replace(/ø/g, "o")
-    .replace(/æ/g, "ae")
-    .replace(/œ/g, "oe")
-    .replace(/ß/g, "ss");
+    .replaceAll(/[\u0300-\u036F]/g, "")
+    .replaceAll('ł', "l")
+    .replaceAll('ø', "o")
+    .replaceAll('æ', "ae")
+    .replaceAll('œ', "oe")
+    .replaceAll('ß', "ss");
 }

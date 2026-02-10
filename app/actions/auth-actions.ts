@@ -1,7 +1,8 @@
-'use server'
+"use server";
 
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath } from "next/cache";
+
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * Revokes all sessions for the current authenticated user.
@@ -17,27 +18,30 @@ import { revalidatePath } from 'next/cache'
  * Ideally, Supabase Admin API: `supabase.auth.admin.signOut(uid, 'global')`
  */
 export async function revokeAllSessions() {
-    const supabase = await createClient()
+  const supabase = await createClient();
 
-    // 1. Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
-        return { error: 'Not authenticated' }
-    }
+  // 1. Get current user
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+  if (userError || !user) {
+    return { error: "Not authenticated" };
+  }
 
-    // 2. Perform Sign Out
-    // Note: This only signs out the CURRENT session in standard client.
-    // Enhanced security requires Admin privileges to force-logout specific UID from all devices.
-    // For this MVP implementation without strict Admin SDK on server actions (safety first), 
-    // we will stick to standard sign out but return success to UI.
-    //
-    // TODO (Security): Upgrade this to use `supabase-admin` client to call `admin.signOut(user.id, 'global')`
-    const { error } = await supabase.auth.signOut()
+  // 2. Perform Sign Out
+  // Note: This only signs out the CURRENT session in standard client.
+  // Enhanced security requires Admin privileges to force-logout specific UID from all devices.
+  // For this MVP implementation without strict Admin SDK on server actions (safety first),
+  // we will stick to standard sign out but return success to UI.
+  //
+  // TODO (Security): Upgrade this to use `supabase-admin` client to call `admin.signOut(user.id, 'global')`
+  const { error } = await supabase.auth.signOut();
 
-    if (error) {
-        return { error: error.message }
-    }
+  if (error) {
+    return { error: error.message };
+  }
 
-    revalidatePath('/')
-    return { success: true }
+  revalidatePath("/");
+  return { success: true };
 }

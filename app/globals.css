@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "tw-animate-css";
+@plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -78,7 +78,7 @@ html.large-text {
   /* Noir / Midnight Theme - Balanced Warm Charcoal */
   --background: oklch(0.24 0.02 85);
   /* Balanced darkness */
-  --foreground: oklch(0.90 0.01 85);
+  --foreground: oklch(0.9 0.01 85);
 
   --card: oklch(0.27 0.02 85);
   --card-foreground: oklch(0.98 0.005 85);
@@ -110,8 +110,8 @@ html.large-text {
   --info: oklch(0.85 0.05 240);
   --info-foreground: oklch(0.18 0.01 260);
 
-  --border: oklch(0.40 0.02 85);
-  --border-strong: oklch(0.50 0.02 85);
+  --border: oklch(0.4 0.02 85);
+  --border-strong: oklch(0.5 0.02 85);
   --input: oklch(0.29 0.02 85);
   --ring: oklch(0.72 0.16 55);
 
@@ -182,10 +182,12 @@ html.large-text {
 }
 
 @layer base {
-
   * {
     @apply border-border outline-ring/50 ease-in-out;
-    transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, opacity, box-shadow, filter, backdrop-filter;
+    transition-property:
+      color, background-color, border-color, outline-color,
+      text-decoration-color, fill, stroke, opacity, box-shadow, filter,
+      backdrop-filter;
     transition-duration: 300ms;
   }
 
@@ -194,7 +196,7 @@ html.large-text {
   }
 
   body {
-    @apply text-foreground relative transition-colors duration-300 ease-in-out min-h-screen;
+    @apply relative min-h-screen text-foreground transition-colors duration-300 ease-in-out;
     isolation: isolate;
     /* Creates stacking context so z-index: -1 pseudo-element sits above background */
   }
@@ -225,7 +227,11 @@ html.large-text {
 }
 
 @utility bg-gradient-amber {
-  background: linear-gradient(135deg, oklch(0.72 0.16 55) 0%, oklch(0.68 0.18 50) 100%);
+  background: linear-gradient(
+    135deg,
+    oklch(0.72 0.16 55) 0%,
+    oklch(0.68 0.18 50) 100%
+  );
 }
 
 /* Custom handwritten marker circle animation */
@@ -287,7 +293,13 @@ html.large-text {
   bottom: -4px;
   width: 100%;
   height: 3px;
-  background: linear-gradient(90deg, transparent 0%, var(--primary) 10%, var(--primary) 90%, transparent 100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--primary) 10%,
+    var(--primary) 90%,
+    transparent 100%
+  );
   border-radius: 50%;
   transform: rotate(-1deg);
   opacity: 0.7;
@@ -298,7 +310,7 @@ html.large-text {
   /* overflow-hidden is risky for popovers, let's remove it or keep it? 
      Dropdowns usually need rounded corners clipped. Keeping it. 
      If sticky header breaks, it's because .frosted-glass forced relative. Now it doesn't. */
-  @apply relative bg-background/70 backdrop-blur-md border border-border/50 shadow-xl overflow-hidden;
+  @apply relative overflow-hidden border border-border/50 bg-background/70 shadow-xl backdrop-blur-md;
 }
 
 /* Lenis Recommended CSS */

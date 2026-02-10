@@ -1,126 +1,164 @@
-'use server';
+"use server";
 
-import { createClient } from '@/lib/supabase/server';
-import { checkRateLimit } from '@/lib/redis';
-import { autocompleteSchema } from '@/lib/validations/game.schema';
-import { maskBrand, maskYear } from '@/lib/utils/brand-masking';
-import { normalizeText } from '@/lib/utils';
-import { z } from 'zod';
+import { checkRateLimit } from "@/lib/redis";
+import { createClient } from "@/lib/supabase/server";
+import { maskYear } from "@/lib/utils/brand-masking";
+import { autocompleteSchema } from "@/lib/validations/game.schema";
+
+import { trackEvent } from "../../lib/posthog/server";
 
 export type PerfumeSuggestion = {
-    perfume_id: string;
-    display_name: string;
-    brand_masked: string;
-    name: string;
-    concentration: string | null;
-    year: string | null;
+  brand_masked: string;
+  concentration: string | null;
+  display_name: string;
+  name: string;
+  perfume_id: string;
+  raw_year: number | null; // Added to help frontend grouping if needed
+  year: string | null;
 };
 
+type FragranceRow = {
+  brand_name: string;
+  concentration: string | null;
+  id: string;
+  name: string;
+  year: number | null;
+};
+
+/**
+ *
+ * @param query
+ * @param sessionId
+ * @param currentAttempt
+ */
 export async function searchPerfumes(
-    query: string,
-    sessionId?: string,
-    currentAttempt?: number
+  query: string,
+  sessionId?: string,
+  currentAttempt?: number,
 ): Promise<PerfumeSuggestion[]> {
-    // 1. Input Validation
-    const result = autocompleteSchema.safeParse({ query, sessionId });
+  // 1. Input Validation
+  const result = autocompleteSchema.safeParse({ query, sessionId });
 
-    if (!result.success) {
-        return [];
-    }
+  if (!result.success) {
+    return [];
+  }
 
-    const { query: validatedQuery, sessionId: validatedSessionId } = result.data;
+  const { query: validatedQuery, sessionId: validatedSessionId } = result.data;
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-    // 2. Rate Limiting (Server Actions Tier)
-    if (user) {
-        await checkRateLimit('autocomplete', user.id);
-    }
+  // 2. Rate Limiting (Server Actions Tier)
+  if (user) {
+    await checkRateLimit("autocomplete", user.id);
+  }
 
-    // 3. Brand Masking Sync
-    // Use currentAttempt from client instead of querying DB
-    const attemptsCount = currentAttempt ?? 0;
+  // 3. Brand Masking Sync
+  // Use currentAttempt from client instead of querying DB
+  const attemptsCount = currentAttempt ?? 0;
 
-    // 4. Database Query using RPC with unaccent support
-    const { data: perfumes, error: dbError } = await supabase
-        .rpc('search_perfumes_unaccent', {
-            search_query: validatedQuery,
-            limit_count: 10
-        });
+  // 4. Database Query using RPC with unaccent support
+  const startTime = performance.now();
+  const { data: perfumes, error: dbError } = await supabase.rpc(
+    "search_perfumes_unaccent",
+    {
+      limit_count: 30, // Reduced from 60 for better performance
+      search_query: validatedQuery,
+    },
+  ) as { data: FragranceRow[] | null; error: { message: string } | null; };
+  const searchTime = performance.now() - startTime;
 
-    if (dbError) {
-        console.error('Autocomplete DB Error:', dbError);
-        return [];
-    }
+  if (dbError) {
+    console.error("Autocomplete DB Error:", dbError);
 
-    if (!perfumes) return [];
-
-    // 5. Transform & Mask Results
-    const transformed = perfumes.map((p: any) => {
-        // Flattened view returns brand_name directly
-        const brandName = p.brand_name ?? 'Unknown Brand';
-        const maskedBrand = maskBrand(brandName, attemptsCount);
-        const maskedYear = maskYear(p.year, attemptsCount);
-
-        // Logic handled in client for display, but we provide raw pieces
-        const concentration = p.concentration || null;
-        const name = p.name;
-
-        // Legacy display_name used as fallback
-        const displayName = `${maskedBrand} - ${name}${concentration ? ' ' + concentration : ''} (${maskedYear || ''})`;
-
-        return {
-            perfume_id: p.id,
-            display_name: displayName,
-            brand_masked: maskedBrand,
-            name: name,
-            concentration: concentration,
-            year: maskedYear,
-        };
+    // Track failed search
+    await trackEvent({
+      distinctId: user?.id ?? validatedSessionId ?? "anonymous",
+      event: "autocomplete_error",
+      properties: {
+        attempt: currentAttempt,
+        error: dbError.message,
+        query: validatedQuery,
+      },
     });
 
-    // 6. Custom Sorting: Exact Prefix/Match Priority
-    const lowerQuery = normalizeText(validatedQuery);
-    const queryTokens = lowerQuery.split(/\s+/).filter(t => t.length > 0);
+    return [];
+  }
 
-    return transformed.sort((a: PerfumeSuggestion, b: PerfumeSuggestion) => {
-        const nameA = normalizeText(a.name);
-        const nameB = normalizeText(b.name);
+  if (!perfumes) return [];
 
-        // --- 1. Token Overlap Score ---
-        // For query "marly delina", we want "Parfums de Marly Delina" to win over "Delina Exclusif" (maybe) 
-        // OR better: match how many query words are present in target.
+  // Track successful search for analytics
+  await trackEvent({
+    distinctId: user?.id ?? validatedSessionId ?? "anonymous",
+    event: "autocomplete_search",
+    properties: {
+      attempt: currentAttempt,
+      has_results: perfumes.length > 0,
+      query: validatedQuery,
+      results_count: perfumes.length,
+      search_time_ms: Math.round(searchTime),
+    },
+  });
 
-        const getScore = (suggestion: PerfumeSuggestion) => {
-            const normalizedName = normalizeText(suggestion.name);
-            const normalizedBrand = normalizeText(suggestion.brand_masked);
+  // 5. Group by (brand + name + concentration) to see if we have duplicates
+  const grouped = new Map<string, number>();
+  if (perfumes) {
+    for (const p of perfumes) {
+      const key = `${p.brand_name}|${p.name}|${p.concentration ?? ""}`.toLowerCase();
+      grouped.set(key, (grouped.get(key) ?? 0) + 1);
+    }
+  }
 
-            const targetText = (normalizedName + " " + (suggestion.brand_masked.includes('•') ? normalizedName : normalizedBrand));
-            let score = 0;
+  const transformed: PerfumeSuggestion[] = (perfumes ?? []).map((p) => {
+    const brandName = p.brand_name;
+    const key = `${brandName}|${p.name}|${p.concentration ?? ""}`.toLowerCase();
+    const hasDuplicates = (grouped.get(key) ?? 0) > 1;
 
-            // Exact full match bonus
-            if (normalizedName === lowerQuery) score += 100;
+    // USER WANT: If more than 1 perfume has same brand/name/concentration, reveal full year
+    const maskedYear = hasDuplicates
+      ? p.year?.toString() ?? null
+      : maskYear(p.year, attemptsCount);
 
-            // Token matches
-            let matchedTokens = 0;
-            for (const token of queryTokens) {
-                if (targetText.includes(token)) matchedTokens++;
-            }
-            score += matchedTokens * 10;
+    const concentration = p.concentration ?? null;
+    const { name } = p;
 
-            // Prefix bonus
-            if (normalizedName.startsWith(lowerQuery)) score += 5;
+    const yearSuffix = maskedYear ? ` (${maskedYear})` : "";
+    const displayName = `${brandName} - ${name}${concentration ? " " + concentration : ""}${yearSuffix}`;
 
-            return score;
-        };
+    return {
+      brand_masked: brandName,
+      concentration,
+      display_name: displayName,
+      name,
+      perfume_id: p.id,
+      raw_year: p.year ?? null,
+      year: maskedYear,
+    };
+  });
 
-        const scoreA = getScore(a);
-        const scoreB = getScore(b);
+  // 6. Intelligent Slicing
+  // Standard limit is 10, but we allow expansion if the 10th and 11th items share the same identity
+  const DEFAULT_LIMIT = 10;
+  if (transformed.length <= DEFAULT_LIMIT) return transformed;
 
-        if (scoreA !== scoreB) return scoreB - scoreA; // High score first
+  let finalCount = DEFAULT_LIMIT;
+  const lastIncluded = transformed[DEFAULT_LIMIT - 1];
+  const lastIncludedKey = `${lastIncluded.brand_masked}|${lastIncluded.name}|${lastIncluded.concentration ?? ""}`.toLowerCase();
 
-        // --- 2. Fallback: Alphabetical ---
-        return nameA.localeCompare(nameB);
-    });
+  // If the last item in the default window is part of a duplicate group, 
+  // we must check if there are more members of that group immediately following it.
+  for (let i = DEFAULT_LIMIT; i < transformed.length; i++) {
+    const nextItem = transformed[i];
+    const nextKey = `${nextItem.brand_masked}|${nextItem.name}|${nextItem.concentration ?? ""}`.toLowerCase();
+
+    if (nextKey === lastIncludedKey) {
+      finalCount = i + 1;
+    } else {
+      break; // Group ended
+    }
+  }
+
+  return transformed.slice(0, finalCount);
 }

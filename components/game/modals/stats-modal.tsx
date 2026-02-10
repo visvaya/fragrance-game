@@ -1,124 +1,140 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { createPortal } from "react-dom"
-import { X } from "lucide-react"
-import { useTranslations } from "next-intl"
+import { useEffect, useState } from "react";
 
-interface StatsModalProps {
-  open: boolean
-  onClose: () => void
-}
+import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { createPortal } from "react-dom";
+
+type StatsModalProperties = {
+  onClose: () => void;
+  open: boolean;
+};
 
 // Sample stats data
 const STATS = {
+  currentStreak: 4,
+  distribution: [0, 2, 6, 3, 1],
+  maxStreak: 9,
   played: 12,
   winPercent: 83,
-  currentStreak: 4,
-  maxStreak: 9,
-  distribution: [0, 2, 6, 3, 1],
-}
+};
 
-export function StatsModal({ open, onClose }: StatsModalProps) {
-  const [mounted, setMounted] = useState(false)
-  const t = useTranslations('StatsModal')
+/**
+ *
+ * @param root0
+ * @param root0.onClose
+ * @param root0.open
+ */
+export function StatsModal({ onClose, open }: StatsModalProperties) {
+  const [mounted, setMounted] = useState(false);
+  const t = useTranslations("StatsModal");
 
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    setMounted(true);
+  }, []);
 
   // Lock body scroll when modal is open
   useEffect(() => {
     if (open) {
-      document.body.style.overflow = 'hidden'
+      document.body.style.overflow = "hidden";
       return () => {
-        document.body.style.overflow = 'unset'
-      }
+        document.body.style.overflow = "unset";
+      };
     }
-  }, [open])
+  }, [open]);
 
-  if (!open || !mounted) return null
+  if (!open || !mounted) return null;
 
-  const maxDistribution = Math.max(...STATS.distribution)
+  const maxDistribution = Math.max(...STATS.distribution);
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-foreground/30 backdrop-blur-sm animate-in fade-in duration-300"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 p-5 backdrop-blur-sm duration-300 animate-in fade-in"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-background border border-border overflow-hidden animate-in slide-in-from-bottom-4 duration-300 rounded-xl flex flex-col max-h-[85vh]"
+        className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-xl border border-border bg-background duration-300 animate-in slide-in-from-bottom-4"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-center p-6 pb-4 border-b border-border shrink-0">
-          <h2 className="font-[family-name:var(--font-playfair)] text-xl text-foreground">{t('title')}</h2>
+        <div className="flex shrink-0 items-center justify-between border-b border-border p-6 pb-4">
+          <h2 className="font-[family-name:var(--font-playfair)] text-xl text-foreground">
+            {t("title")}
+          </h2>
           <button
+            aria-label={t("ariaClose")}
+            className="text-muted-foreground transition-colors hover:text-primary"
             onClick={onClose}
-            className="text-muted-foreground hover:text-primary transition-colors"
-            aria-label={t('ariaClose')}
           >
-            <X className="w-5 h-5" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Content wrapper */}
-        <div
-          className="overflow-y-auto p-6 pt-4"
-          data-lenis-prevent
-        >
-
+        <div className="overflow-y-auto p-6 pt-4" data-lenis-prevent>
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="mb-8 grid grid-cols-2 gap-4">
             {[
-              { value: STATS.played, label: t('played') },
-              { value: `${STATS.winPercent}%`, label: t('winPercent') },
-              { value: STATS.currentStreak, label: t('currentStreak') },
-              { value: STATS.maxStreak, label: t('maxStreak') },
+              { label: t("played"), value: STATS.played },
+              { label: t("winPercent"), value: `${STATS.winPercent}%` },
+              { label: t("currentStreak"), value: STATS.currentStreak },
+              { label: t("maxStreak"), value: STATS.maxStreak },
             ].map((stat) => (
-              <div key={stat.label} className="text-center p-4 border border-border">
+              <div
+                className="border border-border p-4 text-center"
+                key={stat.label}
+              >
                 <span className="block font-[family-name:var(--font-playfair)] text-3xl text-foreground">
                   {stat.value}
                 </span>
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{stat.label}</span>
+                <span className="text-[10px] tracking-wide text-muted-foreground uppercase">
+                  {stat.label}
+                </span>
               </div>
             ))}
           </div>
 
           {/* Distribution */}
-          <h3 className="font-[family-name:var(--font-playfair)] text-base text-foreground mb-4">
-            {t('distribution')}
+          <h3 className="mb-4 font-[family-name:var(--font-playfair)] text-base text-foreground">
+            {t("distribution")}
           </h3>
 
           <div className="space-y-2">
             {STATS.distribution.map((count, index) => {
-              const width = maxDistribution > 0 ? (count / maxDistribution) * 100 : 0
-              const isHighest = count === maxDistribution && count > 0
+              const width =
+                maxDistribution > 0 ? (count / maxDistribution) * 100 : 0;
+              const isHighest = count === maxDistribution && count > 0;
 
               return (
-                <div key={index} className="flex items-center gap-3 text-sm">
-                  <span className="w-5 text-right text-muted-foreground">{index + 1}</span>
-                  <div className="flex-1 bg-muted h-5">
+                <div className="flex items-center gap-3 text-sm" key={index}>
+                  <span className="w-5 text-right text-muted-foreground">
+                    {index + 1}
+                  </span>
+                  <div className="h-5 flex-1 bg-muted">
                     <div
-                      className={`h-full flex items-center justify-end px-2 text-xs text-primary-foreground transition-all duration-500 ${isHighest ? "bg-primary" : "bg-foreground"
-                        }`}
-                      style={{ width: `${Math.max(width, count > 0 ? 10 : 0)}%` }}
+                      className={`flex h-full items-center justify-end px-2 text-xs text-primary-foreground transition-all duration-500 ${
+                        isHighest ? "bg-primary" : "bg-foreground"
+                      }`}
+                      style={{
+                        width: `${Math.max(width, count > 0 ? 10 : 0)}%`,
+                      }}
                     >
                       {count > 0 && count}
                     </div>
                   </div>
                 </div>
-              )
+              );
             })}
           </div>
 
           {/* Handwritten note */}
-          <p className="font-[family-name:var(--font-hand)] text-lg text-primary/60 text-center mt-8 rotate-[-1deg]">
-            {t('slogan')}
+          <p className="mt-8 rotate-[-1deg] text-center font-[family-name:var(--font-hand)] text-lg text-primary/60">
+            {t("slogan")}
           </p>
         </div>
       </div>
     </div>,
-    document.body
-  )
+    document.body,
+  );
 }

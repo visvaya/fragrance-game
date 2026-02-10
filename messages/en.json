@@ -19,7 +19,8 @@
       "placeholder": "Guess the fragrance...",
       "closed": "Come back tomorrow for new essence...",
       "attempt": "Attempt",
-      "score": "Potential Score"
+      "score": "Potential Score",
+      "noResults": "No results found"
     }
   },
   "Header": {
@@ -33,7 +34,8 @@
     "wideLayout": "Wide Layout",
     "largeText": "Large Text",
     "darkMode": "Dark Mode",
-    "support": "Support Us"
+    "support": "Support Us",
+    "reset": "Reset"
   },
   "Footer": {
     "selectHelper": "Select from list ↑",
@@ -76,7 +78,7 @@
   },
   "ResetButton": {
     "tooltip": "Give up and reset your progress",
-    "question": "Are you sure you want to reset?",
+    "question": "Reset the game?",
     "cancel": "Cancel",
     "confirm": "Reset",
     "ariaLabel": "Reset Game"
@@ -86,12 +88,15 @@
   },
   "RevealImage": {
     "visualEvidence": "Visual Evidence",
-    "altBase": "Mystery perfume base",
-    "altReveal": "Mystery perfume reveal"
+    "altBase": "Mystery perfume image",
+    "altReveal": "Mystery perfume"
   },
   "PyramidClues": {
     "olfactoryProfile": "Olfactory Profile",
     "linearProfile": "Linear Profile",
+    "noteCount": "number of notes: {count}",
+    "noteCountUnknown": "number of notes: <q>?</q>",
+    "linearProfileTooltip": "The number of notes is hidden in the 1st attempt",
     "pyramid": "Pyramid",
     "top": "Top",
     "heart": "Heart",
@@ -146,7 +151,12 @@
       "genderCorrect": "Gender: Correct",
       "genderIncorrect": "Gender: Incorrect",
       "notesCorrect": "Notes: 100% correct",
-      "notesPercentage": "Notes: {percent}% correct"
+      "notesPercentage": "Notes: {percent}% correct",
+      "brandMissing": "Brand: No data in database",
+      "perfumerMissing": "Perfumer: No data in database",
+      "yearMissing": "Year: No data in database",
+      "genderMissing": "Gender: No data in database",
+      "notesMissing": "Notes: No data in database"
     }
   },
   "Difficulty": {

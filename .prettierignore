@@ -1,0 +1,33 @@
+# Build artifacts
+.next
+dist
+build
+node_modules
+.vercel
+
+# Test & coverage
+reports
+playwright-report
+test-results
+coverage
+
+# Data & scripts (non-JS)
+data
+scripts
+*.csv
+*.py
+*.sql
+*.log
+*.tsbuildinfo
+
+# Assets & images
+public
+img
+*.png
+*.jpg
+*.ico
+*.svg
+
+# Python & dev
+.mypy_cache
+.agent

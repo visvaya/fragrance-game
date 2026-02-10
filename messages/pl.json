@@ -1,160 +1,170 @@
 {
-    "Metadata": {
-        "title": "Eauxle — Olfactory Deduction",
-        "description": "Codzienna gra polegająca na odgadywaniu perfum. Na podstawie wskazówek określ co jest dzisiejszym poszukiwanym zapachem."
+  "Metadata": {
+    "title": "Eauxle — Olfactory Deduction",
+    "description": "Codzienna gra polegająca na odgadywaniu perfum. Na podstawie wskazówek określ co jest dzisiejszym poszukiwanym zapachem."
+  },
+  "HomePage": {
+    "title": "Odgadnij perfumy",
+    "description": "Odgadnij perfumy na podstawie wskazówek"
+  },
+  "Game": {
+    "start": "Rozpocznij grę",
+    "submit": "Zatwierdź odpowiedź",
+    "notes": {
+      "head": "Nuty głowy",
+      "heart": "Nuty serca",
+      "base": "Nuty bazy"
     },
-    "HomePage": {
-        "title": "Odgadnij perfumy",
-        "description": "Odgadnij perfumy na podstawie wskazówek"
-    },
-    "Game": {
-        "start": "Rozpocznij grę",
-        "submit": "Zatwierdź odpowiedź",
-        "notes": {
-            "head": "Nuty głowy",
-            "heart": "Nuty serca",
-            "base": "Nuty bazy"
-        },
-        "input": {
-            "placeholder": "Napisz jakie to perfumy...",
-            "closed": "Wróć jutro po kolejną zagadkę!",
-            "attempt": "Próba",
-            "score": "Potencjalny wynik"
-        }
-    },
-    "Header": {
-        "menu": "Menu",
-        "help": "Jak grać",
-        "language": "Język",
-        "stats": "Statystyki",
-        "archive": "Archiwum",
-        "about": "O projekcie",
-        "appearance": "Wygląd",
-        "wideLayout": "Szeroki układ",
-        "largeText": "Duży tekst",
-        "darkMode": "Tryb ciemny",
-        "support": "Wesprzyj nas"
-    },
-    "Footer": {
-        "selectHelper": "Wybierz z listy ↑",
-        "contact": "Kontakt",
-        "privacy": "Polityka prywatności",
-        "terms": "Regulamin",
-        "copyright": "© 2025 Eauxle. Dla perfumomaniaków!",
-        "slogan": "Trenuj swój nos, dzień po dniu..."
-    },
-    "GameBoard": {
-        "magnifique": "Magnifique!",
-        "answerWas": "Odpowiedź to...",
-        "by": "Marka:"
-    },
-    "HelpModal": {
-        "title": "Jak grać",
-        "intro": "Wydedukuj tajemniczy zapach.",
-        "description": "Codziennie wybierane są nowe perfumy. Masz 6 prób, by je odgadnąć na podstawie ewoluujących wskazówek.",
-        "cluesTitle": "Wskazówki:",
-        "cluesDesc": "Obraz staje się wyraźniejszy. Rozwija się marka, rok i płeć.",
-        "feedbackTitle": "Ikony feedbacku:",
-        "feedbackDesc": "informują, jak blisko jesteś.",
-        "feedbackCorrect": "Poprawne dopasowanie",
-        "feedbackClose": "Częściowe dopasowanie",
-        "feedbackWrong": "Niepoprawne",
-        "scoreTitle": "Punktacja:",
-        "scoreDesc": "Mniej prób = wyższy wynik.",
-        "note": "Nowe perfumy są udostępniane codziennie o północy UTC.",
-        "ariaClose": "Zamknij"
-    },
-    "StatsModal": {
-        "title": "Statystyki",
-        "played": "Rozegrane",
-        "winPercent": "% wygranych",
-        "currentStreak": "Aktualna seria",
-        "maxStreak": "Najdłuższa seria",
-        "distribution": "Rozkład prób",
-        "slogan": "Wąchaj dalej! 🌸",
-        "ariaClose": "Zamknij"
-    },
-    "ResetButton": {
-        "tooltip": "Poddaj się i spróbuj ponownie",
-        "question": "Czy na pewno chcesz sprobować ponownie?",
-        "cancel": "Anuluj",
-        "confirm": "Resetuj",
-        "ariaLabel": "Zresetuj grę"
-    },
-    "GameTooltip": {
-        "ariaLabel": "Pokaż informacje"
-    },
-    "RevealImage": {
-        "visualEvidence": "Flakon",
-        "altBase": "Tajemnicza baza perfum",
-        "altReveal": "Odkrycie tajemniczych perfum"
-    },
-    "PyramidClues": {
-        "olfactoryProfile": "Profil zapachowy",
-        "linearProfile": "Profil liniowy",
-        "pyramid": "Piramida",
-        "top": "Głowa",
-        "heart": "Serce",
-        "base": "Baza",
-        "hiddenNotes": "Liczba i długość nut ukryta w próbie {attempt}.",
-        "hiddenNote": "Ukryte w próbie {attempt}.",
-        "letters": "Liczba liter: {count}"
-    },
-    "MetaClues": {
-        "identity": "Dane",
-        "brand": "Marka",
-        "perfumer": "Perfumiarz",
-        "year": "Rok",
-        "concentration": "Koncentracja",
-        "gender": "Płeć",
-        "hiddenAttempt": "Ukryte w próbie {attempt}.",
-        "fullyHidden": "Całkowicie ukryte w próbie {attempt}.",
-        "partiallyHidden": "Częściowo ukryte w próbie {attempt}.",
-        "hiddenUntil": "Ukryte do momentu odgadnięcia",
-        "letters": "Liczba liter: {count}"
-    },
-    "AttemptLog": {
-        "title": "Notatnik",
-        "columns": {
-            "attempt": "#",
-            "attemptTooltip": "Numer próby",
-            "perfume": "Perfumy",
-            "brand": "M",
-            "brandTooltip": "Marka",
-            "perfumer": "P",
-            "perfumerTooltip": "Perfumiarz",
-            "year": "R",
-            "yearTooltip": "Rok",
-            "gender": "P",
-            "genderTooltip": "Płeć",
-            "notes": "N",
-            "notesTooltip": "Nuty"
-        },
-        "by": "od",
-        "tooltips": {
-            "brandCorrect": "Marka: Poprawna",
-            "brandIncorrect": "Marka: Niepoprawna",
-            "perfumerFull": "Perfumiarz: Pełne dopasowanie",
-            "perfumerPartial": "Perfumiarz: Częściowe dopasowanie",
-            "perfumerIncorrect": "Perfumiarz: Niepoprawny",
-            "yearCorrect": "Rok: Poprawny",
-            "yearCloseHigher": "Rok: Blisko. Spróbuj nieco nowszego rocznika (1-3 lata różnicy)",
-            "yearCloseLower": "Rok: Blisko. Spróbuj nieco starszego rocznika (1-3 lata różnicy)",
-            "yearWrongHigher": "Rok: Niepoprawny. Spróbuj znacznie nowszego rocznika",
-            "yearWrongLower": "Rok: Niepoprawny. Spróbuj znacznie starszego rocznika",
-            "genderUnknown": "Płeć: Nieznana",
-            "genderCorrect": "Płeć: Poprawna",
-            "genderIncorrect": "Płeć: Niepoprawna",
-            "notesCorrect": "Nuty: 100% poprawne",
-            "notesPercentage": "Nuty: {percent}% poprawne"
-        }
-    },
-    "Difficulty": {
-        "label": "Trudność",
-        "easy": "Łatwy",
-        "medium": "Średni",
-        "hard": "Trudny",
-        "expert": "Ekspert",
-        "beginner": "Początkujący"
+    "input": {
+      "placeholder": "Napisz jakie to perfumy...",
+      "closed": "Wróć jutro po kolejną zagadkę!",
+      "attempt": "Próba",
+      "score": "Potencjalny wynik",
+      "noResults": "Brak wyników"
     }
+  },
+  "Header": {
+    "menu": "Menu",
+    "help": "Jak grać",
+    "language": "Język",
+    "stats": "Statystyki",
+    "archive": "Archiwum",
+    "about": "O projekcie",
+    "appearance": "Wygląd",
+    "wideLayout": "Szeroki układ",
+    "largeText": "Duży tekst",
+    "darkMode": "Tryb ciemny",
+    "support": "Wesprzyj nas",
+    "reset": "Zresetuj"
+  },
+  "Footer": {
+    "selectHelper": "Wybierz z listy ↑",
+    "contact": "Kontakt",
+    "privacy": "Polityka prywatności",
+    "terms": "Regulamin",
+    "copyright": "© 2025 Eauxle. Dla perfumomaniaków!",
+    "slogan": "Trenuj swój nos, dzień po dniu..."
+  },
+  "GameBoard": {
+    "magnifique": "Magnifique!",
+    "answerWas": "Odpowiedź to...",
+    "by": "Marka:"
+  },
+  "HelpModal": {
+    "title": "Jak grać",
+    "intro": "Wydedukuj tajemniczy zapach.",
+    "description": "Codziennie wybierane są nowe perfumy. Masz 6 prób, by je odgadnąć na podstawie ewoluujących wskazówek.",
+    "cluesTitle": "Wskazówki:",
+    "cluesDesc": "Obraz staje się wyraźniejszy. Rozwija się marka, rok i płeć.",
+    "feedbackTitle": "Ikony feedbacku:",
+    "feedbackDesc": "informują, jak blisko jesteś.",
+    "feedbackCorrect": "Poprawne dopasowanie",
+    "feedbackClose": "Częściowe dopasowanie",
+    "feedbackWrong": "Niepoprawne",
+    "scoreTitle": "Punktacja:",
+    "scoreDesc": "Mniej prób = wyższy wynik.",
+    "note": "Nowe perfumy są udostępniane codziennie o północy UTC.",
+    "ariaClose": "Zamknij"
+  },
+  "StatsModal": {
+    "title": "Statystyki",
+    "played": "Rozegrane",
+    "winPercent": "% wygranych",
+    "currentStreak": "Aktualna seria",
+    "maxStreak": "Najdłuższa seria",
+    "distribution": "Rozkład prób",
+    "slogan": "Wąchaj dalej! 🌸",
+    "ariaClose": "Zamknij"
+  },
+  "ResetButton": {
+    "tooltip": "Poddaj się i spróbuj ponownie",
+    "question": "Zresetować grę?",
+    "cancel": "Anuluj",
+    "confirm": "Resetuj",
+    "ariaLabel": "Zresetuj grę"
+  },
+  "GameTooltip": {
+    "ariaLabel": "Pokaż informacje"
+  },
+  "RevealImage": {
+    "visualEvidence": "Flakon",
+    "altBase": "Tajemniczy flakon perfum",
+    "altReveal": "Tajemnicze perfumy"
+  },
+  "PyramidClues": {
+    "olfactoryProfile": "Profil zapachowy",
+    "linearProfile": "Profil liniowy",
+    "noteCount": "liczba nut: {count}",
+    "noteCountUnknown": "liczba nut: <q>?</q>",
+    "linearProfileTooltip": "Liczba nut w 1. próbie jest ukryta",
+    "pyramid": "Piramida",
+    "top": "Głowa",
+    "heart": "Serce",
+    "base": "Baza",
+    "hiddenNotes": "Liczba i długość nut ukryta w próbie {attempt}.",
+    "hiddenNote": "Ukryte w próbie {attempt}.",
+    "letters": "Liczba liter: {count}"
+  },
+  "MetaClues": {
+    "identity": "Dane",
+    "brand": "Marka",
+    "perfumer": "Perfumiarz",
+    "year": "Rok",
+    "concentration": "Koncentracja",
+    "gender": "Płeć",
+    "hiddenAttempt": "Ukryte w próbie {attempt}.",
+    "fullyHidden": "Całkowicie ukryte w próbie {attempt}.",
+    "partiallyHidden": "Częściowo ukryte w próbie {attempt}.",
+    "hiddenUntil": "Ukryte do momentu odgadnięcia",
+    "letters": "Liczba liter: {count}"
+  },
+  "AttemptLog": {
+    "title": "Notatnik",
+    "columns": {
+      "attempt": "#",
+      "attemptTooltip": "Numer próby",
+      "perfume": "Perfumy",
+      "brand": "M",
+      "brandTooltip": "Marka",
+      "perfumer": "P",
+      "perfumerTooltip": "Perfumiarz",
+      "year": "R",
+      "yearTooltip": "Rok",
+      "gender": "P",
+      "genderTooltip": "Płeć",
+      "notes": "N",
+      "notesTooltip": "Nuty"
+    },
+    "by": "od",
+    "tooltips": {
+      "brandCorrect": "Marka: Poprawna",
+      "brandIncorrect": "Marka: Niepoprawna",
+      "perfumerFull": "Perfumiarz: Pełne dopasowanie",
+      "perfumerPartial": "Perfumiarz: Częściowe dopasowanie",
+      "perfumerIncorrect": "Perfumiarz: Niepoprawny",
+      "yearCorrect": "Rok: Poprawny",
+      "yearCloseHigher": "Rok: Blisko. Spróbuj nieco nowszego rocznika (1-3 lata różnicy)",
+      "yearCloseLower": "Rok: Blisko. Spróbuj nieco starszego rocznika (1-3 lata różnicy)",
+      "yearWrongHigher": "Rok: Niepoprawny. Spróbuj znacznie nowszego rocznika",
+      "yearWrongLower": "Rok: Niepoprawny. Spróbuj znacznie starszego rocznika",
+      "genderUnknown": "Płeć: Nieznana",
+      "genderCorrect": "Płeć: Poprawna",
+      "genderIncorrect": "Płeć: Niepoprawna",
+      "notesCorrect": "Nuty: 100% poprawne",
+      "notesPercentage": "Nuty: {percent}% poprawne",
+      "brandMissing": "Marka: Brak danych w bazie",
+      "perfumerMissing": "Perfumiarz: Brak danych w bazie",
+      "yearMissing": "Rok: Brak danych w bazie",
+      "genderMissing": "Płeć: Brak danych w bazie",
+      "notesMissing": "Nuty: Brak danych w bazie"
+    }
+  },
+  "Difficulty": {
+    "label": "Trudność",
+    "easy": "Łatwy",
+    "medium": "Średni",
+    "hard": "Trudny",
+    "expert": "Ekspert",
+    "beginner": "Początkujący"
+  }
 }

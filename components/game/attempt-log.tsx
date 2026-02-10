@@ -1,413 +1,647 @@
-"use client"
+"use client";
 
-import { useEffect, useRef, useState, useLayoutEffect } from "react"
-import { useGame } from "./game-provider"
+import { useEffect, useRef, useState, useLayoutEffect } from "react";
 
-import { cn } from "@/lib/utils"
-import { X, ArrowUp, ArrowDown, Waves, Check, ScrollText } from "lucide-react"
-import { GameTooltip } from "./game-tooltip"
+import { X, ArrowUp, ArrowDown, Waves, Check, ScrollText } from "lucide-react";
 
-const ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI"]
+import { cn } from "@/lib/utils";
 
-import { useTranslations } from "next-intl"
+import { useGame } from "./game-provider";
+import { GameTooltip } from "./game-tooltip";
 
+const ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI"];
+
+import { useTranslations } from "next-intl";
+
+/**
+ *
+ */
 export function AttemptLog() {
-  const { attempts, maxAttempts, dailyPerfume, gameState } = useGame()
-  const t = useTranslations('AttemptLog')
-  const prevAttemptsLength = useRef(attempts.length)
+  const { attempts, dailyPerfume, gameState, maxAttempts } = useGame();
+  const t = useTranslations("AttemptLog");
+  const previousAttemptsLength = useRef(attempts.length);
+  const [activeRowIndex, setActiveRowIndex] = useState<number | null>(null);
+  const isTouchReference = useRef(false);
 
   // Scroll to new attempt
   useEffect(() => {
-    if (attempts.length > prevAttemptsLength.current) {
-      // Only scroll to the new attempt if the game is still playing.
+    if (attempts.length > previousAttemptsLength.current && // Only scroll to the new attempt if the game is still playing.
       // If the game ended (won/lost), the "Game Over" scroll effect (below) takes precedence.
-      if (gameState === 'playing') {
-        const lastIndex = attempts.length - 1
-        const element = document.getElementById(`attempt-${lastIndex}`)
+      gameState === "playing") {
+        const lastIndex = attempts.length - 1;
+        const element = document.getElementById(`attempt-${lastIndex}`);
         if (element) {
           setTimeout(() => {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-          }, 100)
+            element.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 100);
         }
       }
-    }
-    prevAttemptsLength.current = attempts.length
-  }, [attempts.length, gameState])
+    previousAttemptsLength.current = attempts.length;
+  }, [attempts.length, gameState]);
 
   // Scroll to top on game end
   useEffect(() => {
     if (gameState === "won" || gameState === "lost") {
       // Small delay to ensure any end-game UI updates have triggered
       setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: "smooth" })
-      }, 300)
+        window.scrollTo({ behavior: "smooth", top: 0 });
+      }, 300);
     }
-  }, [gameState])
+  }, [gameState]);
 
-  if (attempts.length === 0) return null
+  // Reset active row when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      // Only handle touch interactions
+      if (!isTouchReference.current) return;
+
+      // Check if click is outside all attempt rows
+      const target = e.target as HTMLElement;
+      const attemptRow = target.closest('[data-attempt-row]');
+
+      if (!attemptRow) {
+        setActiveRowIndex(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
 
   return (
-    <section className="bg-background p-4 rounded-md border border-border/50">
-      <div className="flex items-center gap-2 mb-4">
-        <ScrollText className="w-4 h-4 text-muted-foreground" />
-        <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground">{t('title')}</h2>
+    <section className="rounded-md border border-border/50 bg-background p-4">
+      <div className="mb-4 flex items-center gap-2">
+        <ScrollText className="h-4 w-4 text-muted-foreground" />
+        <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground">
+          {t("title")}
+        </h2>
       </div>
 
       <div className="grid grid-cols-[32px_1fr_minmax(105px,auto)]">
         {/* Header Row - spread into grid columns */}
-        <div className="flex justify-center items-center pb-2 border-b-2 border-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          <GameTooltip content={t('columns.attemptTooltip')} className="h-7 w-7 sm:h-8 sm:w-8 justify-center items-center">
-            <span className="text-center cursor-help decoration-dotted underline decoration-muted-foreground/30 underline-offset-2 w-full">{t('columns.attempt')}</span>
+        <div className="flex items-center justify-center border-b-2 border-muted/50 pb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          <GameTooltip
+            className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+            content={t("columns.attemptTooltip")}
+          >
+            <span className="w-full cursor-help text-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
+              {t("columns.attempt")}
+            </span>
           </GameTooltip>
         </div>
 
-        <div className="flex items-center pl-2 pb-2 border-b-2 border-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          {t('columns.perfume')}
+        <div className="flex items-center border-b-2 border-muted/50 pb-2 pl-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          {t("columns.perfume")}
         </div>
 
-        <div className="grid grid-cols-5 w-full justify-items-center text-center px-1 pb-2 border-b-2 border-muted/50 text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          <GameTooltip content={t('columns.brandTooltip')} className="h-7 w-7 sm:h-8 sm:w-8 justify-center items-center">
-            <span className="flex justify-center cursor-help decoration-dotted underline decoration-muted-foreground/30 underline-offset-2 min-w-8">{t('columns.brand')}</span>
+        <div className="grid w-full grid-cols-5 justify-items-center border-b-2 border-muted/50 px-1 pb-2 text-center text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          <GameTooltip
+            className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+            content={t("columns.brandTooltip")}
+          >
+            <span className="flex min-w-8 cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
+              {t("columns.brand")}
+            </span>
           </GameTooltip>
 
-          <GameTooltip content={t('columns.perfumerTooltip')} className="h-7 w-7 sm:h-8 sm:w-8 justify-center items-center">
-            <span className="flex justify-center cursor-help decoration-dotted underline decoration-muted-foreground/30 underline-offset-2 min-w-8">{t('columns.perfumer')}</span>
+          <GameTooltip
+            className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+            content={t("columns.perfumerTooltip")}
+          >
+            <span className="flex min-w-8 cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
+              {t("columns.perfumer")}
+            </span>
           </GameTooltip>
 
-          <GameTooltip content={t('columns.yearTooltip')} className="h-7 w-7 sm:h-8 sm:w-8 justify-center items-center">
-            <span className="flex justify-center cursor-help decoration-dotted underline decoration-muted-foreground/30 underline-offset-2 min-w-8">{t('columns.year')}</span>
+          <GameTooltip
+            className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+            content={t("columns.yearTooltip")}
+          >
+            <span className="flex min-w-8 cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
+              {t("columns.year")}
+            </span>
           </GameTooltip>
 
-          <GameTooltip content={t('columns.genderTooltip')} className="h-7 w-7 sm:h-8 sm:w-8 justify-center items-center">
-            <span className="flex justify-center cursor-help decoration-dotted underline decoration-muted-foreground/30 underline-offset-2 min-w-8">{t('columns.gender')}</span>
+          <GameTooltip
+            className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+            content={t("columns.genderTooltip")}
+          >
+            <span className="flex min-w-8 cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
+              {t("columns.gender")}
+            </span>
           </GameTooltip>
 
-          <GameTooltip content={t('columns.notesTooltip')} className="h-7 w-7 sm:h-8 sm:w-8 justify-center items-center">
-            <span className="flex justify-center cursor-help decoration-dotted underline decoration-muted-foreground/30 underline-offset-2 min-w-8">{t('columns.notes')}</span>
+          <GameTooltip
+            className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+            content={t("columns.notesTooltip")}
+          >
+            <span className="flex min-w-8 cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
+              {t("columns.notes")}
+            </span>
           </GameTooltip>
         </div>
 
-        {attempts.map((attempt, index) => (
-          <div key={`attempt-${index}`} className="contents group">
+        {attempts.map((attempt, index) => {
+          const isActive = activeRowIndex === index;
+
+          const handlePointerDown = (e: React.PointerEvent) => {
+            if (e.pointerType === "touch") {
+              isTouchReference.current = true;
+            }
+          };
+
+          const handleClick = (e: React.MouseEvent) => {
+            if (!isTouchReference.current) return;
+            e.preventDefault();
+            setActiveRowIndex((previous) => (previous === index ? null : index));
+          };
+
+          return (
             <div
-              id={`attempt-${index}`}
-              className={cn(
-                "flex justify-center items-center py-3 border-b border-muted/30 group-last:border-0 relative z-10 transition-colors group-hover:bg-muted/40"
-              )}
+              className="group contents"
+              data-attempt-row
+              key={`attempt-${index}`}
             >
-              {index === attempts.length - 1 && !attempt.isCorrect && (
-                <div className="absolute inset-0 animate-flash-error pointer-events-none rounded-sm" />
-              )}
-              <span className="font-[family-name:var(--font-playfair)] text-muted-foreground text-center block w-full px-1">
-                {ROMAN_NUMERALS[index]}
-              </span>
-            </div>
-
-            <div className={cn(
-              "min-w-0 pl-2 pr-2 py-3 border-b border-muted/30 group-last:border-0 relative z-10 flex flex-col justify-center transition-colors group-hover:bg-muted/40"
-            )}>
-              {index === attempts.length - 1 && !attempt.isCorrect && (
-                <div className="absolute inset-0 animate-flash-error pointer-events-none rounded-sm" />
-              )}
-              {(() => {
-                const concentration = attempt.concentration || '';
-                let displayName = attempt.guess;
-                if (concentration && displayName.toLowerCase().endsWith(concentration.toLowerCase())) {
-                  displayName = displayName.substring(0, displayName.length - concentration.length).trim();
-                }
-
-                return (
-                  <div className="flex flex-col gap-y-0.5 sm:gap-y-0">
-                    {/* Row 1: Name & Concentration */}
-                    <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-x-1.5 min-w-0 w-full overflow-hidden">
-                      <TruncatedCell content={displayName} className="shrink min-w-0" />
-                      {concentration && concentration !== 'Unknown' && (
-                        <TruncatedCell
-                          content={concentration}
-                          className="min-w-0 shrink"
-                          textClassName="text-muted-foreground text-[10px] sm:text-xs font-light truncate"
-                        >
-                          <div className="flex items-center gap-1">
-                            <span className="hidden sm:inline text-muted-foreground/40 text-[10px] shrink-0">•</span>
-                            <span>{concentration}</span>
-                          </div>
-                        </TruncatedCell>
-                      )}
-                    </div>
-
-                    {/* Row 2: Brand & Year */}
-                    <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-x-1.5 min-w-0 text-[10px] sm:text-xs text-muted-foreground/70">
-                      {/* Brand */}
-                      {(() => {
-                        const isRevealed = attempt.feedback.brandMatch || attempt.snapshot?.brandRevealed;
-                        const isSemiRevealed = attempt.snapshot?.guessMaskedBrand && attempt.snapshot.guessMaskedBrand !== '?????';
-                        const brandLabel = isRevealed ? attempt.brand : (attempt.snapshot?.guessMaskedBrand || '?????');
-
-                        return (
-                          <TruncatedCell
-                            content={brandLabel}
-                            className={cn(
-                              "min-w-[30px] shrink",
-                              !isRevealed && (isSemiRevealed ? "opacity-60" : "opacity-30")
-                            )}
-                            textClassName="truncate"
-                          >
-                            {isRevealed
-                              ? attempt.brand
-                              : (isSemiRevealed
-                                ? <span className="tracking-wider">
-                                  {attempt.snapshot!.guessMaskedBrand.split('').map((char, i) => (
-                                    <span key={i} className={char === '_' ? "font-mono opacity-40" : ""}>{char}</span>
-                                  ))}
-                                </span>
-                                : <span className="font-mono tracking-widest">?????</span>)
-                            }
-                          </TruncatedCell>
-                        );
-                      })()}
-
-                      {/* Year */}
-                      {attempt.year ? (
-                        (() => {
-                          const isRevealed = attempt.feedback.yearMatch === "correct" || attempt.snapshot?.yearRevealed;
-                          const isSemiRevealed = attempt.snapshot?.guessMaskedYear && attempt.snapshot.guessMaskedYear !== '____';
-                          const yearLabel = isRevealed ? String(attempt.year) : (attempt.snapshot?.guessMaskedYear || '____');
-
-                          return (
-                            <TruncatedCell
-                              content={yearLabel}
-                              className={cn(
-                                "shrink-0",
-                                !isRevealed && (isSemiRevealed ? "opacity-60" : "opacity-30")
-                              )}
-                              textClassName="whitespace-nowrap"
-                            >
-                              <div className="flex items-center gap-1">
-                                <span className="hidden sm:inline text-muted-foreground/40 text-[8px] sm:text-[10px] shrink-0">•</span>
-                                <span>
-                                  {isRevealed
-                                    ? attempt.year
-                                    : (isSemiRevealed
-                                      ? <span className="tracking-wider">
-                                        {attempt.snapshot!.guessMaskedYear.split('').map((char, i) => (
-                                          <span key={i} className={char === '_' ? "font-mono opacity-40" : ""}>{char}</span>
-                                        ))}
-                                      </span>
-                                      : <span className="font-mono tracking-widest">____</span>)
-                                  }
-                                </span>
-                              </div>
-                            </TruncatedCell>
-                          );
-                        })()
-                      ) : null}
-                    </div>
-                  </div>
-                )
-              })()}
-            </div>
-
-            <div className={cn(
-              "grid grid-cols-5 w-full items-center font-[family-name:var(--font-hand)] text-xl text-primary pl-1 pr-2 py-3 border-b border-muted/30 group-last:border-0 relative z-10 transition-colors group-hover:bg-muted/40"
-            )}>
-              {index === attempts.length - 1 && !attempt.isCorrect && (
-                <div className="absolute inset-0 animate-flash-error pointer-events-none rounded-sm" />
-              )}
-              {/* Brand */}
-              <div className="flex justify-center items-center h-full">
-                {attempt.feedback.brandMatch ? (
-                  <GameTooltip content={t('tooltips.brandCorrect')} className="h-7 w-7 sm:h-8 sm:w-8 justify-center items-center">
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <Check className="w-4 h-4 text-success" />
-                    </div>
-                  </GameTooltip>
-                ) : (
-                  <GameTooltip content={t('tooltips.brandIncorrect')} className="h-7 w-7 sm:h-8 sm:w-8 justify-center items-center">
-                    <span className="opacity-50 cursor-help"><X className="w-4 h-4 text-muted-foreground transform -skew-x-12" strokeWidth={1.5} /></span>
-                  </GameTooltip>
+              <div
+                className={cn(
+                  "relative z-10 flex items-center justify-center border-b border-muted/30 py-3 transition-all duration-300 group-last:border-0",
+                  isTouchReference.current && isActive
+                    ? "bg-muted/40"
+                    : "group-hover:bg-muted/40",
                 )}
+                id={`attempt-${index}`}
+                onClick={handleClick}
+                onPointerDown={handlePointerDown}
+              >
+                {index === attempts.length - 1 && !attempt.isCorrect && (
+                  <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
+                )}
+                <span className="block w-full px-1 text-center font-[family-name:var(--font-playfair)] text-muted-foreground text-sm">
+                  {ROMAN_NUMERALS[index]}
+                </span>
               </div>
 
-              {/* Perfumer */}
-              <div className="flex justify-center items-center h-full">
-                {attempt.feedback.perfumerMatch === "full" ? (
-                  <GameTooltip content={t('tooltips.perfumerFull')} className="h-7 w-7 sm:h-8 sm:w-8 justify-center items-center">
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <Check className="w-4 h-4 text-success" />
-                    </div>
-                  </GameTooltip>
-                ) : attempt.feedback.perfumerMatch === "partial" ? (
-                  <GameTooltip content={t('tooltips.perfumerPartial')} className="h-7 w-7 sm:h-8 sm:w-8 justify-center items-center">
-                    <span className="cursor-help"><Waves className="w-4 h-4 text-muted-foreground opacity-50 transform -skew-x-12" strokeWidth={1.5} /></span>
-                  </GameTooltip>
-                ) : (
-                  <GameTooltip content={t('tooltips.perfumerIncorrect')} className="h-7 w-7 sm:h-8 sm:w-8 justify-center items-center">
-                    <span className="opacity-50 cursor-help"><X className="w-4 h-4 text-muted-foreground transform -skew-x-12" strokeWidth={1.5} /></span>
-                  </GameTooltip>
+              <div
+                className={cn(
+                  "relative z-10 flex min-w-0 flex-col justify-center border-b border-muted/30 py-3 pr-2 pl-2 transition-all duration-300 group-last:border-0",
+                  isTouchReference.current && isActive
+                    ? "bg-muted/40"
+                    : "group-hover:bg-muted/40",
                 )}
-              </div>
-
-              {/* Year */}
-              <div className="flex justify-center items-center h-full">
-                {attempt.feedback.yearMatch === "correct" ? (
-                  <GameTooltip content={t('tooltips.yearCorrect')} className="h-7 w-7 sm:h-8 sm:w-8 justify-center items-center">
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <Check className="w-4 h-4 text-success" />
-                    </div>
-                  </GameTooltip>
-                ) : (
-                  <div className="flex flex-col items-center justify-center w-full h-full">
-                    <GameTooltip content={
-                      attempt.feedback.yearMatch === "close"
-                        ? (attempt.feedback.yearDirection === "higher" ? t('tooltips.yearCloseHigher') : t('tooltips.yearCloseLower'))
-                        : (attempt.feedback.yearDirection === "higher" ? t('tooltips.yearWrongHigher') : t('tooltips.yearWrongLower'))
-                    } className="h-7 w-7 sm:h-8 sm:w-8 justify-center items-center">
-                      <span
-                        className={cn(
-                          "flex items-center justify-center h-4 w-4 cursor-help",
-                          attempt.feedback.yearMatch === "close" ? "text-warning" : "text-muted-foreground opacity-50"
-                        )}
-                      >
-                        {attempt.feedback.yearDirection === "higher" ? (
-                          <ArrowUp className="w-4 h-4 transform -skew-x-12" strokeWidth={1.5} />
-                        ) : (
-                          <ArrowDown className="w-4 h-4 transform -skew-x-12" strokeWidth={1.5} />
-                        )}
-                      </span>
-                    </GameTooltip>
-                  </div>
+                onClick={handleClick}
+                onPointerDown={handlePointerDown}
+              >
+                {index === attempts.length - 1 && !attempt.isCorrect && (
+                  <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
                 )}
-              </div>
-
-              {/* Gender */}
-              <div className="flex justify-center items-center h-full">
                 {(() => {
-                  const guessGender = attempt.gender?.toLowerCase() || 'unknown';
-                  const targetGender = dailyPerfume.gender?.toLowerCase() || 'unknown';
-
-                  if (guessGender === 'unknown' || targetGender === 'unknown') {
-                    return (
-                      <GameTooltip content={t('tooltips.genderUnknown')} className="h-7 w-7 sm:h-8 sm:w-8 justify-center items-center">
-                        <span className="text-muted-foreground opacity-50 text-base leading-none font-[family-name:var(--font-hand)] cursor-help inline-block px-1">?</span>
-                      </GameTooltip>
-                    )
-                  }
-
-                  if (guessGender === targetGender) {
-                    return (
-                      <GameTooltip content={t('tooltips.genderCorrect')} className="h-7 w-7 sm:h-8 sm:w-8 justify-center items-center">
-                        <div className="flex items-center justify-center w-6 h-6">
-                          <Check className="w-4 h-4 text-success" />
-                        </div>
-                      </GameTooltip>
-                    );
+                  const concentration = attempt.concentration || "";
+                  let displayName = attempt.guess;
+                  if (
+                    concentration &&
+                    displayName
+                      .toLowerCase()
+                      .endsWith(concentration.toLowerCase())
+                  ) {
+                    displayName = displayName
+                      .slice(0, Math.max(0, displayName.length - concentration.length))
+                      .trim();
                   }
 
                   return (
-                    <GameTooltip content={t('tooltips.genderIncorrect')} className="h-7 w-7 sm:h-8 sm:w-8 justify-center items-center">
-                      <span className="opacity-50 cursor-help"><X className="w-4 h-4 text-muted-foreground transform -skew-x-12" strokeWidth={1.5} /></span>
-                    </GameTooltip>
+                    <div className="flex flex-col gap-y-0.5 text-left">
+                      {/* Row 1: Name & Concentration */}
+                      <div className="flex w-full min-w-0 flex-col overflow-hidden lg:flex-row lg:items-baseline lg:gap-x-1.5 lg:gap-y-0 gap-y-0.5">
+                        <TruncatedCell
+                          className="min-w-0 shrink"
+                          content={displayName}
+                        />
+                        {concentration && concentration !== "Unknown" ? (
+                          <TruncatedCell
+                            className="min-w-0 shrink-[5]"
+                            content={concentration}
+                            textClassName="text-muted-foreground/80 text-xs font-normal truncate tracking-normal"
+                          >
+                            <div className="flex items-center gap-1">
+                              <span className="hidden shrink-0 text-xs text-muted-foreground/30 lg:inline">
+                                •
+                              </span>
+                              <span>{concentration}</span>
+                            </div>
+                          </TruncatedCell>
+                        ) : null}
+                      </div>
+
+                      {/* Row 2: Brand & Year */}
+                      <div className="flex min-w-0 flex-col text-muted-foreground/80 lg:flex-row lg:items-baseline lg:gap-x-1.5 gap-y-0.5 lg:gap-y-0">
+                        {/* Brand */}
+                        <TruncatedCell
+                          className="min-w-[30px] shrink"
+                          content={attempt.brand}
+                          textClassName="text-xs font-normal truncate tracking-normal"
+                        >
+                          {attempt.brand}
+                        </TruncatedCell>
+
+                        {/* Year */}
+                        {attempt.year ? (
+                          <TruncatedCell
+                            className="shrink-0"
+                            content={String(attempt.year)}
+                            textClassName="text-xs font-normal whitespace-nowrap tracking-normal"
+                          >
+                            <div className="flex items-center gap-1">
+                              <span className="hidden shrink-0 text-xs text-muted-foreground/30 lg:inline">
+                                •
+                              </span>
+                              <span>{attempt.year}</span>
+                            </div>
+                          </TruncatedCell>
+                        ) : null}
+                      </div>
+                    </div>
                   );
                 })()}
               </div>
 
-              {/* Notes */}
-              <div className="flex justify-center items-center h-full">
-                {attempt.feedback.notesMatch >= 1.0 ? (
-                  <GameTooltip content={t('tooltips.notesCorrect')} className="h-7 w-7 sm:h-8 sm:w-8 justify-center items-center">
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <Check className="w-5 h-5 text-success" />
-                    </div>
-                  </GameTooltip>
-                ) : (
-                  <GameTooltip content={t('tooltips.notesPercentage', { percent: Math.round(attempt.feedback.notesMatch * 100) })} className="h-7 w-7 sm:h-8 sm:w-8 justify-center items-center">
-                    <span
-                      className={`text-sm sm:text-base leading-none flex items-center font-[family-name:var(--font-hand)] cursor-help ${attempt.feedback.notesMatch >= 0.4 ? "text-warning" : "text-muted-foreground opacity-50"}`}
-                    >
-                      {Math.round(attempt.feedback.notesMatch * 100)}%
-                    </span>
-                  </GameTooltip>
+              <div
+                className={cn(
+                  "relative z-10 grid w-full grid-cols-5 items-center border-b border-muted/30 py-3 pr-2 pl-1 font-[family-name:var(--font-hand)] text-xl text-primary transition-all duration-300 group-last:border-0",
+                  isTouchReference.current && isActive
+                    ? "bg-muted/40"
+                    : "group-hover:bg-muted/40",
                 )}
+                onClick={handleClick}
+                onPointerDown={handlePointerDown}
+              >
+                {index === attempts.length - 1 && !attempt.isCorrect && (
+                  <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
+                )}
+                {/* Brand */}
+                <div className="flex h-full items-center justify-center">
+                  {(() => {
+                    const isMissing = !dailyPerfume.brand || dailyPerfume.brand === "Unknown";
+                    if (isMissing) {
+                      return (
+                        <GameTooltip
+                          className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                          content={t("tooltips.brandMissing")}
+                        >
+                          <span className="inline-block cursor-help px-1 font-[family-name:var(--font-hand)] text-base leading-none text-muted-foreground opacity-50">
+                            ?
+                          </span>
+                        </GameTooltip>
+                      );
+                    }
+
+                    if (attempt.feedback.brandMatch) {
+                      return (
+                        <GameTooltip
+                          className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                          content={t("tooltips.brandCorrect")}
+                        >
+                          <div className="flex h-6 w-6 items-center justify-center">
+                            <Check className="h-4 w-4 text-success" />
+                          </div>
+                        </GameTooltip>
+                      );
+                    }
+
+                    return (
+                      <GameTooltip
+                        className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                        content={t("tooltips.brandIncorrect")}
+                      >
+                        <span className="cursor-help opacity-50">
+                          <X
+                            className="h-4 w-4 -skew-x-12 transform text-muted-foreground"
+                            strokeWidth={1.5}
+                          />
+                        </span>
+                      </GameTooltip>
+                    );
+                  })()}
+                </div>
+
+                {/* Perfumer */}
+                <div className="flex h-full items-center justify-center">
+                  {(() => {
+                    const targetMissing = !dailyPerfume.perfumer || dailyPerfume.perfumer === "Unknown";
+                    const guessMissing = !attempt.perfumers || attempt.perfumers.length === 0;
+                    if (targetMissing || guessMissing) {
+                      return (
+                        <GameTooltip
+                          className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                          content={t("tooltips.perfumerMissing")}
+                        >
+                          <span className="inline-block cursor-help px-1 font-[family-name:var(--font-hand)] text-base leading-none text-muted-foreground opacity-50">
+                            ?
+                          </span>
+                        </GameTooltip>
+                      );
+                    }
+
+                    if (attempt.feedback.perfumerMatch === "full") {
+                      return (
+                        <GameTooltip
+                          className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                          content={t("tooltips.perfumerFull")}
+                        >
+                          <div className="flex h-6 w-6 items-center justify-center">
+                            <Check className="h-4 w-4 text-success" />
+                          </div>
+                        </GameTooltip>
+                      );
+                    } else if (attempt.feedback.perfumerMatch === "partial") {
+                      return (
+                        <GameTooltip
+                          className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                          content={t("tooltips.perfumerPartial")}
+                        >
+                          <span className="cursor-help">
+                            <Waves
+                              className="h-4 w-4 -skew-x-12 transform text-muted-foreground opacity-50"
+                              strokeWidth={1.5}
+                            />
+                          </span>
+                        </GameTooltip>
+                      );
+                    } else {
+                      return (
+                        <GameTooltip
+                          className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                          content={t("tooltips.perfumerIncorrect")}
+                        >
+                          <span className="cursor-help opacity-50">
+                            <X
+                              className="h-4 w-4 -skew-x-12 transform text-muted-foreground"
+                              strokeWidth={1.5}
+                            />
+                          </span>
+                        </GameTooltip>
+                      );
+                    }
+                  })()}
+                </div>
+
+                {/* Year */}
+                <div className="flex h-full items-center justify-center">
+                  {(() => {
+                    const targetMissing = !dailyPerfume.year || dailyPerfume.year === 0;
+                    const guessMissing = !attempt.year || attempt.year === 0;
+                    if (targetMissing || guessMissing) {
+                      return (
+                        <GameTooltip
+                          className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                          content={t("tooltips.yearMissing")}
+                        >
+                          <span className="inline-block cursor-help px-1 font-[family-name:var(--font-hand)] text-base leading-none text-muted-foreground opacity-50">
+                            ?
+                          </span>
+                        </GameTooltip>
+                      );
+                    }
+
+                    return attempt.feedback.yearMatch === "correct" ? (
+                        <GameTooltip
+                          className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                          content={t("tooltips.yearCorrect")}
+                        >
+                          <div className="flex h-6 w-6 items-center justify-center">
+                            <Check className="h-4 w-4 text-success" />
+                          </div>
+                        </GameTooltip>
+                      ) : (
+                        <div className="flex h-full w-full flex-col items-center justify-center">
+                          <GameTooltip
+                            className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                            content={
+                              attempt.feedback.yearMatch === "close"
+                                ? attempt.feedback.yearDirection === "higher"
+                                  ? t("tooltips.yearCloseHigher")
+                                  : t("tooltips.yearCloseLower")
+                                : attempt.feedback.yearDirection === "higher"
+                                  ? t("tooltips.yearWrongHigher")
+                                  : t("tooltips.yearWrongLower")
+                            }
+                          >
+                            <span
+                              className={cn(
+                                "flex h-4 w-4 cursor-help items-center justify-center",
+                                attempt.feedback.yearMatch === "close"
+                                  ? "text-warning"
+                                  : "text-muted-foreground opacity-50",
+                              )}
+                            >
+                              {attempt.feedback.yearDirection === "higher" ? (
+                                <ArrowUp
+                                  className="h-4 w-4 -skew-x-12 transform"
+                                  strokeWidth={1.5}
+                                />
+                              ) : (
+                                <ArrowDown
+                                  className="h-4 w-4 -skew-x-12 transform"
+                                  strokeWidth={1.5}
+                                />
+                              )}
+                            </span>
+                          </GameTooltip>
+                        </div>
+                      );
+                  })()}
+                </div>
+
+                {/* Gender */}
+                <div className="flex h-full items-center justify-center">
+                  {(() => {
+                    const guessGender =
+                      attempt.gender?.toLowerCase() || "unknown";
+                    const targetGender =
+                      dailyPerfume.gender?.toLowerCase() || "unknown";
+
+                    const targetMissing = targetGender === "unknown" || !dailyPerfume.gender;
+                    const guessMissing = guessGender === "unknown" || !attempt.gender;
+
+                    if (targetMissing || guessMissing) {
+                      return (
+                        <GameTooltip
+                          className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                          content={t("tooltips.genderMissing")}
+                        >
+                          <span className="inline-block cursor-help px-1 font-[family-name:var(--font-hand)] text-base leading-none text-muted-foreground opacity-50">
+                            ?
+                          </span>
+                        </GameTooltip>
+                      );
+                    }
+
+                    if (guessGender === targetGender) {
+                      return (
+                        <GameTooltip
+                          className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                          content={t("tooltips.genderCorrect")}
+                        >
+                          <div className="flex h-6 w-6 items-center justify-center">
+                            <Check className="h-4 w-4 text-success" />
+                          </div>
+                        </GameTooltip>
+                      );
+                    }
+
+                    return (
+                      <GameTooltip
+                        className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                        content={t("tooltips.genderIncorrect")}
+                      >
+                        <span className="cursor-help opacity-50">
+                          <X
+                            className="h-4 w-4 -skew-x-12 transform text-muted-foreground"
+                            strokeWidth={1.5}
+                          />
+                        </span>
+                      </GameTooltip>
+                    );
+                  })()}
+                </div>
+
+                {/* Notes */}
+                <div className="flex h-full items-center justify-center">
+                  {(() => {
+                    const isMissing =
+                      !dailyPerfume.notes ||
+                      ((dailyPerfume.notes.top?.length || 0) === 0 &&
+                        (dailyPerfume.notes.heart?.length || 0) === 0 &&
+                        (dailyPerfume.notes.base?.length || 0) === 0);
+
+                    if (isMissing) {
+                      return (
+                        <GameTooltip
+                          className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                          content={t("tooltips.notesMissing")}
+                        >
+                          <span className="inline-block cursor-help px-1 font-[family-name:var(--font-hand)] text-base leading-none text-muted-foreground opacity-50">
+                            ?
+                          </span>
+                        </GameTooltip>
+                      );
+                    }
+
+                    return attempt.feedback.notesMatch >= 1 ? (
+                        <GameTooltip
+                          className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                          content={t("tooltips.notesCorrect")}
+                        >
+                          <div className="flex h-6 w-6 items-center justify-center">
+                            <Check className="h-5 w-5 text-success" />
+                          </div>
+                        </GameTooltip>
+                      ) : (
+                        <GameTooltip
+                          className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                          content={t("tooltips.notesPercentage", {
+                            percent: Math.round(attempt.feedback.notesMatch * 100),
+                          })}
+                        >
+                          <span
+                            className={`flex cursor-help items-center font-[family-name:var(--font-hand)] text-sm leading-none sm:text-base ${attempt.feedback.notesMatch >= 0.4 ? "text-warning" : "text-muted-foreground opacity-50"}`}
+                          >
+                            {Math.round(attempt.feedback.notesMatch * 100)}%
+                          </span>
+                        </GameTooltip>
+                      );
+                  })()}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-
-        {Array.from({ length: maxAttempts - attempts.length }).map((_, i, arr) => {
-          const isLast = i === arr.length - 1
-          const borderClass = isLast ? "" : "border-b border-muted/30"
-
-          return (
-            <div key={`empty-${i}`} className="contents">
-              <div className={`flex justify-center items-center py-3 ${borderClass} min-h-[48px]`}>
-                <span className="font-[family-name:var(--font-playfair)] text-muted-foreground text-center block opacity-30">
-                  {ROMAN_NUMERALS[attempts.length + i]}
-                </span>
-              </div>
-              <div className={`py-3 ${borderClass} pl-2 pr-2 min-h-[48px]`}>
-                <span className="text-muted-foreground opacity-30">...</span>
-              </div>
-              <div className={`py-3 ${borderClass} min-h-[48px]`}></div>
-            </div>
-          )
+          );
         })}
+
+        {Array.from({ length: maxAttempts - attempts.length }).map(
+          (_, i, array) => {
+            const isLast = i === array.length - 1;
+            const borderClass = isLast ? "" : "border-b border-muted/30";
+
+            return (
+              <div className="contents" key={`empty-${i}`}>
+                <div
+                  className={`flex items-center justify-center py-3 ${borderClass} min-h-[48px]`}
+                >
+                  <span className="block text-center font-[family-name:var(--font-playfair)] text-muted-foreground opacity-30">
+                    {ROMAN_NUMERALS[attempts.length + i]}
+                  </span>
+                </div>
+                <div className={`py-3 ${borderClass} min-h-[48px] pr-2 pl-2`}>
+                  <span className="text-muted-foreground opacity-30">...</span>
+                </div>
+                <div className={`py-3 ${borderClass} min-h-[48px]`} />
+              </div>
+            );
+          },
+        )}
       </div>
-    </section >
-  )
+    </section>
+  );
 }
 
 function TruncatedCell({
-  content,
   children,
   className,
-  textClassName = "font-medium text-foreground text-sm sm:text-base line-clamp-1 break-words max-w-full"
+  content,
+  textClassName = "font-medium text-foreground text-sm line-clamp-1 break-words max-w-full tracking-normal",
 }: {
-  content: string,
-  children?: React.ReactNode,
-  className?: string,
-  textClassName?: string
+  children?: React.ReactNode;
+  className?: string;
+  content: string;
+  textClassName?: string;
 }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [isTruncated, setIsTruncated] = useState(false)
+  const ref = useRef<HTMLDivElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
 
   // Use layout effect for measurement
   useLayoutEffect(() => {
-    const el = ref.current
-    if (el) {
-      // Check if content overflows its container
-      setIsTruncated(el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth)
-    }
-  }, [content, children])
+    // Use requestAnimationFrame to ensure layout is complete
+    const rafId = requestAnimationFrame(() => {
+      const element = ref.current;
+      if (element) {
+        // Check if content overflows its container
+        // Use offsetWidth/scrollWidth for truncate with ellipsis (...) detection
+        const hasHorizontalOverflow = element.scrollWidth > element.offsetWidth;
+        const hasVerticalOverflow = element.scrollHeight > element.clientHeight;
+        setIsTruncated(hasHorizontalOverflow || hasVerticalOverflow);
+      }
+    });
+
+    return () => cancelAnimationFrame(rafId);
+  }, [content, children]);
 
   // Re-check on resize
   useEffect(() => {
     const handleResize = () => {
-      const el = ref.current
-      if (el) {
-        setIsTruncated(el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth)
+      const element = ref.current;
+      if (element) {
+        const hasHorizontalOverflow = element.scrollWidth > element.offsetWidth;
+        const hasVerticalOverflow = element.scrollHeight > element.clientHeight;
+        setIsTruncated(hasHorizontalOverflow || hasVerticalOverflow);
       }
-    }
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const inner = (
-    <div ref={ref} className={cn(textClassName, "w-full")}>
+    <div className={cn(textClassName, "w-full")} ref={ref}>
       {children || content}
     </div>
-  )
+  );
 
   if (isTruncated) {
     return (
-      <GameTooltip content={content} className={className}>
+      <GameTooltip className={className} content={content}>
         {inner}
       </GameTooltip>
-    )
+    );
   }
 
-  return (
-    <div className={className}>
-      {inner}
-    </div>
-  )
+  return <div className={className}>{inner}</div>;
 }

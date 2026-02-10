@@ -14,8 +14,9 @@ Codzienna gra logiczna dla miłośników perfum. Odgadnij tajemniczy zapach na p
 ## 🚀 Uruchomienie
 
 ### Wymagania
+
 - Node.js 20+
-- npm lub pnpm
+- npm
 
 ### Instalacja
 
@@ -44,16 +45,22 @@ Utwórz plik `.env.local` z wymaganymi zmiennymi, na podstawie `.env.example`.
 ## 📁 Struktura projektu
 
 ```
-public/
+fragrance-webapp/
 ├── app/                 # Next.js App Router
+│   ├── [locale]/       # Locale routing (en, pl)
+│   ├── actions/        # Server Actions
+│   └── api/            # API routes
 ├── components/
 │   ├── game/           # Komponenty gry
-│   └── ui/             # Shadcn/UI components
+│   ├── ui/             # Shadcn/UI components
+│   └── providers/      # Context providers
 ├── hooks/              # Custom React hooks
 ├── lib/
 │   ├── supabase/       # Klienty Supabase (client/server)
+│   ├── game/           # Logika gry (scoring, reveal)
 │   └── utils.ts        # Utility functions
-└── styles/             # Globalne style CSS
+├── messages/           # Tłumaczenia (en.json, pl.json)
+└── public/             # Statyczne assety
 ```
 
 ## 🎨 Design System
@@ -61,7 +68,7 @@ public/
 Projekt używa estetyki "Elegant French Perfumery":
 
 - **Paleta**: Amber, Cream, Charcoal
-- **Fonty**: 
+- **Fonty**:
   - Geist Sans (body)
   - Playfair Display (nagłówki)
   - Caveat (akcenty odręczne)

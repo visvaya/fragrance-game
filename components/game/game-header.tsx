@@ -1,99 +1,129 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
 
+import {
+  Menu,
+  HelpCircle,
+  BarChart3,
+  ChevronDown,
+  Monitor,
+  Type,
+  Moon,
+} from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
-import { Menu, HelpCircle, BarChart3, ChevronDown, Monitor, Type, Moon } from "lucide-react"
-import { HelpModal } from "./modals/help-modal"
-import { StatsModal } from "./modals/stats-modal"
-import { cn } from "@/lib/utils"
-import { GameTooltip } from "./game-tooltip"
-import { ResetButton } from "./reset-button"
-import { useGame } from "./game-provider"
-import { usePathname, useRouter } from "@/i18n/routing"
-import { useLocale, useTranslations } from "next-intl"
+import { usePathname, useRouter } from "@/i18n/routing";
+import { cn } from "@/lib/utils";
 
+import { useGame } from "./game-provider";
+import { GameTooltip } from "./game-tooltip";
+import { MobileResetItem } from "./mobile-reset-item";
+import { HelpModal } from "./modals/help-modal";
+import { StatsModal } from "./modals/stats-modal";
+import { ResetButton } from "./reset-button";
+
+/**
+ *
+ */
 export function GameHeader() {
-  const { uiPreferences, toggleLayoutMode, toggleFontScale, toggleTheme } = useGame()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [langOpen, setLangOpen] = useState(false)
-  const [helpOpen, setHelpOpen] = useState(false)
+  const { toggleFontScale, toggleLayoutMode, toggleTheme, uiPreferences } =
+    useGame();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
-  const [statsOpen, setStatsOpen] = useState(false)
+  const [statsOpen, setStatsOpen] = useState(false);
 
-  const router = useRouter()
-  const pathname = usePathname()
-  const locale = useLocale()
-  const t = useTranslations('Header')
+  const router = useRouter();
+  const pathname = usePathname();
+  const locale = useLocale();
+  const t = useTranslations("Header");
 
-  const currentLang = locale === 'pl' ? 'PL' : 'EN'
+  const currentLang = locale === "pl" ? "PL" : "EN";
 
   const changeLanguage = (newLocale: string) => {
     router.replace(pathname, { locale: newLocale });
     setLangOpen(false);
-  }
+  };
 
   return (
     <>
       <nav
         className={cn(
-          "relative w-full px-5 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] flex justify-between items-center border-b border-x-0 sm:border-x border-border/50 bg-background rounded-b-none sm:rounded-b-md transition-all duration-300 mx-auto",
-          uiPreferences.layoutMode === 'wide' ? "max-w-5xl" : "max-w-xl",
-          (menuOpen || langOpen) ? "z-50" : "z-20"
+          "relative mx-auto flex w-full items-center justify-between rounded-b-none border-x-0 border-b border-border/50 bg-background px-5 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 transition-all duration-300 sm:rounded-b-md sm:border-x",
+          uiPreferences.layoutMode === "wide" ? "max-w-5xl" : "max-w-xl",
+          menuOpen || langOpen ? "z-50" : "z-20",
         )}
       >
         {/* Left controls */}
-        <div className="flex items-center gap-1 md:gap-2">
-          <GameTooltip content={t('menu')} disableOnMobile className="cursor-pointer">
+        <div className="flex items-center gap-2 md:gap-4">
+          <GameTooltip
+            className="cursor-pointer"
+            content={t("menu")}
+            disableOnMobile
+          >
             <button
+              aria-label={t("menu")}
+              className="p-2 text-foreground transition-colors duration-300 hover:text-primary"
               onClick={() => setMenuOpen(!menuOpen)}
-              className="text-foreground hover:text-primary transition-colors duration-300 p-2"
-              aria-label={t('menu')}
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="h-5 w-5" />
             </button>
           </GameTooltip>
 
-          <GameTooltip content={t('help')} disableOnMobile className="cursor-pointer">
+          <GameTooltip
+            className="cursor-pointer"
+            content={t("help")}
+            disableOnMobile
+          >
             <button
+              aria-label={t("help")}
+              className="relative p-2 text-foreground transition-colors duration-300 hover:text-primary"
               onClick={() => setHelpOpen(true)}
-              className="text-foreground hover:text-primary transition-colors duration-300 p-2 relative"
-              aria-label={t('help')}
             >
-              <HelpCircle className="w-5 h-5" />
+              <HelpCircle className="h-5 w-5" />
             </button>
           </GameTooltip>
         </div>
 
         {/* Logo */}
-        <h1 className="font-[family-name:var(--font-playfair)] text-2xl font-bold tracking-tight uppercase text-foreground absolute left-1/2 transform -translate-x-1/2">
+        <h1 className="absolute left-1/2 -translate-x-1/2 transform font-[family-name:var(--font-playfair)] text-2xl font-bold tracking-tight text-foreground uppercase">
           Eauxle
         </h1>
 
         {/* Right controls */}
-        <div className="flex items-center gap-3 md:gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           {/* Reset Button (Debug) placed before Language */}
-          <div className="relative">
+          <div className="relative hidden sm:block">
             <ResetButton />
           </div>
 
-          <GameTooltip content={t('language')} disableOnMobile className="cursor-pointer">
+          <GameTooltip
+            className="cursor-pointer"
+            content={t("language")}
+            disableOnMobile
+          >
             <button
+              className="flex items-center gap-1 p-2 text-sm font-semibold text-foreground transition-colors duration-300 hover:text-primary"
               onClick={() => setLangOpen(!langOpen)}
-              className="flex items-center gap-1 text-sm font-semibold text-foreground hover:text-primary transition-colors duration-300 p-2"
             >
               {currentLang}
-              <ChevronDown className="w-3 h-3" />
+              <ChevronDown className="h-3 w-3" />
             </button>
           </GameTooltip>
 
-          <GameTooltip content={t('stats')} disableOnMobile className="cursor-pointer">
+          <GameTooltip
+            className="cursor-pointer"
+            content={t("stats")}
+            disableOnMobile
+          >
             <button
+              aria-label={t("stats")}
+              className="p-2 text-foreground transition-colors duration-300 hover:text-primary"
               onClick={() => setStatsOpen(true)}
-              className="text-foreground hover:text-primary transition-colors duration-300 p-2"
-              aria-label={t('stats')}
             >
-              <BarChart3 className="w-5 h-5" />
+              <BarChart3 className="h-5 w-5" />
             </button>
           </GameTooltip>
         </div>
@@ -101,115 +131,150 @@ export function GameHeader() {
         {/* Menu Dropdown */}
         <div
           className={cn(
-            "!absolute top-full left-5 mt-2 w-56 bg-background border border-border/50 shadow-xl flex-col transition-all duration-300 rounded-md overflow-hidden",
-            menuOpen ? "flex opacity-100 translate-y-0" : "hidden opacity-0 -translate-y-2",
+            "!absolute top-full left-5 mt-2 w-56 flex-col overflow-hidden rounded-md border border-border/50 bg-background shadow-xl transition-all duration-300",
+            menuOpen
+              ? "flex translate-y-0 opacity-100"
+              : "hidden -translate-y-2 opacity-0",
           )}
         >
           <a
+            className="flex items-center justify-between border-b border-border px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
             href="#"
-            className="px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground hover:text-primary hover:pl-6 transition-all duration-300 border-b border-border flex justify-between items-center"
           >
-            {t('archive')}
-            <span className="font-sans text-[10px] uppercase text-muted-foreground">(240)</span>
+            {t("archive")}
+            <span className="font-sans text-[10px] text-muted-foreground uppercase">
+              (240)
+            </span>
           </a>
           <a
+            className="border-b border-border px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
             href="#"
-            className="px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground hover:text-primary hover:pl-6 transition-all duration-300 border-b border-border"
           >
-            {t('about')}
+            {t("about")}
           </a>
 
           {/* Appearance Section */}
-          <div className="px-5 py-3 border-b border-border bg-muted/20">
-            <h3 className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-3">{t('appearance')}</h3>
+          <div className="border-b border-border bg-muted/20 px-5 py-3">
+            <h3 className="mb-3 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
+              {t("appearance")}
+            </h3>
             <div className="space-y-3">
               {/* Wide Layout Toggle */}
               <button
+                className="group flex w-full items-center justify-between text-foreground transition-colors hover:text-primary"
                 onClick={toggleLayoutMode}
-                className="flex items-center justify-between w-full text-foreground hover:text-primary transition-colors group"
               >
                 <div className="flex items-center gap-2">
-                  <Monitor className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                  <span className="font-sans text-xs">{t('wideLayout')}</span>
+                  <Monitor className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                  <span className="font-sans text-xs">{t("wideLayout")}</span>
                 </div>
-                <div className={cn(
-                  "w-8 h-4 rounded-full transition-colors relative",
-                  uiPreferences.layoutMode === 'wide' ? "bg-primary" : "bg-muted-foreground/30"
-                )}>
-                  <div className={cn(
-                    "w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all text-xs",
-                    uiPreferences.layoutMode === 'wide' ? "left-4.5" : "left-0.5"
-                  )} />
+                <div
+                  className={cn(
+                    "relative h-4 w-8 rounded-full transition-colors",
+                    uiPreferences.layoutMode === "wide"
+                      ? "bg-primary"
+                      : "bg-muted-foreground/30",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "absolute top-0.5 h-3 w-3 rounded-full bg-white text-xs transition-all",
+                      uiPreferences.layoutMode === "wide"
+                        ? "left-4.5"
+                        : "left-0.5",
+                    )}
+                  />
                 </div>
               </button>
 
               {/* Large Text Toggle */}
               <button
+                className="group flex w-full items-center justify-between text-foreground transition-colors hover:text-primary"
                 onClick={toggleFontScale}
-                className="flex items-center justify-between w-full text-foreground hover:text-primary transition-colors group"
               >
                 <div className="flex items-center gap-2">
-                  <Type className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                  <span className="font-sans text-xs">{t('largeText')}</span>
+                  <Type className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                  <span className="font-sans text-xs">{t("largeText")}</span>
                 </div>
-                <div className={cn(
-                  "w-8 h-4 rounded-full transition-colors relative",
-                  uiPreferences.fontScale === 'large' ? "bg-primary" : "bg-muted-foreground/30"
-                )}>
-                  <div className={cn(
-                    "w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all",
-                    uiPreferences.fontScale === 'large' ? "left-4.5" : "left-0.5"
-                  )} />
+                <div
+                  className={cn(
+                    "relative h-4 w-8 rounded-full transition-colors",
+                    uiPreferences.fontScale === "large"
+                      ? "bg-primary"
+                      : "bg-muted-foreground/30",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all",
+                      uiPreferences.fontScale === "large"
+                        ? "left-4.5"
+                        : "left-0.5",
+                    )}
+                  />
                 </div>
               </button>
 
               {/* Dark Mode Toggle */}
               <button
+                className="group flex w-full items-center justify-between text-foreground transition-colors hover:text-primary"
                 onClick={toggleTheme}
-                className="flex items-center justify-between w-full text-foreground hover:text-primary transition-colors group"
               >
                 <div className="flex items-center gap-2">
-                  <Moon className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                  <span className="font-sans text-xs">{t('darkMode')}</span>
+                  <Moon className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                  <span className="font-sans text-xs">{t("darkMode")}</span>
                 </div>
-                <div className={cn(
-                  "w-8 h-4 rounded-full transition-colors relative",
-                  uiPreferences.theme === 'dark' ? "bg-primary" : "bg-muted-foreground/30"
-                )}>
-                  <div className={cn(
-                    "w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all",
-                    uiPreferences.theme === 'dark' ? "left-[18px]" : "left-0.5"
-                  )} />
+                <div
+                  className={cn(
+                    "relative h-4 w-8 rounded-full transition-colors",
+                    uiPreferences.theme === "dark"
+                      ? "bg-primary"
+                      : "bg-muted-foreground/30",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all",
+                      uiPreferences.theme === "dark"
+                        ? "left-[18px]"
+                        : "left-0.5",
+                    )}
+                  />
                 </div>
               </button>
             </div>
           </div>
 
+          {/* Mobile Reset Action */}
+          <MobileResetItem />
+
           <a
+            className="px-5 py-3 font-[family-name:var(--font-playfair)] text-primary transition-all duration-300 hover:pl-6"
             href="#"
-            className="px-5 py-3 font-[family-name:var(--font-playfair)] text-primary hover:pl-6 transition-all duration-300"
           >
-            {t('support')}
+            {t("support")}
           </a>
         </div>
 
         {/* Language Dropdown */}
         <div
           className={cn(
-            "!absolute top-full right-16 mt-2 w-24 bg-background border border-border/50 shadow-xl flex-col transition-all duration-300 rounded-md overflow-hidden",
-            langOpen ? "flex opacity-100 translate-y-0" : "hidden opacity-0 -translate-y-2",
+            "!absolute top-full right-16 mt-2 w-24 flex-col overflow-hidden rounded-md border border-border/50 bg-background shadow-xl transition-all duration-300",
+            langOpen
+              ? "flex translate-y-0 opacity-100"
+              : "hidden -translate-y-2 opacity-0",
           )}
         >
           {["en", "pl"].map((lang) => (
             <button
+              className={cn(
+                "px-4 py-2 text-center text-sm font-semibold transition-colors duration-300",
+                currentLang.toLowerCase() === lang
+                  ? "text-foreground underline underline-offset-4"
+                  : "text-foreground hover:bg-muted/30 hover:text-primary",
+              )}
               key={lang}
               onClick={() => changeLanguage(lang)}
-              className={cn(
-                "px-4 py-2 text-sm font-semibold text-center transition-colors duration-300",
-                currentLang.toLowerCase() === lang
-                  ? "underline underline-offset-4 text-foreground"
-                  : "text-foreground hover:text-primary hover:bg-muted/30",
-              )}
             >
               {lang === "en" ? "English" : "Polski"}
             </button>
@@ -218,18 +283,18 @@ export function GameHeader() {
       </nav>
 
       {/* Click outside to close dropdowns */}
-      {(menuOpen || langOpen) && (
+      {menuOpen || langOpen ? (
         <div
           className="fixed inset-0 z-40"
           onClick={() => {
-            setMenuOpen(false)
-            setLangOpen(false)
+            setMenuOpen(false);
+            setLangOpen(false);
           }}
         />
-      )}
+      ) : null}
 
-      <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
-      <StatsModal open={statsOpen} onClose={() => setStatsOpen(false)} />
+      <HelpModal onClose={() => setHelpOpen(false)} open={helpOpen} />
+      <StatsModal onClose={() => setStatsOpen(false)} open={statsOpen} />
     </>
-  )
+  );
 }

@@ -1,11 +1,9 @@
 {
-    "crons": [
-        {
-            "path": "/api/cron/generate-daily",
-            "schedule": "0 0 * * *"
-        }
-    ],
-    "regions": [
-        "fra1"
-    ]
+  "crons": [
+    {
+      "path": "/api/cron/generate-daily",
+      "schedule": "0 0 * * *"
+    }
+  ],
+  "regions": ["fra1"]
 }
