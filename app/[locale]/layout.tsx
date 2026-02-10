@@ -59,9 +59,7 @@ const caveat = Caveat({
 });
 
 /**
- *
- * @param root0
- * @param root0.params
+ * Generuje metadane dla strony.
  */
 export async function generateMetadata({
   params,
@@ -95,22 +93,25 @@ export async function generateMetadata({
   };
 }
 
-export const viewport: Viewport = {
-  initialScale: 1,
-  themeColor: [
-    { color: "#FDFBF7", media: "(prefers-color-scheme: light)" },
-    { color: "#1F1F22", media: "(prefers-color-scheme: dark)" },
-  ],
-  viewportFit: "cover",
-  width: "device-width",
-};
-
+export async function generateViewport({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Viewport> {
+  await params; // Ensure it's awaited for Next.js 16 compliance
+  return {
+    initialScale: 1,
+    themeColor: [
+      { color: "#FDFBF7", media: "(prefers-color-scheme: light)" },
+      { color: "#1F1F22", media: "(prefers-color-scheme: dark)" },
+    ],
+    viewportFit: "cover",
+    width: "device-width",
+  };
+}
 
 /**
- *
- * @param root0
- * @param root0.children
- * @param root0.params
+ * Główny layout aplikacji.
  */
 export default async function RootLayout({
   children,

@@ -1,4 +1,7 @@
 import { withSentryConfig } from "@sentry/nextjs";
+import createNextIntlPlugin from "next-intl/plugin";
+
+const withNextIntl = createNextIntlPlugin();
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -68,7 +71,7 @@ const nextConfig = {
         ],
       },
       {
-        source: "/(.*).(woff2?|png|jpg|jpeg|gif|webp|svg|ico)$",
+        source: "/:path*(woff2?|png|jpg|jpeg|gif|webp|svg|ico)",
         headers: [
           {
             key: "Cache-Control",
@@ -112,6 +115,4 @@ const serverConfig = withSentryConfig(
   },
 );
 
-import createNextIntlPlugin from "next-intl/plugin";
-const withNextIntl = createNextIntlPlugin();
 export default withNextIntl(serverConfig);

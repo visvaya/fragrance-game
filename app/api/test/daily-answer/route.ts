@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 /**
  *
  */
@@ -10,9 +12,9 @@ export async function GET() {
   if (
     process.env.NODE_ENV !== "development" &&
     process.env.NODE_ENV !== "test"
-   && process.env.NEXT_PUBLIC_APP_ENV !== "test") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
+    && process.env.NEXT_PUBLIC_APP_ENV !== "test") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
 
   try {
     const supabase = createAdminClient();

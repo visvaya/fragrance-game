@@ -7,7 +7,7 @@ import { GameProvider } from "@/components/game/game-provider";
 /**
  *
  */
-export default function Home() {
+export default function Home({ params }: { params: Promise<{ locale: string }> }) {
   return (
     <GameProvider>
       <div className="flex min-h-screen flex-col items-center">

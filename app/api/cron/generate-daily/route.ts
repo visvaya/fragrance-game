@@ -5,6 +5,8 @@ import { createAdminClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Vercel Cron Job: Generate Daily Challenge
  *

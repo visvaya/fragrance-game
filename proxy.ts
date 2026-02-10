@@ -137,6 +137,6 @@ export const config = {
      * 3. /favicon.ico, /sitemap.xml, robotics.txt
      * 4. all files ending in static extensions
      */
-    String.raw`/((?!api/auth/callback|_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)`,
+    "/((?!api/auth/callback|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)",
   ],
 };
