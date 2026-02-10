@@ -11,8 +11,10 @@ export async function GET() {
   // SECURITY: Ensure this only runs in development or test
   if (
     process.env.NODE_ENV !== "development" &&
-    process.env.NODE_ENV !== "test"
-    && process.env.NEXT_PUBLIC_APP_ENV !== "test") {
+    process.env.NODE_ENV !== "test" &&
+    process.env.NEXT_PUBLIC_APP_ENV !== "test" &&
+    !process.env.CI
+  ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -29,30 +31,29 @@ export async function GET() {
       .single();
 
     if (challengeError || !challenge) {
-      console.error(
-        "[API TEST] Challenge not found for today:",
-        challengeError,
-      );
+      console.log("[API TEST] No challenge in DB for today, using fallback perfume");
 
-      // DEBUG: Check what dates ARE available
-      const { data: recentChallenges } = await supabase
-        .from("daily_challenges")
-        .select("challenge_date")
-        .order("challenge_date", { ascending: false })
-        .limit(5);
+      // Fallback: Return ANY perfume from database (for testing purposes)
+      const { data: randomPerfume, error: randomError } = await supabase
+        .from("perfumes")
+        .select("name, brands(name), id")
+        .limit(1)
+        .single();
 
-      console.log(
-        "[API TEST] Recent available dates:",
-        recentChallenges?.map((c) => c.challenge_date),
-      );
+      if (randomError || !randomPerfume) {
+        return NextResponse.json(
+          { error: "No perfumes available in database" },
+          { status: 500 },
+        );
+      }
 
-      return NextResponse.json(
-        {
-          available_dates: recentChallenges?.map((c) => c.challenge_date),
-          error: `No challenge found for today (${today})`,
-        },
-        { status: 404 },
-      );
+      const formattedPerfume = {
+        name: randomPerfume.name,
+        id: randomPerfume.id,
+        brand: (randomPerfume.brands as any)?.name ?? "Unknown",
+      };
+
+      return NextResponse.json({ perfume: formattedPerfume });
     }
 
     console.log(
@@ -79,7 +80,7 @@ export async function GET() {
       brand: (perfume.brands as any)?.name ?? "Unknown",
     };
 
-    return NextResponse.json(formattedPerfume);
+    return NextResponse.json({ perfume: formattedPerfume });
   } catch (error) {
     console.error("Error in test API:", error);
     return NextResponse.json(
