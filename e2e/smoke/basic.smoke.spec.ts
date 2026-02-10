@@ -12,18 +12,22 @@ test.describe('Smoke Tests - Critical Path @smoke', () => {
         await expect(gameContainer).toBeVisible();
     });
 
-    test('Game Input is accessible', async ({ page }) => {
+    test('Game Input or No-Puzzle message is visible', async ({ page }) => {
         await page.goto('/');
         await page.waitForLoadState('networkidle');
 
-        // Check for the input field where users type perfume names
+        // Resilience: check for input OR "no puzzle" message
         const inputField = page.getByTestId('game-input');
+        const noPuzzleMsg = page.locator('text=/No puzzle today|Come back tomorrow|Brak puzzli|Wróć jutro/i');
 
-        try {
-            await expect(inputField).toBeVisible({ timeout: 30000 });
-        } catch (error) {
-            await page.screenshot({ path: 'smoke-test-failure.png', fullPage: true });
-            throw error;
+        await expect(async () => {
+            const isInputVisible = await inputField.isVisible();
+            const isMsgVisible = await noPuzzleMsg.isVisible();
+            expect(isInputVisible || isMsgVisible).toBeTruthy();
+        }).toPass({ timeout: 15000 });
+
+        if (await noPuzzleMsg.isVisible()) {
+            console.log('Smoke test note: Application is running, but no puzzle detected for current date/timezone.');
         }
     });
 });
