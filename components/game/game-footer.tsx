@@ -42,7 +42,7 @@ export function GameFooter() {
         <nav className="mb-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-x-10 sm:gap-y-0">
           <a
             className="font-[family-name:var(--font-playfair)] text-sm text-foreground/80 italic transition-all duration-300 hover:text-primary"
-            href="#"
+            href={null as any}
           >
             {t("contact")}
           </a>
