@@ -100,11 +100,11 @@ export async function proxy(request: NextRequest) {
     "Content-Security-Policy",
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' va.vercel-scripts.com eu.i.posthog.com eu-assets.i.posthog.com *.ingest.de.sentry.io",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' va.vercel-scripts.com eu.i.posthog.com eu-assets.i.posthog.com eu.posthog.com us.posthog.com *.ingest.de.sentry.io",
       "worker-src 'self' blob:",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https: *.r2.dev *.supabase.co",
-      "connect-src 'self' *.supabase.co eu.i.posthog.com *.sentry.io *.upstash.io",
+      "connect-src 'self' *.supabase.co eu.i.posthog.com eu-assets.i.posthog.com eu.posthog.com internal-j.posthog.com us.posthog.com *.sentry.io *.upstash.io",
       "font-src 'self' data:",
       "frame-ancestors 'none'",
       "base-uri 'self'",
