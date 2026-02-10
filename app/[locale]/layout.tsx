@@ -132,7 +132,7 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale || "en"} suppressHydrationWarning>
       <head>
         <link
           crossOrigin="anonymous"
@@ -158,6 +158,6 @@ export default async function RootLayout({
           <SpeedInsights />
         </NextIntlClientProvider>
       </body>
-    </html>
+    </html >
   );
 }

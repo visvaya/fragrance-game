@@ -49,238 +49,240 @@ export function GameHeader() {
 
   return (
     <>
-      <nav
-        className={cn(
-          "relative mx-auto flex w-full items-center justify-between rounded-b-none border-x-0 border-b border-border/50 bg-background px-5 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 transition-all duration-300 sm:rounded-b-md sm:border-x",
-          uiPreferences.layoutMode === "wide" ? "max-w-5xl" : "max-w-xl",
-          menuOpen || langOpen ? "z-50" : "z-20",
-        )}
-      >
-        {/* Left controls */}
-        <div className="flex items-center gap-2 md:gap-4">
-          <GameTooltip
-            className="cursor-pointer"
-            content={t("menu")}
-            disableOnMobile
-          >
-            <button
-              aria-label={t("menu")}
-              className="p-2 text-foreground transition-colors duration-300 hover:text-primary"
-              onClick={() => setMenuOpen(!menuOpen)}
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-          </GameTooltip>
-
-          <GameTooltip
-            className="cursor-pointer"
-            content={t("help")}
-            disableOnMobile
-          >
-            <button
-              aria-label={t("help")}
-              className="relative p-2 text-foreground transition-colors duration-300 hover:text-primary"
-              onClick={() => setHelpOpen(true)}
-            >
-              <HelpCircle className="h-5 w-5" />
-            </button>
-          </GameTooltip>
-        </div>
-
-        {/* Logo */}
-        <h1 className="absolute left-1/2 -translate-x-1/2 transform font-[family-name:var(--font-playfair)] text-2xl font-bold tracking-tight text-foreground uppercase">
-          Eauxle
-        </h1>
-
-        {/* Right controls */}
-        <div className="flex items-center gap-2 md:gap-4">
-          {/* Reset Button (Debug) placed before Language */}
-          <div className="relative hidden sm:block">
-            <ResetButton />
-          </div>
-
-          <GameTooltip
-            className="cursor-pointer"
-            content={t("language")}
-            disableOnMobile
-          >
-            <button
-              className="flex items-center gap-1 p-2 text-sm font-semibold text-foreground transition-colors duration-300 hover:text-primary"
-              onClick={() => setLangOpen(!langOpen)}
-            >
-              {currentLang}
-              <ChevronDown className="h-3 w-3" />
-            </button>
-          </GameTooltip>
-
-          <GameTooltip
-            className="cursor-pointer"
-            content={t("stats")}
-            disableOnMobile
-          >
-            <button
-              aria-label={t("stats")}
-              className="p-2 text-foreground transition-colors duration-300 hover:text-primary"
-              onClick={() => setStatsOpen(true)}
-            >
-              <BarChart3 className="h-5 w-5" />
-            </button>
-          </GameTooltip>
-        </div>
-
-        {/* Menu Dropdown */}
-        <div
+      <header className="w-full">
+        <nav
           className={cn(
-            "!absolute top-full left-5 mt-2 w-56 flex-col overflow-hidden rounded-md border border-border/50 bg-background shadow-xl transition-all duration-300",
-            menuOpen
-              ? "flex translate-y-0 opacity-100"
-              : "hidden -translate-y-2 opacity-0",
+            "relative mx-auto flex w-full items-center justify-between rounded-b-none border-x-0 border-b border-border/50 bg-background px-5 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 transition-all duration-300 sm:rounded-b-md sm:border-x",
+            uiPreferences.layoutMode === "wide" ? "max-w-5xl" : "max-w-xl",
+            menuOpen || langOpen ? "z-50" : "z-20",
           )}
         >
-          <a
-            className="flex items-center justify-between border-b border-border px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
-            href="#"
-          >
-            {t("archive")}
-            <span className="font-sans text-[10px] text-muted-foreground uppercase">
-              (240)
-            </span>
-          </a>
-          <a
-            className="border-b border-border px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
-            href="#"
-          >
-            {t("about")}
-          </a>
-
-          {/* Appearance Section */}
-          <div className="border-b border-border bg-muted/20 px-5 py-3">
-            <h3 className="mb-3 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
-              {t("appearance")}
-            </h3>
-            <div className="space-y-3">
-              {/* Wide Layout Toggle */}
+          {/* Left controls */}
+          <div className="flex items-center gap-2 md:gap-4">
+            <GameTooltip
+              className="cursor-pointer"
+              content={t("menu")}
+              disableOnMobile
+            >
               <button
-                className="group flex w-full items-center justify-between text-foreground transition-colors hover:text-primary"
-                onClick={toggleLayoutMode}
+                aria-label={t("menu")}
+                className="p-2 text-foreground transition-colors duration-300 hover:text-primary"
+                onClick={() => setMenuOpen(!menuOpen)}
               >
-                <div className="flex items-center gap-2">
-                  <Monitor className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
-                  <span className="font-sans text-xs">{t("wideLayout")}</span>
-                </div>
-                <div
-                  className={cn(
-                    "relative h-4 w-8 rounded-full transition-colors",
-                    uiPreferences.layoutMode === "wide"
-                      ? "bg-primary"
-                      : "bg-muted-foreground/30",
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "absolute top-0.5 h-3 w-3 rounded-full bg-white text-xs transition-all",
-                      uiPreferences.layoutMode === "wide"
-                        ? "left-4.5"
-                        : "left-0.5",
-                    )}
-                  />
-                </div>
+                <Menu className="h-5 w-5" />
               </button>
+            </GameTooltip>
 
-              {/* Large Text Toggle */}
+            <GameTooltip
+              className="cursor-pointer"
+              content={t("help")}
+              disableOnMobile
+            >
               <button
-                className="group flex w-full items-center justify-between text-foreground transition-colors hover:text-primary"
-                onClick={toggleFontScale}
+                aria-label={t("help")}
+                className="relative p-2 text-foreground transition-colors duration-300 hover:text-primary"
+                onClick={() => setHelpOpen(true)}
               >
-                <div className="flex items-center gap-2">
-                  <Type className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
-                  <span className="font-sans text-xs">{t("largeText")}</span>
-                </div>
-                <div
-                  className={cn(
-                    "relative h-4 w-8 rounded-full transition-colors",
-                    uiPreferences.fontScale === "large"
-                      ? "bg-primary"
-                      : "bg-muted-foreground/30",
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all",
-                      uiPreferences.fontScale === "large"
-                        ? "left-4.5"
-                        : "left-0.5",
-                    )}
-                  />
-                </div>
+                <HelpCircle className="h-5 w-5" />
               </button>
+            </GameTooltip>
+          </div>
 
-              {/* Dark Mode Toggle */}
-              <button
-                className="group flex w-full items-center justify-between text-foreground transition-colors hover:text-primary"
-                onClick={toggleTheme}
-              >
-                <div className="flex items-center gap-2">
-                  <Moon className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
-                  <span className="font-sans text-xs">{t("darkMode")}</span>
-                </div>
-                <div
-                  className={cn(
-                    "relative h-4 w-8 rounded-full transition-colors",
-                    uiPreferences.theme === "dark"
-                      ? "bg-primary"
-                      : "bg-muted-foreground/30",
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all",
-                      uiPreferences.theme === "dark"
-                        ? "left-[18px]"
-                        : "left-0.5",
-                    )}
-                  />
-                </div>
-              </button>
+          {/* Logo */}
+          <h1 className="absolute left-1/2 -translate-x-1/2 transform font-[family-name:var(--font-playfair)] text-2xl font-bold tracking-tight text-foreground uppercase">
+            Eauxle
+          </h1>
+
+          {/* Right controls */}
+          <div className="flex items-center gap-2 md:gap-4">
+            {/* Reset Button (Debug) placed before Language */}
+            <div className="relative hidden sm:block">
+              <ResetButton />
             </div>
+
+            <GameTooltip
+              className="cursor-pointer"
+              content={t("language")}
+              disableOnMobile
+            >
+              <button
+                className="flex items-center gap-1 p-2 text-sm font-semibold text-foreground transition-colors duration-300 hover:text-primary"
+                onClick={() => setLangOpen(!langOpen)}
+              >
+                {currentLang}
+                <ChevronDown className="h-3 w-3" />
+              </button>
+            </GameTooltip>
+
+            <GameTooltip
+              className="cursor-pointer"
+              content={t("stats")}
+              disableOnMobile
+            >
+              <button
+                aria-label={t("stats")}
+                className="p-2 text-foreground transition-colors duration-300 hover:text-primary"
+                onClick={() => setStatsOpen(true)}
+              >
+                <BarChart3 className="h-5 w-5" />
+              </button>
+            </GameTooltip>
           </div>
 
-          {/* Mobile Reset Action */}
-          <MobileResetItem />
-
-          <a
-            className="px-5 py-3 font-[family-name:var(--font-playfair)] text-primary transition-all duration-300 hover:pl-6"
-            href="#"
+          {/* Menu Dropdown */}
+          <div
+            className={cn(
+              "!absolute top-full left-5 mt-2 w-56 flex-col overflow-hidden rounded-md border border-border/50 bg-background shadow-xl transition-all duration-300",
+              menuOpen
+                ? "flex translate-y-0 opacity-100"
+                : "hidden -translate-y-2 opacity-0",
+            )}
           >
-            {t("support")}
-          </a>
-        </div>
-
-        {/* Language Dropdown */}
-        <div
-          className={cn(
-            "!absolute top-full right-16 mt-2 w-24 flex-col overflow-hidden rounded-md border border-border/50 bg-background shadow-xl transition-all duration-300",
-            langOpen
-              ? "flex translate-y-0 opacity-100"
-              : "hidden -translate-y-2 opacity-0",
-          )}
-        >
-          {["en", "pl"].map((lang) => (
-            <button
-              className={cn(
-                "px-4 py-2 text-center text-sm font-semibold transition-colors duration-300",
-                currentLang.toLowerCase() === lang
-                  ? "text-foreground underline underline-offset-4"
-                  : "text-foreground hover:bg-muted/30 hover:text-primary",
-              )}
-              key={lang}
-              onClick={() => changeLanguage(lang)}
+            <a
+              className="flex items-center justify-between border-b border-border px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
+              href="#"
             >
-              {lang === "en" ? "English" : "Polski"}
-            </button>
-          ))}
-        </div>
-      </nav>
+              {t("archive")}
+              <span className="font-sans text-[10px] text-muted-foreground uppercase">
+                (240)
+              </span>
+            </a>
+            <a
+              className="border-b border-border px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
+              href="#"
+            >
+              {t("about")}
+            </a>
+
+            {/* Appearance Section */}
+            <div className="border-b border-border bg-muted/20 px-5 py-3">
+              <h3 className="mb-3 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
+                {t("appearance")}
+              </h3>
+              <div className="space-y-3">
+                {/* Wide Layout Toggle */}
+                <button
+                  className="group flex w-full items-center justify-between text-foreground transition-colors hover:text-primary"
+                  onClick={toggleLayoutMode}
+                >
+                  <div className="flex items-center gap-2">
+                    <Monitor className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                    <span className="font-sans text-xs">{t("wideLayout")}</span>
+                  </div>
+                  <div
+                    className={cn(
+                      "relative h-4 w-8 rounded-full transition-colors",
+                      uiPreferences.layoutMode === "wide"
+                        ? "bg-primary"
+                        : "bg-muted-foreground/30",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "absolute top-0.5 h-3 w-3 rounded-full bg-white text-xs transition-all",
+                        uiPreferences.layoutMode === "wide"
+                          ? "left-4.5"
+                          : "left-0.5",
+                      )}
+                    />
+                  </div>
+                </button>
+
+                {/* Large Text Toggle */}
+                <button
+                  className="group flex w-full items-center justify-between text-foreground transition-colors hover:text-primary"
+                  onClick={toggleFontScale}
+                >
+                  <div className="flex items-center gap-2">
+                    <Type className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                    <span className="font-sans text-xs">{t("largeText")}</span>
+                  </div>
+                  <div
+                    className={cn(
+                      "relative h-4 w-8 rounded-full transition-colors",
+                      uiPreferences.fontScale === "large"
+                        ? "bg-primary"
+                        : "bg-muted-foreground/30",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all",
+                        uiPreferences.fontScale === "large"
+                          ? "left-4.5"
+                          : "left-0.5",
+                      )}
+                    />
+                  </div>
+                </button>
+
+                {/* Dark Mode Toggle */}
+                <button
+                  className="group flex w-full items-center justify-between text-foreground transition-colors hover:text-primary"
+                  onClick={toggleTheme}
+                >
+                  <div className="flex items-center gap-2">
+                    <Moon className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                    <span className="font-sans text-xs">{t("darkMode")}</span>
+                  </div>
+                  <div
+                    className={cn(
+                      "relative h-4 w-8 rounded-full transition-colors",
+                      uiPreferences.theme === "dark"
+                        ? "bg-primary"
+                        : "bg-muted-foreground/30",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all",
+                        uiPreferences.theme === "dark"
+                          ? "left-[18px]"
+                          : "left-0.5",
+                      )}
+                    />
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile Reset Action */}
+            <MobileResetItem />
+
+            <a
+              className="px-5 py-3 font-[family-name:var(--font-playfair)] text-primary transition-all duration-300 hover:pl-6"
+              href="#"
+            >
+              {t("support")}
+            </a>
+          </div>
+
+          {/* Language Dropdown */}
+          <div
+            className={cn(
+              "!absolute top-full right-16 mt-2 w-24 flex-col overflow-hidden rounded-md border border-border/50 bg-background shadow-xl transition-all duration-300",
+              langOpen
+                ? "flex translate-y-0 opacity-100"
+                : "hidden -translate-y-2 opacity-0",
+            )}
+          >
+            {["en", "pl"].map((lang) => (
+              <button
+                className={cn(
+                  "px-4 py-2 text-center text-sm font-semibold transition-colors duration-300",
+                  currentLang.toLowerCase() === lang
+                    ? "text-foreground underline underline-offset-4"
+                    : "text-foreground hover:bg-muted/30 hover:text-primary",
+                )}
+                key={lang}
+                onClick={() => changeLanguage(lang)}
+              >
+                {lang === "en" ? "English" : "Polski"}
+              </button>
+            ))}
+          </div>
+        </nav>
+      </header>
 
       {/* Click outside to close dropdowns */}
       {menuOpen || langOpen ? (

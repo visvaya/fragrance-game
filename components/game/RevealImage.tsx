@@ -94,6 +94,7 @@ export function RevealImage() {
             key={activeSource}
             loading="eager"
             priority
+            quality={90}
             sizes="(max-width: 768px) 100vw, 40vw"
             src={activeSource}
           />
@@ -112,6 +113,7 @@ export function RevealImage() {
               key={fadingInSource}
               onLoad={handleImageLoad}
               priority
+              quality={90}
               sizes="(max-width: 768px) 100vw, 40vw"
               src={fadingInSource}
             />

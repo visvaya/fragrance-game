@@ -20,7 +20,8 @@
       "closed": "Wróć jutro po kolejną zagadkę!",
       "attempt": "Próba",
       "score": "Potencjalny wynik",
-      "noResults": "Brak wyników"
+      "noResults": "Brak wyników",
+      "noPuzzle": "Brak zagadki na dziś"
     }
   },
   "Header": {
@@ -96,7 +97,7 @@
     "linearProfile": "Profil liniowy",
     "noteCount": "liczba nut: {count}",
     "noteCountUnknown": "liczba nut: <q>?</q>",
-    "linearProfileTooltip": "Liczba nut w 1. próbie jest ukryta",
+    "linearProfileTooltip": "Liczba nut jest ukryta w 1. próbie",
     "pyramid": "Piramida",
     "top": "Głowa",
     "heart": "Serce",

@@ -20,7 +20,8 @@
       "closed": "Come back tomorrow for new essence...",
       "attempt": "Attempt",
       "score": "Potential Score",
-      "noResults": "No results found"
+      "noResults": "No results found",
+      "noPuzzle": "No puzzle today"
     }
   },
   "Header": {

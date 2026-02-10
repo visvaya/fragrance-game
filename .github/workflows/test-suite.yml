@@ -1,0 +1,96 @@
+name: Comprehensive Test Suite
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  fast-tests:
+    name: Unit & Snapshots
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run Vitest (Unit + Snapshots)
+        run: npm run test -- --run
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Python dependencies
+        run: pip install pytest pandas numpy tqdm python-dotenv supabase
+      - name: Run Python ETL Tests
+        run: pytest tests/python
+
+  security-scan:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Security Check Script
+        run: python .agent/scripts/security-check.py
+      - name: Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/secrets
+            p/javascript
+            p/python
+      - name: Gitleaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  playwright-e2e:
+    name: Playwright E2E & Smoke
+    runs-on: ubuntu-latest
+    needs: fast-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+      - name: Start Dev Server
+        run: npm run dev &
+      - name: Wait for Server
+        run: npx wait-on http://localhost:3000
+      - name: Run Smoke Tests
+        run: npx playwright test --project=smoke
+      - name: Run Main E2E Tests
+        run: npx playwright test --project=chromium
+
+  visual-regression:
+    name: Visual Regression
+    runs-on: ubuntu-latest
+    needs: fast-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+      - name: Run Visual Tests
+        run: npx playwright test --project=visual
+      - name: Upload Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-visual-report
+          path: playwright-report/
+          retention-days: 30

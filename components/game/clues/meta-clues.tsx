@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 
 import { useGame } from "../game-provider";
 import { GameTooltip } from "../game-tooltip";
+import { cn } from "@/lib/utils";
 
 /**
  *
@@ -192,7 +193,10 @@ function MetaBadge({
                     }
                     return (
                       <div
-                        className="mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
+                        className={cn(
+                          "mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none transition-colors duration-300",
+                          isHovered ? "text-[oklch(0.75_0.15_60)]" : "text-foreground"
+                        )}
                         key={charIndex}
                       >
                         {char}

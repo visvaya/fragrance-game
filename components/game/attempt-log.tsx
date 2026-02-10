@@ -28,14 +28,14 @@ export function AttemptLog() {
     if (attempts.length > previousAttemptsLength.current && // Only scroll to the new attempt if the game is still playing.
       // If the game ended (won/lost), the "Game Over" scroll effect (below) takes precedence.
       gameState === "playing") {
-        const lastIndex = attempts.length - 1;
-        const element = document.getElementById(`attempt-${lastIndex}`);
-        if (element) {
-          setTimeout(() => {
-            element.scrollIntoView({ behavior: "smooth", block: "center" });
-          }, 100);
-        }
+      const lastIndex = attempts.length - 1;
+      const element = document.getElementById(`attempt-${lastIndex}`);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 100);
       }
+    }
     previousAttemptsLength.current = attempts.length;
   }, [attempts.length, gameState]);
 
@@ -212,24 +212,22 @@ export function AttemptLog() {
                   return (
                     <div className="flex flex-col gap-y-0.5 text-left">
                       {/* Row 1: Name & Concentration */}
-                      <div className="flex w-full min-w-0 flex-col overflow-hidden lg:flex-row lg:items-baseline lg:gap-x-1.5 lg:gap-y-0 gap-y-0.5">
+                      <div className="flex w-full min-w-0 flex-col lg:flex-row lg:items-baseline lg:gap-x-1.5 lg:gap-y-0 gap-y-0.5">
                         <TruncatedCell
                           className="min-w-0 shrink"
                           content={displayName}
                         />
                         {concentration && concentration !== "Unknown" ? (
-                          <TruncatedCell
-                            className="min-w-0 shrink-[5]"
-                            content={concentration}
-                            textClassName="text-muted-foreground/80 text-xs font-normal truncate tracking-normal"
-                          >
-                            <div className="flex items-center gap-1">
-                              <span className="hidden shrink-0 text-xs text-muted-foreground/30 lg:inline">
-                                •
-                              </span>
-                              <span>{concentration}</span>
-                            </div>
-                          </TruncatedCell>
+                          <div className="flex items-baseline lg:gap-1.5">
+                            <span className="hidden shrink-0 text-xs text-muted-foreground/30 lg:inline">
+                              •
+                            </span>
+                            <TruncatedCell
+                              className="min-w-0 shrink-[5]"
+                              content={concentration}
+                              textClassName="text-muted-foreground/80 text-xs font-normal truncate tracking-normal"
+                            />
+                          </div>
                         ) : null}
                       </div>
 
@@ -240,24 +238,20 @@ export function AttemptLog() {
                           className="min-w-[30px] shrink"
                           content={attempt.brand}
                           textClassName="text-xs font-normal truncate tracking-normal"
-                        >
-                          {attempt.brand}
-                        </TruncatedCell>
+                        />
 
                         {/* Year */}
                         {attempt.year ? (
-                          <TruncatedCell
-                            className="shrink-0"
-                            content={String(attempt.year)}
-                            textClassName="text-xs font-normal whitespace-nowrap tracking-normal"
-                          >
-                            <div className="flex items-center gap-1">
-                              <span className="hidden shrink-0 text-xs text-muted-foreground/30 lg:inline">
-                                •
-                              </span>
-                              <span>{attempt.year}</span>
-                            </div>
-                          </TruncatedCell>
+                          <div className="flex items-baseline lg:gap-1.5">
+                            <span className="hidden shrink-0 text-xs text-muted-foreground/30 lg:inline">
+                              •
+                            </span>
+                            <TruncatedCell
+                              className="shrink-0"
+                              content={String(attempt.year)}
+                              textClassName="text-xs font-normal whitespace-nowrap tracking-normal"
+                            />
+                          </div>
                         ) : null}
                       </div>
                     </div>
@@ -404,51 +398,51 @@ export function AttemptLog() {
                     }
 
                     return attempt.feedback.yearMatch === "correct" ? (
+                      <GameTooltip
+                        className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                        content={t("tooltips.yearCorrect")}
+                      >
+                        <div className="flex h-6 w-6 items-center justify-center">
+                          <Check className="h-4 w-4 text-success" />
+                        </div>
+                      </GameTooltip>
+                    ) : (
+                      <div className="flex h-full w-full flex-col items-center justify-center">
                         <GameTooltip
                           className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
-                          content={t("tooltips.yearCorrect")}
+                          content={
+                            attempt.feedback.yearMatch === "close"
+                              ? attempt.feedback.yearDirection === "higher"
+                                ? t("tooltips.yearCloseHigher")
+                                : t("tooltips.yearCloseLower")
+                              : attempt.feedback.yearDirection === "higher"
+                                ? t("tooltips.yearWrongHigher")
+                                : t("tooltips.yearWrongLower")
+                          }
                         >
-                          <div className="flex h-6 w-6 items-center justify-center">
-                            <Check className="h-4 w-4 text-success" />
-                          </div>
-                        </GameTooltip>
-                      ) : (
-                        <div className="flex h-full w-full flex-col items-center justify-center">
-                          <GameTooltip
-                            className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
-                            content={
+                          <span
+                            className={cn(
+                              "flex h-4 w-4 cursor-help items-center justify-center",
                               attempt.feedback.yearMatch === "close"
-                                ? attempt.feedback.yearDirection === "higher"
-                                  ? t("tooltips.yearCloseHigher")
-                                  : t("tooltips.yearCloseLower")
-                                : attempt.feedback.yearDirection === "higher"
-                                  ? t("tooltips.yearWrongHigher")
-                                  : t("tooltips.yearWrongLower")
-                            }
+                                ? "text-warning"
+                                : "text-muted-foreground opacity-50",
+                            )}
                           >
-                            <span
-                              className={cn(
-                                "flex h-4 w-4 cursor-help items-center justify-center",
-                                attempt.feedback.yearMatch === "close"
-                                  ? "text-warning"
-                                  : "text-muted-foreground opacity-50",
-                              )}
-                            >
-                              {attempt.feedback.yearDirection === "higher" ? (
-                                <ArrowUp
-                                  className="h-4 w-4 -skew-x-12 transform"
-                                  strokeWidth={1.5}
-                                />
-                              ) : (
-                                <ArrowDown
-                                  className="h-4 w-4 -skew-x-12 transform"
-                                  strokeWidth={1.5}
-                                />
-                              )}
-                            </span>
-                          </GameTooltip>
-                        </div>
-                      );
+                            {attempt.feedback.yearDirection === "higher" ? (
+                              <ArrowUp
+                                className="h-4 w-4 -skew-x-12 transform"
+                                strokeWidth={1.5}
+                              />
+                            ) : (
+                              <ArrowDown
+                                className="h-4 w-4 -skew-x-12 transform"
+                                strokeWidth={1.5}
+                              />
+                            )}
+                          </span>
+                        </GameTooltip>
+                      </div>
+                    );
                   })()}
                 </div>
 
@@ -528,28 +522,28 @@ export function AttemptLog() {
                     }
 
                     return attempt.feedback.notesMatch >= 1 ? (
-                        <GameTooltip
-                          className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
-                          content={t("tooltips.notesCorrect")}
+                      <GameTooltip
+                        className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                        content={t("tooltips.notesCorrect")}
+                      >
+                        <div className="flex h-6 w-6 items-center justify-center">
+                          <Check className="h-5 w-5 text-success" />
+                        </div>
+                      </GameTooltip>
+                    ) : (
+                      <GameTooltip
+                        className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+                        content={t("tooltips.notesPercentage", {
+                          percent: Math.round(attempt.feedback.notesMatch * 100),
+                        })}
+                      >
+                        <span
+                          className={`flex cursor-help items-center font-[family-name:var(--font-hand)] text-sm leading-none sm:text-base ${attempt.feedback.notesMatch >= 0.4 ? "text-warning" : "text-muted-foreground opacity-50"}`}
                         >
-                          <div className="flex h-6 w-6 items-center justify-center">
-                            <Check className="h-5 w-5 text-success" />
-                          </div>
-                        </GameTooltip>
-                      ) : (
-                        <GameTooltip
-                          className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
-                          content={t("tooltips.notesPercentage", {
-                            percent: Math.round(attempt.feedback.notesMatch * 100),
-                          })}
-                        >
-                          <span
-                            className={`flex cursor-help items-center font-[family-name:var(--font-hand)] text-sm leading-none sm:text-base ${attempt.feedback.notesMatch >= 0.4 ? "text-warning" : "text-muted-foreground opacity-50"}`}
-                          >
-                            {Math.round(attempt.feedback.notesMatch * 100)}%
-                          </span>
-                        </GameTooltip>
-                      );
+                          {Math.round(attempt.feedback.notesMatch * 100)}%
+                        </span>
+                      </GameTooltip>
+                    );
                   })()}
                 </div>
               </div>
@@ -580,7 +574,7 @@ export function AttemptLog() {
           },
         )}
       </div>
-    </section>
+    </section >
   );
 }
 

@@ -98,6 +98,7 @@ export function GameInput() {
   } = useGame();
   const t = useTranslations("Game.input");
   const [query, setQuery] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
 
   const [suggestions, setSuggestions] = useState<PerfumeSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -206,60 +207,63 @@ export function GameInput() {
     if (suggestions.length === 0) return;
 
     switch (e.key) {
-    case "ArrowDown": {
-      e.preventDefault();
-      // Cyclic navigation: (current + 1) % length
-      setSelectedIndex((previous) => (previous + 1) % suggestions.length);
-    
-    break;
-    }
-    case "ArrowUp": {
-      e.preventDefault();
-      // Cyclic navigation: (current - 1 + length) % length
-      setSelectedIndex(
-        (previous) => (previous - 1 + suggestions.length) % suggestions.length,
-      );
-    
-    break;
-    }
-    case "Escape": {
-      e.preventDefault();
-      setShowSuggestions(false);
-      inputReference.current?.blur();
-    
-    break;
-    }
-    case "Enter": {
-      e.preventDefault();
+      case "ArrowDown": {
+        e.preventDefault();
+        // Cyclic navigation: (current + 1) % length
+        setSelectedIndex((previous) => (previous + 1) % suggestions.length);
 
-      let perfumeToSelect = null;
-      if (selectedIndex >= 0 && suggestions[selectedIndex]) {
-        perfumeToSelect = suggestions[selectedIndex];
-      } else if (suggestions.length === 1) {
-        perfumeToSelect = suggestions[0];
+        break;
       }
-
-      if (perfumeToSelect) {
-        // Check for duplicates before selecting
-        const isDuplicate = attempts.some(
-          (a) =>
-            (a.perfumeId && a.perfumeId === perfumeToSelect.perfume_id) ||
-            (!a.perfumeId &&
-              a.guess.toLowerCase() === perfumeToSelect.name.toLowerCase()),
+      case "ArrowUp": {
+        e.preventDefault();
+        // Cyclic navigation: (current - 1 + length) % length
+        setSelectedIndex(
+          (previous) => (previous - 1 + suggestions.length) % suggestions.length,
         );
 
-        if (!isDuplicate) {
-          handleSelect(perfumeToSelect);
-        }
+        break;
       }
-    
-    break;
-    }
-    // No default
+      case "Escape": {
+        e.preventDefault();
+        setShowSuggestions(false);
+        inputReference.current?.blur();
+
+        break;
+      }
+      case "Enter": {
+        e.preventDefault();
+
+        let perfumeToSelect = null;
+        if (selectedIndex >= 0 && suggestions[selectedIndex]) {
+          perfumeToSelect = suggestions[selectedIndex];
+        } else if (suggestions.length === 1) {
+          perfumeToSelect = suggestions[0];
+        }
+
+        if (perfumeToSelect) {
+          // Check for duplicates before selecting
+          const isDuplicate = attempts.some(
+            (a) =>
+              (a.perfumeId && a.perfumeId === perfumeToSelect.perfume_id) ||
+              (!a.perfumeId &&
+                a.guess.toLowerCase() === perfumeToSelect.name.toLowerCase()),
+          );
+
+          if (!isDuplicate) {
+            handleSelect(perfumeToSelect);
+          }
+        }
+
+        break;
+      }
+      // No default
     }
   };
 
-  if (gameState !== "playing") {
+  // Check if daily challenge is actually loaded (not skeleton)
+  const isSkeleton = useGame().dailyPerfume.id === "skeleton";
+
+  if (gameState !== "playing" || isSkeleton) {
     return (
       <div
         className={cn(
@@ -271,7 +275,7 @@ export function GameInput() {
           {/* Input-like look for closed state */}
           <div className="relative flex items-center justify-center">
             <span className="font-[family-name:var(--font-hand)] text-lg text-primary">
-              {t("closed")}
+              {isSkeleton ? t("noPuzzle") : t("closed")}
             </span>
           </div>
         </div>
@@ -279,10 +283,12 @@ export function GameInput() {
     );
   }
 
+
   return (
     <div
       className={cn(
-        "sticky bottom-0 z-30 mx-auto w-full transition-all duration-300",
+        "z-30 mx-auto w-full transition-all duration-300",
+        isFocused ? "fixed bottom-0 left-0 right-0" : "sticky bottom-0",
         uiPreferences.layoutMode === "wide" ? "max-w-5xl" : "max-w-xl",
       )}
     >
@@ -299,12 +305,18 @@ export function GameInput() {
               aria-controls={listId}
               aria-expanded={shouldShowList}
               className="w-full border-b-2 border-border bg-transparent py-3 pr-10 font-[family-name:var(--font-playfair)] text-lg text-foreground transition-colors duration-300 outline-none placeholder:font-sans placeholder:text-sm placeholder:text-muted-foreground placeholder:italic focus:border-primary"
-              onBlur={() => setShowSuggestions(false)}
+              onBlur={() => {
+                setShowSuggestions(false);
+                setIsFocused(false);
+              }}
               onChange={(e) => {
                 setQuery(e.target.value);
                 setShowSuggestions(true);
               }}
-              onFocus={() => setShowSuggestions(true)}
+              onFocus={() => {
+                setShowSuggestions(true);
+                setIsFocused(true);
+              }}
               onKeyDown={handleKeyDown}
               placeholder={t("placeholder")}
               ref={inputReference}
@@ -325,8 +337,8 @@ export function GameInput() {
 
               {/* Loader Icon */}
               {(isLoading || gameLoading) ? <div className="absolute scale-100 opacity-100 transition-all duration-300 ease-out">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div> : null}
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div> : null}
 
               {/* Error Icon */}
               <div
