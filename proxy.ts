@@ -30,7 +30,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/api/db") ||
     pathname.startsWith("/ph-proxy") ||
-    pathname.startsWith("/api/events") ||
+    pathname.startsWith("/api/monitoring") ||
     /\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$/.test(pathname)
   ) {
     return NextResponse.next();
