@@ -16,7 +16,7 @@ test.describe('Smoke Tests - Critical Path @smoke', () => {
         await page.goto('/');
 
         // Check for the input field where users type perfume names
-        const inputField = page.getByPlaceholder(/Wybierz z listy|Select from list/i);
+        const inputField = page.getByRole('combobox');
         await expect(inputField).toBeVisible();
     });
 });
