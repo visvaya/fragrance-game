@@ -88,6 +88,7 @@ export function GameInput() {
   const {
     attempts,
     currentAttempt,
+    dailyPerfume,
     gameState,
     getPotentialScore,
     loading: gameLoading,
@@ -95,10 +96,11 @@ export function GameInput() {
     maxAttempts,
     sessionId,
     uiPreferences,
+    isInputFocused: isFocused,
+    setIsInputFocused: setIsFocused,
   } = useGame();
   const t = useTranslations("Game.input");
   const [query, setQuery] = useState("");
-  const [isFocused, setIsFocused] = useState(false);
 
   const [suggestions, setSuggestions] = useState<PerfumeSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -134,42 +136,45 @@ export function GameInput() {
 
   // Debounced search
   useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (query.length < 3) {
-        setSuggestions([]);
-        return;
-      }
+    let ignore = false;
 
-      let ignore = false;
-      setIsLoading(true);
+    // Reset results and loading state if query is too short
+    if (query.length < 3) {
+      setSuggestions([]);
+      setIsLoading(false);
+      return;
+    }
+
+    // Set loading to true immediately when a valid query length is reached
+    // This prevents "No results" from showing during the debounce period
+    setIsLoading(true);
+
+    const timer = setTimeout(async () => {
       try {
         const results = await searchPerfumes(
           query,
           sessionId || undefined,
           currentAttempt,
         );
-        if (!ignore) {
-          setSuggestions(results);
-        }
+        if (ignore) return;
+        setSuggestions(results);
       } catch (error) {
-        if (!ignore) {
-          console.error("Autocomplete failed:", error);
-          setSuggestions([]);
-        }
+        if (ignore) return;
+        console.error("Autocomplete failed:", error);
+        setSuggestions([]);
       } finally {
         if (!ignore) {
           setIsLoading(false);
         }
       }
-
-      return () => {
-        ignore = true;
-      };
     }, 300);
 
     setSelectedIndex(-1); // Reset selection on query change/search start
 
-    return () => clearTimeout(timer);
+    return () => {
+      ignore = true;
+      clearTimeout(timer);
+    };
   }, [query, sessionId, currentAttempt]);
 
   // Scroll into view logic
@@ -261,8 +266,20 @@ export function GameInput() {
   };
 
   // Check if daily challenge is actually loaded (not skeleton)
-  const isSkeleton = useGame().dailyPerfume.id === "skeleton";
+  const isSkeleton = dailyPerfume.id === "skeleton";
 
+  // 1. Loading State - Render nothing or a stable placeholder (prevents "No Puzzle" flash)
+  if (gameLoading) {
+    return (
+      <div className={cn("sticky bottom-0 z-30 mx-auto w-full", uiPreferences.layoutMode === "wide" ? "max-w-5xl" : "max-w-xl")}>
+        <div className="relative border-x-0 border-t border-border/50 bg-background/80 px-5 py-8 backdrop-blur-md sm:rounded-t-md sm:border-x">
+          <div className="flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Closed / No Puzzle State (Only if loaded and invalid)
   if (gameState !== "playing" || isSkeleton) {
     return (
       <div
@@ -285,189 +302,192 @@ export function GameInput() {
 
 
   return (
-    <div
-      className={cn(
-        "z-30 mx-auto w-full transition-all duration-300",
-        isFocused ? "fixed bottom-0 left-0 right-0" : "sticky bottom-0",
-        uiPreferences.layoutMode === "wide" ? "max-w-5xl" : "max-w-xl",
-      )}
-    >
-      <div className="relative" ref={wrapperReference}>
-        {/* Input Surface (Visual Layer) */}
-        <div
-          className={`relative z-20 border-x-0 border-t border-border/50 px-5 pt-[6px] pb-[calc(16px+env(safe-area-inset-bottom,20px))] backdrop-blur-md transition-colors duration-200 ease-in-out sm:border-x ${shouldShowList || hasTransitionedIn ? "rounded-t-none bg-background" : showSuggestions ? "rounded-t-none bg-background sm:rounded-t-md" : "rounded-t-none bg-background/70 sm:rounded-t-md"}`}
-        >
-          {/* Input */}
-          <div className="relative">
-            <input
-              aria-activedescendant={selectedIndex >= 0 ? `${listId}-option-${selectedIndex}` : undefined}
-              aria-autocomplete="list"
-              aria-controls={listId}
-              aria-expanded={shouldShowList}
-              className="w-full border-b-2 border-border bg-transparent py-3 pr-10 font-[family-name:var(--font-playfair)] text-lg text-foreground transition-colors duration-300 outline-none placeholder:font-sans placeholder:text-sm placeholder:text-muted-foreground placeholder:italic focus:border-primary"
-              onBlur={() => {
-                setShowSuggestions(false);
-                setIsFocused(false);
-              }}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setShowSuggestions(true);
-              }}
-              onFocus={() => {
-                setShowSuggestions(true);
-                setIsFocused(true);
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder={t("placeholder")}
-              ref={inputReference}
-              role="combobox"
-              type="text"
-              value={query}
-            />
-            <div className="pointer-events-none absolute top-1/2 right-0 flex h-8 w-8 -translate-y-1/2 items-center justify-center">
-              {/* Search Icon */}
-              <div
-                className={`absolute transition-all duration-300 ease-out ${!isLoading && !gameLoading && !isError
-                  ? "scale-100 rotate-0 opacity-100"
-                  : "scale-50 -rotate-90 opacity-0"
-                  }`}
-              >
-                <Search className="h-5 w-5 text-muted-foreground" />
+    <>
+      <div
+        className={cn(
+          "z-30 mx-auto w-full transition-all duration-300",
+          isFocused ? "fixed bottom-0 left-0 right-0 sm:sticky sm:bottom-0 sm:left-auto sm:right-auto" : "sticky bottom-0",
+          uiPreferences.layoutMode === "wide" ? "max-w-5xl" : "max-w-xl",
+        )}
+      >
+        <div className="relative" ref={wrapperReference}>
+          {/* Input Surface (Visual Layer) */}
+          <div
+            className={`relative z-20 border-x-0 border-t border-border/50 px-5 pt-[6px] pb-[calc(16px+env(safe-area-inset-bottom,20px))] backdrop-blur-md transition-colors duration-200 ease-in-out sm:border-x ${shouldShowList || hasTransitionedIn ? "rounded-t-none bg-background" : showSuggestions ? "rounded-t-none bg-background sm:rounded-t-md" : "rounded-t-none bg-background/70 sm:rounded-t-md"}`}
+          >
+            {/* Input */}
+            <div className="relative">
+              <input
+                aria-activedescendant={selectedIndex >= 0 ? `${listId}-option-${selectedIndex}` : undefined}
+                aria-autocomplete="list"
+                aria-controls={listId}
+                aria-expanded={shouldShowList}
+                className="w-full border-b-2 border-border bg-transparent py-3 pr-10 font-[family-name:var(--font-playfair)] text-lg text-foreground transition-colors duration-300 outline-none placeholder:font-sans placeholder:text-sm placeholder:text-muted-foreground placeholder:italic focus:border-primary"
+                onBlur={() => {
+                  setShowSuggestions(false);
+                  setIsFocused(false);
+                }}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => {
+                  setShowSuggestions(true);
+                  setIsFocused(true);
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder={t("placeholder")}
+                ref={inputReference}
+                role="combobox"
+                type="text"
+                value={query}
+              />
+              <div className="pointer-events-none absolute top-1/2 right-0 flex h-8 w-8 -translate-y-1/2 items-center justify-center">
+                {/* Search Icon */}
+                <div
+                  className={`absolute transition-all duration-300 ease-out ${!isLoading && !gameLoading && !isError
+                    ? "scale-100 rotate-0 opacity-100"
+                    : "scale-50 -rotate-90 opacity-0"
+                    }`}
+                >
+                  <Search className="h-5 w-5 text-muted-foreground" />
+                </div>
+
+                {/* Loader Icon */}
+                {(isLoading || gameLoading) ? <div className="absolute scale-100 opacity-100 transition-all duration-300 ease-out">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div> : null}
+
+                {/* Error Icon */}
+                <div
+                  className={`absolute transition-all duration-300 ease-out ${!isLoading && !gameLoading && isError
+                    ? "scale-100 rotate-0 opacity-100"
+                    : "scale-50 rotate-90 opacity-0"
+                    }`}
+                >
+                </div>
               </div>
 
-              {/* Loader Icon */}
-              {(isLoading || gameLoading) ? <div className="absolute scale-100 opacity-100 transition-all duration-300 ease-out">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div> : null}
 
-              {/* Error Icon */}
-              <div
-                className={`absolute transition-all duration-300 ease-out ${!isLoading && !gameLoading && isError
-                  ? "scale-100 rotate-0 opacity-100"
-                  : "scale-50 rotate-90 opacity-0"
-                  }`}
-              >
-                <X className="h-5 w-5 text-destructive" />
-              </div>
+            </div>
+
+            {/* Status bar */}
+            <div className="mt-3 flex items-center justify-between text-[10px] tracking-wide text-muted-foreground uppercase">
+              <span>
+                {t("attempt")} {currentAttempt} / {maxAttempts}
+              </span>
+              <span className="font-semibold text-primary">
+                {t("score")}: {getPotentialScore()}
+              </span>
             </div>
           </div>
 
-          {/* Status bar */}
-          <div className="mt-3 flex items-center justify-between text-[10px] tracking-wide text-muted-foreground uppercase">
-            <span>
-              {t("attempt")} {currentAttempt} / {maxAttempts}
-            </span>
-            <span className="font-semibold text-primary">
-              {t("score")}: {getPotentialScore()}
-            </span>
-          </div>
-        </div>
+          {/* Suggestions dropdown (Behind Input Surface) */}
+          {hasTransitionedIn || shouldShowList ? (
+            <div
+              className={`!absolute bottom-full left-0 z-10 max-h-56 w-full touch-pan-y !overflow-y-auto rounded-t-md border-x border-t border-border/50 bg-background ${shouldShowList
+                ? "duration-200 ease-out animate-in fade-in slide-in-from-bottom-12"
+                : "duration-200 ease-in animate-out fade-out slide-out-to-bottom-12"
+                } `}
+              data-lenis-prevent
+              id={listId}
+              onMouseDown={(e) => e.preventDefault()}
+              ref={listReference}
+              role="listbox"
+            >
+              {suggestions.length === 0 && !isLoading && !gameLoading && query.length >= 3 ? (
+                <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  {t("noResults")}
+                </div>
+              ) : (
+                suggestions.map((perfume, index) => {
+                  // Check duplicate (Using ID is more robust, fallback to name)
+                  const isDuplicate = attempts.some(
+                    (a) =>
+                      (a.perfumeId && a.perfumeId === perfume.perfume_id) ||
+                      (!a.perfumeId &&
+                        a.guess.toLowerCase() === perfume.name.toLowerCase()),
+                  );
 
-        {/* Suggestions dropdown (Behind Input Surface) */}
-        {hasTransitionedIn || shouldShowList ? (
-          <div
-            className={`!absolute bottom-full left-0 z-10 max-h-56 w-full touch-pan-y !overflow-y-auto rounded-t-md border-x border-t border-border/50 bg-background ${shouldShowList
-              ? "duration-200 ease-out animate-in fade-in slide-in-from-bottom-12"
-              : "duration-200 ease-in animate-out fade-out slide-out-to-bottom-12"
-              } `}
-            data-lenis-prevent
-            id={listId}
-            onMouseDown={(e) => e.preventDefault()}
-            ref={listReference}
-            role="listbox"
-          >
-            {suggestions.length === 0 && !isLoading && !gameLoading && query.length >= 3 ? (
-              <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                {t("noResults")}
-              </div>
-            ) : (
-              suggestions.map((perfume, index) => {
-                // Check duplicate (Using ID is more robust, fallback to name)
-                const isDuplicate = attempts.some(
-                  (a) =>
-                    (a.perfumeId && a.perfumeId === perfume.perfume_id) ||
-                    (!a.perfumeId &&
-                      a.guess.toLowerCase() === perfume.name.toLowerCase()),
-                );
+                  return (
+                    <button
+                      aria-selected={selectedIndex === index}
+                      className={`w-full border-b border-muted px-4 py-3 text-left text-sm transition-colors duration-200 last:border-b-0 ${isDuplicate ? "cursor-not-allowed" : ""} ${isDuplicate && selectedIndex !== index ? "bg-muted/20 opacity-50" : ""} ${selectedIndex === index ? "bg-muted text-primary" : ""} ${isDuplicate && selectedIndex === index ? "opacity-70" : ""} ${!isDuplicate && selectedIndex !== index ? "hover:bg-muted/50 hover:text-primary" : ""} `}
+                      data-perfume-id={perfume.perfume_id}
+                      disabled={isDuplicate}
+                      id={`${listId}-option-${index}`}
+                      key={perfume.perfume_id}
+                      onClick={() => handleSelect(perfume)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      role="option"
+                    >
+                      <span className="flex flex-wrap items-baseline gap-x-1 text-foreground">
+                        {/* Brand Revealed */}
+                        <span className="text-foreground">
+                          {perfume.brand_masked}
+                        </span>
 
-                return (
-                  <button
-                    aria-selected={selectedIndex === index}
-                    className={`w-full border-b border-muted px-4 py-3 text-left text-sm transition-colors duration-200 last:border-b-0 ${isDuplicate ? "cursor-not-allowed" : ""} ${isDuplicate && selectedIndex !== index ? "bg-muted/20 opacity-50" : ""} ${selectedIndex === index ? "bg-muted text-primary" : ""} ${isDuplicate && selectedIndex === index ? "opacity-70" : ""} ${!isDuplicate && selectedIndex !== index ? "hover:bg-muted/50 hover:text-primary" : ""} `}
-                    data-perfume-id={perfume.perfume_id}
-                    disabled={isDuplicate}
-                    id={`${listId}-option-${index}`}
-                    key={perfume.perfume_id}
-                    onClick={() => handleSelect(perfume)}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onMouseEnter={() => setSelectedIndex(index)}
-                    role="option"
-                  >
-                    <span className="flex flex-wrap items-baseline gap-x-1 text-foreground">
-                      {/* Brand Revealed */}
-                      <span className="text-foreground">
-                        {perfume.brand_masked}
-                      </span>
+                        <span className="text-muted-foreground/30">•</span>
 
-                      <span className="text-muted-foreground/30">•</span>
+                        {/* Name with highlighting */}
+                        <span
+                          className={
+                            isDuplicate
+                              ? "line-through decoration-muted-foreground"
+                              : ""
+                          }
+                        >
+                          <HighlightedText query={query} text={perfume.name} />
+                        </span>
 
-                      {/* Name with highlighting */}
-                      <span
-                        className={
-                          isDuplicate
-                            ? "line-through decoration-muted-foreground"
-                            : ""
-                        }
-                      >
-                        <HighlightedText query={query} text={perfume.name} />
-                      </span>
+                        {/* Concentration */}
+                        {perfume.concentration ? (
+                          <>
+                            <span className="text-muted-foreground/30">•</span>
+                            <span>{perfume.concentration}</span>
+                          </>
+                        ) : null}
 
-                      {/* Concentration */}
-                      {perfume.concentration ? (
-                        <>
-                          <span className="text-muted-foreground/30">•</span>
-                          <span>{perfume.concentration}</span>
-                        </>
-                      ) : null}
-
-                      {/* Year Masked */}
-                      {perfume.year ? (
-                        <>
-                          <span className="text-muted-foreground/30">•</span>
-                          <span className="inline-flex items-baseline">
-                            {perfume.year.includes("_") ? (
-                              // If it contains dots, apply masking logic:
-                              // If full placeholder "____", use opacity-30 (lighter)
-                              // If partial "19__", use opacity-50 for dots
-                              perfume.year === "____" ? (
-                                <span className="font-mono tracking-widest text-muted-foreground opacity-30">
-                                  ____
-                                </span>
-                              ) : (
-                                perfume.year.split("").map((char, i) => (
-                                  <span
-                                    className={`${char === "_" ? "font-mono text-muted-foreground opacity-40" : "text-foreground"} whitespace-pre`}
-                                    key={i}
-                                  >
-                                    {char}
+                        {/* Year Masked */}
+                        {perfume.year ? (
+                          <>
+                            <span className="text-muted-foreground/30">•</span>
+                            <span className="inline-flex items-baseline">
+                              {perfume.year.includes("_") ? (
+                                // If it contains dots, apply masking logic:
+                                // If full placeholder "____", use opacity-30 (lighter)
+                                // If partial "19__", use opacity-50 for dots
+                                perfume.year === "____" ? (
+                                  <span className="font-mono tracking-widest text-muted-foreground opacity-30">
+                                    ____
                                   </span>
-                                ))
-                              )
-                            ) : (
-                              // Fully revealed year
-                              <span>{perfume.year}</span>
-                            )}
-                          </span>
-                        </>
-                      ) : null}
-                    </span>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        ) : null}
+                                ) : (
+                                  perfume.year.split("").map((char, i) => (
+                                    <span
+                                      className={`${char === "_" ? "font-mono text-muted-foreground opacity-40" : "text-foreground"} whitespace-pre`}
+                                      key={i}
+                                    >
+                                      {char}
+                                    </span>
+                                  ))
+                                )
+                              ) : (
+                                // Fully revealed year
+                                <span>{perfume.year}</span>
+                              )}
+                            </span>
+                          </>
+                        ) : null}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          ) : null}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

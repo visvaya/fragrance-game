@@ -13,9 +13,6 @@ test.describe('Visual Regression - Core Pages @visual', () => {
 
     test('Game Page initial state snapshot', async ({ page }) => {
         await page.goto('/');
-        const startButton = page.getByRole('link', { name: /Graj/i }).or(page.getByRole('button', { name: /Graj/i }));
-        await startButton.click();
-
         await page.waitForLoadState('networkidle');
         // We might have a dynamic daily perfume, so we might want to mask some parts
         // or just check the general layout

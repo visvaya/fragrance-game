@@ -39,12 +39,12 @@
     "reset": "Reset"
   },
   "Footer": {
-    "selectHelper": "Select from list ↑",
     "contact": "Contact",
     "privacy": "Privacy Policy",
     "terms": "Terms",
     "copyright": "© 2025 Eauxle. Designed for Fragheads.",
-    "slogan": "Train your nose, one day at a time..."
+    "slogan": "Train your nose, one day at a time...",
+    "selectHelper": "Select from list"
   },
   "GameBoard": {
     "magnifique": "Magnifique!",

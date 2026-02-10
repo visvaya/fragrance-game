@@ -39,12 +39,12 @@
     "reset": "Zresetuj"
   },
   "Footer": {
-    "selectHelper": "Wybierz z listy ↑",
     "contact": "Kontakt",
     "privacy": "Polityka prywatności",
     "terms": "Regulamin",
     "copyright": "© 2025 Eauxle. Dla perfumomaniaków!",
-    "slogan": "Trenuj swój nos, dzień po dniu..."
+    "slogan": "Trenuj swój nos, dzień po dniu...",
+    "selectHelper": "Wybierz z listy"
   },
   "GameBoard": {
     "magnifique": "Magnifique!",

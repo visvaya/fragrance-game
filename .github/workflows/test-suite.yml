@@ -34,7 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Security Check Script
-        run: python .agent/scripts/security-check.py
+        run: python scripts/security-check.py
       - name: Semgrep
         uses: returntocorp/semgrep-action@v1
         with:
@@ -62,10 +62,6 @@ jobs:
         run: npm ci
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
-      - name: Start Dev Server
-        run: npm run dev &
-      - name: Wait for Server
-        run: npx wait-on http://localhost:3000
       - name: Run Smoke Tests
         run: npx playwright test --project=smoke
       - name: Run Main E2E Tests
@@ -86,6 +82,9 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
       - name: Run Visual Tests
+        env:
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
         run: npx playwright test --project=visual
       - name: Upload Report
         if: always()

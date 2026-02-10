@@ -140,7 +140,7 @@ export function GameHeader() {
           >
             <a
               className="flex items-center justify-between border-b border-border px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
-              href="#"
+              href={null as any}
             >
               {t("archive")}
               <span className="font-sans text-[10px] text-muted-foreground uppercase">
@@ -149,7 +149,7 @@ export function GameHeader() {
             </a>
             <a
               className="border-b border-border px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
-              href="#"
+              href={null as any}
             >
               {t("about")}
             </a>
@@ -251,7 +251,7 @@ export function GameHeader() {
 
             <a
               className="px-5 py-3 font-[family-name:var(--font-playfair)] text-primary transition-all duration-300 hover:pl-6"
-              href="#"
+              href={null as any}
             >
               {t("support")}
             </a>

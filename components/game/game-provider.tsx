@@ -110,6 +110,8 @@ type GameContextType = {
     theme: "light" | "dark";
   };
   xsolveScore: number;
+  isInputFocused: boolean;
+  setIsInputFocused: (focused: boolean) => void;
 };
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -140,6 +142,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     "/placeholder.svg?height=400&width=400",
   );
   const [loading, setLoading] = useState(true);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [dailyPerfume, setDailyPerfume] =
     useState<typeof SKELETON_PERFUME>(SKELETON_PERFUME);
@@ -959,6 +962,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         toggleTheme,
         uiPreferences: { fontScale, layoutMode, theme },
         xsolveScore: dailyPerfume.xsolve,
+        isInputFocused,
+        setIsInputFocused,
       }}
     >
       {children}

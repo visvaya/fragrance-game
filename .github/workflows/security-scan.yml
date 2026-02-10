@@ -51,4 +51,4 @@ jobs:
           python-version: '3.12'
       - name: Run security-check.py
         run: |
-          find . -maxdepth 3 -not -path '*/.*' -type f | xargs -I {} python .agent/scripts/security-check.py {}
+          find . -maxdepth 3 -not -path '*/.*' -type f | xargs -I {} python scripts/security-check.py {}
