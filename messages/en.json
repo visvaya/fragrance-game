@@ -64,6 +64,7 @@
     "feedbackWrong": "Incorrect",
     "scoreTitle": "Scoring:",
     "scoreDesc": "Fewer guesses = higher score.",
+    "doubleEnter": "Double-click \"Enter\" to select the first available item from the list.",
     "note": "A new perfume is released every day at midnight.",
     "ariaClose": "Close"
   },

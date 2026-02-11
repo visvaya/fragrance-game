@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 import {
   Menu,
@@ -42,6 +42,9 @@ export function GameHeader() {
 
   const currentLang = locale === "pl" ? "PL" : "EN";
 
+  // Disable all tooltips when any dropdown/menu is open to prevent UI overlap
+  const anyDropdownOpen = menuOpen || langOpen;
+
   const changeLanguage = (newLocale: string) => {
     router.replace(pathname, { locale: newLocale });
     setLangOpen(false);
@@ -62,6 +65,7 @@ export function GameHeader() {
             <GameTooltip
               className="cursor-pointer"
               content={t("menu")}
+              disabled={anyDropdownOpen}
               disableOnMobile
             >
               <button
@@ -76,6 +80,7 @@ export function GameHeader() {
             <GameTooltip
               className="cursor-pointer"
               content={t("help")}
+              disabled={anyDropdownOpen}
               disableOnMobile
             >
               <button
@@ -97,12 +102,13 @@ export function GameHeader() {
           <div className="flex items-center gap-2 md:gap-4">
             {/* Reset Button (Debug) placed before Language */}
             <div className="relative hidden sm:block">
-              <ResetButton />
+              <ResetButton tooltipDisabled={anyDropdownOpen} />
             </div>
 
             <GameTooltip
               className="cursor-pointer"
               content={t("language")}
+              disabled={anyDropdownOpen}
               disableOnMobile
             >
               <button
@@ -117,6 +123,7 @@ export function GameHeader() {
             <GameTooltip
               className="cursor-pointer"
               content={t("stats")}
+              disabled={anyDropdownOpen}
               disableOnMobile
             >
               <button
@@ -138,21 +145,21 @@ export function GameHeader() {
                 : "hidden -translate-y-2 opacity-0",
             )}
           >
-            <a
+            <button
               className="flex items-center justify-between border-b border-border px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
-              href={null as any}
+              onClick={(e) => e.preventDefault()}
             >
               {t("archive")}
               <span className="font-sans text-[10px] text-muted-foreground uppercase">
                 (240)
               </span>
-            </a>
-            <a
-              className="border-b border-border px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
-              href={null as any}
+            </button>
+            <button
+              className="border-b border-border px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary text-left"
+              onClick={(e) => e.preventDefault()}
             >
               {t("about")}
-            </a>
+            </button>
 
             {/* Appearance Section */}
             <div className="border-b border-border bg-muted/20 px-5 py-3">
@@ -249,12 +256,12 @@ export function GameHeader() {
             {/* Mobile Reset Action */}
             <MobileResetItem />
 
-            <a
-              className="px-5 py-3 font-[family-name:var(--font-playfair)] text-primary transition-all duration-300 hover:pl-6"
-              href={null as any}
+            <button
+              className="px-5 py-3 font-[family-name:var(--font-playfair)] text-primary transition-all duration-300 hover:pl-6 text-left"
+              onClick={(e) => e.preventDefault()}
             >
               {t("support")}
-            </a>
+            </button>
           </div>
 
           {/* Language Dropdown */}
@@ -287,11 +294,20 @@ export function GameHeader() {
       {/* Click outside to close dropdowns */}
       {menuOpen || langOpen ? (
         <div
+          aria-label="Close menu"
           className="fixed inset-0 z-40"
           onClick={() => {
             setMenuOpen(false);
             setLangOpen(false);
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setMenuOpen(false);
+              setLangOpen(false);
+            }
+          }}
+          role="button"
+          tabIndex={-1}
         />
       ) : null}
 

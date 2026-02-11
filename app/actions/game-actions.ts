@@ -262,6 +262,16 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     throw new Error("Perfume not found for challenge");
   }
 
+  // CRITICAL: xsolve_score must be present for difficulty calculation
+  // This should never happen if eligible_perfumes view is used correctly,
+  // but we validate defensively to catch any manual insertions or bugs.
+  if (perfume.xsolve_score == null) {
+    throw new Error(
+      `Perfume ${perfume.name} (ID: ${challengePrivate.perfume_id}) has no xsolve_score. ` +
+      "Only perfumes with calculated difficulty scores can be used in challenges."
+    );
+  }
+
   const brandName = (perfume.brands as { name: string } | null)?.name ?? "Unknown";
   const concentrationName = (perfume.concentrations as { name: string } | null)?.name ?? "Unknown";
 
@@ -281,7 +291,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
         perfume.perfumers && perfume.perfumers.length > 0
           ? perfume.perfumers.join(", ")
           : "Unknown",
-      xsolve: perfume.xsolve_score ?? 0,
+      xsolve: perfume.xsolve_score, // Now guaranteed to be a number
       year: perfume.release_year ?? 0,
     },
   } as DailyChallenge;

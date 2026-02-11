@@ -239,10 +239,7 @@ function DropdownMenuSeparator({
  * @param root0
  * @param root0.className
  */
-function DropdownMenuShortcut({
-  className,
-  ...props
-}: ComponentProps<"span">) {
+function DropdownMenuShortcut({ className, ...props }: ComponentProps<"span">) {
   return (
     <span
       className={cn(
@@ -334,4 +331,3 @@ export {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 };
-

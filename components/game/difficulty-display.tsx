@@ -7,19 +7,16 @@ import { useTranslations } from "next-intl";
  */
 export function DifficultyDisplay({ score }: { score: number }) {
   const t = useTranslations("Difficulty");
-  // Convert 0-1 to 1-5 stars
-  const stars = Math.round(score * 5);
   // Based on DB percentiles: p80=0.58, p60=0.51, p40=0.43, p20=0.35
-  const label =
-    score >= 0.58
-      ? t("expert")
-      : score >= 0.51
-        ? t("hard")
-        : score >= 0.43
-          ? t("medium")
-          : score >= 0.35
-            ? t("easy")
-            : t("beginner");
+  const getDifficulty = (s: number) => {
+    if (s >= 0.58) return { label: t("expert"), stars: 5 };
+    if (s >= 0.51) return { label: t("hard"), stars: 4 };
+    if (s >= 0.43) return { label: t("medium"), stars: 3 };
+    if (s >= 0.35) return { label: t("easy"), stars: 2 };
+    return { label: t("beginner"), stars: 1 };
+  };
+
+  const { label, stars } = getDifficulty(score);
 
   return (
     <div className="flex items-center justify-center gap-2">

@@ -14,15 +14,16 @@ import {
 
 import { useGame } from "./game-provider";
 
-// TODO: REMOVE BEFORE PRODUCTION
+// Debug component: Resetting game state (remove before production)
 // This component allows resetting the game state for debugging purposes.
 /**
  *
  */
-export function ResetButton() {
+export function ResetButton({ tooltipDisabled = false }: Readonly<{ tooltipDisabled?: boolean }>) {
   const { resetGame } = useGame();
   const [showConfirm, setShowConfirm] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [tooltipOpen, setTooltipOpen] = useState(false);
   const t = useTranslations("ResetButton");
 
   const handleConfirmedReset = async () => {
@@ -35,10 +36,10 @@ export function ResetButton() {
     }
   };
 
-  if (!showConfirm) {
-    return (
+  return (
+    <>
       <TooltipProvider delayDuration={0}>
-        <Tooltip>
+        <Tooltip onOpenChange={setTooltipOpen} open={tooltipDisabled ? false : tooltipOpen}>
           <TooltipTrigger asChild>
             <button
               aria-label={t("ariaLabel")}
@@ -51,28 +52,28 @@ export function ResetButton() {
           <TooltipContent>{t("tooltip")}</TooltipContent>
         </Tooltip>
       </TooltipProvider>
-    );
-  }
 
-  return (
-    <div className="absolute top-full right-0 z-50 mt-2 w-max rounded border border-border bg-card px-4 py-2 text-card-foreground shadow-lg">
-      <p className="mb-2 text-sm font-semibold">{t("question")}</p>
-      <div className="flex justify-end gap-2">
-        <button
-          className="px-2 py-1 text-xs hover:underline disabled:opacity-50"
-          disabled={isResetting}
-          onClick={() => setShowConfirm(false)}
-        >
-          {t("cancel")}
-        </button>
-        <button
-          className="rounded bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          disabled={isResetting}
-          onClick={handleConfirmedReset}
-        >
-          {isResetting ? "..." : t("confirm")}
-        </button>
-      </div>
-    </div>
+      {showConfirm ? (
+        <div className="absolute top-full right-0 z-50 mt-2 w-max rounded border border-border bg-card px-4 py-2 text-card-foreground shadow-lg">
+          <p className="mb-2 text-sm font-semibold">{t("question")}</p>
+          <div className="flex justify-end gap-2">
+            <button
+              className="px-2 py-1 text-xs hover:underline disabled:opacity-50"
+              disabled={isResetting}
+              onClick={() => setShowConfirm(false)}
+            >
+              {t("cancel")}
+            </button>
+            <button
+              className="rounded bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              disabled={isResetting}
+              onClick={handleConfirmedReset}
+            >
+              {isResetting ? "..." : t("confirm")}
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

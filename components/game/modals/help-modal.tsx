@@ -43,10 +43,19 @@ export function HelpModal({ onClose, open }: HelpModalProperties) {
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 p-5 backdrop-blur-sm duration-300 animate-in fade-in"
       onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          onClose();
+        }
+      }}
+      role="button"
+      tabIndex={0}
     >
       <div
         className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-xl border border-border bg-background duration-300 animate-in slide-in-from-bottom-4"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        role="presentation"
       >
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-border p-6 pb-4">
@@ -124,6 +133,12 @@ export function HelpModal({ onClose, open }: HelpModalProperties) {
               <span className="text-primary">•</span>
               <span>
                 <strong>{t("scoreTitle")}</strong> {t("scoreDesc")}
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-primary">•</span>
+              <span>
+                {t("doubleEnter")}
               </span>
             </li>
           </ul>

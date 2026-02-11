@@ -265,10 +265,7 @@ function MenubarSeparator({
  * @param root0
  * @param root0.className
  */
-function MenubarShortcut({
-  className,
-  ...props
-}: ComponentProps<"span">) {
+function MenubarShortcut({ className, ...props }: ComponentProps<"span">) {
   return (
     <span
       className={cn(
@@ -285,9 +282,7 @@ function MenubarShortcut({
  *
  * @param root0
  */
-function MenubarSub({
-  ...props
-}: ComponentProps<typeof MenubarPrimitive.Sub>) {
+function MenubarSub({ ...props }: ComponentProps<typeof MenubarPrimitive.Sub>) {
   return <MenubarPrimitive.Sub data-slot="menubar-sub" {...props} />;
 }
 
@@ -361,4 +356,3 @@ export {
   MenubarSubTrigger,
   MenubarSubContent,
 };
-

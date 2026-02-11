@@ -295,10 +295,7 @@ function ContextMenuSeparator({
  * @param root0
  * @param root0.className
  */
-function ContextMenuShortcut({
-  className,
-  ...props
-}: ComponentProps<"span">) {
+function ContextMenuShortcut({ className, ...props }: ComponentProps<"span">) {
   return (
     <span
       className={cn(
@@ -328,4 +325,3 @@ export {
   ContextMenuSubTrigger,
   ContextMenuRadioGroup,
 };
-

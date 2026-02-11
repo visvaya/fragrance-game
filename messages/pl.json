@@ -64,6 +64,7 @@
     "feedbackWrong": "Niepoprawne",
     "scoreTitle": "Punktacja:",
     "scoreDesc": "Mniej prób = wyższy wynik.",
+    "doubleEnter": "Podwójne kliknięcie przycisku \"Enter\" wybiera pierwszy dostępny element z listy.",
     "note": "Nowe perfumy są udostępniane codziennie o północy UTC.",
     "ariaClose": "Zamknij"
   },

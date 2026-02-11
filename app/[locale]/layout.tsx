@@ -1,10 +1,9 @@
 import type React from "react";
 
-import type { Viewport } from "next";
 
 import { Geist, Geist_Mono, Playfair_Display, Caveat } from "next/font/google";
 import { notFound } from "next/navigation";
-import { routing } from "@/i18n/routing";
+
 
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -15,6 +14,9 @@ import { PostHogProvider } from "@/components/providers/posthog-provider";
 import { SentryProvider } from "@/components/providers/sentry-provider";
 import { SmoothScrollProvider } from "@/components/providers/smooth-scroll-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { routing } from "@/i18n/routing";
+
+import type { Viewport } from "next";
 import "@/app/globals.css";
 
 /**
@@ -93,6 +95,9 @@ export async function generateMetadata({
   };
 }
 
+/**
+ *
+ */
 export async function generateViewport({
   params,
 }: {
@@ -101,6 +106,7 @@ export async function generateViewport({
   await params; // Ensure it's awaited for Next.js 16 compliance
   return {
     initialScale: 1,
+    interactiveWidget: "resizes-content",
     themeColor: [
       { color: "#FDFBF7", media: "(prefers-color-scheme: light)" },
       { color: "#1F1F22", media: "(prefers-color-scheme: dark)" },
@@ -134,13 +140,11 @@ export default async function RootLayout({
   return (
     <html lang={locale || "en"} suppressHydrationWarning>
       <head>
-        {process.env.NEXT_PUBLIC_SUPABASE_URL && (
-          <link
+        {process.env.NEXT_PUBLIC_SUPABASE_URL ? <link
             crossOrigin="anonymous"
             href={process.env.NEXT_PUBLIC_SUPABASE_URL}
             rel="preconnect"
-          />
-        )}
+          /> : null}
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${caveat.variable} font-sans antialiased`}
