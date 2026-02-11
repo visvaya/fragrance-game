@@ -16,16 +16,16 @@ Codzienna gra logiczna dla miłośników perfum. Odgadnij tajemniczy zapach na p
 ### Wymagania
 
 - Node.js 20+
-- npm
+- pnpm
 
 ### Instalacja
 
 ```bash
 # Zainstaluj zależności
-npm install
+pnpm install
 
 # Uruchom serwer deweloperski
-npm run dev
+pnpm dev
 ```
 
 Aplikacja będzie dostępna pod adresem [http://localhost:3000](http://localhost:3000).
