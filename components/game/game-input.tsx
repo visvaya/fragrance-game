@@ -343,7 +343,7 @@ export function GameInput() {
   return (
     <div
       className={cn(
-        "sticky bottom-0 z-30 mx-auto w-full transition-all duration-300",
+        "sticky bottom-0 z-30 mx-auto w-full",
         uiPreferences.layoutMode === "wide" ? "max-w-5xl" : "max-w-xl",
       )}
     >
@@ -351,8 +351,7 @@ export function GameInput() {
         {/* Input Surface (Visual Layer) */}
         <div
           className={cn(
-            "relative z-20 border-x-0 border-t border-border/50 px-5 pt-[6px] backdrop-blur-md transition-all duration-200 ease-in-out sm:border-x",
-            isFocused ? "pb-4" : "pb-[calc(16px+env(safe-area-inset-bottom,20px))]",
+            "relative z-20 border-x-0 border-t border-border/50 px-5 pt-[2px] pb-3 backdrop-blur-md transition-colors duration-200 ease-in-out sm:border-x",
             surfaceClasses
           )}
         >
@@ -363,7 +362,7 @@ export function GameInput() {
               aria-autocomplete="list"
               aria-controls={listId}
               aria-expanded={shouldShowList}
-              className="w-full border-b-2 border-border bg-transparent py-3 pr-10 font-[family-name:var(--font-playfair)] text-lg text-foreground transition-colors duration-300 outline-none placeholder:font-sans placeholder:text-sm placeholder:text-muted-foreground placeholder:italic focus:border-primary"
+              className="w-full border-b-2 border-border bg-transparent pt-3 pb-2 pr-10 font-[family-name:var(--font-playfair)] text-lg text-foreground transition-colors duration-300 outline-none placeholder:font-[family-name:var(--font-playfair)] placeholder:text-sm placeholder:text-muted-foreground placeholder:italic focus:border-primary"
               data-testid="game-input"
               onBlur={() => {
                 setShowSuggestions(false);
@@ -384,7 +383,7 @@ export function GameInput() {
               type="text"
               value={query}
             />
-            <div className="pointer-events-none absolute top-1/2 right-0 flex h-8 w-8 -translate-y-1/2 items-center justify-center">
+            <div className="pointer-events-none absolute top-[calc(50%+1px)] right-0 flex h-8 w-8 -translate-y-1/2 items-center justify-center">
               {/* Search Icon */}
               <div
                 className={cn(

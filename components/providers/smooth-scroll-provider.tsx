@@ -11,11 +11,15 @@ import Lenis from "lenis";
  */
 export function SmoothScrollProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
+    // Disable Lenis on mobile/tablet to allow native scrolling to handle 
+    // sticky elements and browser UI bars correctly.
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      return;
+    }
+
     const lenis = new Lenis({
       gestureOrientation: "vertical",
       lerp: 0.08,
-      // duration: 1.2,
-      // easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: "vertical",
       smoothWheel: true,
       touchMultiplier: 1.5,

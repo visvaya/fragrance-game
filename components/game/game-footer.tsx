@@ -15,7 +15,7 @@ export function GameFooter() {
 
 
   return (
-    <footer className="w-full border-t border-border bg-secondary/50 pb-[env(safe-area-inset-bottom)]">
+    <footer className="relative z-10 w-full border-t border-border bg-secondary pb-[env(safe-area-inset-bottom)]">
       <div
         className={cn(
           "relative mx-auto flex flex-col items-center px-5 pt-8 pb-8 transition-all duration-300",

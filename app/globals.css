@@ -192,13 +192,14 @@ html.large-text {
   }
 
   html {
-    @apply bg-background text-foreground;
+    background-color: hsl(var(--secondary));
+    overscroll-behavior: none;
   }
 
   body {
-    @apply relative min-h-screen text-foreground transition-colors duration-300 ease-in-out;
+    @apply relative min-h-[100dvh] flex flex-col bg-background text-foreground transition-colors duration-300 ease-in-out;
+    overscroll-behavior-y: none;
     isolation: isolate;
-    /* Creates stacking context so z-index: -1 pseudo-element sits above background */
   }
 
   /* Noise Texture (Cold Press Paper) */
@@ -227,11 +228,9 @@ html.large-text {
 }
 
 @utility bg-gradient-amber {
-  background: linear-gradient(
-    135deg,
-    oklch(0.72 0.16 55) 0%,
-    oklch(0.68 0.18 50) 100%
-  );
+  background: linear-gradient(135deg,
+      oklch(0.72 0.16 55) 0%,
+      oklch(0.68 0.18 50) 100%);
 }
 
 /* Custom handwritten marker circle animation */
@@ -293,13 +292,11 @@ html.large-text {
   bottom: -4px;
   width: 100%;
   height: 3px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--primary) 10%,
-    var(--primary) 90%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      var(--primary) 10%,
+      var(--primary) 90%,
+      transparent 100%);
   border-radius: 50%;
   transform: rotate(-1deg);
   opacity: 0.7;
