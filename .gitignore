@@ -8,11 +8,13 @@
 /out/
 /build
 .vercel
+.serena
 
 # Linting & caching
 .eslintcache
 .ruff_cache/
 .mypy_cache/
+.pytest_cache/
 
 # TypeScript
 *.tsbuildinfo
@@ -51,6 +53,8 @@ coverage/
 /test-results/
 /lighthouse-report*
 /lighthouse.json
+a11y_report.txt
+lint_*.txt
 
 # Misc
 page_dump.html
