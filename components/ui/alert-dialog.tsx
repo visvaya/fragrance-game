@@ -91,10 +91,7 @@ function AlertDialogContent({
  * @param root0
  * @param root0.className
  */
-function AlertDialogHeader({
-  className,
-  ...props
-}: ComponentProps<"div">) {
+function AlertDialogHeader({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
@@ -109,10 +106,7 @@ function AlertDialogHeader({
  * @param root0
  * @param root0.className
  */
-function AlertDialogFooter({
-  className,
-  ...props
-}: ComponentProps<"div">) {
+function AlertDialogFooter({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       className={cn(
@@ -208,4 +202,3 @@ export {
   AlertDialogAction,
   AlertDialogCancel,
 };
-

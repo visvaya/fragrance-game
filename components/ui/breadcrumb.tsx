@@ -117,10 +117,7 @@ function BreadcrumbSeparator({
  * @param root0
  * @param root0.className
  */
-function BreadcrumbEllipsis({
-  className,
-  ...props
-}: ComponentProps<"span">) {
+function BreadcrumbEllipsis({ className, ...props }: ComponentProps<"span">) {
   return (
     <span
       aria-hidden="true"
@@ -144,4 +141,3 @@ export {
   BreadcrumbSeparator,
   BreadcrumbEllipsis,
 };
-

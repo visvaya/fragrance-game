@@ -39,7 +39,7 @@ export async function trackEvent(
       error instanceof Error ? error.message : "Unknown error";
     console.error(
       "Failed to track event (sanitized):",
-      errorMessage.replaceAll('\n', " "),
+      errorMessage.replaceAll("\n", " "),
     );
   }
 }
@@ -66,7 +66,7 @@ export async function identifyUser(
       error instanceof Error ? error.message : "Unknown error";
     console.error(
       "Failed to identify user (sanitized):",
-      errorMessage.replaceAll('\n', " "),
+      errorMessage.replaceAll("\n", " "),
     );
   }
 }

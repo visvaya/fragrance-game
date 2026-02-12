@@ -1,7 +1,14 @@
 "use client";
 
 import type React from "react";
-import { createContext, useContext, useId, useMemo, type ComponentProps, type CSSProperties } from "react";
+import {
+  createContext,
+  useContext,
+  useId,
+  useMemo,
+  type ComponentProps,
+  type CSSProperties,
+} from "react";
 
 import * as RechartsPrimitive from "recharts";
 
@@ -58,7 +65,7 @@ function ChartContainer({
   config: ChartConfig;
 }) {
   const uniqueId = useId();
-  const chartId = `chart-${id ?? uniqueId.replaceAll(':', "")}`;
+  const chartId = `chart-${id ?? uniqueId.replaceAll(":", "")}`;
 
   return (
     <ChartContext.Provider value={{ config }}>
@@ -80,7 +87,7 @@ function ChartContainer({
   );
 }
 
-const ChartStyle = ({ config, id }: { config: ChartConfig; id: string; }) => {
+const ChartStyle = ({ config, id }: { config: ChartConfig; id: string }) => {
   const colorConfig = Object.entries(config).filter(
     ([, config]) => config.theme ?? config.color,
   );
@@ -97,13 +104,12 @@ const ChartStyle = ({ config, id }: { config: ChartConfig; id: string; }) => {
             ([theme, prefix]) => `
 ${prefix} [data-chart=${id}] {
 ${colorConfig
-                .map(([key, itemConfig]) => {
-                  const color =
-                    itemConfig.theme?.[theme as keyof typeof THEMES] ??
-                    itemConfig.color;
-                  return color ? `  --color-${key}: ${color};` : null;
-                })
-                .join("\n")}
+  .map(([key, itemConfig]) => {
+    const color =
+      itemConfig.theme?.[theme as keyof typeof THEMES] ?? itemConfig.color;
+    return color ? `  --color-${key}: ${color};` : null;
+  })
+  .join("\n")}
 }
 `,
           )
@@ -166,7 +172,7 @@ function ChartTooltipContent({
     const itemConfig = getPayloadConfigFromPayload(config, item, key);
     const value =
       !labelKey && typeof label === "string"
-        ? config[label].label ?? label
+        ? (config[label].label ?? label)
         : itemConfig?.label;
 
     if (labelFormatter) {
@@ -323,7 +329,9 @@ function ChartLegendContent({
       )}
     >
       {payload.map((item) => {
-        const key = nameKey ?? (typeof item.dataKey === "string" ? item.dataKey : "value");
+        const key =
+          nameKey ??
+          (typeof item.dataKey === "string" ? item.dataKey : "value");
         const itemConfig = getPayloadConfigFromPayload(config, item, key);
 
         return (
@@ -361,8 +369,8 @@ function getPayloadConfigFromPayload(
 
   const payloadPayload =
     "payload" in payload &&
-      typeof payload.payload === "object" &&
-      payload.payload !== null
+    typeof payload.payload === "object" &&
+    payload.payload !== null
       ? (payload.payload as Record<string, unknown>)
       : undefined;
 
@@ -392,6 +400,3 @@ export {
   ChartLegendContent,
   ChartStyle,
 };
-
-
-

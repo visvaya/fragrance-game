@@ -223,7 +223,7 @@ function generateSmartRevealOrder(length: number): number[] {
   const centerRelative = Math.floor((subLength - 1) / 2);
   const centerAbsolute = subStart + centerRelative;
 
-  const order: number[] = [ centerAbsolute];
+  const order: number[] = [centerAbsolute];
 
   let left = centerAbsolute - 1;
   let right = centerAbsolute + 1;
@@ -246,8 +246,10 @@ function generateSmartRevealOrder(length: number): number[] {
   // Finally, reveal the first letter (Brand Capital)
   order.push(0);
 
-  console.log(
-    `SmartReveal(${length}): SubLen=${subLength}, Center=${centerAbsolute}, Order=${JSON.stringify(order)}`,
-  );
+  if (process.env.NODE_ENV === "development") {
+    console.log(
+      `SmartReveal(${length}): SubLen=${subLength}, Center=${centerAbsolute}, Order=${JSON.stringify(order)}`,
+    );
+  }
   return order;
 }

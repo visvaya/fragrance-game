@@ -51,7 +51,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
       - name: Run security-check.py
         run: |
           find . -maxdepth 3 -not -path '*/.*' -type f | xargs -I {} python scripts/security-check.py {}

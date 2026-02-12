@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useRef, useEffect, useId } from "react";
+import { useState, useRef, useEffect, useId, useMemo, memo } from "react";
 
 import { Search, Loader2, X } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -13,72 +13,78 @@ import {
 import { useMountTransition } from "@/hooks/use-mount-transition";
 import { cn, normalizeText } from "@/lib/utils";
 
-import { useGame } from "./game-provider";
+import { useGameState, useGameActions, useUIPreferences } from "./contexts";
 
-function HighlightedText({ query, text }: Readonly<{ query: string; text: string; }>) {
-  if (!query || query.trim().length < 2) return <>{text}</>;
+const HighlightedText = memo(
+  ({ query, text }: Readonly<{ query: string; text: string }>) => {
+    const tokens = useMemo(() => {
+      if (!query || query.trim().length < 2) return [text];
 
-  const normalizedText = normalizeText(text);
-  const searchTerms = query
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((term) => term.length >= 2)
-    .map((term) => normalizeText(term));
+      const normalizedText = normalizeText(text);
+      const searchTerms = query
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((term) => term.length >= 2)
+        .map((term) => normalizeText(term));
 
-  if (searchTerms.length === 0) return <>{text}</>;
+      if (searchTerms.length === 0) return [text];
 
-  // Find all matches for all terms
-  const matches: { end: number; start: number; }[] = [];
-  for (const term of searchTerms) {
-    let startPos = 0;
-    while ((startPos = normalizedText.indexOf(term, startPos)) !== -1) {
-      matches.push({ end: startPos + term.length, start: startPos });
-      startPos += 1;
-    }
-  }
-
-  if (matches.length === 0) return <>{text}</>;
-
-  // Sort matches
-  matches.sort((a, b) => a.start - b.start || b.end - a.end);
-
-  // Merge matches
-  const mergedMatches: { end: number; start: number; }[] = [];
-  if (matches.length > 0) {
-    let currentMatch = matches[0];
-    for (let i = 1; i < matches.length; i++) {
-      if (matches[i].start <= currentMatch.end) {
-        currentMatch.end = Math.max(currentMatch.end, matches[i].end);
-      } else {
-        mergedMatches.push(currentMatch);
-        currentMatch = matches[i];
+      // Find all matches for all terms
+      const matches: { end: number; start: number }[] = [];
+      for (const term of searchTerms) {
+        let startPos = 0;
+        while ((startPos = normalizedText.indexOf(term, startPos)) !== -1) {
+          matches.push({ end: startPos + term.length, start: startPos });
+          startPos += 1;
+        }
       }
-    }
-    mergedMatches.push(currentMatch);
-  }
 
-  // Build result
-  const result: React.ReactNode[] = [];
-  let lastIndex = 0;
+      if (matches.length === 0) return [text];
 
-  for (const [index, match] of mergedMatches.entries()) {
-    if (match.start > lastIndex) {
-      result.push(text.slice(lastIndex, match.start));
-    }
-    result.push(
-      <b className="font-bold" key={index}>
-        {text.slice(match.start, match.end)}
-      </b>,
-    );
-    lastIndex = match.end;
-  }
+      // Sort matches
+      matches.sort((a, b) => a.start - b.start || b.end - a.end);
 
-  if (lastIndex < text.length) {
-    result.push(text.slice(lastIndex));
-  }
+      // Merge matches
+      const mergedMatches: { end: number; start: number }[] = [];
+      if (matches.length > 0) {
+        let currentMatch = matches[0];
+        for (let i = 1; i < matches.length; i++) {
+          if (matches[i].start <= currentMatch.end) {
+            currentMatch.end = Math.max(currentMatch.end, matches[i].end);
+          } else {
+            mergedMatches.push(currentMatch);
+            currentMatch = matches[i];
+          }
+        }
+        mergedMatches.push(currentMatch);
+      }
 
-  return <>{result}</>;
-}
+      // Build result
+      const result: React.ReactNode[] = [];
+      let lastIndex = 0;
+
+      for (const [index, match] of mergedMatches.entries()) {
+        if (match.start > lastIndex) {
+          result.push(text.slice(lastIndex, match.start));
+        }
+        result.push(
+          <b className="font-bold" key={index}>
+            {text.slice(match.start, match.end)}
+          </b>,
+        );
+        lastIndex = match.end;
+      }
+
+      if (lastIndex < text.length) {
+        result.push(text.slice(lastIndex));
+      }
+
+      return result;
+    }, [text, query]);
+
+    return <>{tokens}</>;
+  },
+);
 
 /**
  *
@@ -89,15 +95,17 @@ export function GameInput() {
     currentAttempt,
     dailyPerfume,
     gameState,
-    getPotentialScore,
-    isInputFocused: isFocused,
+    potentialScore,
     loading: gameLoading,
-    makeGuess,
     maxAttempts,
     sessionId,
+  } = useGameState();
+  const { makeGuess } = useGameActions();
+  const {
+    isInputFocused: isFocused,
     setIsInputFocused: setIsFocused,
     uiPreferences,
-  } = useGame();
+  } = useUIPreferences();
   const t = useTranslations("Game.input");
   const [query, setQuery] = useState("");
 
@@ -113,7 +121,10 @@ export function GameInput() {
   const previousAttemptsLengthReference = useRef(attempts.length);
 
   // Animation state
-  const shouldShowList = showSuggestions && (suggestions.length > 0 || (query.length >= 3 && !isLoading && !gameLoading));
+  const shouldShowList =
+    showSuggestions &&
+    (suggestions.length > 0 ||
+      (query.length >= 3 && !isLoading && !gameLoading));
   const hasTransitionedIn = useMountTransition(shouldShowList, 200); // 200ms matches duration-200
 
   const listId = useId();
@@ -121,7 +132,10 @@ export function GameInput() {
   // Detect incorrect guess to show error state
   useEffect(() => {
     // If attempts increased and game not won
-    if (attempts.length > previousAttemptsLengthReference.current && gameState !== "won") {
+    if (
+      attempts.length > previousAttemptsLengthReference.current &&
+      gameState !== "won"
+    ) {
       setIsError(true);
       const timer = setTimeout(() => setIsError(false), 2000);
       return () => clearTimeout(timer);
@@ -178,7 +192,9 @@ export function GameInput() {
   useEffect(() => {
     const listElement = listReference.current;
     if (listElement && selectedIndex >= 0) {
-      const activeItem = listElement.children[selectedIndex] as HTMLElement | undefined;
+      const activeItem = listElement.children[selectedIndex] as
+        | HTMLElement
+        | undefined;
       if (activeItem) {
         activeItem.scrollIntoView({ behavior: "smooth", block: "nearest" });
       }
@@ -188,9 +204,13 @@ export function GameInput() {
   // Scroll input into view on mobile focus
   useEffect(() => {
     // eslint-disable-next-line unicorn/no-typeof-undefined
-    if (isFocused && typeof globalThis.window !== "undefined" && globalThis.window.innerWidth < 640) {
+    if (
+      isFocused &&
+      typeof globalThis.window !== "undefined" &&
+      globalThis.window.innerWidth < 640
+    ) {
       const timer = setTimeout(() => {
-        // block: "center" is safer as it puts the input 
+        // block: "center" is safer as it puts the input
         // in the middle of the remaining visual viewport
         wrapperReference.current?.scrollIntoView({
           behavior: "smooth",
@@ -237,7 +257,8 @@ export function GameInput() {
         e.preventDefault();
         // Cyclic navigation: (current - 1 + length) % length
         setSelectedIndex(
-          (previous) => (previous - 1 + suggestions.length) % suggestions.length,
+          (previous) =>
+            (previous - 1 + suggestions.length) % suggestions.length,
         );
 
         break;
@@ -262,10 +283,15 @@ export function GameInput() {
           perfumeToSelect = suggestions[0];
         } else {
           // Nothing selected and multiple suggestions: highlight first available
-          const firstAvailableIndex = suggestions.findIndex(s => !attempts.some(a =>
-            (a.perfumeId && a.perfumeId === s.perfume_id) ||
-            (!a.perfumeId && a.guess.toLowerCase() === s.name.toLowerCase())
-          ));
+          const firstAvailableIndex = suggestions.findIndex(
+            (s) =>
+              !attempts.some(
+                (a) =>
+                  (a.perfumeId && a.perfumeId === s.perfume_id) ||
+                  (!a.perfumeId &&
+                    a.guess.toLowerCase() === s.name.toLowerCase()),
+              ),
+          );
 
           if (firstAvailableIndex !== -1) {
             setSelectedIndex(firstAvailableIndex);
@@ -297,12 +323,34 @@ export function GameInput() {
   // Check if daily challenge is actually loaded (not skeleton)
   const isSkeleton = dailyPerfume.id === "skeleton";
 
+  // Pre-compute duplicate checks for all suggestions
+  // IMPORTANT: This must be at top level before any conditional returns
+  const suggestionsWithDuplicates = useMemo(
+    () =>
+      suggestions.map((s) => ({
+        ...s,
+        isDuplicate: attempts.some(
+          (a) =>
+            (a.perfumeId && a.perfumeId === s.perfume_id) ||
+            (!a.perfumeId && a.guess.toLowerCase() === s.name.toLowerCase()),
+        ),
+      })),
+    [suggestions, attempts],
+  );
+
   // 1. Loading State - Render nothing or a stable placeholder (prevents "No Puzzle" flash)
   if (gameLoading) {
     return (
-      <div className={cn("sticky bottom-0 z-30 mx-auto w-full", uiPreferences.layoutMode === "wide" ? "max-w-5xl" : "max-w-xl")}>
+      <div
+        className={cn(
+          "sticky bottom-0 z-30 mx-auto w-full",
+          uiPreferences.layoutMode === "wide" ? "max-w-5xl" : "max-w-xl",
+        )}
+      >
         <div className="relative border-x-0 border-t border-border/50 bg-background/80 px-5 py-8 backdrop-blur-md sm:rounded-t-md sm:border-x">
-          <div className="flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          <div className="flex justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
         </div>
       </div>
     );
@@ -352,17 +400,21 @@ export function GameInput() {
         <div
           className={cn(
             "relative z-20 border-x-0 border-t border-border/50 px-5 pt-[2px] pb-3 backdrop-blur-md transition-colors duration-200 ease-in-out sm:border-x",
-            surfaceClasses
+            surfaceClasses,
           )}
         >
           {/* Input */}
           <div className="relative">
             <input
-              aria-activedescendant={selectedIndex >= 0 ? `${listId}-option-${selectedIndex}` : undefined}
+              aria-activedescendant={
+                selectedIndex >= 0
+                  ? `${listId}-option-${selectedIndex}`
+                  : undefined
+              }
               aria-autocomplete="list"
               aria-controls={listId}
               aria-expanded={shouldShowList}
-              className="w-full border-b-2 border-border bg-transparent pt-3 pb-2 pr-10 font-[family-name:var(--font-playfair)] text-lg text-foreground transition-colors duration-300 outline-none placeholder:font-[family-name:var(--font-playfair)] placeholder:text-sm placeholder:text-muted-foreground placeholder:italic focus:border-primary"
+              className="w-full border-b-2 border-border bg-transparent pt-3 pr-10 pb-2 font-[family-name:var(--font-playfair)] text-lg text-foreground transition-colors duration-300 outline-none placeholder:font-[family-name:var(--font-playfair)] placeholder:text-sm placeholder:text-muted-foreground placeholder:italic focus:border-primary"
               data-testid="game-input"
               onBlur={() => {
                 setShowSuggestions(false);
@@ -388,7 +440,9 @@ export function GameInput() {
               <div
                 className={cn(
                   "absolute transition-all duration-300 ease-out",
-                  isNormallyVisible ? "scale-100 rotate-0 opacity-100" : "scale-50 -rotate-90 opacity-0",
+                  isNormallyVisible
+                    ? "scale-100 rotate-0 opacity-100"
+                    : "scale-50 -rotate-90 opacity-0",
                 )}
               >
                 <Search className="h-5 w-5 text-muted-foreground" />
@@ -405,14 +459,14 @@ export function GameInput() {
               <div
                 className={cn(
                   "absolute transition-all duration-300 ease-out",
-                  isErrorVisible ? "scale-100 rotate-0 opacity-100" : "scale-50 rotate-90 opacity-0",
+                  isErrorVisible
+                    ? "scale-100 rotate-0 opacity-100"
+                    : "scale-50 rotate-90 opacity-0",
                 )}
               >
                 <X className="h-5 w-5 text-destructive" />
               </div>
             </div>
-
-
           </div>
 
           {/* Status bar */}
@@ -421,7 +475,7 @@ export function GameInput() {
               {t("attempt")} {currentAttempt} / {maxAttempts}
             </span>
             <span className="font-semibold text-primary">
-              {t("score")}: {getPotentialScore()}
+              {t("score")}: {potentialScore}
             </span>
           </div>
         </div>
@@ -429,10 +483,11 @@ export function GameInput() {
         {/* Suggestions dropdown (Behind Input Surface) */}
         {hasTransitionedIn || shouldShowList ? (
           <div
-            className={`!absolute bottom-full left-0 z-10 max-h-56 w-full touch-pan-y !overflow-y-auto rounded-t-md border-x border-t border-border/50 bg-background ${shouldShowList
-              ? "duration-200 ease-out animate-in fade-in slide-in-from-bottom-12"
-              : "duration-200 ease-in animate-out fade-out slide-out-to-bottom-12"
-              } `}
+            className={`!absolute bottom-full left-0 z-10 max-h-56 w-full touch-pan-y !overflow-y-auto rounded-t-md border-x border-t border-border/50 bg-background ${
+              shouldShowList
+                ? "duration-200 ease-out animate-in fade-in slide-in-from-bottom-12"
+                : "duration-200 ease-in animate-out fade-out slide-out-to-bottom-12"
+            } `}
             data-lenis-prevent
             id={listId}
             onMouseDown={(e) => e.preventDefault()}
@@ -445,14 +500,8 @@ export function GameInput() {
                 {t("noResults")}
               </div>
             ) : (
-              suggestions.map((perfume, index) => {
-                // Check duplicate (Using ID is more robust, fallback to name)
-                const isDuplicate = attempts.some(
-                  (a) =>
-                    (a.perfumeId && a.perfumeId === perfume.perfume_id) ||
-                    (!a.perfumeId &&
-                      a.guess.toLowerCase() === perfume.name.toLowerCase()),
-                );
+              suggestionsWithDuplicates.map((perfume, index) => {
+                const { isDuplicate } = perfume;
 
                 return (
                   <button

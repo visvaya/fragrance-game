@@ -12,15 +12,17 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-import { useGame } from "./game-provider";
+import { useGameActions } from "./contexts";
 
 // Debug component: Resetting game state (remove before production)
 // This component allows resetting the game state for debugging purposes.
 /**
  *
  */
-export function ResetButton({ tooltipDisabled = false }: Readonly<{ tooltipDisabled?: boolean }>) {
-  const { resetGame } = useGame();
+export function ResetButton({
+  tooltipDisabled = false,
+}: Readonly<{ tooltipDisabled?: boolean }>) {
+  const { resetGame } = useGameActions();
   const [showConfirm, setShowConfirm] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [tooltipOpen, setTooltipOpen] = useState(false);
@@ -39,7 +41,10 @@ export function ResetButton({ tooltipDisabled = false }: Readonly<{ tooltipDisab
   return (
     <>
       <TooltipProvider delayDuration={0}>
-        <Tooltip onOpenChange={setTooltipOpen} open={tooltipDisabled ? false : tooltipOpen}>
+        <Tooltip
+          onOpenChange={setTooltipOpen}
+          open={tooltipDisabled ? false : tooltipOpen}
+        >
           <TooltipTrigger asChild>
             <button
               aria-label={t("ariaLabel")}

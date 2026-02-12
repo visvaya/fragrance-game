@@ -141,10 +141,7 @@ function FieldContent({ className, ...props }: ComponentProps<"div">) {
  * @param root0
  * @param root0.className
  */
-function FieldLabel({
-  className,
-  ...props
-}: ComponentProps<typeof Label>) {
+function FieldLabel({ className, ...props }: ComponentProps<typeof Label>) {
   return (
     <Label
       className={cn(
@@ -299,4 +296,3 @@ export {
   FieldContent,
   FieldTitle,
 };
-

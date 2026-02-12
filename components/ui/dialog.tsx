@@ -11,9 +11,7 @@ import { cn } from "@/lib/utils";
  *
  * @param root0
  */
-function Dialog({
-  ...props
-}: ComponentProps<typeof DialogPrimitive.Root>) {
+function Dialog({ ...props }: ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;
 }
 
@@ -190,4 +188,3 @@ export {
   DialogTitle,
   DialogTrigger,
 };
-

@@ -20,7 +20,11 @@ type MarkerCircleProperties = {
  * @param root0.letter
  * @param root0.title
  */
-export function MarkerCircle({ className, letter, title }: MarkerCircleProperties) {
+export function MarkerCircle({
+  className,
+  letter,
+  title,
+}: MarkerCircleProperties) {
   const content = (
     <span
       className={cn(

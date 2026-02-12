@@ -36,8 +36,10 @@ export function createClient() {
   // Determine the correct cookie name prefix from the REAL Supabase URL
   // This ensures cookies match what createServerClient expects (sb-<project-ref>-auth-token)
   // regardless of whether we are using a proxy URL (localhost) or not.
-  const projectReference = (/https?:\/\/([^.]+)\./.exec(supabaseUrl))?.[1];
-  const cookieName = projectReference ? `sb-${projectReference}-auth-token` : undefined;
+  const projectReference = /https?:\/\/([^.]+)\./.exec(supabaseUrl)?.[1];
+  const cookieName = projectReference
+    ? `sb-${projectReference}-auth-token`
+    : undefined;
 
   return createBrowserClient(proxyUrl, supabaseAnonKey, {
     cookieOptions: {

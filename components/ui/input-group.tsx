@@ -167,10 +167,7 @@ function InputGroupText({ className, ...props }: ComponentProps<"span">) {
  * @param root0
  * @param root0.className
  */
-function InputGroupInput({
-  className,
-  ...props
-}: ComponentProps<"input">) {
+function InputGroupInput({ className, ...props }: ComponentProps<"input">) {
   return (
     <Input
       className={cn(
@@ -212,4 +209,3 @@ export {
   InputGroupInput,
   InputGroupTextarea,
 };
-

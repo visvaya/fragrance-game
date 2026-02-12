@@ -2,7 +2,9 @@
 
 import React, { type ComponentProps } from "react";
 
-import useEmblaCarousel, { type UseEmblaCarouselType } from "embla-carousel-react";
+import useEmblaCarousel, {
+  type UseEmblaCarouselType,
+} from "embla-carousel-react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -29,7 +31,9 @@ type CarouselContextProperties = {
   scrollPrev: () => void;
 } & CarouselProperties;
 
-const CarouselContext = React.createContext<CarouselContextProperties | null>(null);
+const CarouselContext = React.createContext<CarouselContextProperties | null>(
+  null,
+);
 
 function useCarousel() {
   const context = React.useContext(CarouselContext);
@@ -272,4 +276,3 @@ export {
   CarouselPrevious,
   CarouselNext,
 };
-

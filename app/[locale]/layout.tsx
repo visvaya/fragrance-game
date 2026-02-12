@@ -1,17 +1,14 @@
 import type React from "react";
 
-
 import { Geist, Geist_Mono, Playfair_Display, Caveat } from "next/font/google";
 import { notFound } from "next/navigation";
-
 
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NextIntlClientProvider } from "next-intl";
 import { getTranslations, getMessages } from "next-intl/server";
 
-import { PostHogProvider } from "@/components/providers/posthog-provider";
-import { SentryProvider } from "@/components/providers/sentry-provider";
+import { AnalyticsProviders } from "@/components/providers/analytics-providers";
 import { SmoothScrollProvider } from "@/components/providers/smooth-scroll-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { routing } from "@/i18n/routing";
@@ -51,10 +48,11 @@ const playfair = Playfair_Display({
 
 /**
  * Caveat - font odręczny dla akcentów (zgodnie z project-rules)
+ * Using "optional" display for non-critical accent font
  */
 const caveat = Caveat({
-  display: "swap",
-  preload: true,
+  display: "optional",
+  preload: false,
   subsets: ["latin", "latin-ext"],
   variable: "--font-caveat",
   weight: ["400", "500", "600", "700"],
@@ -140,30 +138,33 @@ export default async function RootLayout({
   return (
     <html lang={locale || "en"} suppressHydrationWarning>
       <head>
-        {process.env.NEXT_PUBLIC_SUPABASE_URL ? <link
+        {/* Preconnect to external services */}
+        {process.env.NEXT_PUBLIC_SUPABASE_URL ? (
+          <link
             crossOrigin="anonymous"
             href={process.env.NEXT_PUBLIC_SUPABASE_URL}
             rel="preconnect"
-          /> : null}
+          />
+        ) : null}
+
+        {/* Font preloading handled automatically by Next.js font optimization */}
+        {/* Critical fonts (Geist Sans, Playfair) have preload:true above */}
+        {/* Caveat uses display:"optional" to prevent FOIT without blocking render */}
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${caveat.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
         <NextIntlClientProvider messages={messages}>
-          <SentryProvider>
-            <PostHogProvider>
-              <SmoothScrollProvider>
-                <TooltipProvider delayDuration={300}>
-                  {children}
-                </TooltipProvider>
-              </SmoothScrollProvider>
-            </PostHogProvider>
-          </SentryProvider>
+          <AnalyticsProviders>
+            <SmoothScrollProvider>
+              <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
+            </SmoothScrollProvider>
+          </AnalyticsProviders>
           <Analytics />
           <SpeedInsights />
         </NextIntlClientProvider>
       </body>
-    </html >
+    </html>
   );
 }

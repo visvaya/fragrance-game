@@ -16,7 +16,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
-import { useGame } from "./game-provider";
+import { useUIPreferences } from "./contexts";
 import { GameTooltip } from "./game-tooltip";
 import { MobileResetItem } from "./mobile-reset-item";
 import { HelpModal } from "./modals/help-modal";
@@ -28,7 +28,7 @@ import { ResetButton } from "./reset-button";
  */
 export function GameHeader() {
   const { toggleFontScale, toggleLayoutMode, toggleTheme, uiPreferences } =
-    useGame();
+    useUIPreferences();
   const [menuOpen, setMenuOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -155,7 +155,7 @@ export function GameHeader() {
               </span>
             </button>
             <button
-              className="border-b border-border px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary text-left"
+              className="border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
               onClick={(e) => e.preventDefault()}
             >
               {t("about")}
@@ -257,7 +257,7 @@ export function GameHeader() {
             <MobileResetItem />
 
             <button
-              className="px-5 py-3 font-[family-name:var(--font-playfair)] text-primary transition-all duration-300 hover:pl-6 text-left"
+              className="px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-primary transition-all duration-300 hover:pl-6"
               onClick={(e) => e.preventDefault()}
             >
               {t("support")}

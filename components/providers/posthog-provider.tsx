@@ -31,10 +31,11 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 
     let timerId: any;
     // Use requestIdleCallback if available, otherwise fallback to timeout
+    // Increased timeout to 6000ms to further reduce main thread blocking
     if ("requestIdleCallback" in globalThis) {
-      (globalThis as any).requestIdleCallback(handleInit, { timeout: 4000 });
+      (globalThis as any).requestIdleCallback(handleInit, { timeout: 6000 });
     } else {
-      timerId = setTimeout(handleInit, 2500);
+      timerId = setTimeout(handleInit, 3000);
     }
 
     return () => {

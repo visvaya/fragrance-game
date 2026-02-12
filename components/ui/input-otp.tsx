@@ -97,5 +97,3 @@ function InputOTPSeparator({ ...props }: ComponentProps<"div">) {
 }
 
 export { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator };
-
-

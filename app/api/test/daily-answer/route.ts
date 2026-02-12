@@ -31,7 +31,9 @@ export async function GET() {
       .single();
 
     if (challengeError || !challenge) {
-      console.log("[API TEST] No challenge in DB for today, using fallback perfume");
+      console.log(
+        "[API TEST] No challenge in DB for today, using fallback perfume",
+      );
 
       // Fallback: Return ANY perfume from database (for testing purposes)
       const { data: randomPerfume, error: randomError } = await supabase

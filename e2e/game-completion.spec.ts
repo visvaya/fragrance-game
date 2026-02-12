@@ -7,7 +7,6 @@ test.describe("Game Completion Flows", () => {
   // Increase timeout for these tests (default 30s is too short for 6 attempts)
   test.setTimeout(90_000);
 
-
   test("Victory Flow (Win)", async ({ page }) => {
     // 1. Visit Home
     await page.goto("/");
@@ -27,10 +26,14 @@ test.describe("Game Completion Flows", () => {
       return;
     }
 
-    console.log(`[TEST] Winning perfume is: ${perfume.name} by ${perfume.brand}`);
+    console.log(
+      `[TEST] Winning perfume is: ${perfume.name} by ${perfume.brand}`,
+    );
 
     // 3. Handle game already finished or no puzzle state
-    const isNoPuzzle = await page.getByText(/No puzzle today|Brak zagadki na dziś/i).isVisible();
+    const isNoPuzzle = await page
+      .getByText(/No puzzle today|Brak zagadki na dziś/i)
+      .isVisible();
     if (isNoPuzzle) {
       console.log("[SKIP] No puzzle available today, skipping Victory flow");
       return;
@@ -64,11 +67,13 @@ test.describe("Game Completion Flows", () => {
     await expect(suggestions.first()).toBeVisible({ timeout: 15_000 });
 
     // Filter suggestions to find the one containing BOTH perfume name and brand
-    const targetSuggestion = suggestions.filter({
-      hasText: perfume.brand,
-    }).filter({
-      hasText: perfume.name,
-    });
+    const targetSuggestion = suggestions
+      .filter({
+        hasText: perfume.brand,
+      })
+      .filter({
+        hasText: perfume.name,
+      });
 
     if ((await targetSuggestion.count()) === 0) {
       console.log(
@@ -91,7 +96,9 @@ test.describe("Game Completion Flows", () => {
     await page.goto("/");
 
     // 2. Check if already finished or no puzzle
-    const isNoPuzzle = await page.getByText(/No puzzle today|Brak zagadki na dziś/i).isVisible();
+    const isNoPuzzle = await page
+      .getByText(/No puzzle today|Brak zagadki na dziś/i)
+      .isVisible();
     if (isNoPuzzle) {
       console.log("[SKIP] No puzzle available today, cannot test loss flow");
       return;

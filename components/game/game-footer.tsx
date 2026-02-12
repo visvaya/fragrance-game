@@ -3,16 +3,16 @@ import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
-import { useGame } from "./game-provider";
+import { useGameState, useUIPreferences } from "./contexts";
 
 /**
  * Stopka aplikacji w stylu "Elegant French Perfumery".
  * Zoptymalizowany układ dla różnych rozdzielczości i poprawiona czytelność.
  */
 export function GameFooter() {
-  const { gameState, uiPreferences, attempts, isInputFocused } = useGame();
+  const { gameState, attempts } = useGameState();
+  const { uiPreferences, isInputFocused } = useUIPreferences();
   const t = useTranslations("Footer");
-
 
   return (
     <footer className="relative z-10 w-full border-t border-border bg-secondary pb-[env(safe-area-inset-bottom)]">
@@ -25,10 +25,10 @@ export function GameFooter() {
         {/* Helper Text - Reinstated in Footer, animated fade out on focus */}
         <div
           className={cn(
-            "absolute top-2 right-7 pointer-events-none transition-all duration-500 ease-in-out",
+            "pointer-events-none absolute top-2 right-7 transition-all duration-500 ease-in-out",
             attempts.length === 0 && !isInputFocused
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-4"
+              ? "translate-y-0 opacity-100"
+              : "translate-y-4 opacity-0",
           )}
         >
           <p className="rotate-[-3deg] font-[family-name:var(--font-hand)] text-base whitespace-nowrap text-primary/70">
@@ -61,7 +61,7 @@ export function GameFooter() {
         </nav>
 
         {/* Branding & Info */}
-        <div className="flex flex-col items-center gap-2 border-t border-border/30 pt-6 w-full max-w-[280px] text-center">
+        <div className="flex w-full max-w-[280px] flex-col items-center gap-2 border-t border-border/30 pt-6 text-center">
           <p className="text-[10px] tracking-[0.2em] text-muted-foreground uppercase">
             {t("copyright")}
           </p>

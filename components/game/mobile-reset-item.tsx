@@ -5,14 +5,14 @@ import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { useGame } from "./game-provider";
+import { useGameActions } from "./contexts";
 
 /**
  * Mobile-specific reset item for the GameHeader menu.
  * Provides inline confirmation instead of a popover to avoid overflow issues.
  */
 export function MobileResetItem() {
-  const { resetGame } = useGame();
+  const { resetGame } = useGameActions();
   const [showConfirm, setShowConfirm] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const t = useTranslations("ResetButton");

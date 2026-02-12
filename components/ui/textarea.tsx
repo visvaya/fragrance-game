@@ -21,4 +21,3 @@ function Textarea({ className, ...props }: ComponentProps<"textarea">) {
 }
 
 export { Textarea };
-

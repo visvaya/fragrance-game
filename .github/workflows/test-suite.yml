@@ -1,9 +1,9 @@
 name: Comprehensive Test Suite
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 env:
   TZ: Europe/Warsaw
@@ -19,8 +19,8 @@ jobs:
           version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Cache Next.js
@@ -74,8 +74,8 @@ jobs:
           version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
       - name: Cache Next.js
         uses: actions/cache@v4
         with:
@@ -119,4 +119,3 @@ jobs:
             test-results/
             smoke-test-failure.png
           retention-days: 30
-

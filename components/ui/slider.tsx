@@ -67,5 +67,3 @@ function Slider({
 }
 
 export { Slider };
-
-

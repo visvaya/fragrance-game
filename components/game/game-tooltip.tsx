@@ -12,7 +12,9 @@ import {
 import { cn } from "@/lib/utils";
 
 type GameTooltipProperties = {
-  children: React.ReactNode | ((props: { isHovered: boolean }) => React.ReactNode);
+  children:
+    | React.ReactNode
+    | ((props: { isHovered: boolean }) => React.ReactNode);
   className?: string;
   content: React.ReactNode;
   /**
@@ -123,7 +125,9 @@ export function GameTooltip({
           tabIndex={0}
         >
           {typeof children === "function"
-            ? children({ isHovered: isTouchReference.current ? open : isHovered })
+            ? children({
+                isHovered: isTouchReference.current ? open : isHovered,
+              })
             : children}
         </div>
       </TooltipTrigger>

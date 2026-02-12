@@ -61,13 +61,13 @@ export async function searchPerfumes(
 
   // 4. Database Query using RPC with unaccent support
   const startTime = performance.now();
-  const { data: perfumes, error: dbError } = await supabase.rpc(
+  const { data: perfumes, error: dbError } = (await supabase.rpc(
     "search_perfumes_unaccent",
     {
       limit_count: 30, // Reduced from 60 for better performance
       search_query: validatedQuery,
     },
-  ) as { data: FragranceRow[] | null; error: { message: string } | null; };
+  )) as { data: FragranceRow[] | null; error: { message: string } | null };
   const searchTime = performance.now() - startTime;
 
   if (dbError) {
@@ -106,7 +106,8 @@ export async function searchPerfumes(
   const grouped = new Map<string, number>();
   if (perfumes) {
     for (const p of perfumes) {
-      const key = `${p.brand_name}|${p.name}|${p.concentration ?? ""}`.toLowerCase();
+      const key =
+        `${p.brand_name}|${p.name}|${p.concentration ?? ""}`.toLowerCase();
       grouped.set(key, (grouped.get(key) ?? 0) + 1);
     }
   }
@@ -118,7 +119,7 @@ export async function searchPerfumes(
 
     // USER WANT: If more than 1 perfume has same brand/name/concentration, reveal full year
     const maskedYear = hasDuplicates
-      ? p.year?.toString() ?? null
+      ? (p.year?.toString() ?? null)
       : maskYear(p.year, attemptsCount);
 
     const concentration = p.concentration ?? null;
@@ -145,13 +146,15 @@ export async function searchPerfumes(
 
   let finalCount = DEFAULT_LIMIT;
   const lastIncluded = transformed[DEFAULT_LIMIT - 1];
-  const lastIncludedKey = `${lastIncluded.brand_masked}|${lastIncluded.name}|${lastIncluded.concentration ?? ""}`.toLowerCase();
+  const lastIncludedKey =
+    `${lastIncluded.brand_masked}|${lastIncluded.name}|${lastIncluded.concentration ?? ""}`.toLowerCase();
 
-  // If the last item in the default window is part of a duplicate group, 
+  // If the last item in the default window is part of a duplicate group,
   // we must check if there are more members of that group immediately following it.
   for (let i = DEFAULT_LIMIT; i < transformed.length; i++) {
     const nextItem = transformed[i];
-    const nextKey = `${nextItem.brand_masked}|${nextItem.name}|${nextItem.concentration ?? ""}`.toLowerCase();
+    const nextKey =
+      `${nextItem.brand_masked}|${nextItem.name}|${nextItem.concentration ?? ""}`.toLowerCase();
 
     if (nextKey === lastIncludedKey) {
       finalCount = i + 1;

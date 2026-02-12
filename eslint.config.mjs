@@ -524,7 +524,10 @@ export default tseslint.config(
     rules: {
       "perfectionist/sort-imports": "off",
       "perfectionist/sort-named-imports": "off",
-      "perfectionist/sort-objects": ["error", { type: "natural", order: "asc" }],
+      "perfectionist/sort-objects": [
+        "error",
+        { type: "natural", order: "asc" },
+      ],
       "perfectionist/sort-object-types": [
         "error",
         { type: "natural", order: "asc" },

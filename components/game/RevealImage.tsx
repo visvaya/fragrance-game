@@ -9,49 +9,47 @@ import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
-import { useGame } from "./game-provider";
+import { useGameState, useUIPreferences } from "./contexts";
+
+// Low Quality Image Placeholder (LQIP) - 20x20px blurred perfume bottle
+// Improves LCP by providing instant visual feedback
+const BLUR_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFklEQVR42mN8//HLfwYiAOOoQvoqBABbWyZJf74GZgAAAABJRU5ErkJggg==";
 
 /**
  *
  */
 export function RevealImage() {
-  const { dailyPerfume, uiPreferences } = useGame();
+  const { dailyPerfume } = useGameState();
+  const { uiPreferences } = useUIPreferences();
   const t = useTranslations("RevealImage");
   const targetSource = dailyPerfume.imageUrl || "/placeholder.svg";
 
-  // STATE:
-  // - activeSrc: The image currently fully visible (or fading out conceptually)
-  // - fadingInSrc: The new image appearing on top. Null if no transition.
-  // - isLoaded: heavy lifting for the opacity switch
-  const [activeSource, setActiveSource] = useState(targetSource);
-  const [fadingInSource, setFadingInSource] = useState<string | null>(null);
-  const [isFadingInLoaded, setIsFadingInLoaded] = useState(false);
+  // Simplified single-image state with CSS transitions
+  const [currentSrc, setCurrentSrc] = useState(targetSource);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
 
-  // Effect: Detect change in targetSrc -> Start Transition
-  // Logic: When target changes, it becomes 'fadingInSrc'. We keep the old 'activeSrc' visible behind.
+  // Effect: Detect change in targetSrc and update with transition
   useEffect(() => {
-    if (targetSource !== activeSource && targetSource !== fadingInSource) {
-      setFadingInSource(targetSource);
-      setIsFadingInLoaded(false);
+    if (targetSource !== currentSrc) {
+      // Fade out current image
+      setIsLoaded(false);
+
+      // After fade out, swap source and fade in
+      const timeout = setTimeout(() => {
+        setCurrentSrc(targetSource);
+        setIsLoaded(true);
+      }, 350); // Half of 700ms for smoother transition
+
+      return () => clearTimeout(timeout);
     }
-  }, [targetSource, activeSource, fadingInSource]);
+  }, [targetSource, currentSrc]);
 
-  // Callback: When new image finishes loading
-  const handleImageLoad = () => {
-    setIsFadingInLoaded(true);
-
-    // Wait for the CSS transition (e.g. 700ms) to complete visually, then swap buffers
-    const timeout = setTimeout(() => {
-      if (fadingInSource) {
-        setActiveSource(fadingInSource);
-        setFadingInSource(null);
-        setIsFadingInLoaded(false);
-      }
-    }, 700); // Match duration-700
-
-    return () => clearTimeout(timeout);
-  };
+  // Initial load
+  useEffect(() => {
+    setIsLoaded(true);
+  }, []);
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -82,42 +80,24 @@ export function RevealImage() {
           role="button"
           tabIndex={0}
         >
-          {/* Layer 1: Active Image (Background) */}
-          {/* Always present. If nothing else, shows placeholder. */}
+          {/* Single image with CSS transition */}
           <Image
             alt={t("altBase")}
+            blurDataURL={BLUR_DATA_URL}
             className={cn(
-              "object-cover transition-transform duration-700 ease-in-out",
+              "object-cover transition-all duration-700 ease-in-out",
               isZoomed ? "scale-110" : "hover:scale-110",
+              isLoaded ? "opacity-100" : "opacity-0",
             )}
             fill
-            key={activeSource}
+            key={currentSrc}
             loading="eager"
+            placeholder="blur"
             priority
             quality={90}
-            sizes="(max-width: 768px) 100vw, 40vw"
-            src={activeSource}
+            sizes="(max-width: 640px) 100vw, (max-width: 768px) 80vw, 400px"
+            src={currentSrc}
           />
-
-          {/* Layer 2: Fading In Image (Foreground) */}
-          {/* Only rendered when we have a new source pending */}
-          {fadingInSource ? (
-            <Image
-              alt={t("altReveal")}
-              className={cn(
-                "object-cover transition-all duration-700 ease-in-out",
-                isZoomed ? "scale-110" : "hover:scale-110",
-                isFadingInLoaded ? "opacity-100" : "opacity-0",
-              )}
-              fill
-              key={fadingInSource}
-              onLoad={handleImageLoad}
-              priority
-              quality={90}
-              sizes="(max-width: 768px) 100vw, 40vw"
-              src={fadingInSource}
-            />
-          ) : null}
 
           {/* Decorative corner marks (always on top) */}
           <div className="pointer-events-none absolute top-2 left-2 h-4 w-4 border-t-2 border-l-2 border-foreground/20 dark:border-foreground" />

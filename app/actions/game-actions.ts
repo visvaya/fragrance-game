@@ -127,8 +127,8 @@ function cleanNote(note: string | null | undefined): string {
  * Oblicza podobieństwo Jaccarda między nutami zgadniętymi a poprawnymi.
  */
 function calculateNotesMatch(
-  guessNotes: { base: string[]; heart: string[]; top: string[]; },
-  answerNotes: { base: string[]; heart: string[]; top: string[]; },
+  guessNotes: { base: string[]; heart: string[]; top: string[] },
+  answerNotes: { base: string[]; heart: string[]; top: string[] },
 ): number {
   const guessSet = new Set([
     ...guessNotes.top.map((n) => cleanNote(n)),
@@ -202,7 +202,9 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
 
   const { data, error } = await supabase
     .from("daily_challenges_public")
-    .select("challenge_date, grace_deadline_at_utc, id, mode, snapshot_metadata")
+    .select(
+      "challenge_date, grace_deadline_at_utc, id, mode, snapshot_metadata",
+    )
     .eq("challenge_date", new Date().toISOString().split("T")[0])
     .limit(1)
     .single();
@@ -243,20 +245,20 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     )
     .eq("id", challengePrivate.perfume_id)
     .single()) as {
-      data: {
-        base_notes: string[] | null;
-        brands: { name: string } | null;
-        concentrations: { name: string } | null;
-        gender: string | null;
-        is_linear: boolean | null;
-        middle_notes: string[] | null;
-        name: string;
-        perfumers: string[] | null;
-        release_year: number | null;
-        top_notes: string[] | null;
-        xsolve_score: number | null;
-      } | null;
-    };
+    data: {
+      base_notes: string[] | null;
+      brands: { name: string } | null;
+      concentrations: { name: string } | null;
+      gender: string | null;
+      is_linear: boolean | null;
+      middle_notes: string[] | null;
+      name: string;
+      perfumers: string[] | null;
+      release_year: number | null;
+      top_notes: string[] | null;
+      xsolve_score: number | null;
+    } | null;
+  };
 
   if (!perfume) {
     throw new Error("Perfume not found for challenge");
@@ -268,12 +270,14 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
   if (perfume.xsolve_score == null) {
     throw new Error(
       `Perfume ${perfume.name} (ID: ${challengePrivate.perfume_id}) has no xsolve_score. ` +
-      "Only perfumes with calculated difficulty scores can be used in challenges."
+        "Only perfumes with calculated difficulty scores can be used in challenges.",
     );
   }
 
-  const brandName = (perfume.brands as { name: string } | null)?.name ?? "Unknown";
-  const concentrationName = (perfume.concentrations as { name: string } | null)?.name ?? "Unknown";
+  const brandName =
+    (perfume.brands as { name: string } | null)?.name ?? "Unknown";
+  const concentrationName =
+    (perfume.concentrations as { name: string } | null)?.name ?? "Unknown";
 
   return {
     ...data,
@@ -320,19 +324,21 @@ export async function startGame(
     .order("start_time", { ascending: false })
     .limit(1)
     .maybeSingle()) as {
-      data: {
-        attempts_count: number;
-        guesses: {
-          feedback?: AttemptFeedback;
-          isCorrect: boolean;
-          perfumeId: string;
-          timestamp: string;
-        }[] | null;
-        id: string;
-        last_nonce: string | number;
-        status: string;
-      } | null;
-    };
+    data: {
+      attempts_count: number;
+      guesses:
+        | {
+            feedback?: AttemptFeedback;
+            isCorrect: boolean;
+            perfumeId: string;
+            timestamp: string;
+          }[]
+        | null;
+      id: string;
+      last_nonce: string | number;
+      status: string;
+    } | null;
+  };
 
   if (existingSession) {
     const { data: graceQuery } = (await supabase
@@ -355,15 +361,17 @@ export async function startGame(
           "id, name, brands(name), release_year, concentrations(name), gender",
         )
         .in("id", perfumeIds)) as {
-          data: {
-            brands: { name: string } | null;
-            concentrations: { name: string } | null;
-            gender: string | null;
-            id: string;
-            name: string;
-            release_year: number | null;
-          }[] | null;
-        };
+        data:
+          | {
+              brands: { name: string } | null;
+              concentrations: { name: string } | null;
+              gender: string | null;
+              id: string;
+              name: string;
+              release_year: number | null;
+            }[]
+          | null;
+      };
 
       if (perfumes && perfumes.length > 0) {
         const perfumeMap = new Map(perfumes.map((p) => [p.id, p]));
@@ -372,8 +380,10 @@ export async function startGame(
           const p = perfumeMap.get(guess.perfumeId);
           if (p) {
             enrichedGuesses.push({
-              brandName: (p.brands as { name: string } | null)?.name ?? "Unknown",
-              concentration: (p.concentrations as { name: string } | null)?.name,
+              brandName:
+                (p.brands as { name: string } | null)?.name ?? "Unknown",
+              concentration: (p.concentrations as { name: string } | null)
+                ?.name,
               feedback: guess.feedback,
               gender: p.gender ?? undefined,
               isCorrect: guess.isCorrect,
@@ -403,12 +413,16 @@ export async function startGame(
           .select("name, concentrations(name)")
           .eq("id", challenge.perfume_id)
           .single()) as {
-            data: { concentrations: { name: string } | null; name: string; } | null;
-          };
+          data: {
+            concentrations: { name: string } | null;
+            name: string;
+          } | null;
+        };
 
         if (p) {
           answerName = p.name;
-          answerConcentration = (p.concentrations as { name: string } | null)?.name;
+          answerConcentration = (p.concentrations as { name: string } | null)
+            ?.name;
         }
       }
     }
@@ -438,20 +452,22 @@ export async function startGame(
       start_time: new Date().toISOString(),
       status: "active",
     })
-    .select("attempts_count, challenge_id, id, last_nonce, player_id, start_time, status")
+    .select(
+      "attempts_count, challenge_id, id, last_nonce, player_id, start_time, status",
+    )
     .limit(1)
     .single()) as {
-      data: {
-        attempts_count: number;
-        challenge_id: string;
-        id: string;
-        last_nonce: string | number;
-        player_id: string;
-        start_time: string;
-        status: string;
-      } | null;
-      error: Error | null;
-    };
+    data: {
+      attempts_count: number;
+      challenge_id: string;
+      id: string;
+      last_nonce: string | number;
+      player_id: string;
+      start_time: string;
+      status: string;
+    } | null;
+    error: Error | null;
+  };
 
   if (insertError || !session) {
     console.error("Error starting game:", insertError);
@@ -463,7 +479,9 @@ export async function startGame(
     .from("daily_challenges_public")
     .select("mode, grace_deadline_at_utc")
     .eq("id", challengeId)
-    .single()) as { data: { mode: string; grace_deadline_at_utc: string } | null };
+    .single()) as {
+    data: { mode: string; grace_deadline_at_utc: string } | null;
+  };
 
   await identifyUser(user.id);
   await trackEvent(
@@ -498,7 +516,11 @@ export async function initializeGame(): Promise<InitializeGameResponse> {
     const session = await startGame(challenge.id);
     return { challenge, session };
   } catch (error) {
-    if (error instanceof Error && error.message === "Unauthorized" && challenge) {
+    if (
+      error instanceof Error &&
+      error.message === "Unauthorized" &&
+      challenge
+    ) {
       console.warn("initializeGame: Unauthorized, returning challenge only.");
       return { challenge, session: null };
     }
@@ -510,7 +532,9 @@ export async function initializeGame(): Promise<InitializeGameResponse> {
 /**
  * Pobiera URL obrazka dla danego etapu gry.
  */
-export async function getImageUrlForStep(sessionId: string): Promise<string | null> {
+export async function getImageUrlForStep(
+  sessionId: string,
+): Promise<string | null> {
   const supabase = await createClient();
   const { data: userResult } = await supabase.auth.getUser();
   const user = userResult?.user;
@@ -521,14 +545,14 @@ export async function getImageUrlForStep(sessionId: string): Promise<string | nu
     .select("challenge_id, attempts_count, player_id, status")
     .eq("id", sessionId)
     .single()) as {
-      data: {
-        attempts_count: number;
-        challenge_id: string;
-        player_id: string;
-        status: string;
-      } | null;
-      error: Error | null;
-    };
+    data: {
+      attempts_count: number;
+      challenge_id: string;
+      player_id: string;
+      status: string;
+    } | null;
+    error: Error | null;
+  };
 
   if (sessionError || !session) throw new Error("Session not found");
   if (session.player_id !== user.id) throw new Error("Unauthorized");
@@ -556,7 +580,9 @@ export async function getImageUrlForStep(sessionId: string): Promise<string | nu
   }
 
   const isRevealed = session.status === "won" || session.status === "lost";
-  const step = isRevealed ? 6 : Math.min(session.attempts_count + 1, MAX_GUESSES);
+  const step = isRevealed
+    ? 6
+    : Math.min(session.attempts_count + 1, MAX_GUESSES);
   const key = (assets as Record<string, string>)[`image_key_step_${step}`];
 
   // Use || to handle both undefined and empty strings from CI secrets
@@ -583,27 +609,31 @@ export async function submitGuess(
 
   const { data: session, error: sessionError } = (await supabase
     .from("game_sessions")
-    .select("id, last_nonce, status, attempts_count, challenge_id, player_id, guesses, start_time")
+    .select(
+      "id, last_nonce, status, attempts_count, challenge_id, player_id, guesses, start_time",
+    )
     .eq("id", sessionId)
     .limit(1)
     .single()) as {
-      data: {
-        attempts_count: number;
-        challenge_id: string;
-        guesses: {
-          feedback?: AttemptFeedback;
-          isCorrect: boolean;
-          perfumeId: string;
-          timestamp: string;
-        }[] | null;
-        id: string;
-        last_nonce: string | number;
-        player_id: string;
-        start_time: string;
-        status: string;
-      } | null;
-      error: Error | null;
-    };
+    data: {
+      attempts_count: number;
+      challenge_id: string;
+      guesses:
+        | {
+            feedback?: AttemptFeedback;
+            isCorrect: boolean;
+            perfumeId: string;
+            timestamp: string;
+          }[]
+        | null;
+      id: string;
+      last_nonce: string | number;
+      player_id: string;
+      start_time: string;
+      status: string;
+    } | null;
+    error: Error | null;
+  };
 
   if (sessionError || !session) {
     throw new Error("Session not found");
@@ -660,20 +690,24 @@ export async function submitGuess(
   const [guessedPerfumeRes, answerPerfumeRes] = (await Promise.all([
     adminSupabase
       .from("perfumes")
-      .select("brand_id, release_year, top_notes, middle_notes, base_notes, perfumers, concentration_id, concentrations(name), gender")
+      .select(
+        "brand_id, release_year, top_notes, middle_notes, base_notes, perfumers, concentration_id, concentrations(name), gender",
+      )
       .eq("id", perfumeId)
       .limit(1)
       .single(),
     adminSupabase
       .from("perfumes")
-      .select("name, brand_id, release_year, top_notes, middle_notes, base_notes, perfumers, concentrations(name)")
+      .select(
+        "name, brand_id, release_year, top_notes, middle_notes, base_notes, perfumers, concentrations(name)",
+      )
       .eq("id", challenge.perfume_id)
       .limit(1)
       .single(),
   ])) as [
-      { data: PerfumeData | null; error: Error | null; },
-      { data: PerfumeData | null; error: Error | null; },
-    ];
+    { data: PerfumeData | null; error: Error | null },
+    { data: PerfumeData | null; error: Error | null },
+  ];
 
   const guessedPerfumeResult = guessedPerfumeRes;
   const answerPerfumeResult = answerPerfumeRes;
@@ -685,7 +719,8 @@ export async function submitGuess(
     throw new Error("Perfume data missing");
   }
 
-  const yearDiff = (guessedPerfume.release_year ?? 0) - (answerPerfume.release_year ?? 0);
+  const yearDiff =
+    (guessedPerfume.release_year ?? 0) - (answerPerfume.release_year ?? 0);
   let yearMatch: "correct" | "close" | "wrong" = "wrong";
   if (yearDiff === 0) yearMatch = "correct";
   else if (Math.abs(yearDiff) <= 3) yearMatch = "close";
@@ -693,8 +728,16 @@ export async function submitGuess(
   const feedback: AttemptFeedback = {
     brandMatch: guessedPerfume.brand_id === answerPerfume.brand_id,
     notesMatch: calculateNotesMatch(
-      { base: guessedPerfume.base_notes ?? [], heart: guessedPerfume.middle_notes ?? [], top: guessedPerfume.top_notes ?? [] },
-      { base: answerPerfume.base_notes ?? [], heart: answerPerfume.middle_notes ?? [], top: answerPerfume.top_notes ?? [] },
+      {
+        base: guessedPerfume.base_notes ?? [],
+        heart: guessedPerfume.middle_notes ?? [],
+        top: guessedPerfume.top_notes ?? [],
+      },
+      {
+        base: answerPerfume.base_notes ?? [],
+        heart: answerPerfume.middle_notes ?? [],
+        top: answerPerfume.top_notes ?? [],
+      },
     ),
     perfumerMatch: calculatePerfumerMatch(
       guessedPerfume.perfumers?.map((p) => p.name) ?? null,
@@ -716,14 +759,19 @@ export async function submitGuess(
     .from("game_sessions")
     .update({
       attempts_count: nextAttempts,
-      guesses: [...((session?.guesses ?? []) as unknown as AttemptFeedback[]), guessEntry],
+      guesses: [
+        ...((session?.guesses ?? []) as unknown as AttemptFeedback[]),
+        guessEntry,
+      ],
       last_guess: new Date().toISOString(),
       last_nonce: newNonce,
       status: isGameOver ? (isCorrect ? "won" : "lost") : "active",
     })
     .eq("id", sessionId)
     .eq("last_nonce", clientNonce)
-    .select("attempts_count, challenge_id, guesses, id, last_guess, last_nonce, player_id, start_time, status")
+    .select(
+      "attempts_count, challenge_id, guesses, id, last_guess, last_nonce, player_id, start_time, status",
+    )
     .limit(1)
     .single();
 
@@ -731,13 +779,17 @@ export async function submitGuess(
     throw new Error(`CONFLICT:${session.last_nonce}`);
   }
 
-  await trackEvent("guess_submitted", {
-    attempt_number: nextAttempts,
-    challenge_id: session.challenge_id,
-    is_correct: isCorrect,
-    perfume_id: perfumeId,
-    session_id: sessionId,
-  }, user.id);
+  await trackEvent(
+    "guess_submitted",
+    {
+      attempt_number: nextAttempts,
+      challenge_id: session.challenge_id,
+      is_correct: isCorrect,
+      perfume_id: perfumeId,
+      session_id: sessionId,
+    },
+    user.id,
+  );
 
   let finalScore = 0;
   if (isGameOver) {
@@ -764,20 +816,28 @@ export async function submitGuess(
       scoring_version: 1,
       session_id: sessionId,
       status: isCorrect ? "won" : "lost",
-      time_seconds: Math.floor((now.getTime() - new Date(session.start_time).getTime()) / 1000),
+      time_seconds: Math.floor(
+        (now.getTime() - new Date(session.start_time).getTime()) / 1000,
+      ),
     });
-    await trackEvent("game_completed", {
-      attempts: nextAttempts,
-      challenge_id: session.challenge_id,
-      score: finalScore,
-      status: isCorrect ? "won" : "lost",
-    }, user.id);
+    await trackEvent(
+      "game_completed",
+      {
+        attempts: nextAttempts,
+        challenge_id: session.challenge_id,
+        score: finalScore,
+        status: isCorrect ? "won" : "lost",
+      },
+      user.id,
+    );
   }
 
   const nextImageUrl = await getImageUrlForStep(sessionId);
 
   return {
-    answerConcentration: isGameOver ? getArrayName(answerPerfume.concentrations) : undefined,
+    answerConcentration: isGameOver
+      ? getArrayName(answerPerfume.concentrations)
+      : undefined,
     answerName: isGameOver ? answerPerfume.name : undefined,
     feedback,
     finalScore: isGameOver ? finalScore : undefined,
@@ -791,13 +851,19 @@ export async function submitGuess(
   };
 }
 
-function getArrayName(value: { name: string } | { name: string }[] | null): string | undefined {
+function getArrayName(
+  value: { name: string } | { name: string }[] | null,
+): string | undefined {
   if (!value) return undefined;
   if (Array.isArray(value)) return value[0]?.name;
   return value.name;
 }
 
-function mapPerfumeDetails(perfume: { concentrations: { name: string } | { name: string }[] | null; gender?: string | null; release_year: number | null; }) {
+function mapPerfumeDetails(perfume: {
+  concentrations: { name: string } | { name: string }[] | null;
+  gender?: string | null;
+  release_year: number | null;
+}) {
   return {
     concentration: getArrayName(perfume.concentrations) ?? "Unknown",
     gender: perfume.gender ?? "Unisex",
@@ -805,11 +871,12 @@ function mapPerfumeDetails(perfume: { concentrations: { name: string } | { name:
   };
 }
 
-
 /**
  * Resetuje grę dla użytkownika i wyzwania.
  */
-export async function resetGame(sessionId: string): Promise<{ error?: string; success: boolean; }> {
+export async function resetGame(
+  sessionId: string,
+): Promise<{ error?: string; success: boolean }> {
   const supabase = await createClient();
   const { data: userResult } = await supabase.auth.getUser();
   const user = userResult?.user;
@@ -824,8 +891,16 @@ export async function resetGame(sessionId: string): Promise<{ error?: string; su
   const targetChallengeId = sessionData?.challenge_id;
   if (!targetChallengeId) return { success: true };
 
-  await supabase.from("game_results").delete().eq("player_id", user.id).eq("challenge_id", targetChallengeId);
-  await supabase.from("game_sessions").delete().eq("player_id", user.id).eq("challenge_id", targetChallengeId);
+  await supabase
+    .from("game_results")
+    .delete()
+    .eq("player_id", user.id)
+    .eq("challenge_id", targetChallengeId);
+  await supabase
+    .from("game_sessions")
+    .delete()
+    .eq("player_id", user.id)
+    .eq("challenge_id", targetChallengeId);
 
   revalidatePath("/");
   return { success: true };

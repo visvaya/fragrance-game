@@ -1,10 +1,15 @@
 import { withSentryConfig } from "@sentry/nextjs";
+import createBundleAnalyzer from "@next/bundle-analyzer";
 import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin();
+const withBundleAnalyzer = createBundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactCompiler: true,
   experimental: {
     optimizePackageImports: [
       "lucide-react",
@@ -116,4 +121,4 @@ const serverConfig = withSentryConfig(
   },
 );
 
-export default withNextIntl(serverConfig);
+export default withNextIntl(withBundleAnalyzer(serverConfig));

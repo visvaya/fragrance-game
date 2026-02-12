@@ -131,10 +131,7 @@ function TableCell({ className, ...props }: ComponentProps<"td">) {
  * @param root0
  * @param root0.className
  */
-function TableCaption({
-  className,
-  ...props
-}: ComponentProps<"caption">) {
+function TableCaption({ className, ...props }: ComponentProps<"caption">) {
   return (
     <caption
       className={cn("mt-4 text-sm text-muted-foreground", className)}
@@ -154,4 +151,3 @@ export {
   TableCell,
   TableCaption,
 };
-

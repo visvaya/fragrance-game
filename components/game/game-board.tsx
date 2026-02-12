@@ -8,14 +8,15 @@ import { AttemptLog } from "./attempt-log";
 import { MetaClues } from "./clues/meta-clues";
 import { PyramidClues } from "./clues/pyramid-clues";
 import { DifficultyDisplay } from "./difficulty-display";
-import { useGame } from "./game-provider";
+import { useGameState, useUIPreferences } from "./contexts";
 import { RevealImage } from "./RevealImage";
 
 /**
  *
  */
 export function GameBoard() {
-  const { dailyPerfume, gameState, uiPreferences, xsolveScore } = useGame();
+  const { dailyPerfume, gameState, xsolveScore } = useGameState();
+  const { uiPreferences } = useUIPreferences();
   const isWide = uiPreferences.layoutMode === "wide";
   const t = useTranslations("GameBoard");
 
@@ -33,7 +34,7 @@ export function GameBoard() {
         <div className="rounded-md border border-border/50 bg-background p-6 text-center transition-all duration-500 animate-in fade-in zoom-in-95">
           {gameState === "won" ? (
             <div className="duration-500 animate-in fade-in zoom-in">
-              <p className="mb-3 -rotate-2 transform font-[family-name:var(--font-hand)] text-4xl text-success">
+              <p className="mb-2 -rotate-2 transform font-[family-name:var(--font-hand)] text-4xl text-success">
                 {t("magnifique")}
               </p>
               <div className="space-y-1">
@@ -46,9 +47,7 @@ export function GameBoard() {
                     </span>
                   ) : null}
                 </p>
-                <p className="text-sm tracking-widest text-muted-foreground uppercase">
-                  {t("by")} {dailyPerfume.brand}
-                </p>
+
                 <div className="mt-2 flex justify-center">
                   <DifficultyDisplay score={xsolveScore} />
                 </div>
@@ -56,7 +55,7 @@ export function GameBoard() {
             </div>
           ) : (
             <div className="duration-500 animate-in fade-in zoom-in">
-              <p className="mb-3 font-[family-name:var(--font-hand)] text-3xl text-destructive">
+              <p className="font-[family-name:var(--font-hand)] text-3xl text-destructive">
                 {t("answerWas")}
               </p>
               <div className="space-y-1">
@@ -69,9 +68,7 @@ export function GameBoard() {
                     </span>
                   ) : null}
                 </p>
-                <p className="text-sm tracking-widest text-muted-foreground uppercase">
-                  {t("by")} {dailyPerfume.brand}
-                </p>
+
                 <div className="mt-2 flex justify-center">
                   <DifficultyDisplay score={xsolveScore} />
                 </div>

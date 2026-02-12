@@ -18,9 +18,9 @@ export function normalizeText(text: string): string {
     .toLowerCase()
     .normalize("NFD")
     .replaceAll(/[\u0300-\u036F]/g, "")
-    .replaceAll('ł', "l")
-    .replaceAll('ø', "o")
-    .replaceAll('æ', "ae")
-    .replaceAll('œ', "oe")
-    .replaceAll('ß', "ss");
+    .replaceAll("ł", "l")
+    .replaceAll("ø", "o")
+    .replaceAll("æ", "ae")
+    .replaceAll("œ", "oe")
+    .replaceAll("ß", "ss");
 }

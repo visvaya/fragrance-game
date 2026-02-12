@@ -137,9 +137,7 @@ export function HelpModal({ onClose, open }: HelpModalProperties) {
             </li>
             <li className="flex gap-2">
               <span className="text-primary">•</span>
-              <span>
-                {t("doubleEnter")}
-              </span>
+              <span>{t("doubleEnter")}</span>
             </li>
           </ul>
 

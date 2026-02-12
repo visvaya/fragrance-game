@@ -64,10 +64,7 @@ function AlertTitle({ className, ...props }: ComponentProps<"div">) {
  * @param root0
  * @param root0.className
  */
-function AlertDescription({
-  className,
-  ...props
-}: ComponentProps<"div">) {
+function AlertDescription({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       className={cn(
@@ -81,4 +78,3 @@ function AlertDescription({
 }
 
 export { Alert, AlertTitle, AlertDescription };
-

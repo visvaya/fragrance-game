@@ -10,9 +10,7 @@ import { cn } from "@/lib/utils";
  *
  * @param root0
  */
-function Drawer({
-  ...props
-}: ComponentProps<typeof DrawerPrimitive.Root>) {
+function Drawer({ ...props }: ComponentProps<typeof DrawerPrimitive.Root>) {
   return <DrawerPrimitive.Root data-slot="drawer" {...props} />;
 }
 
@@ -181,4 +179,3 @@ export {
   DrawerTitle,
   DrawerDescription,
 };
-

@@ -10,9 +10,7 @@ import { cn } from "@/lib/utils";
  *
  * @param root0
  */
-function Popover({
-  ...props
-}: ComponentProps<typeof PopoverPrimitive.Root>) {
+function Popover({ ...props }: ComponentProps<typeof PopoverPrimitive.Root>) {
   return <PopoverPrimitive.Root data-slot="popover" {...props} />;
 }
 
@@ -66,4 +64,3 @@ function PopoverAnchor({
 }
 
 export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor };
-

@@ -3,7 +3,7 @@
 import { Store, Feather, Hourglass, Sparkles, Droplets } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { useGame } from "../game-provider";
+import { useGameState } from "../contexts";
 import { GameTooltip } from "../game-tooltip";
 import { cn } from "@/lib/utils";
 
@@ -15,25 +15,25 @@ export function MetaClues() {
     currentAttempt,
     dailyPerfume,
     gameState,
-    getRevealedBrand,
-    getRevealedPerfumer,
-    getRevealedYear,
+    revealedBrand,
+    revealedPerfumer,
+    revealedYear,
     isGenderRevealed,
     revealLevel,
-  } = useGame();
+  } = useGameState();
   const t = useTranslations("MetaClues");
 
   const clues = [
-    { key: "brand", value: getRevealedBrand() },
-    { key: "perfumer", value: getRevealedPerfumer() },
-    { key: "year", value: getRevealedYear() },
+    { key: "brand", value: revealedBrand },
+    { key: "perfumer", value: revealedPerfumer },
+    { key: "year", value: revealedYear },
     {
       key: "gender",
       value:
         revealLevel >= 5 ||
-          isGenderRevealed ||
-          gameState === "won" ||
-          gameState === "lost"
+        isGenderRevealed ||
+        gameState === "won" ||
+        gameState === "lost"
           ? dailyPerfume.gender
           : "?????",
     },
@@ -183,10 +183,11 @@ function MetaBadge({
                       return (
                         <div
                           aria-hidden="true"
-                          className={`mx-[0.5px] h-5 w-2.5 transition-all duration-300 ${isHovered
-                            ? "border-b border-[oklch(0.75_0.15_60)]"
-                            : "border-b border-muted-foreground/30"
-                            }`}
+                          className={`mx-[0.5px] h-5 w-2.5 transition-all duration-300 ${
+                            isHovered
+                              ? "border-b border-[oklch(0.75_0.15_60)]"
+                              : "border-b border-muted-foreground/30"
+                          }`}
                           key={charIndex}
                         />
                       );
@@ -195,7 +196,9 @@ function MetaBadge({
                       <div
                         className={cn(
                           "mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none transition-colors duration-300",
-                          isHovered ? "text-[oklch(0.75_0.15_60)]" : "text-foreground"
+                          isHovered
+                            ? "text-[oklch(0.75_0.15_60)]"
+                            : "text-foreground",
                         )}
                         key={charIndex}
                       >

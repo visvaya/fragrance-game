@@ -29,9 +29,7 @@ function SheetTrigger({
  *
  * @param root0
  */
-function SheetClose({
-  ...props
-}: ComponentProps<typeof SheetPrimitive.Close>) {
+function SheetClose({ ...props }: ComponentProps<typeof SheetPrimitive.Close>) {
   return <SheetPrimitive.Close data-slot="sheet-close" {...props} />;
 }
 
@@ -177,4 +175,3 @@ export {
   SheetTitle,
   SheetDescription,
 };
-

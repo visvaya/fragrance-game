@@ -3,7 +3,7 @@
 import { Circle, Layers } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { useGame } from "../game-provider";
+import { useGameState } from "../contexts";
 import { GameTooltip } from "../game-tooltip";
 
 /**
@@ -11,14 +11,9 @@ import { GameTooltip } from "../game-tooltip";
  */
 export function PyramidClues() {
   const t = useTranslations("PyramidClues");
-  const {
-    currentAttempt,
-    dailyPerfume,
-    gameState,
-    getVisibleNotes,
-    revealLevel,
-  } = useGame(); // isLinear is accessible via dailyPerfume.isLinear
-  const notes = getVisibleNotes();
+  const { currentAttempt, dailyPerfume, gameState, visibleNotes, revealLevel } =
+    useGameState(); // isLinear is accessible via dailyPerfume.isLinear
+  const notes = visibleNotes;
   const isLinear = dailyPerfume.isLinear;
 
   // LINEAR PERFUME LOGIC
@@ -43,42 +38,45 @@ export function PyramidClues() {
     if (isGameOver || revealLevel >= 5) {
       // Level 5+ or Game Over -> All
       displayNotes = mergedNotes;
-    } else switch (revealLevel) {
- case 1: {
-      // 3 generic dots -> now 3 generic scores/slots
-      displayNotes = ["?????", "?????", "?????"];
-    
- break;
- }
- case 2: {
-      // All notes masked (0% reveal)
-      displayNotes = mergedNotes.map((n) => n.replaceAll(/[a-z0-9]/gi, "_"));
-    
- break;
- }
- case 3: {
-      // 1/3 revealed from end, rest masked
-      const count = Math.ceil(mergedNotes.length * (1 / 3));
-      displayNotes = mergedNotes.map((n, i) => {
-        // if index is in the last 'count', show it. Else mask it.
-        if (i >= mergedNotes.length - count) return n;
-        return n.replaceAll(/[a-z0-9]/gi, "_");
-      });
-    
- break;
- }
- case 4: {
-      // 2/3 revealed from end
-      const count = Math.ceil(mergedNotes.length * (2 / 3));
-      displayNotes = mergedNotes.map((n, i) => {
-        if (i >= mergedNotes.length - count) return n;
-        return n.replaceAll(/[a-z0-9]/gi, "_");
-      });
-    
- break;
- }
- // No default
- }
+    } else
+      switch (revealLevel) {
+        case 1: {
+          // 3 generic dots -> now 3 generic scores/slots
+          displayNotes = ["?????", "?????", "?????"];
+
+          break;
+        }
+        case 2: {
+          // All notes masked (0% reveal)
+          displayNotes = mergedNotes.map((n) =>
+            n.replaceAll(/[a-z0-9]/gi, "_"),
+          );
+
+          break;
+        }
+        case 3: {
+          // 1/3 revealed from end, rest masked
+          const count = Math.ceil(mergedNotes.length * (1 / 3));
+          displayNotes = mergedNotes.map((n, i) => {
+            // if index is in the last 'count', show it. Else mask it.
+            if (i >= mergedNotes.length - count) return n;
+            return n.replaceAll(/[a-z0-9]/gi, "_");
+          });
+
+          break;
+        }
+        case 4: {
+          // 2/3 revealed from end
+          const count = Math.ceil(mergedNotes.length * (2 / 3));
+          displayNotes = mergedNotes.map((n, i) => {
+            if (i >= mergedNotes.length - count) return n;
+            return n.replaceAll(/[a-z0-9]/gi, "_");
+          });
+
+          break;
+        }
+        // No default
+      }
 
     return (
       <div className="rounded-md border border-border/50 bg-background p-4">
@@ -101,13 +99,15 @@ export function PyramidClues() {
                 {revealLevel === 1 ? (
                   <GameTooltip content={t("linearProfileTooltip")}>
                     <span className="cursor-help">
-                      ({t.rich("noteCountUnknown", {
+                      (
+                      {t.rich("noteCountUnknown", {
                         q: (chunks) => (
                           <span className="underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
                             {chunks}
                           </span>
                         ),
-                      })})
+                      })}
+                      )
                     </span>
                   </GameTooltip>
                 ) : (
@@ -198,10 +198,11 @@ export function PyramidClues() {
                                       return (
                                         <div
                                           aria-hidden="true"
-                                          className={`mx-[0.5px] h-5 w-2.5 transition-all duration-300 ${isHovered
-                                            ? "border-b border-[oklch(0.75_0.15_60)]"
-                                            : `border-b border-muted-foreground/30 ${isFullHidden ? "opacity-50" : "opacity-70"}`
-                                            }`}
+                                          className={`mx-[0.5px] h-5 w-2.5 transition-all duration-300 ${
+                                            isHovered
+                                              ? "border-b border-[oklch(0.75_0.15_60)]"
+                                              : `border-b border-muted-foreground/30 ${isFullHidden ? "opacity-50" : "opacity-70"}`
+                                          }`}
                                           key={index}
                                         />
                                       );
@@ -267,13 +268,15 @@ export function PyramidClues() {
                 {revealLevel === 1 ? (
                   <GameTooltip content={t("linearProfileTooltip")}>
                     <span className="cursor-help">
-                      ({t.rich("noteCountUnknown", {
+                      (
+                      {t.rich("noteCountUnknown", {
                         q: (chunks) => (
                           <span className="underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
                             {chunks}
                           </span>
                         ),
-                      })})
+                      })}
+                      )
                     </span>
                   </GameTooltip>
                 ) : (
@@ -369,10 +372,11 @@ export function PyramidClues() {
                                         return (
                                           <div
                                             aria-hidden="true"
-                                            className={`mx-[0.5px] h-5 w-2.5 transition-all duration-300 ${isHovered
-                                              ? "border-b border-[oklch(0.75_0.15_60)]"
-                                              : `border-b border-muted-foreground/30 ${isFullHidden ? "opacity-50" : "opacity-70"}`
-                                              }`}
+                                            className={`mx-[0.5px] h-5 w-2.5 transition-all duration-300 ${
+                                              isHovered
+                                                ? "border-b border-[oklch(0.75_0.15_60)]"
+                                                : `border-b border-muted-foreground/30 ${isFullHidden ? "opacity-50" : "opacity-70"}`
+                                            }`}
                                             key={index}
                                           />
                                         );

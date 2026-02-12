@@ -32,10 +32,7 @@ function Pagination({ className, ...props }: ComponentProps<"nav">) {
  * @param root0
  * @param root0.className
  */
-function PaginationContent({
-  className,
-  ...props
-}: ComponentProps<"ul">) {
+function PaginationContent({ className, ...props }: ComponentProps<"ul">) {
   return (
     <ul
       className={cn("flex flex-row items-center gap-1", className)}
@@ -92,7 +89,6 @@ function PaginationLink({
   );
 }
 
-
 /**
  *
  * @param root0
@@ -142,10 +138,7 @@ function PaginationNext({
  * @param root0
  * @param root0.className
  */
-function PaginationEllipsis({
-  className,
-  ...props
-}: ComponentProps<"span">) {
+function PaginationEllipsis({ className, ...props }: ComponentProps<"span">) {
   return (
     <span
       aria-hidden
@@ -168,4 +161,3 @@ export {
   PaginationNext,
   PaginationEllipsis,
 };
-

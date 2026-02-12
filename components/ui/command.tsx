@@ -204,10 +204,7 @@ function CommandItem({
  * @param root0
  * @param root0.className
  */
-function CommandShortcut({
-  className,
-  ...props
-}: ComponentProps<"span">) {
+function CommandShortcut({ className, ...props }: ComponentProps<"span">) {
   return (
     <span
       className={cn(
@@ -231,4 +228,3 @@ export {
   CommandShortcut,
   CommandSeparator,
 };
-

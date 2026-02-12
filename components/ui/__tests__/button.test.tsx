@@ -27,7 +27,9 @@ describe("Button", () => {
   });
 
   it("matches destructive variant snapshot", () => {
-    const { asFragment } = render(<Button variant="destructive">Destructive</Button>);
+    const { asFragment } = render(
+      <Button variant="destructive">Destructive</Button>,
+    );
     expect(asFragment()).toMatchSnapshot();
   });
 

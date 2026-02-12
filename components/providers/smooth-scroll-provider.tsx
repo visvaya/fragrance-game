@@ -11,7 +11,7 @@ import Lenis from "lenis";
  */
 export function SmoothScrollProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
-    // Disable Lenis on mobile/tablet to allow native scrolling to handle 
+    // Disable Lenis on mobile/tablet to allow native scrolling to handle
     // sticky elements and browser UI bars correctly.
     if (typeof window !== "undefined" && window.innerWidth < 1024) {
       return;
