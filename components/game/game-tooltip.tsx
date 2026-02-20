@@ -106,6 +106,12 @@ export function GameTooltip({
             if (isTouchReference.current) return;
             setOpen(true);
           }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setOpen((previous) => !previous);
+            }
+          }}
           onPointerDown={(e) => {
             if (e.pointerType === "touch") {
               isTouchReference.current = true;

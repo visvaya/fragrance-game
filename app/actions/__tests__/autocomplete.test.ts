@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // Mock dependencies
 vi.mock("@/lib/redis", () => ({
-  checkRateLimit: vi.fn().mockResolvedValue(undefined),
+  checkRateLimit: vi.fn().mockResolvedValue(true),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({

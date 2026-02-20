@@ -52,14 +52,24 @@ export function StatsModal({ onClose, open }: StatsModalProperties) {
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 p-5 backdrop-blur-sm duration-300 animate-in fade-in"
       onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          onClose();
+        }
+      }}
+      role="presentation"
     >
       <div
+        aria-labelledby="stats-modal-title"
         className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-xl border border-border bg-background duration-300 animate-in slide-in-from-bottom-4"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        role="dialog"
       >
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-border p-6 pb-4">
-          <h2 className="font-[family-name:var(--font-playfair)] text-xl text-foreground">
+          <h2 className="font-[family-name:var(--font-playfair)] text-xl text-foreground" id="stats-modal-title">
             {t("title")}
           </h2>
           <button
@@ -107,7 +117,7 @@ export function StatsModal({ onClose, open }: StatsModalProperties) {
               const isHighest = count === maxDistribution && count > 0;
 
               return (
-                <div className="flex items-center gap-3 text-sm" key={index}>
+                <div className="flex items-center gap-3 text-sm" key={`distribution-${index}`}>
                   <span className="w-5 text-right text-muted-foreground">
                     {index + 1}
                   </span>

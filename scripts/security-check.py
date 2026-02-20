@@ -10,6 +10,29 @@ import sys
 import os
 from typing import List, Tuple, Dict, Any
 
+# Files to skip
+SKIP_FILES = {
+    'pnpm-lock.yaml',
+    'package-lock.json',
+    'yarn.lock',
+    'security-check.py',
+    '.gitignore',
+}
+
+# Patterns that indicate potential secrets
+SECRET_PATTERNS: List[Tuple[str, str]] = [
+    (r'(?i)password\s*[:=]\s*["\'][^"\']{4,}["\']', "Hardcoded password"),
+    (r'(?i)api[-_]?key\s*[:=]\s*["\'][^"\']{10,}["\']', "Hardcoded API Key"),
+    (r'(?i)secret\s*[:=]\s*["\'][^"\']{10,}["\']', "Hardcoded Secret"),
+    (r'(?i)token\s*[:=]\s*["\'][^"\']{10,}["\']', "Hardcoded Token"),
+    (r'AIza[0-9A-Za-z-_]{35}', "Google API Key"),
+    (r'sk_live_[0-9a-zA-Z]{24}', "Stripe Live Secret Key"),
+    (r'sq0csp-[0-9A-Za-z-_]{43}', "Square Access Token"),
+    (r'sq0idp-[0-9A-Za-z-_]{22}', "Square Application ID"),
+    (r'key-[0-9a-zA-Z]{32}', "Mailgun API Key"),
+    (r'SK[0-9a-fA-F]{32}', "Twilio API Key"),
+]
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,

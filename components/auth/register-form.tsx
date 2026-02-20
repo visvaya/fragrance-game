@@ -25,6 +25,9 @@ import { useRouter } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
+import { GoogleAuthButton } from "./google-auth-button";
+import { PasswordStrength } from "./password-strength";
+
 const CaptchaLoader = () => {
   const t = useTranslations("Auth.register");
   return (
@@ -41,13 +44,13 @@ const Captcha = dynamic(
     ssr: false,
   },
 );
-import { GoogleAuthButton } from "./google-auth-button";
-import { PasswordStrength } from "./password-strength";
 
-/**
- * RegisterForm component for new user registration.
- * Includes CAPTCHA verification and password confirmation.
- */
+async function checkPasswordSafety(password: string) {
+  const { validatePasswordSafety } = await import(
+    "@/app/actions/security-actions"
+  );
+  return validatePasswordSafety(password);
+}
 
 type RegisterFormProperties = {
   className?: string;
@@ -71,11 +74,10 @@ export function RegisterForm({
   const t = useTranslations("Auth.register");
   const tCommon = useTranslations("Auth.common");
 
-  // Updated schema removes the synchronous .refine for common passwords
   const registerSchema = z
     .object({
       confirmPassword: z.string().min(1, { message: t("passwordLabel") }),
-      email: z.email({ message: t("invalidEmail") }),
+      email: z.string().email({ message: t("invalidEmail") }),
       password: z
         .string()
         .min(8, { message: t("passwordMinLength") })
@@ -110,14 +112,11 @@ export function RegisterForm({
 
     try {
       // 1. Server-side password safety check
-      // We do this here to avoid sending the huge password blacklist to the client
-      const { validatePasswordSafety } =
-        await import("@/app/actions/security-actions");
-      const safetyCheck = await validatePasswordSafety(data.password);
+      const safetyCheck = await checkPasswordSafety(data.password);
 
       if (!safetyCheck.isSafe) {
         form.setError("password", {
-          message: t("passwordCommon"), // "This password is too common"
+          message: t("passwordCommon"),
           type: "manual",
         });
         setIsLoading(false);
@@ -145,6 +144,7 @@ export function RegisterForm({
       toast.success(t("success"), {
         description: t("successDescription"),
       });
+
       if (onSuccess) {
         onSuccess();
       } else {

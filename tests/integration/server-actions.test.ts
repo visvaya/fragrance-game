@@ -70,7 +70,7 @@ describe("Game Actions Integration (Mocked)", () => {
 
       let error;
       try {
-        await startGame("challenge-1");
+        await startGame("550e8400-e29b-41d4-a716-446655440001");
       } catch (error_) {
         error = error_;
       }
@@ -100,9 +100,9 @@ describe("Game Actions Integration (Mocked)", () => {
           return {
             data: {
               attempts_count: 0,
-              challenge_id: "challenge-1",
+              challenge_id: "550e8400-e29b-41d4-a716-446655440001",
               guesses: [],
-              id: "session-456",
+              id: "123e4567-e89b-12d3-a456-426614174002",
               last_nonce: "123",
               player_id: "user-123",
               start_time: "...",
@@ -118,7 +118,7 @@ describe("Game Actions Integration (Mocked)", () => {
           return {
             data: {
               grace_deadline_at_utc: "2026-01-01T00:00:00Z",
-              perfume_id: "p1",
+              perfume_id: "f47a-58cc-4372-a567-0e02b2c3d470",
             },
             error: null,
           };
@@ -126,12 +126,12 @@ describe("Game Actions Integration (Mocked)", () => {
         return { data: null, error: null };
       });
 
-      const result = await startGame("challenge-1");
+      const result = await startGame("550e8400-e29b-41d4-a716-446655440001");
 
-      expect(result.sessionId).toBe("session-456");
+      expect(result.sessionId).toBe("123e4567-e89b-12d3-a456-426614174002");
       expect(mockSupabase.insert).toHaveBeenCalledWith(
         expect.objectContaining({
-          challenge_id: "challenge-1",
+          challenge_id: "550e8400-e29b-41d4-a716-446655440001",
           player_id: "user-123",
         }),
       );
@@ -141,8 +141,8 @@ describe("Game Actions Integration (Mocked)", () => {
   describe("submitGuess", () => {
     it("handles correct guess", async () => {
       const mockUser = { id: "user-123" };
-      const sessionId = "session-1";
-      const perfumeId = "perfume-correct";
+      const sessionId = "123e4567-e89b-12d3-a456-426614174001";
+      const perfumeId = "f47ac10b-58cc-4372-a567-0e02b2c3d471";
       const nonce = "123";
 
       mockSupabase.auth.getUser.mockResolvedValue({
@@ -159,7 +159,7 @@ describe("Game Actions Integration (Mocked)", () => {
           return {
             data: {
               attempts_count: 0,
-              challenge_id: "c1",
+              challenge_id: "550e8400-e29b-41d4-a716-446655440002",
               guesses: [],
               id: sessionId,
               last_nonce: nonce,
@@ -212,9 +212,9 @@ describe("Game Actions Integration (Mocked)", () => {
       mockSupabase.single.mockResolvedValueOnce({
         data: {
           attempts_count: 0,
-          challenge_id: "c1",
+          challenge_id: "550e8400-e29b-41d4-a716-446655440002",
           guesses: [],
-          id: "s1",
+          id: "123e4567-e89b-12d3-a456-426614174003",
           last_nonce: "wrong-nonce",
           player_id: "user-123",
           start_time: "...",
@@ -223,7 +223,7 @@ describe("Game Actions Integration (Mocked)", () => {
         error: null,
       } as any);
 
-      await expect(submitGuess("s1", "p1", "123")).rejects.toThrow(/CONFLICT/);
+      await expect(submitGuess("123e4567-e89b-12d3-a456-426614174003", "f47a-58cc-4372-a567-0e02b2c3d470", "123")).rejects.toThrow(/CONFLICT/);
     });
   });
 });

@@ -70,7 +70,7 @@ export function MetaClues() {
                     <MetaBadge
                       clueKey={clue.key}
                       currentAttempt={currentAttempt}
-                      key={itemIndex}
+                      key={`${clue.key}-${perfumer}-${itemIndex}`}
                       t={t}
                       value={perfumer}
                     />
@@ -127,7 +127,7 @@ function MetaBadge({
                   <div
                     aria-hidden="true"
                     className="mx-[0.5px] h-5 w-2.5 border-b border-muted-foreground/30"
-                    key={i}
+                    key={`slot-${wordIndex}-${i}`}
                   />
                 ))}
               </div>

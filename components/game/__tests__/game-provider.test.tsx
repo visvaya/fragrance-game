@@ -3,12 +3,13 @@ import {
   screen,
   waitFor,
   act,
-  renderHook,
 } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { NextIntlClientProvider } from "next-intl";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import * as gameActions from "@/app/actions/game-actions";
 
+import { UIPreferencesProvider } from "../contexts/ui-preferences-context";
 import { GameProvider, useGame } from "../game-provider";
 
 // Mock dependencies
@@ -40,6 +41,17 @@ vi.mock("posthog-js/react", () => ({
   })),
 }));
 
+const messages = {
+  Auth: {
+    register: {
+      title: "Register",
+    },
+  },
+};
+
+const VALID_SESSION_ID = "123e4567-e89b-12d3-a456-426614174000";
+const VALID_CHALLENGE_ID = "550e8400-e29b-41d4-a716-446655440000";
+
 // Helper component to expose context
 function TestComponent() {
   const game = useGame();
@@ -50,12 +62,22 @@ function TestComponent() {
       <div data-testid="daily-brand">{game.dailyPerfume.brand}</div>
       <button
         onClick={async () =>
-          game.makeGuess("Test Perfume", "Test Brand", "perfume-123")
+          game.makeGuess("Test Perfume", "Test Brand", "f47ac10b-58cc-4372-a567-0e02b2c3d479")
         }
       >
         Guess
       </button>
     </div>
+  );
+}
+
+function renderWithProviders(ui: React.ReactElement) {
+  return render(
+    <NextIntlClientProvider locale="en" messages={messages}>
+      <UIPreferencesProvider>
+        {ui}
+      </UIPreferencesProvider>
+    </NextIntlClientProvider>
   );
 }
 
@@ -70,14 +92,14 @@ describe("GameProvider", () => {
       xsolve: 100,
       year: 1921,
     },
-    id: "challenge-1",
+    id: VALID_CHALLENGE_ID,
   };
 
   const mockSession = {
     guesses: [],
     imageUrl: "/test.jpg",
     nonce: "nonce-1",
-    sessionId: "session-1",
+    sessionId: VALID_SESSION_ID,
   };
 
   beforeEach(() => {
@@ -89,7 +111,7 @@ describe("GameProvider", () => {
   });
 
   it("initializes game correctly", async () => {
-    render(
+    renderWithProviders(
       <GameProvider>
         <TestComponent />
       </GameProvider>,
@@ -124,18 +146,16 @@ describe("GameProvider", () => {
       mockGuessResult as any,
     );
 
-    render(
+    renderWithProviders(
       <GameProvider>
         <TestComponent />
       </GameProvider>,
     );
 
-    // Wait for init
     await waitFor(() =>
       expect(screen.getByTestId("daily-brand")).toHaveTextContent("Chanel"),
     );
 
-    // Make guess
     await act(async () => {
       screen.getByText("Guess").click();
     });
@@ -165,7 +185,7 @@ describe("GameProvider", () => {
       mockGuessResult as any,
     );
 
-    render(
+    renderWithProviders(
       <GameProvider>
         <TestComponent />
       </GameProvider>,

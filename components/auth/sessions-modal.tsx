@@ -81,11 +81,20 @@ export function SessionsModal({
       }
 
       setIsLoading(true);
+      let data: any = null;
       try {
-        const data = await getSessions();
+        data = await getSessions();
+      } catch (error) {
+        console.error("Failed to fetch sessions", error);
+        toast.error(t("fetchError"));
+        setIsLoading(false);
+        return;
+      }
+
+      if (data) {
         setSessions(data as Session[]);
 
-        if (data && data.length > 0) {
+        if (data.length > 0) {
           const sorted = [...data].sort(
             (a, b) =>
               new Date(b.last_active_at ?? 0).getTime() -
@@ -96,8 +105,8 @@ export function SessionsModal({
           const match = sorted.find((s) => {
             const storedUA =
               typeof s.device_info === "object" &&
-              s.device_info !== null &&
-              "user_agent" in s.device_info
+                s.device_info !== null &&
+                "user_agent" in s.device_info
                 ? (s.device_info.user_agent as string)
                 : "";
             return storedUA === currentUA;
@@ -108,12 +117,8 @@ export function SessionsModal({
             setCurrentSessionId(sorted[0].id);
           }
         }
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Failed to fetch sessions", error);
-        toast.error(t("fetchError"));
-        setIsLoading(false);
       }
+      setIsLoading(false);
     };
 
     if (open) {
@@ -153,8 +158,8 @@ export function SessionsModal({
   const getDeviceIcon = (deviceInfo: Json | null) => {
     const userAgent =
       typeof deviceInfo === "object" &&
-      deviceInfo !== null &&
-      "user_agent" in deviceInfo
+        deviceInfo !== null &&
+        "user_agent" in deviceInfo
         ? (deviceInfo.user_agent as string)
         : "";
 
@@ -170,8 +175,8 @@ export function SessionsModal({
   const formatDeviceInfo = (deviceInfo: Json | null) => {
     const userAgent =
       typeof deviceInfo === "object" &&
-      deviceInfo !== null &&
-      "user_agent" in deviceInfo
+        deviceInfo !== null &&
+        "user_agent" in deviceInfo
         ? (deviceInfo.user_agent as string)
         : "";
 
@@ -264,17 +269,17 @@ export function SessionsModal({
                           <span className="shrink-0">
                             {session.last_active_at
                               ? t("lastActive", {
-                                  time: formatDistanceToNow(
-                                    new Date(session.last_active_at),
-                                    {
-                                      addSuffix: true,
-                                      locale:
-                                        (dateLocales as any)[
-                                          currentLocaleCode
-                                        ] || enUS,
-                                    },
-                                  ),
-                                })
+                                time: formatDistanceToNow(
+                                  new Date(session.last_active_at),
+                                  {
+                                    addSuffix: true,
+                                    locale:
+                                      (dateLocales as any)[
+                                      currentLocaleCode
+                                      ] || enUS,
+                                  },
+                                ),
+                              })
                               : null}
                           </span>
                         </div>

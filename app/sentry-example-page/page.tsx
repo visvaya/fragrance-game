@@ -9,15 +9,7 @@ export default function SentryExamplePage() {
   const [errorThrown, setErrorThrown] = useState(false);
 
   const throwError = () => {
-    try {
-      throw new Error("Sentry Test Error from Client Component");
-    } catch {
-      // In a real app, you might not catch it here to let Sentry catch unhandled errors,
-      // or you explicitly capture it.
-      // Sentry automatically catches unhandled exceptions.
-      // To test unhandled:
-      throw new Error("Sentry Test Error: Unhandled Exception");
-    }
+    throw new Error("Sentry Test Error: Unhandled Exception");
   };
 
   return (

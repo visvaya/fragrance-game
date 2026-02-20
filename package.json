@@ -26,12 +26,14 @@
     "test:load": "artillery run scripts/load-test.yaml",
     "test:perf": "playwright test e2e/performance",
     "test:full": "pnpm test && pnpm test:a11y && pnpm test:perf",
-    "audit": "python ../.agent/scripts/parse_lighthouse.py ./reports/latest.report.json",
+    "audit:report": "node scripts/audit-parse.js",
+    "audit:lighthouse": "python ../.agent/scripts/parse_lighthouse.py ./reports/latest.report.json",
     "clean": "pnpm dlx rimraf .next node_modules",
     "supabase": "pnpm dlx supabase",
     "supabase:types": "pnpm dlx supabase custom:types",
     "supabase:advisors": "pnpm supabase db lint --linked",
-    "generate:zod": "pnpm dlx tsx scripts/generate-zod.ts --input types/supabase.ts --output lib/validations/supabase.schema.ts"
+    "generate:zod": "pnpm dlx tsx scripts/generate-zod.ts --input types/supabase.ts --output lib/validations/supabase.schema.ts",
+    "audit:react": "npx -y react-doctor@latest . --verbose --offline --no-ami --yes"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -127,7 +129,7 @@
     "overrides": {
       "react": "19.2.0",
       "react-dom": "19.2.0",
-      "minimatch@10": "10.2.1"
+      "minimatch": "10.2.1"
     },
     "peerDependencyRules": {
       "ignoreMissing": [

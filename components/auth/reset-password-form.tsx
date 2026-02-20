@@ -24,36 +24,36 @@ import { createClient } from "@/lib/supabase/client";
 
 import { PasswordStrength } from "./password-strength";
 
+async function checkPasswordSafety(password: string) {
+  const { validatePasswordSafety } = await import(
+    "@/app/actions/security-actions"
+  );
+  return validatePasswordSafety(password);
+}
+
 /**
- *
+ * ResetPasswordForm component for authenticated password reset.
  */
 export function ResetPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
   const t = useTranslations("Auth.resetPassword");
-  // Also need register translations for validation messages if we want reuse,
-  // or define them inside register schema.
-  // For now I'll use hardcoded keys or similar.
-  // Actually, I can use t from 'Auth.register' for validation messages if keys are there.
-  const tReg = useTranslations("Auth.register");
+  const tAuth = useTranslations("Auth");
 
-  // Updated schema removes the synchronous .refine for common passwords
   const resetPasswordSchema = z
     .object({
-      confirmPassword: z
-        .string()
-        .min(1, { message: t("confirmPasswordLabel") }),
+      confirmPassword: z.string().min(1, { message: t("confirmPasswordLabel") }),
       password: z
         .string()
-        .min(8, { message: tReg("passwordMinLength") })
-        .regex(/[a-z]/, { message: tReg("passwordLowercase") })
-        .regex(/[A-Z]/, { message: tReg("passwordUppercase") })
-        .regex(/\d/, { message: tReg("passwordDigit") })
-        .regex(/[^a-z0-9]/i, { message: tReg("passwordSpecial") }),
+        .min(8, { message: tAuth("register.passwordMinLength") })
+        .regex(/[a-z]/, { message: tAuth("register.passwordLowercase") })
+        .regex(/[A-Z]/, { message: tAuth("register.passwordUppercase") })
+        .regex(/\d/, { message: tAuth("register.passwordDigit") })
+        .regex(/[^a-z0-9]/i, { message: tAuth("register.passwordSpecial") }),
     })
     .refine((data) => data.password === data.confirmPassword, {
-      message: t("passwordsDoNotMatch"),
+      message: tAuth("passwordsMismatch"),
       path: ["confirmPassword"],
     });
 
@@ -72,13 +72,11 @@ export function ResetPasswordForm() {
 
     try {
       // 1. Server-side password safety check
-      const { validatePasswordSafety } =
-        await import("@/app/actions/security-actions");
-      const safetyCheck = await validatePasswordSafety(data.password);
+      const safetyCheck = await checkPasswordSafety(data.password);
 
       if (!safetyCheck.isSafe) {
         form.setError("password", {
-          message: tReg("passwordCommon"),
+          message: tAuth("passwordCommon"),
           type: "manual",
         });
         setIsLoading(false);

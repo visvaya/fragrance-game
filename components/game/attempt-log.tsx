@@ -166,7 +166,7 @@ export function AttemptLog() {
             <div
               className="group contents"
               data-attempt-row
-              key={`attempt-${index}`}
+              key={`attempt-${attempt.perfumeId || attempt.guess || index}`}
             >
               <div
                 className={cn(
@@ -177,7 +177,15 @@ export function AttemptLog() {
                 )}
                 id={`attempt-${index}`}
                 onClick={handleClick}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleClick(e as unknown as React.MouseEvent);
+                  }
+                }}
                 onPointerDown={handlePointerDown}
+                role="button"
+                tabIndex={0}
               >
                 {index === attempts.length - 1 && !attempt.isCorrect && (
                   <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
@@ -195,7 +203,15 @@ export function AttemptLog() {
                     : "group-hover:bg-muted/40",
                 )}
                 onClick={handleClick}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleClick(e as unknown as React.MouseEvent);
+                  }
+                }}
                 onPointerDown={handlePointerDown}
+                role="button"
+                tabIndex={0}
               >
                 {index === attempts.length - 1 && !attempt.isCorrect && (
                   <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
@@ -275,7 +291,15 @@ export function AttemptLog() {
                     : "group-hover:bg-muted/40",
                 )}
                 onClick={handleClick}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleClick(e as unknown as React.MouseEvent);
+                  }
+                }}
                 onPointerDown={handlePointerDown}
+                role="button"
+                tabIndex={0}
               >
                 {index === attempts.length - 1 && !attempt.isCorrect && (
                   <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
@@ -580,7 +604,7 @@ export function AttemptLog() {
             const borderClass = isLast ? "" : "border-b border-muted/30";
 
             return (
-              <div className="contents" key={`empty-${i}`}>
+              <div className="contents" key={`empty-attempt-${attempts.length + i}`}>
                 <div
                   className={`flex items-center justify-center py-3 ${borderClass} min-h-[48px]`}
                 >

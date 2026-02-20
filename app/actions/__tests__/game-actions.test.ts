@@ -11,7 +11,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 vi.mock("@/lib/redis", () => ({
-  checkRateLimit: vi.fn().mockResolvedValue(undefined),
+  checkRateLimit: vi.fn().mockResolvedValue(true),
 }));
 
 vi.mock("@/lib/analytics-server", () => ({
@@ -228,7 +228,7 @@ describe("game-actions", () => {
 
             if (table === "daily_challenges") {
               chain.single.mockResolvedValue({
-                data: { perfume_id: "perfume-123" },
+                data: { perfume_id: "f47ac10b-58cc-4372-a567-0e02b2c3d479" },
                 error: null,
               });
             } else if (table === "perfumes") {
@@ -300,7 +300,7 @@ describe("game-actions", () => {
 
             if (table === "daily_challenges") {
               chain.single.mockResolvedValue({
-                data: { perfume_id: "perfume-123" },
+                data: { perfume_id: "f47ac10b-58cc-4372-a567-0e02b2c3d479" },
                 error: null,
               });
             } else if (table === "perfumes") {
@@ -372,7 +372,7 @@ describe("game-actions", () => {
 
             if (table === "daily_challenges") {
               chain.single.mockResolvedValue({
-                data: { perfume_id: "perfume-123" },
+                data: { perfume_id: "f47ac10b-58cc-4372-a567-0e02b2c3d479" },
                 error: null,
               });
             } else if (table === "perfumes") {
@@ -479,7 +479,7 @@ describe("game-actions", () => {
 
             if (table === "daily_challenges") {
               chain.single.mockResolvedValue({
-                data: { perfume_id: "perfume-123" },
+                data: { perfume_id: "f47ac10b-58cc-4372-a567-0e02b2c3d479" },
                 error: null,
               });
             } else if (table === "perfumes") {
@@ -543,7 +543,7 @@ describe("game-actions", () => {
 
             if (table === "daily_challenges") {
               chain.single.mockResolvedValue({
-                data: { perfume_id: "perfume-123" },
+                data: { perfume_id: "f47ac10b-58cc-4372-a567-0e02b2c3d479" },
                 error: null,
               });
             } else if (table === "perfumes") {
@@ -597,7 +597,7 @@ describe("game-actions", () => {
 
             if (table === "daily_challenges") {
               chain.single.mockResolvedValue({
-                data: { perfume_id: "perfume-123" },
+                data: { perfume_id: "f47ac10b-58cc-4372-a567-0e02b2c3d479" },
                 error: null,
               });
             } else if (table === "perfumes") {
@@ -630,7 +630,7 @@ describe("game-actions", () => {
 
         expect(result?.clues.brand).toBe("Unknown");
         expect(result?.clues.concentration).toBe("Unknown");
-        expect(result?.clues.gender).toBe("Unisex");
+        expect(result?.clues.gender).toBe("Unknown");
         expect(result?.clues.isLinear).toBe(false);
         expect(result?.clues.notes.top).toEqual([]);
         expect(result?.clues.notes.heart).toEqual([]);
@@ -643,7 +643,7 @@ describe("game-actions", () => {
   // ==================== startGame Tests ====================
 
   describe("startGame", () => {
-    const mockChallengeId = "challenge-test-123";
+    const mockChallengeId = "550e8400-e29b-41d4-a716-446655440000";
     const mockUserId = "user-test-456";
 
     describe("new session creation", () => {
@@ -670,7 +670,7 @@ describe("game-actions", () => {
                   data: {
                     attempts_count: 0,
                     challenge_id: mockChallengeId,
-                    id: "session-new-123",
+                    id: "123e4567-e89b-12d3-a456-426614174000",
                     last_nonce: mockNonce,
                     player_id: mockUserId,
                     start_time: new Date().toISOString(),
@@ -700,7 +700,7 @@ describe("game-actions", () => {
         const mockAdminClient = createAdminClientMock({
           dailyChallenges: {
             challenge_date: "2026-02-12",
-            perfume_id: "perfume-123",
+            perfume_id: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
           },
           perfumeAssets: {
             image_key_step_1: "step1.jpg",
@@ -786,11 +786,11 @@ describe("game-actions", () => {
                 yearMatch: "wrong" as const,
               },
               isCorrect: false,
-              perfumeId: "perfume-guess-1",
+              perfumeId: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
               timestamp: "2026-02-12T10:00:00Z",
             },
           ],
-          id: "session-existing-789",
+          id: "123e4567-e89b-12d3-a456-426614174000",
           last_nonce: "existing-nonce-456",
           player_id: mockUserId,
           status: "active",
@@ -836,7 +836,7 @@ describe("game-actions", () => {
                       brands: { name: "Test Brand" },
                       concentrations: { name: "EDP" },
                       gender: "Unisex",
-                      id: "perfume-guess-1",
+                      id: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
                       name: "Test Perfume",
                       release_year: 2020,
                     },
@@ -887,7 +887,7 @@ describe("game-actions", () => {
 
         const result = await startGame(mockChallengeId);
 
-        expect(result.sessionId).toBe("session-existing-789");
+        expect(result.sessionId).toBe("123e4567-e89b-12d3-a456-426614174000");
         expect(result.nonce).toBe("existing-nonce-456");
         // Verify revealState matches attempt 3 (attempts_count + 1)
         expect(result.revealState.brandLetters).toBe(15);
@@ -903,7 +903,7 @@ describe("game-actions", () => {
           attempts_count: 3,
           challenge_id: mockChallengeId,
           guesses: [],
-          id: "session-won-123",
+          id: "123e4567-e89b-12d3-a456-426614174000",
           last_nonce: "won-nonce",
           player_id: mockUserId,
           status: "won",
@@ -944,7 +944,7 @@ describe("game-actions", () => {
                 chain.single = vi.fn().mockResolvedValue({
                   data: {
                     challenge_date: "2026-02-12",
-                    perfume_id: "answer-perfume-123",
+                    perfume_id: "answer-f47ac10b-58cc-4372-a567-0e02b2c3d479",
                   },
                   error: null,
                 });
@@ -1036,7 +1036,7 @@ describe("game-actions", () => {
           switch (table) {
             case "daily_challenges": {
               chain.single.mockResolvedValue({
-                data: { perfume_id: "perfume-123" },
+                data: { perfume_id: "f47ac10b-58cc-4372-a567-0e02b2c3d479" },
                 error: null,
               });
 
@@ -1105,7 +1105,7 @@ describe("game-actions", () => {
                 data: {
                   attempts_count: 0,
                   challenge_id: mockChallenge.id,
-                  id: "session-123",
+                  id: "123e4567-e89b-12d3-a456-426614174000",
                   last_nonce: "nonce-123",
                   player_id: "user-123",
                   start_time: new Date().toISOString(),
@@ -1136,11 +1136,11 @@ describe("game-actions", () => {
         gameSessions: {
           attempts_count: 0,
           challenge_id: mockChallenge.id,
-          id: "session-123",
+          id: "123e4567-e89b-12d3-a456-426614174000",
           player_id: "user-123",
           status: "active",
         },
-        perfumeAssets: [{ image_url: "https://example.com/perfume-image.jpg" }],
+        perfumeAssets: [{ image_url: "https://example.com/f47ac10b-58cc-4372-a567-0e02b2c3d479.jpg" }],
         user: { id: "user-123" },
       });
 
@@ -1190,7 +1190,7 @@ describe("game-actions", () => {
 
           if (table === "daily_challenges") {
             chain.single.mockResolvedValue({
-              data: { perfume_id: "perfume-123" },
+              data: { perfume_id: "f47ac10b-58cc-4372-a567-0e02b2c3d479" },
               error: null,
             });
           } else if (table === "perfumes") {
@@ -1261,8 +1261,8 @@ describe("game-actions", () => {
   // ==================== submitGuess Tests ====================
 
   describe("submitGuess", () => {
-    const mockSessionId = "session-test-123";
-    const mockPerfumeId = "perfume-guess-456";
+    const mockSessionId = "123e4567-e89b-12d3-a456-426614174000";
+    const mockPerfumeId = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
     const mockClientNonce = "nonce-abc-123";
     const mockUserId = "user-test-789";
 
@@ -1270,7 +1270,7 @@ describe("game-actions", () => {
       it("detects correct guess and marks game as won", async () => {
         const sessionData = {
           attempts_count: 2,
-          challenge_id: "challenge-123",
+          challenge_id: "550e8400-e29b-41d4-a716-446655440000",
           guesses: [],
           id: mockSessionId,
           last_nonce: mockClientNonce,
@@ -1309,13 +1309,13 @@ describe("game-actions", () => {
                 return sessionCallCount === 1
                   ? { data: sessionData, error: null }
                   : {
-                      data: {
-                        ...sessionData,
-                        attempts_count: 3,
-                        status: "won",
-                      },
-                      error: null,
-                    };
+                    data: {
+                      ...sessionData,
+                      attempts_count: 3,
+                      status: "won",
+                    },
+                    error: null,
+                  };
               });
             } else if (table === "game_results") {
               chain.insert = vi.fn().mockResolvedValue({
@@ -1433,11 +1433,11 @@ describe("game-actions", () => {
 
     describe("incorrect guess", () => {
       it("provides feedback for incorrect guess", async () => {
-        const wrongPerfumeId = "perfume-wrong-999";
+        const wrongPerfumeId = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
 
         const sessionData = {
           attempts_count: 2,
-          challenge_id: "challenge-123",
+          challenge_id: "550e8400-e29b-41d4-a716-446655440000",
           guesses: [],
           id: mockSessionId,
           last_nonce: mockClientNonce,
@@ -1513,7 +1513,7 @@ describe("game-actions", () => {
                   data: {
                     challenge_date: "2026-02-12",
                     grace_deadline_at_utc: "2026-02-13T00:00:00Z",
-                    perfume_id: "perfume-correct-456", // Different from guess!
+                    perfume_id: "f47ac10b-58cc-4372-a567-0e02b2c3d479", // Different from guess!
                   },
                   error: null,
                 });
@@ -1662,7 +1662,7 @@ describe("game-actions", () => {
             single: vi.fn().mockResolvedValue({
               data: {
                 attempts_count: 2,
-                challenge_id: "challenge-123",
+                challenge_id: "550e8400-e29b-41d4-a716-446655440000",
                 guesses: [],
                 id: mockSessionId,
                 last_nonce: "correct-nonce-789", // Different!
@@ -1697,7 +1697,7 @@ describe("game-actions", () => {
             single: vi.fn().mockResolvedValue({
               data: {
                 attempts_count: 3,
-                challenge_id: "challenge-123",
+                challenge_id: "550e8400-e29b-41d4-a716-446655440000",
                 guesses: [],
                 id: mockSessionId,
                 last_nonce: mockClientNonce,

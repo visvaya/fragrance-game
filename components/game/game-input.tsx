@@ -155,43 +155,20 @@ export function GameInput() {
 
   const listId = useId();
 
-  // Detect incorrect guess to show error state
-  useEffect(() => {
-    // If attempts increased and game not won
-    if (
-      attempts.length > previousAttemptsLengthReference.current &&
-      gameState !== "won"
-    ) {
-      setIsError(true);
-      const timer = setTimeout(() => setIsError(false), 2000);
-      return () => clearTimeout(timer);
-    }
-    previousAttemptsLengthReference.current = attempts.length;
-  }, [attempts, gameState]);
-
   // Debounced search
   useEffect(() => {
     let ignore = false;
 
     // Reset results and loading state if query is too short
     if (query.length < 3) {
-      setSuggestions([]);
-      setIsLoading(false);
       return;
     }
 
-    // Set loading to true immediately when a valid query length is reached
-    // This prevents "No results" from showing during the debounce period
-    setIsLoading(true);
-
     const timer = setTimeout(() => {
+      const sid = sessionId || undefined;
       void (async () => {
         try {
-          const results = await searchPerfumes(
-            query,
-            sessionId || undefined,
-            currentAttempt,
-          );
+          const results = await searchPerfumes(query, sid, currentAttempt);
           if (ignore) return;
           setSuggestions(results);
           setIsLoading(false);
@@ -203,8 +180,6 @@ export function GameInput() {
         }
       })();
     }, 300);
-
-    setSelectedIndex(-1); // Reset selection on query change/search start
 
     return () => {
       ignore = true;
@@ -258,8 +233,13 @@ export function GameInput() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSelect = (perfume: PerfumeSuggestion) => {
-    makeGuess(perfume.name, perfume.brand_masked, perfume.perfume_id);
+  const handleSelect = async (perfume: PerfumeSuggestion) => {
+    await makeGuess(
+      perfume.name,
+      perfume.brand_masked,
+      perfume.perfume_id,
+    );
+
     setQuery("");
     setSuggestions([]);
     setShowSuggestions(false);
@@ -446,8 +426,13 @@ export function GameInput() {
                 setIsFocused(false);
               }}
               onChange={(e) => {
-                setQuery(e.target.value);
+                const value = e.target.value;
+                setQuery(value);
                 setShowSuggestions(true);
+                if (value.length < 3) {
+                  setSuggestions([]);
+                  setIsLoading(false);
+                }
               }}
               onFocus={() => {
                 setShowSuggestions(true);
@@ -508,11 +493,10 @@ export function GameInput() {
         {/* Suggestions dropdown (Behind Input Surface) */}
         {hasTransitionedIn || shouldShowList ? (
           <div
-            className={`!absolute bottom-full left-0 z-10 max-h-56 w-full touch-pan-y !overflow-y-auto rounded-t-md border-x border-t border-border/50 bg-background ${
-              shouldShowList
-                ? "duration-200 ease-out animate-in fade-in slide-in-from-bottom-12"
-                : "duration-200 ease-in animate-out fade-out slide-out-to-bottom-12"
-            } `}
+            className={`!absolute bottom-full left-0 z-10 max-h-56 w-full touch-pan-y !overflow-y-auto rounded-t-md border-x border-t border-border/50 bg-background ${shouldShowList
+              ? "duration-200 ease-out animate-in fade-in slide-in-from-bottom-12"
+              : "duration-200 ease-in animate-out fade-out slide-out-to-bottom-12"
+              } `}
             data-lenis-prevent
             id={listId}
             onMouseDown={(e) => e.preventDefault()}
@@ -536,7 +520,7 @@ export function GameInput() {
                     disabled={isDuplicate}
                     id={`${listId}-option-${index}`}
                     key={perfume.perfume_id}
-                    onClick={() => handleSelect(perfume)}
+                    onClick={async () => handleSelect(perfume)}
                     onMouseDown={(e) => e.preventDefault()}
                     onMouseEnter={() => setSelectedIndex(index)}
                     role="option"
@@ -588,8 +572,8 @@ export function GameInput() {
 
                               return (
                                 <>
-                                  {/* eslint-disable-next-line unicorn/prefer-spread */}
-                                  {Array.from(perfume.year).map((char, i) => (
+                                  {/* eslint_disable-next-line unicorn/prefer-spread */}
+                                  {[...perfume.year].map((char, i) => (
                                     <span
                                       className={`${char === "_" ? "font-mono text-muted-foreground opacity-40" : "text-foreground"} whitespace-pre`}
                                       key={i}

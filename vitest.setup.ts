@@ -1,6 +1,37 @@
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
 
+// ==================== Global Mocks ====================
+
+// Mock Redis and Ratelimit
+vi.mock("@upstash/redis", () => ({
+  Redis: {
+    fromEnv: vi.fn().mockReturnValue({
+      exec: vi.fn().mockResolvedValue([]),
+      pipeline: vi.fn().mockReturnValue({
+        exec: vi.fn().mockResolvedValue([]),
+        expire: vi.fn().mockReturnThis(),
+        incr: vi.fn().mockReturnThis(),
+      }),
+    }),
+  },
+}));
+
+vi.mock("@upstash/ratelimit", () => {
+  class Ratelimit {
+    static slidingWindow = vi.fn().mockReturnValue({});
+    static fixedWindow = vi.fn().mockReturnValue({});
+    static tokenBucket = vi.fn().mockReturnValue({});
+    limit = vi.fn().mockResolvedValue({
+      limit: 10,
+      remaining: 9,
+      reset: Date.now() + 60_000,
+      success: true,
+    });
+  }
+  return { Ratelimit };
+});
+
 // ==================== Mock Factories ====================
 
 /**
@@ -19,7 +50,7 @@ export function createMockSupabaseClient(
   const mockClient = {
     auth: {
       getUser: vi.fn().mockResolvedValue({
-        data: { user: { id: "test-user-123" } },
+        data: { user: { id: "7e57c10b-58cc-4372-a567-0e02b2c3d470" } },
         error: null,
       }),
       signOut: vi.fn().mockResolvedValue({ error: null }),
@@ -76,7 +107,7 @@ export function createMockGameSession(overrides: Record<string, unknown> = {}) {
       showGender: false,
       yearReveal: 0,
     },
-    sessionId: "session-test-123",
+    sessionId: "123e4567-e89b-12d3-a456-426614174000",
     ...overrides,
   };
 }
@@ -111,7 +142,7 @@ export function createMockChallenge(overrides: Record<string, unknown> = {}) {
       year: 1921,
     },
     grace_deadline_at_utc: "2026-02-13T00:00:00Z",
-    id: "challenge-test-123",
+    id: "550e8400-e29b-41d4-a716-446655440000",
     mode: "daily",
     snapshot_metadata: {},
     ...overrides,
@@ -141,7 +172,7 @@ export function createMockGuessHistoryItem(
       yearMatch: "wrong" as const,
     },
     isCorrect: false,
-    perfumeId: "perfume-test-456",
+    perfumeId: "f47ac10b-58cc-4372-a567-0e02b2c3d470",
     perfumeName: "Test Perfume",
     timestamp: new Date().toISOString(),
     ...overrides,
@@ -163,7 +194,7 @@ export function createMockPerfume(overrides: Record<string, unknown> = {}) {
     brand: "Chanel",
     concentration: "Parfum",
     gender: "Female",
-    id: "perfume-test-789",
+    id: "f47ac10b-58cc-4372-a567-0e02b2c3d471",
     name: "No. 5",
     notes_base: ["Vanilla", "Sandalwood"],
     notes_heart: ["Jasmine", "Rose"],
