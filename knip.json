@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["app/api/**/route.ts", "scripts/*.ts", "scripts/*.js"],
+  "project": ["**/*.{ts,tsx,js,jsx}"],
+  "ignore": ["lib/validations/supabase.schema.ts", "types/supabase.ts"],
+  "ignoreDependencies": [
+    "postcss-load-config",
+    "@types/ua-parser-js",
+    "tailwindcss-animate",
+    "tailwindcss"
+  ],
+  "ignoreBinaries": ["python", "visual"]
+}

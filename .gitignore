@@ -15,6 +15,7 @@
 .ruff_cache/
 .mypy_cache/
 .pytest_cache/
+supabase/.temp/
 
 # TypeScript
 *.tsbuildinfo
@@ -27,6 +28,7 @@
 # Data files
 /data/*.csv
 !/data/dataset_sample.csv
+/lib/constants/xato-net-10-million-passwords-dup.txt
 
 # Python
 __pycache__/
@@ -62,3 +64,7 @@ lint_*.txt
 # Misc
 page_dump.html
 git_status_full.txt
+e2e/mobile/MOBILE_TESTING_SUMMARY.md
+e2e/security/XSS_SECURITY_AUDIT.md
+e2e/i18n/I18N_TESTING_SUMMARY.md
+app/api/cron/generate-daily/__tests__/TEST_DATABASE_SETUP.md

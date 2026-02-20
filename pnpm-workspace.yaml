@@ -1,0 +1,12 @@
+onlyBuiltDependencies:
+  - "@parcel/watcher"
+  - "@playwright/browser-chromium"
+  - "@sentry/cli"
+  - "@swc/core"
+  - core-js
+  - esbuild
+  - protobufjs
+  - sharp
+  - supabase
+  - unix-dgram
+  - unrs-resolver

@@ -96,21 +96,28 @@ export async function proxy(request: NextRequest) {
   }
 
   // Content Security Policy
+  const assetsHost =
+    process.env.NEXT_PUBLIC_ASSETS_HOST ||
+    "pub-2c37ff9f03ea40878492e7f72ef83fe3.r2.dev";
+
   response.headers.set(
     "Content-Security-Policy",
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' va.vercel-scripts.com https://*.posthog.com https://js.sentry-cdn.com https://browser.sentry-cdn.com https://vercel.live https://vercel.com *.ingest.sentry.io",
+      // 'unsafe-eval' is restricted to development only (needed by webpack HMR).
+      // 'unsafe-inline' is required by PostHog, Sentry CDN, and Vercel analytics.
+      `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""} va.vercel-scripts.com https://*.posthog.com https://js.sentry-cdn.com https://browser.sentry-cdn.com https://vercel.live https://vercel.com *.ingest.sentry.io https://challenges.cloudflare.com`,
       "worker-src 'self' blob:",
       "child-src 'self' blob:",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: https: *.r2.dev *.supabase.co",
-      "connect-src 'self' *.supabase.co https://*.posthog.com *.sentry.io *.upstash.io https://vercel.live https://vercel.com",
+      `img-src 'self' blob: data: https://*.r2.dev https://${assetsHost} https://placehold.co https://*.posthog.com`,
+      "connect-src 'self' https://*.supabase.co https://*.upstash.io https://*.posthog.com https://*.sentry.io https://sentry.io https://challenges.cloudflare.com",
       "font-src 'self' data:",
-      "frame-src 'self' https://vercel.live https://vercel.com",
+      "frame-src 'self' https://challenges.cloudflare.com https://vercel.live https://vercel.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
+      "upgrade-insecure-requests",
     ].join("; "),
   );
 
@@ -122,6 +129,10 @@ export async function proxy(request: NextRequest) {
   response.headers.set(
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=()",
+  );
+  response.headers.set(
+    "Strict-Transport-Security",
+    "max-age=31536000; includeSubDomains; preload",
   );
 
   return response;
@@ -139,6 +150,6 @@ export const config = {
      * 3. /favicon.ico, /sitemap.xml, robotics.txt
      * 4. all files ending in static extensions
      */
-    "/((?!api/auth/callback|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)",
+    "/((?!api/auth/callback|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
   ],
 };

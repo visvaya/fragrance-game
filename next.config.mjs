@@ -17,8 +17,15 @@ const nextConfig = {
       "recharts",
       "@radix-ui/react-icons",
     ],
+    turbopackFileSystemCacheForDev: true,
   },
+  serverExternalPackages: [
+    "@opentelemetry/instrumentation",
+    "@opentelemetry/semantic-conventions",
+    "@apm-js-collab/code-transformer",
+  ],
   images: {
+    formats: ["image/avif", "image/webp"],
     qualities: [75, 90],
     remotePatterns: [
       {
@@ -65,28 +72,6 @@ const nextConfig = {
       },
     ];
   },
-  async headers() {
-    return [
-      {
-        source: "/:path*",
-        headers: [
-          {
-            key: "Server",
-            value: "",
-          },
-        ],
-      },
-      {
-        source: "/:path*(woff2?|png|jpg|jpeg|gif|webp|svg|ico)",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
-    ];
-  },
 };
 
 const serverConfig = withSentryConfig(
@@ -97,8 +82,8 @@ const serverConfig = withSentryConfig(
 
     // Suppresses source map uploading logs during build
     silent: true,
-    org: "fragrance-game",
-    project: "fragrance-webapp",
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
   },
   {
     // For all available options, see:
@@ -110,14 +95,28 @@ const serverConfig = withSentryConfig(
     // Transpiles SDK to be compatible with IE11 (increases bundle size)
     transpileClientSDK: false, // Modern browsers only
 
-    // Automatically tree-shake Sentry logger statements to reduce bundle size
-    disableLogger: true,
+    // Routes browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers (increases server load)
+    tunnelRoute: "/api/monitoring",
 
     // Hides source maps from generated client bundles
     hideSourceMaps: true,
 
-    // Routes browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers (increases server load)
-    tunnelRoute: "/api/monitoring",
+    // Automatically tree-shake Sentry logger statements to reduce bundle size
+    disableLogger: true,
+
+    // Enables automatic instrumentation of Vercel Cron Monitors.
+    // See the following for more information:
+    // https://docs.sentry.io/product/crons/
+    // https://vercel.com/docs/cron-jobs
+    automaticVercelMonitors: true,
+
+    // Optimization: Reduce bundle size by excluding features we don't use
+    bundleSizeOptimizations: {
+      excludeDebugStatements: true,
+      excludeReplayShadowDom: true,
+      excludeReplayWorker: true,
+      excludeTracing: true, // Optimized: disable tracing on client
+    },
   },
 );
 

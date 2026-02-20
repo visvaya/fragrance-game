@@ -1,36 +1,37 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import { startGame, submitGuess } from "@/app/actions/game-actions";
 
 // --- Mocks ---
 
 const mockSupabase = {
+  _lastTable: "",
   auth: {
     getUser: vi.fn(),
   },
+  eq: vi.fn(() => mockSupabase),
   from: vi.fn((table) => {
     mockSupabase._lastTable = table;
     return mockSupabase;
   }),
-  select: vi.fn(() => mockSupabase),
-  insert: vi.fn(() => mockSupabase),
-  update: vi.fn(() => mockSupabase),
-  eq: vi.fn(() => mockSupabase),
-  order: vi.fn(() => mockSupabase),
-  limit: vi.fn(() => mockSupabase),
-  single: vi.fn(),
-  maybeSingle: vi.fn(),
   in: vi.fn(() => mockSupabase),
-  _lastTable: "",
+  insert: vi.fn(() => mockSupabase),
+  limit: vi.fn(() => mockSupabase),
+  maybeSingle: vi.fn(),
+  order: vi.fn(() => mockSupabase),
+  select: vi.fn(() => mockSupabase),
+  single: vi.fn(),
+  update: vi.fn(() => mockSupabase),
 };
 
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(async () => mockSupabase),
   createAdminClient: vi.fn(() => mockSupabase),
+  createClient: vi.fn(async () => mockSupabase),
 }));
 
 vi.mock("@/lib/analytics-server", () => ({
-  trackEvent: vi.fn(),
   identifyUser: vi.fn(),
+  trackEvent: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({
@@ -45,12 +46,12 @@ vi.mock("next/headers", () => ({
 }));
 
 // Mock crypto for nonce generation
-if (!global.crypto) {
-  (global as any).crypto = {
-    getRandomValues: (arr: any) => {
-      for (let i = 0; i < arr.length; i++)
-        arr[i] = Math.floor(Math.random() * 100);
-      return arr;
+if (!globalThis.crypto) {
+  (globalThis as any).crypto = {
+    getRandomValues: (array: any) => {
+      for (let i = 0; i < array.length; i++)
+        array[i] = Math.floor(Math.random() * 100);
+      return array;
     },
   };
 }
@@ -70,8 +71,8 @@ describe("Game Actions Integration (Mocked)", () => {
       let error;
       try {
         await startGame("challenge-1");
-      } catch (e) {
-        error = e;
+      } catch (error_) {
+        error = error_;
       }
       expect(error).toBeDefined();
       expect((error as any).message).toContain("Unauthorized");
@@ -98,14 +99,14 @@ describe("Game Actions Integration (Mocked)", () => {
         if (table === "game_sessions") {
           return {
             data: {
-              id: "session-456",
-              last_nonce: "123",
-              status: "active",
               attempts_count: 0,
               challenge_id: "challenge-1",
-              player_id: "user-123",
               guesses: [],
+              id: "session-456",
+              last_nonce: "123",
+              player_id: "user-123",
               start_time: "...",
+              status: "active",
             },
             error: null,
           };
@@ -116,8 +117,8 @@ describe("Game Actions Integration (Mocked)", () => {
         ) {
           return {
             data: {
-              perfume_id: "p1",
               grace_deadline_at_utc: "2026-01-01T00:00:00Z",
+              perfume_id: "p1",
             },
             error: null,
           };
@@ -130,8 +131,8 @@ describe("Game Actions Integration (Mocked)", () => {
       expect(result.sessionId).toBe("session-456");
       expect(mockSupabase.insert).toHaveBeenCalledWith(
         expect.objectContaining({
-          player_id: "user-123",
           challenge_id: "challenge-1",
+          player_id: "user-123",
         }),
       );
     });
@@ -157,14 +158,14 @@ describe("Game Actions Integration (Mocked)", () => {
           callCount++;
           return {
             data: {
-              id: sessionId,
-              last_nonce: nonce,
-              status: status,
               attempts_count: 0,
               challenge_id: "c1",
-              player_id: "user-123",
               guesses: [],
+              id: sessionId,
+              last_nonce: nonce,
+              player_id: "user-123",
               start_time: new Date().toISOString(),
+              status: status,
             },
             error: null,
           };
@@ -175,14 +176,14 @@ describe("Game Actions Integration (Mocked)", () => {
         if (table === "perfumes") {
           return {
             data: {
-              id: perfumeId,
+              base_notes: [],
               brand_id: "b1",
+              concentrations: { name: "EDP" },
+              id: perfumeId,
+              middle_notes: [],
+              perfumers: [],
               release_year: 2020,
               top_notes: [],
-              middle_notes: [],
-              base_notes: [],
-              perfumers: [],
-              concentrations: { name: "EDP" },
             },
             error: null,
           };
@@ -210,14 +211,14 @@ describe("Game Actions Integration (Mocked)", () => {
 
       mockSupabase.single.mockResolvedValueOnce({
         data: {
-          id: "s1",
-          last_nonce: "wrong-nonce",
-          status: "active",
           attempts_count: 0,
           challenge_id: "c1",
-          player_id: "user-123",
           guesses: [],
+          id: "s1",
+          last_nonce: "wrong-nonce",
+          player_id: "user-123",
           start_time: "...",
+          status: "active",
         },
         error: null,
       } as any);

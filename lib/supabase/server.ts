@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 import { createServerClient } from "@supabase/ssr";
 
@@ -33,6 +33,8 @@ export async function createClient() {
   }
 
   const cookieStore = await cookies();
+  const headersList = await headers();
+  const userAgent = headersList.get("user-agent") || undefined;
 
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
@@ -48,6 +50,11 @@ export async function createClient() {
           // Operacja setAll może zawieść w Server Component (read-only context).
           // Supabase SSR wyemituje ostrzeżenie, jeśli odświeżanie sesji jest wymagane.
         }
+      },
+    },
+    global: {
+      headers: {
+        "user-agent": userAgent ?? "",
       },
     },
   });

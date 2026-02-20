@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
 import { AttemptLog } from "./attempt-log";
 import { MetaClues } from "./clues/meta-clues";
 import { PyramidClues } from "./clues/pyramid-clues";
-import { DifficultyDisplay } from "./difficulty-display";
 import { useGameState, useUIPreferences } from "./contexts";
-import { RevealImage } from "./RevealImage";
+import { DifficultyDisplay } from "./difficulty-display";
+import { RevealImage } from "./reveal-image";
 
 /**
  *

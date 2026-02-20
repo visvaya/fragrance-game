@@ -1,9 +1,13 @@
 {
   "Metadata": {
     "title": "Eauxle — Olfactory Deduction",
-    "description": "Codzienna gra polegająca na odgadywaniu perfum. Na podstawie wskazówek określ co jest dzisiejszym poszukiwanym zapachem."
+    "description": "Codzienna gra w odgadywanie perfum. Odgadnij zagadkowy zapach na podstawie ewoluujących wskazówek.",
+    "signIn": "Zaloguj się - Eauxle",
+    "signInDescription": "Zaloguj się do swojego konta Eauxle",
+    "signUp": "Zarejestruj się - Eauxle",
+    "signUpDescription": "Utwórz konto Eauxle"
   },
-  "HomePage": {
+  "Common": {
     "title": "Odgadnij perfumy",
     "description": "Odgadnij perfumy na podstawie wskazówek"
   },
@@ -36,7 +40,16 @@
     "largeText": "Duży tekst",
     "darkMode": "Tryb ciemny",
     "support": "Wesprzyj nas",
-    "reset": "Zresetuj"
+    "reset": "Zresetuj",
+    "signIn": "Zaloguj się",
+    "createAccount": "Załóż konto",
+    "signOut": "Wyloguj się",
+    "manageSessions": "Aktywne sesje",
+    "signOutGlobal": "Wyloguj (Wszystkie urządzenia)",
+    "profile": "Twój profil",
+    "signInToProfile": "Zaloguj się do profilu",
+    "signedOutSuccess": "Wylogowano pomyślnie",
+    "signedOutGlobalSuccess": "Pomyślnie wylogowano ze wszystkich urządzeń"
   },
   "Footer": {
     "contact": "Kontakt",
@@ -114,6 +127,8 @@
     "year": "Rok",
     "concentration": "Koncentracja",
     "gender": "Płeć",
+    "unknown": "Nieznane",
+    "dataUnavailable": "Brak danych w bazie",
     "hiddenAttempt": "Ukryte w próbie {attempt}.",
     "fullyHidden": "Całkowicie ukryte w próbie {attempt}.",
     "partiallyHidden": "Częściowo ukryte w próbie {attempt}.",
@@ -154,11 +169,11 @@
       "genderIncorrect": "Płeć: Niepoprawna",
       "notesCorrect": "Nuty: 100% poprawne",
       "notesPercentage": "Nuty: {percent}% poprawne",
-      "brandMissing": "Marka: Brak danych w bazie",
-      "perfumerMissing": "Perfumiarz: Brak danych w bazie",
-      "yearMissing": "Rok: Brak danych w bazie",
-      "genderMissing": "Płeć: Brak danych w bazie",
-      "notesMissing": "Nuty: Brak danych w bazie"
+      "brandMissing": "Marka: Brak danych",
+      "perfumerMissing": "Perfumiarz: Brak danych",
+      "yearMissing": "Rok: Brak danych",
+      "genderMissing": "Płeć: Brak danych",
+      "notesMissing": "Nuty: Brak danych"
     }
   },
   "Difficulty": {
@@ -168,5 +183,144 @@
     "hard": "Trudny",
     "expert": "Ekspert",
     "beginner": "Początkujący"
+  },
+  "Auth": {
+    "common": {
+      "or": "Lub",
+      "continueWithGoogle": "Kontynuuj z Google"
+    },
+    "login": {
+      "title": "Witaj ponownie",
+      "description": "Wpisz swoje dane, aby się zalogować",
+      "emailLabel": "Email",
+      "emailPlaceholder": "mail@przyklad.com",
+      "passwordLabel": "Hasło",
+      "forgotPassword": "Nie pamiętasz hasła?",
+      "submit": "Zaloguj się",
+      "noAccount": "Nie masz konta?",
+      "signUpLink": "Zarejestruj się",
+      "success": "Zalogowano pomyślnie",
+      "failed": "Logowanie nieudane",
+      "error": "Wystąpił nieoczekiwany błąd",
+      "invalidEmail": "Nieprawidłowy adres email"
+    },
+    "register": {
+      "title": "Stwórz konto",
+      "description": "Wpisz swój email poniżej, aby utworzyć konto",
+      "emailLabel": "Email",
+      "emailPlaceholder": "mail@przyklad.com",
+      "passwordLabel": "Hasło",
+      "confirmPasswordLabel": "Potwierdź hasło",
+      "submit": "Zarejestruj się",
+      "hasAccount": "Masz już konto?",
+      "signInLink": "Zaloguj się",
+      "success": "Konto utworzone!",
+      "successDescription": "Sprawdź swoją skrzynkę email, aby potwierdzić konto.",
+      "captchaError": "Proszę potwierdzić weryfikację captcha",
+      "passwordsDoNotMatch": "Hasła nie są identyczne",
+      "passwordMinLength": "Hasło musi mieć co najmniej 8 znaków",
+      "passwordLowercase": "Musi zawierać małą literę",
+      "passwordUppercase": "Musi zawierać wielką literę",
+      "passwordDigit": "Musi zawierać cyfrę",
+      "passwordSpecial": "Musi zawierać znak specjalny",
+      "passwordCommon": "Hasło zbyt pospolite",
+      "invalidEmail": "Nieprawidłowy adres email",
+      "unexpectedError": "Wystąpił nieoczekiwany błąd",
+      "captchaTitle": "Wymagana weryfikacja",
+      "captchaDescription": "Potwierdź, że jesteś człowiekiem, aby rozpocząć grę.",
+      "captchaLoading": "Ładowanie Captcha...",
+      "invalidFormat": "Nieprawidłowy format hasła"
+    },
+    "forgotPassword": {
+      "title": "Zresetuj hasło",
+      "description": "Wpisz swój adres email, a wyślemy Ci link do resetowania hasła",
+      "emailLabel": "Email",
+      "emailPlaceholder": "mail@przyklad.pl",
+      "submit": "Wyślij link",
+      "backToLogin": "Powrót do logowania",
+      "success": "Sprawdź email",
+      "successDescription": "Jeśli konto istnieje, wysłaliśmy instrukcje resetowania hasła.",
+      "error": "Nie udało się wysłać emaila",
+      "invalidEmail": "Nieprawidłowy adres email"
+    },
+    "resetPassword": {
+      "title": "Ustaw nowe hasło",
+      "description": "Wpisz poniżej swoje nowe hasło",
+      "newPasswordLabel": "Nowe hasło",
+      "confirmPasswordLabel": "Potwierdź hasło",
+      "submit": "Zresetuj hasło",
+      "success": "Hasło zresetowane",
+      "successDescription": "Twoje hasło zostało zresetowane pomyślnie. Możesz się teraz zalogować.",
+      "error": "Nie udało się zresetować hasła",
+      "passwordsDoNotMatch": "Hasła nie pasują do siebie"
+    },
+    "header": {
+      "signIn": "Zaloguj się",
+      "createAccount": "Załóż konto",
+      "signOut": "Wyloguj się",
+      "manageSessions": "Aktywne sesje",
+      "signOutGlobal": "Wyloguj (Wszystkie urządzenia)"
+    },
+    "errorWatcher": {
+      "authError": "Błąd uwierzytelniania",
+      "unknownError": "Wystąpił nieznany błąd podczas logowania.",
+      "loginFailed": "Logowanie nieudane",
+      "problemSigningIn": "Wystąpił problem podczas logowania."
+    },
+    "passwordStrength": {
+      "tooCommon": "Zbyt pospolite",
+      "weak": "Słabe",
+      "medium": "Średnie",
+      "strong": "Silne",
+      "veryStrong": "Bardzo silne",
+      "commonWarning": "To hasło znajduje się na liście 100 najpopularniejszych haseł.",
+      "minChars": "Min. 8 znaków",
+      "lowercase": "Mała litera",
+      "uppercase": "Wielka litera",
+      "number": "Cyfra",
+      "special": "Znak specjalny"
+    }
+  },
+  "Sessions": {
+    "title": "Aktywne sesje",
+    "description": "Zarządzaj swoimi aktywnymi sesjami i urządzeniami.",
+    "currentDevice": "To urządzenie",
+    "lastActive": "Ostatnia aktywność {time}",
+    "revoke": "Unieważnij sesję",
+    "noSessions": "Nie znaleziono aktywnych sesji.",
+    "unknownBrowser": "Nieznana przeglądarka",
+    "unknownOS": "Nieznany system",
+    "revokeSuccess": "Sesja została unieważniona",
+    "revokeError": "Nie udało się unieważnić sesji",
+    "fetchError": "Nie udało się pobrać listy sesji",
+    "anonymousTitle": "Sesja gościa",
+    "anonymousDescription": "Grasz jako gość. Twoja sesja jest lokalna.",
+    "anonymousClose": "Zamknij",
+    "revokeAll": "Wyloguj wszystkie",
+    "revokeAllConfirm": "Czy na pewno chcesz wylogować wszystkie urządzenia?"
+  },
+  "Profile": {
+    "title": "Profil użytkownika",
+    "description": "Szczegóły twojego konta i statystyki.",
+    "gamesPlayed": "Rozegrane gry",
+    "totalWins": "Wygrane",
+    "activeStreak": "Aktywna seria",
+    "anonymous": "Gracz anonimowy",
+    "joined": "Dołączył(a)"
+  },
+  "Locale": {
+    "code": "pl"
+  },
+  "Migration": {
+    "title": "Wykryto anonimową sesję",
+    "description": "Na tym urządzeniu znaleziono historię gier anonimowego gracza. Czy chcesz dołączyć ją do swojego konta? Zostanie ona dodana do twojej obecnej historii. Wyniki już obecne na koncie mają pierwszeństwo przed wynikami anonimowymi.",
+    "warning": "Ważne: Opcja 'Pomiń' oznacza trwałe porzucenie obecnych anonimowych wyników.",
+    "cancel": "Pomiń (Porzuć anonimowe)",
+    "cancelConfirm": "Czy na pewno chcesz zrezygnować z dotychczasowej anonimowej historii? Tej operacji nie można cofnąć.",
+    "exitConfirm": "Czy chcesz przerwać? Zostaniesz wylogowany i powrócisz do zachowanego anonimowego postępu gry.",
+    "abortHelp": "Możesz zamknąć to okno (X), aby przerwać logowanie i powrócić do gry anonimowej bez utraty danych.",
+    "confirm": "Tak, połącz postęp",
+    "success": "Pomyślnie połączono postępy!",
+    "error": "Nie udało się połączyć postępów. Spróbuj ponownie."
   }
 }

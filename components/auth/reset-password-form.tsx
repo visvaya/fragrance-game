@@ -1,0 +1,163 @@
+"use client";
+
+import { useState } from "react";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import * as z from "zod";
+
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useRouter } from "@/i18n/routing";
+import { createClient } from "@/lib/supabase/client";
+
+import { PasswordStrength } from "./password-strength";
+
+/**
+ *
+ */
+export function ResetPasswordForm() {
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const supabase = createClient();
+  const t = useTranslations("Auth.resetPassword");
+  // Also need register translations for validation messages if we want reuse,
+  // or define them inside register schema.
+  // For now I'll use hardcoded keys or similar.
+  // Actually, I can use t from 'Auth.register' for validation messages if keys are there.
+  const tReg = useTranslations("Auth.register");
+
+  // Updated schema removes the synchronous .refine for common passwords
+  const resetPasswordSchema = z
+    .object({
+      confirmPassword: z
+        .string()
+        .min(1, { message: t("confirmPasswordLabel") }),
+      password: z
+        .string()
+        .min(8, { message: tReg("passwordMinLength") })
+        .regex(/[a-z]/, { message: tReg("passwordLowercase") })
+        .regex(/[A-Z]/, { message: tReg("passwordUppercase") })
+        .regex(/\d/, { message: tReg("passwordDigit") })
+        .regex(/[^a-z0-9]/i, { message: tReg("passwordSpecial") }),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: t("passwordsDoNotMatch"),
+      path: ["confirmPassword"],
+    });
+
+  type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+
+  const form = useForm<ResetPasswordFormValues>({
+    defaultValues: {
+      confirmPassword: "",
+      password: "",
+    },
+    resolver: zodResolver(resetPasswordSchema),
+  });
+
+  async function onSubmit(data: ResetPasswordFormValues) {
+    setIsLoading(true);
+
+    try {
+      // 1. Server-side password safety check
+      const { validatePasswordSafety } =
+        await import("@/app/actions/security-actions");
+      const safetyCheck = await validatePasswordSafety(data.password);
+
+      if (!safetyCheck.isSafe) {
+        form.setError("password", {
+          message: tReg("passwordCommon"),
+          type: "manual",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // 2. Proceed with password reset
+      const { error } = await supabase.auth.updateUser({
+        password: data.password,
+      });
+
+      if (error) {
+        toast.error(t("error"), {
+          description: error.message,
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      toast.success(t("success"), {
+        description: t("successDescription"),
+      });
+      router.push("/");
+      router.refresh();
+      setIsLoading(false);
+    } catch (error) {
+      toast.error(t("error"));
+      console.error(error);
+      setIsLoading(false);
+    }
+  }
+
+  return (
+    <div className="w-full max-w-md space-y-6 rounded-lg border bg-card p-6 shadow-sm">
+      <div className="space-y-2 text-center">
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("description")}</p>
+      </div>
+
+      <Form {...form}>
+        <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t("newPasswordLabel")}</FormLabel>
+                <FormControl>
+                  <Input type="password" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <PasswordStrength password={form.watch("password")} />
+
+          <FormField
+            control={form.control}
+            name="confirmPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t("confirmPasswordLabel")}</FormLabel>
+                <FormControl>
+                  <Input type="password" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button className="w-full" disabled={isLoading} type="submit">
+            {isLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : null}
+            {t("submit")}
+          </Button>
+        </form>
+      </Form>
+    </div>
+  );
+}

@@ -3,9 +3,10 @@
 import { Store, Feather, Hourglass, Sparkles, Droplets } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { cn } from "@/lib/utils";
+
 import { useGameState } from "../contexts";
 import { GameTooltip } from "../game-tooltip";
-import { cn } from "@/lib/utils";
 
 /**
  *
@@ -15,10 +16,10 @@ export function MetaClues() {
     currentAttempt,
     dailyPerfume,
     gameState,
+    isGenderRevealed,
     revealedBrand,
     revealedPerfumer,
     revealedYear,
-    isGenderRevealed,
     revealLevel,
   } = useGameState();
   const t = useTranslations("MetaClues");
@@ -101,11 +102,14 @@ function MetaBadge({
   t: any;
   value: string;
 }) {
-  const words = value === "?????" ? ["?????"] : value.split(" ");
+  // Translate "Unknown" for i18n support
+  const translatedValue = value === "Unknown" ? t("unknown") : value;
+  const words =
+    translatedValue === "?????" ? ["?????"] : translatedValue.split(" ");
 
   return (
     <div className="inline-flex min-h-[30px] cursor-default flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary">
-      {words.map((word, wordIndex) => {
+      {words.map((word: string, wordIndex: number) => {
         const isGenericPlaceholder = word === "?????";
 
         if (isGenericPlaceholder) {
@@ -127,6 +131,16 @@ function MetaBadge({
                   />
                 ))}
               </div>
+            </GameTooltip>
+          );
+        }
+
+        // Check if this is "Unknown" data (not hidden, but unavailable)
+        const isUnknownData = value === "Unknown";
+        if (isUnknownData) {
+          return (
+            <GameTooltip content={t("dataUnavailable")} key={wordIndex}>
+              <span className="cursor-help opacity-70">{translatedValue}</span>
             </GameTooltip>
           );
         }

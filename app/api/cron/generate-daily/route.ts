@@ -1,11 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { z } from "zod";
+
 import { createAdminClient } from "@/lib/supabase/server";
+import { DailyChallengesInsert } from "@/lib/validations/supabase.schema";
 
 import type { Database } from "@/types/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
-
-export const dynamic = "force-dynamic";
 
 /**
  * Vercel Cron Job: Generate Daily Challenge
@@ -95,7 +96,13 @@ async function ensureChallenge(
     .select("perfume_id")
     .gte("challenge_date", exclusionDate.toISOString().split("T")[0]);
 
-  const excludeIds = recentChallenges?.map((c) => c.perfume_id) || [];
+  const rawExcludeIds = recentChallenges?.map((c) => c.perfume_id) || [];
+  // Defense-in-depth: validate that all IDs are valid UUIDs before using in query
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const excludeIds = rawExcludeIds.filter(
+    (id) => typeof id === "string" && uuidRegex.test(id),
+  );
 
   // 3. Fetch Candidates
   let query = supabase
@@ -123,7 +130,9 @@ async function ensureChallenge(
       .select("perfume_id")
       .gte("challenge_date", shortExclusionDate.toISOString().split("T")[0]);
 
-    const excludeIds7 = recent7?.map((c) => c.perfume_id) || [];
+    const excludeIds7 = (recent7?.map((c) => c.perfume_id) || []).filter(
+      (id) => typeof id === "string" && uuidRegex.test(id),
+    );
 
     let retryQuery = supabase
       .from("perfume_assets")
@@ -163,21 +172,39 @@ async function ensureChallenge(
 
   const nextNumber = (maxChallenge?.challenge_number || 0) + 1;
 
-  // 6. Insert
+  // 6. Insert & Validate
   const deadline = new Date(dateString);
   deadline.setUTCHours(23, 59, 59, 999);
 
+  const newChallengePayload = {
+    challenge_date: dateString,
+    challenge_number: nextNumber,
+    grace_deadline_at_utc: deadline.toISOString(),
+    mode: "standard",
+    perfume_id: selected.perfume_id,
+    seed_hash: `auto-${Date.now()}`,
+    snapshot_metadata: {},
+  };
+
+  // Validate payload before insertion
+  try {
+    DailyChallengesInsert.parse(newChallengePayload);
+  } catch (validationError) {
+    if (validationError instanceof z.ZodError) {
+      console.error(
+        `[CRON] Validation failed for ${dateString}:`,
+        validationError.format(),
+      );
+      throw new Error(
+        `Validation failed for ${dateString}: ${validationError.message}`,
+      );
+    }
+    throw validationError;
+  }
+
   const { data: newChallenge, error: insertError } = await supabase
     .from("daily_challenges")
-    .insert({
-      challenge_date: dateString,
-      challenge_number: nextNumber,
-      grace_deadline_at_utc: deadline.toISOString(),
-      mode: "standard",
-      perfume_id: selected.perfume_id,
-      seed_hash: `auto-${Date.now()}`,
-      snapshot_metadata: {},
-    })
+    .insert(newChallengePayload)
     .select()
     .single();
 

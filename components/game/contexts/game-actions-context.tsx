@@ -219,6 +219,7 @@ export function GameActionsProvider({
           feedback,
           gender: result.guessedPerfumeDetails?.gender,
           guess: perfumeName,
+          hasGuessedNotes: result.hasGuessedNotes,
           isCorrect: result.result === "correct",
           perfumeId: perfumeId,
           perfumers: result.guessedPerfumers,
@@ -337,9 +338,9 @@ export function GameActionsProvider({
       } else {
         console.error("[GameProvider] Reset backend action failed.");
       }
+      setLoading(false);
     } catch (error) {
       console.error("[GameProvider] Reset failed with error:", error);
-    } finally {
       setLoading(false);
     }
   }, [

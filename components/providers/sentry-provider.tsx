@@ -12,14 +12,14 @@ export function SentryProvider({ children }: { children: React.ReactNode }) {
     if ("requestIdleCallback" in globalThis) {
       (globalThis as any).requestIdleCallback(
         () => {
-          import("@/sentry.client.config");
+          import("@/instrumentation-client");
         },
         { timeout: 5000 },
       );
     } else {
       // Fallback for Safari < 2023
       setTimeout(() => {
-        import("@/sentry.client.config");
+        import("@/instrumentation-client");
       }, 3000);
     }
   }, []);

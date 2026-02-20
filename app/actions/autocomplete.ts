@@ -1,11 +1,14 @@
 "use server";
 
+import { trackEvent } from "@/lib/analytics-server";
+import {
+  getCachedAutocomplete,
+  setCachedAutocomplete,
+} from "@/lib/cache/autocomplete-cache";
 import { checkRateLimit } from "@/lib/redis";
 import { createClient } from "@/lib/supabase/server";
 import { maskYear } from "@/lib/utils/brand-masking";
 import { autocompleteSchema } from "@/lib/validations/game.schema";
-
-import { trackEvent } from "../../lib/posthog/server";
 
 export type PerfumeSuggestion = {
   brand_masked: string;
@@ -59,30 +62,63 @@ export async function searchPerfumes(
   // Use currentAttempt from client instead of querying DB
   const attemptsCount = currentAttempt ?? 0;
 
-  // 4. Database Query using RPC with unaccent support
+  // 4. Feature flag: Use v2 optimized function (materialized view)
+  const USE_V2 =
+    process.env.NEXT_PUBLIC_AUTOCOMPLETE_V2 === "true" ||
+    process.env.AUTOCOMPLETE_V2 === "true";
+
+  const rpcFunction = USE_V2
+    ? "search_perfumes_unaccent_v2"
+    : "search_perfumes_unaccent";
+
+  // 5. Try Redis cache first (only for v2)
+  let perfumes: FragranceRow[] | null = null;
+  let cacheHit = false;
   const startTime = performance.now();
-  const { data: perfumes, error: dbError } = (await supabase.rpc(
-    "search_perfumes_unaccent",
-    {
-      limit_count: 30, // Reduced from 60 for better performance
+
+  if (USE_V2) {
+    const cached = await getCachedAutocomplete(validatedQuery, 30);
+    if (cached) {
+      // Transform cached PerfumeSuggestion[] back to FragranceRow[]
+      perfumes = cached.map((item) => ({
+        brand_name: item.brand_masked,
+        concentration: item.concentration,
+        id: item.perfume_id,
+        name: item.name,
+        year: item.raw_year,
+      }));
+      cacheHit = true;
+    }
+  }
+
+  // 6. Database Query (if cache miss or v1)
+  let dbError: { message: string } | null = null;
+
+  if (!perfumes) {
+    const result = (await supabase.rpc(rpcFunction, {
+      limit_count: 30,
       search_query: validatedQuery,
-    },
-  )) as { data: FragranceRow[] | null; error: { message: string } | null };
+    })) as { data: FragranceRow[] | null; error: { message: string } | null };
+
+    perfumes = result.data;
+    dbError = result.error;
+  }
+
   const searchTime = performance.now() - startTime;
 
   if (dbError) {
     console.error("Autocomplete DB Error:", dbError);
 
     // Track failed search
-    await trackEvent({
-      distinctId: user?.id ?? validatedSessionId ?? "anonymous",
-      event: "autocomplete_error",
-      properties: {
+    await trackEvent(
+      "autocomplete_error",
+      {
         attempt: currentAttempt,
         error: dbError.message,
         query: validatedQuery,
       },
-    });
+      user?.id ?? validatedSessionId ?? "anonymous",
+    );
 
     return [];
   }
@@ -90,17 +126,23 @@ export async function searchPerfumes(
   if (!perfumes) return [];
 
   // Track successful search for analytics
-  await trackEvent({
-    distinctId: user?.id ?? validatedSessionId ?? "anonymous",
-    event: "autocomplete_search",
-    properties: {
+  const analyticsEvent = USE_V2
+    ? "autocomplete_performance_v2"
+    : "autocomplete_search";
+
+  await trackEvent(
+    analyticsEvent,
+    {
       attempt: currentAttempt,
+      cache_hit: USE_V2 ? cacheHit : undefined,
       has_results: perfumes.length > 0,
       query: validatedQuery,
       results_count: perfumes.length,
       search_time_ms: Math.round(searchTime),
+      version: USE_V2 ? "v2" : "v1",
     },
-  });
+    user?.id ?? validatedSessionId ?? "anonymous",
+  );
 
   // 5. Group by (brand + name + concentration) to see if we have duplicates
   const grouped = new Map<string, number>();
@@ -139,7 +181,13 @@ export async function searchPerfumes(
     };
   });
 
-  // 6. Intelligent Slicing
+  // 6. Cache results for v2 (if cache miss)
+  if (USE_V2 && !cacheHit && transformed.length > 0) {
+    // Store in Redis cache for future queries (fire-and-forget)
+    void setCachedAutocomplete(validatedQuery, 30, transformed);
+  }
+
+  // 7. Intelligent Slicing
   // Standard limit is 10, but we allow expansion if the 10th and 11th items share the same identity
   const DEFAULT_LIMIT = 10;
   if (transformed.length <= DEFAULT_LIMIT) return transformed;

@@ -11,7 +11,7 @@ import { GameTooltip } from "../game-tooltip";
  */
 export function PyramidClues() {
   const t = useTranslations("PyramidClues");
-  const { currentAttempt, dailyPerfume, gameState, visibleNotes, revealLevel } =
+  const { currentAttempt, dailyPerfume, gameState, revealLevel, visibleNotes } =
     useGameState(); // isLinear is accessible via dailyPerfume.isLinear
   const notes = visibleNotes;
   const isLinear = dailyPerfume.isLinear;
@@ -140,7 +140,7 @@ export function PyramidClues() {
                               <div
                                 aria-hidden="true"
                                 className="mx-[0.5px] h-5 w-2.5 border-b border-muted-foreground/30"
-                                key={idx}
+                                key={`slot-${idx}`}
                               />
                             ))}
                           </div>
@@ -168,14 +168,14 @@ export function PyramidClues() {
                                   <div
                                     aria-hidden="true"
                                     className={`mx-[0.5px] h-5 w-2.5 border-b border-muted-foreground/30 transition-all duration-300 ${isFullHidden ? "opacity-50" : "opacity-70"}`}
-                                    key={index}
+                                    key={`slot-${index}`}
                                   />
                                 );
                               }
                               return (
                                 <div
                                   className="mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
-                                  key={index}
+                                  key={`char-${index}`}
                                 >
                                   {char}
                                 </div>
@@ -377,7 +377,7 @@ export function PyramidClues() {
                                                 ? "border-b border-[oklch(0.75_0.15_60)]"
                                                 : `border-b border-muted-foreground/30 ${isFullHidden ? "opacity-50" : "opacity-70"}`
                                             }`}
-                                            key={index}
+                                            key={`slot-${index}`}
                                           />
                                         );
                                       }

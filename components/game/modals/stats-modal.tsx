@@ -31,7 +31,7 @@ export function StatsModal({ onClose, open }: StatsModalProperties) {
   const t = useTranslations("StatsModal");
 
   useEffect(() => {
-    setMounted(true);
+    requestAnimationFrame(() => setMounted(true));
   }, []);
 
   // Lock body scroll when modal is open

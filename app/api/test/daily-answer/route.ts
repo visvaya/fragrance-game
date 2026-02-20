@@ -1,21 +1,40 @@
 import { NextResponse } from "next/server";
 
-import { createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 /**
- *
+ * Test endpoint: Returns today's daily challenge answer
+ * SECURITY: Requires authenticated user with app_admin role
  */
 export async function GET() {
-  // SECURITY: Ensure this only runs in development or test
-  if (
-    process.env.NODE_ENV !== "development" &&
-    process.env.NODE_ENV !== "test" &&
-    process.env.NEXT_PUBLIC_APP_ENV !== "test" &&
-    !process.env.CI
-  ) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  // Authentication check
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json(
+      { error: "Unauthorized: Authentication required" },
+      { status: 401 },
+    );
+  }
+
+  // Admin role check
+  const adminSupabase = createAdminClient();
+  const { data: adminRecord, error: adminError } = await adminSupabase
+    .from("app_admins")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .single();
+
+  if (adminError || !adminRecord) {
+    return NextResponse.json(
+      { error: "Forbidden: Admin role required" },
+      { status: 403 },
+    );
   }
 
   try {
@@ -50,9 +69,9 @@ export async function GET() {
       }
 
       const formattedPerfume = {
-        name: randomPerfume.name,
-        id: randomPerfume.id,
         brand: (randomPerfume.brands as any)?.name ?? "Unknown",
+        id: randomPerfume.id,
+        name: randomPerfume.name,
       };
 
       return NextResponse.json({ perfume: formattedPerfume });

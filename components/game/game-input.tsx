@@ -29,13 +29,39 @@ const HighlightedText = memo(
 
       if (searchTerms.length === 0) return [text];
 
-      // Find all matches for all terms
+      // Find all matches for all terms (exact + fuzzy)
       const matches: { end: number; start: number }[] = [];
       for (const term of searchTerms) {
+        // First try exact match
         let startPos = 0;
         while ((startPos = normalizedText.indexOf(term, startPos)) !== -1) {
           matches.push({ end: startPos + term.length, start: startPos });
           startPos += 1;
+        }
+
+        // If no exact match and term is long enough, try fuzzy prefix matching
+        // e.g., "extremel" matches "extreme" (7/8 chars match)
+        if (matches.length === 0 && term.length >= 4) {
+          const words = normalizedText.split(/\s+/);
+          let wordStart = 0;
+
+          for (const word of words) {
+            // Check if word starts with most of the term (fuzzy prefix)
+            const minPrefixLength = Math.min(term.length - 1, word.length);
+            const termPrefix = term.slice(0, minPrefixLength);
+            const wordPrefix = word.slice(0, minPrefixLength);
+
+            if (
+              minPrefixLength >= 4 &&
+              termPrefix === wordPrefix &&
+              Math.abs(term.length - word.length) <= 2
+            ) {
+              // Fuzzy match - highlight the whole word
+              matches.push({ end: wordStart + word.length, start: wordStart });
+            }
+
+            wordStart += word.length + 1; // +1 for space
+          }
         }
       }
 
@@ -68,7 +94,7 @@ const HighlightedText = memo(
           result.push(text.slice(lastIndex, match.start));
         }
         result.push(
-          <b className="font-bold" key={index}>
+          <b className="font-bold" key={`match-${match.start}-${match.end}`}>
             {text.slice(match.start, match.end)}
           </b>,
         );
@@ -95,9 +121,9 @@ export function GameInput() {
     currentAttempt,
     dailyPerfume,
     gameState,
-    potentialScore,
     loading: gameLoading,
     maxAttempts,
+    potentialScore,
     sessionId,
   } = useGameState();
   const { makeGuess } = useGameActions();
@@ -168,14 +194,12 @@ export function GameInput() {
           );
           if (ignore) return;
           setSuggestions(results);
+          setIsLoading(false);
         } catch (error) {
           if (ignore) return;
           console.error("Autocomplete failed:", error);
           setSuggestions([]);
-        } finally {
-          if (!ignore) {
-            setIsLoading(false);
-          }
+          setIsLoading(false);
         }
       })();
     }, 300);
@@ -203,10 +227,9 @@ export function GameInput() {
 
   // Scroll input into view on mobile focus
   useEffect(() => {
-    // eslint-disable-next-line unicorn/no-typeof-undefined
     if (
       isFocused &&
-      typeof globalThis.window !== "undefined" &&
+      globalThis.window !== undefined &&
       globalThis.window.innerWidth < 640
     ) {
       const timer = setTimeout(() => {
@@ -255,11 +278,13 @@ export function GameInput() {
       }
       case "ArrowUp": {
         e.preventDefault();
-        // Cyclic navigation: (current - 1 + length) % length
-        setSelectedIndex(
-          (previous) =>
-            (previous - 1 + suggestions.length) % suggestions.length,
-        );
+        // Cyclic navigation: wrap to last item if at beginning
+        setSelectedIndex((previous) => {
+          if (previous <= 0) {
+            return suggestions.length - 1;
+          }
+          return previous - 1;
+        });
 
         break;
       }

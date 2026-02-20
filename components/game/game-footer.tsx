@@ -10,8 +10,8 @@ import { useGameState, useUIPreferences } from "./contexts";
  * Zoptymalizowany układ dla różnych rozdzielczości i poprawiona czytelność.
  */
 export function GameFooter() {
-  const { gameState, attempts } = useGameState();
-  const { uiPreferences, isInputFocused } = useUIPreferences();
+  const { attempts, gameState } = useGameState();
+  const { isInputFocused, uiPreferences } = useUIPreferences();
   const t = useTranslations("Footer");
 
   return (

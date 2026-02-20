@@ -23,7 +23,10 @@ export function MobileResetItem() {
     setIsResetting(true);
     try {
       await resetGame();
-    } finally {
+      setIsResetting(false);
+      setShowConfirm(false);
+    } catch (error) {
+      console.error(error);
       setIsResetting(false);
       setShowConfirm(false);
     }

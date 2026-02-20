@@ -1,0 +1,177 @@
+"use client";
+
+import { useState, useEffect } from "react";
+
+import dynamic from "next/dynamic";
+
+import { useTranslations } from "next-intl";
+
+const LoginForm = dynamic(
+  async () => import("@/components/auth/login-form").then((m) => m.LoginForm),
+  {
+    loading: () => (
+      <div className="flex h-[400px] items-center justify-center">
+        Loading...
+      </div>
+    ),
+    ssr: false,
+  },
+);
+const RegisterForm = dynamic(
+  async () =>
+    import("@/components/auth/register-form").then((m) => m.RegisterForm),
+  {
+    loading: () => (
+      <div className="flex h-[400px] items-center justify-center">
+        Loading...
+      </div>
+    ),
+    ssr: false,
+  },
+);
+const ForgotPasswordForm = dynamic(
+  async () =>
+    import("@/components/auth/forgot-password-form").then(
+      (m) => m.ForgotPasswordForm,
+    ),
+  {
+    loading: () => (
+      <div className="flex h-[200px] items-center justify-center">
+        Loading...
+      </div>
+    ),
+    ssr: false,
+  },
+);
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+type AuthView = "login" | "register" | "forgot-password";
+
+type AuthModalProperties = {
+  children?: React.ReactNode;
+  defaultView?: AuthView;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+};
+
+/**
+ *
+ */
+export function AuthModal({
+  children,
+  defaultView = "login",
+  isOpen,
+  onOpenChange,
+}: AuthModalProperties) {
+  const [view, setView] = useState<AuthView>(defaultView);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const t = useTranslations("Auth");
+
+  // Controlled vs Uncontrolled state
+  const isControlled = isOpen !== undefined;
+  const open = isControlled ? isOpen : internalOpen;
+  const setOpen = isControlled ? onOpenChange! : setInternalOpen;
+
+  // Sync view with defaultView prop when modal opens
+  // This fixes the issue where 'Create Account' might open 'Login' if previously viewed
+  const [previousOpen, setPreviousOpen] = useState(open);
+  if (open !== previousOpen) {
+    setPreviousOpen(open);
+    if (open) {
+      setView(defaultView);
+    }
+  }
+
+  const handleSuccess = () => {
+    setOpen(false);
+  };
+
+  const getTitle = () => {
+    switch (view) {
+      case "login": {
+        return t("login.title");
+      }
+      case "register": {
+        return t("register.title");
+      }
+      case "forgot-password": {
+        return t("forgotPassword.title");
+      }
+    }
+  };
+
+  const getDescription = () => {
+    switch (view) {
+      case "login": {
+        return t("login.description");
+      }
+      case "register": {
+        return t("register.description");
+      }
+      case "forgot-password": {
+        return t("forgotPassword.description");
+      }
+    }
+  };
+
+  return (
+    <Dialog
+      onOpenChange={(newOpen) => {
+        setOpen(newOpen);
+        if (!newOpen) {
+          // Reset to default view when closed (after unmatched transition)
+          setTimeout(() => setView(defaultView), 300);
+        }
+      }}
+      open={open}
+    >
+      {/* 
+        We only render Trigger if children are provided.
+        If controlled, the parent handles the trigger. 
+      */}
+      {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
+
+      <DialogContent className="flex flex-col gap-0 overflow-hidden border-0 bg-transparent p-0 shadow-none sm:max-w-[425px] sm:bg-transparent">
+        <div className="mx-auto w-full max-w-md overflow-hidden rounded-lg border bg-background shadow-lg">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{getTitle()}</DialogTitle>
+            <DialogDescription>{getDescription()}</DialogDescription>
+          </DialogHeader>
+
+          {view === "login" && (
+            <LoginForm
+              className="border-0 shadow-none"
+              onForgotPasswordClick={() => setView("forgot-password")}
+              onRegisterClick={() => setView("register")}
+              onSuccess={handleSuccess}
+              viewMode="modal"
+            />
+          )}
+
+          {view === "register" && (
+            <RegisterForm
+              className="border-0 shadow-none"
+              onLoginClick={() => setView("login")}
+              onSuccess={handleSuccess}
+            />
+          )}
+
+          {view === "forgot-password" && (
+            <ForgotPasswordForm
+              className="border-0 shadow-none"
+              onLoginClick={() => setView("login")}
+            />
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

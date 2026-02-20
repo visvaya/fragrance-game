@@ -32,9 +32,12 @@ export function ResetButton({
     setIsResetting(true);
     try {
       await resetGame();
-    } finally {
       setIsResetting(false);
       setShowConfirm(false);
+    } catch (error) {
+      setIsResetting(false);
+      setShowConfirm(false);
+      throw error;
     }
   };
 

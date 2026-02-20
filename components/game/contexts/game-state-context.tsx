@@ -19,6 +19,7 @@ export type Attempt = {
   feedback: AttemptFeedback;
   gender?: string;
   guess: string;
+  hasGuessedNotes?: boolean; // True if guessed perfume has notes data
   isCorrect?: boolean;
   perfumeId?: string;
   perfumers?: string[];
@@ -32,9 +33,9 @@ export type Attempt = {
   year?: number;
 };
 
-type GameState = "playing" | "won" | "lost";
+export type GameState = "playing" | "won" | "lost";
 
-type DailyPerfume = {
+export type DailyPerfume = {
   brand: string;
   concentration: string | undefined;
   gender: string;
@@ -183,6 +184,12 @@ export function GameStateProvider({
    */
   const revealedPerfumer = useMemo(() => {
     const isGameOver = gameState === "won" || gameState === "lost";
+
+    // If perfumer is missing, show "Unknown" immediately (don't mask it)
+    if (dailyPerfume.perfumer === "Unknown") {
+      return "Unknown";
+    }
+
     if (isGameOver) return dailyPerfume.perfumer;
 
     const perfumers = dailyPerfume.perfumer.split(",").map((p) => p.trim());
@@ -216,6 +223,12 @@ export function GameStateProvider({
    */
   const revealedBrand = useMemo(() => {
     const isGameOver = gameState === "won" || gameState === "lost";
+
+    // If brand is missing, show "Unknown" immediately (don't mask it)
+    if (dailyPerfume.brand === "Unknown") {
+      return "Unknown";
+    }
+
     if (isGameOver || attempts.some((a) => a.feedback.brandMatch))
       return dailyPerfume.brand;
 
@@ -236,6 +249,12 @@ export function GameStateProvider({
    */
   const revealedYear = useMemo(() => {
     const isGameOver = gameState === "won" || gameState === "lost";
+
+    // If year is missing (0), show "Unknown" instead of masking
+    if (!dailyPerfume.year || dailyPerfume.year === 0) {
+      return "Unknown";
+    }
+
     if (isGameOver || attempts.some((a) => a.feedback.yearMatch === "correct"))
       return dailyPerfume.year.toString();
 
@@ -254,13 +273,19 @@ export function GameStateProvider({
    */
   const revealedGender = useMemo(() => {
     const isGameOver = gameState === "won" || gameState === "lost";
+
+    // If gender is missing, show "Unknown" immediately (don't hide it)
+    if (dailyPerfume.gender === "Unknown") {
+      return "Unknown";
+    }
+
     const isRevealed = attempts.some(
       (a) =>
         a.snapshot?.genderRevealed ||
         a.gender?.toLowerCase() === dailyPerfume.gender.toLowerCase(),
     );
     if (isGameOver || isRevealed) return dailyPerfume.gender;
-    return "Unknown";
+    return "Unknown"; // Hidden (not revealed yet)
   }, [gameState, attempts, dailyPerfume.gender]);
 
   // ===== PRIORITY P2: Lightweight Getters =====

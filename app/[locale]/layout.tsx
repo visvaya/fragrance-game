@@ -8,17 +8,17 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NextIntlClientProvider } from "next-intl";
 import { getTranslations, getMessages } from "next-intl/server";
 
+import { AuthErrorWatcher } from "@/components/auth/auth-error-watcher";
+import { UIPreferencesProvider } from "@/components/game/contexts/ui-preferences-context";
 import { AnalyticsProviders } from "@/components/providers/analytics-providers";
 import { SmoothScrollProvider } from "@/components/providers/smooth-scroll-provider";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { routing } from "@/i18n/routing";
 
 import type { Viewport } from "next";
 import "@/app/globals.css";
 
-/**
- * Geist Sans - główny font body (zgodnie z project-rules)
- */
 const geistSans = Geist({
   display: "swap",
   preload: true,
@@ -26,9 +26,6 @@ const geistSans = Geist({
   variable: "--font-geist-sans",
 });
 
-/**
- * Geist Mono - font dla kodu
- */
 const geistMono = Geist_Mono({
   display: "swap",
   preload: true,
@@ -36,9 +33,6 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
 });
 
-/**
- * Playfair Display - elegancki font dla nagłówków (zgodnie z project-rules)
- */
 const playfair = Playfair_Display({
   display: "swap",
   preload: true,
@@ -46,10 +40,6 @@ const playfair = Playfair_Display({
   variable: "--font-playfair",
 });
 
-/**
- * Caveat - font odręczny dla akcentów (zgodnie z project-rules)
- * Using "optional" display for non-critical accent font
- */
 const caveat = Caveat({
   display: "optional",
   preload: false,
@@ -127,7 +117,7 @@ export default async function RootLayout({
   const { locale } = await params;
 
   // Ensure that the incoming `locale` is valid
-  if (!routing.locales.includes(locale as "pl" | "en")) {
+  if (!routing.locales.includes(locale as any)) {
     notFound();
   }
 
@@ -136,9 +126,8 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale || "en"} suppressHydrationWarning>
+    <html lang={locale || routing.defaultLocale} suppressHydrationWarning>
       <head>
-        {/* Preconnect to external services */}
         {process.env.NEXT_PUBLIC_SUPABASE_URL ? (
           <link
             crossOrigin="anonymous"
@@ -146,10 +135,6 @@ export default async function RootLayout({
             rel="preconnect"
           />
         ) : null}
-
-        {/* Font preloading handled automatically by Next.js font optimization */}
-        {/* Critical fonts (Geist Sans, Playfair) have preload:true above */}
-        {/* Caveat uses display:"optional" to prevent FOIT without blocking render */}
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${caveat.variable} font-sans antialiased`}
@@ -157,9 +142,15 @@ export default async function RootLayout({
       >
         <NextIntlClientProvider messages={messages}>
           <AnalyticsProviders>
-            <SmoothScrollProvider>
-              <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
-            </SmoothScrollProvider>
+            <UIPreferencesProvider>
+              <SmoothScrollProvider>
+                <TooltipProvider delayDuration={300}>
+                  {children}
+                </TooltipProvider>
+                <AuthErrorWatcher />
+                <Toaster />
+              </SmoothScrollProvider>
+            </UIPreferencesProvider>
           </AnalyticsProviders>
           <Analytics />
           <SpeedInsights />

@@ -15,18 +15,11 @@ export type RevealState = {
   yearMask: string; // '----' or full year
 };
 
-export type GameStatus = "playing" | "won" | "lost";
-
-export type GameResult = {
-  attempts: number; // Number of attempts used (1-6)
-  history: string[]; // Array of guessed IDs
-  score: number; // Final calculated score
-  timeTaken: number; // Seconds from start
-};
+type GameStatus = "playing" | "won" | "lost";
 
 // Points per attempt (1st attempt = 1000, 6th = 168)
 // Formula: 1000 * (0.7 ^ (attempt - 1))
-export const ATTEMPT_SCORES: Record<number, number> = {
+const ATTEMPT_SCORES: Record<number, number> = {
   1: 1000,
   2: 700,
   3: 490,

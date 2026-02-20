@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { z } from "zod";
+
 import { trackEvent, identifyUser } from "@/lib/analytics-server";
 import { MAX_GUESSES } from "@/lib/constants";
 import {
@@ -10,7 +12,9 @@ import {
   getRevealPercentages,
   type RevealState,
 } from "@/lib/game/scoring";
+import { checkRateLimit } from "@/lib/redis";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { GameSessionsUpdate } from "@/lib/validations/supabase.schema";
 
 // --- Types ---
 
@@ -38,7 +42,7 @@ export type DailyChallenge = {
   snapshot_metadata: Record<string, unknown>;
 };
 
-export type GuessHistoryItem = {
+type GuessHistoryItem = {
   brandName: string;
   concentration?: string;
   feedback?: AttemptFeedback;
@@ -46,11 +50,12 @@ export type GuessHistoryItem = {
   isCorrect: boolean;
   perfumeId: string;
   perfumeName: string;
+  perfumers?: string[];
   timestamp: string;
   year?: number;
 };
 
-export type StartGameResponse = {
+type StartGameResponse = {
   answerConcentration?: string;
   answerName?: string;
   graceDeadline: string;
@@ -61,12 +66,12 @@ export type StartGameResponse = {
   sessionId: string;
 };
 
-export type InitializeGameResponse = {
+type InitializeGameResponse = {
   challenge: DailyChallenge | null;
   session: StartGameResponse | null;
 };
 
-export type AttemptFeedback = {
+type AttemptFeedback = {
   brandMatch: boolean;
   notesMatch: number; // 0-1 matches
   perfumerMatch: "full" | "partial" | "none";
@@ -74,7 +79,7 @@ export type AttemptFeedback = {
   yearMatch: "correct" | "close" | "wrong";
 };
 
-export type GuessResult = {
+type GuessResult = {
   answerConcentration?: string;
   answerName?: string;
   feedback: AttemptFeedback;
@@ -86,6 +91,7 @@ export type GuessResult = {
     year: number;
   };
   guessedPerfumers?: string[];
+  hasGuessedNotes: boolean;
   imageUrl?: string | null;
   message?: string;
   newNonce: string;
@@ -200,17 +206,34 @@ function generateNonce(): string {
 export async function getDailyChallenge(): Promise<DailyChallenge | null> {
   const supabase = await createClient();
 
+  // Rate limiting
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      await checkRateLimit("getDailyChallenge", user.id);
+    }
+  } catch {
+    // Continue even if rate limit check fails
+  }
+
+  const targetDate = new Date().toISOString().split("T")[0];
+
   const { data, error } = await supabase
     .from("daily_challenges_public")
     .select(
       "challenge_date, grace_deadline_at_utc, id, mode, snapshot_metadata",
     )
-    .eq("challenge_date", new Date().toISOString().split("T")[0])
+    .eq("challenge_date", targetDate)
     .limit(1)
     .single();
 
   if (error || !data) {
-    if (error?.code === "PGRST116") return null;
+    if (error?.code === "PGRST116") {
+      console.warn("[getDailyChallenge] No challenge found (PGRST116)");
+      return null;
+    }
     console.error("Error fetching daily challenge:", error);
     throw new Error("Failed to fetch daily challenge");
   }
@@ -284,7 +307,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     clues: {
       brand: brandName,
       concentration: concentrationName,
-      gender: perfume.gender ?? "Unisex",
+      gender: perfume.gender || "Unknown", // "Unknown" for missing gender (works in both attempt-log and meta-clues)
       isLinear: perfume.is_linear ?? false,
       notes: {
         base: perfume.base_notes ?? [],
@@ -296,7 +319,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
           ? perfume.perfumers.join(", ")
           : "Unknown",
       xsolve: perfume.xsolve_score, // Now guaranteed to be a number
-      year: perfume.release_year ?? 0,
+      year: perfume.release_year ?? 0, // Keep 0 for year - it's checked as !year || year === 0
     },
   } as DailyChallenge;
 }
@@ -308,13 +331,21 @@ export async function startGame(
   challengeId: string,
 ): Promise<StartGameResponse> {
   const supabase = await createClient();
-  const { data, error: userError } = await supabase.auth.getUser();
-  const user = data?.user;
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-  if (userError || !user) {
+  // Authentication is required; getSession() fallback removed per CLAUDE.md
+  // getUser() performs proper JWT validation
+
+  if (!user) {
     console.error("Auth error in startGame:", userError);
     throw new Error("Unauthorized");
   }
+
+  // Rate limiting
+  await checkRateLimit("startGame", user.id);
 
   const { data: existingSession } = (await supabase
     .from("game_sessions")
@@ -358,7 +389,7 @@ export async function startGame(
       const { data: perfumes } = (await adminSupabase
         .from("perfumes")
         .select(
-          "id, name, brands(name), release_year, concentrations(name), gender",
+          "id, name, brands(name), release_year, concentrations(name), gender, perfumers",
         )
         .in("id", perfumeIds)) as {
         data:
@@ -368,6 +399,7 @@ export async function startGame(
               gender: string | null;
               id: string;
               name: string;
+              perfumers: string[] | null;
               release_year: number | null;
             }[]
           | null;
@@ -389,6 +421,7 @@ export async function startGame(
               isCorrect: guess.isCorrect,
               perfumeId: guess.perfumeId,
               perfumeName: p.name,
+              perfumers: p.perfumers ?? [],
               timestamp: guess.timestamp,
               year: p.release_year ?? undefined,
             });
@@ -480,7 +513,7 @@ export async function startGame(
     .select("mode, grace_deadline_at_utc")
     .eq("id", challengeId)
     .single()) as {
-    data: { mode: string; grace_deadline_at_utc: string } | null;
+    data: { grace_deadline_at_utc: string; mode: string } | null;
   };
 
   await identifyUser(user.id);
@@ -529,16 +562,32 @@ export async function initializeGame(): Promise<InitializeGameResponse> {
   }
 }
 
+const uuidSchema = z.string().uuid();
+
 /**
  * Pobiera URL obrazka dla danego etapu gry.
  */
-export async function getImageUrlForStep(
-  sessionId: string,
-): Promise<string | null> {
+async function getImageUrlForStep(sessionId: string): Promise<string | null> {
+  if (!uuidSchema.safeParse(sessionId).success) {
+    throw new Error("Invalid session ID");
+  }
+
   const supabase = await createClient();
-  const { data: userResult } = await supabase.auth.getUser();
-  const user = userResult?.user;
-  if (!user) throw new Error("Unauthorized");
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  // Authentication is required; getSession() fallback removed per CLAUDE.md
+  // getUser() performs proper JWT validation
+
+  if (!user) {
+    console.error("getImageUrlForStep: Unauthorized access", {
+      sessionId,
+      userError,
+    });
+    throw new Error("Unauthorized");
+  }
 
   const { data: session, error: sessionError } = (await supabase
     .from("game_sessions")
@@ -602,10 +651,29 @@ export async function submitGuess(
   perfumeId: string,
   clientNonce: string,
 ): Promise<GuessResult> {
+  if (!uuidSchema.safeParse(sessionId).success) {
+    throw new Error("Invalid session ID");
+  }
+  if (!uuidSchema.safeParse(perfumeId).success) {
+    throw new Error("Invalid perfume ID");
+  }
+
   const supabase = await createClient();
-  const { data: userResult } = await supabase.auth.getUser();
-  const user = userResult?.user;
-  if (!user) throw new Error("Unauthorized");
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  // Authentication is required; getSession() fallback removed per CLAUDE.md
+  // getUser() performs proper JWT validation
+
+  if (!user) {
+    console.error("submitGuess: Unauthorized access", { sessionId, userError });
+    throw new Error("Unauthorized");
+  }
+
+  // Rate limiting
+  await checkRateLimit("submitGuess", user.id);
 
   const { data: session, error: sessionError } = (await supabase
     .from("game_sessions")
@@ -653,6 +721,7 @@ export async function submitGuess(
         yearMatch: "wrong",
       },
       gameStatus: session.status as "active" | "won" | "lost",
+      hasGuessedNotes: false,
       newNonce: String(session.last_nonce),
       result: "incorrect",
       revealState: getRevealPercentages(6),
@@ -682,7 +751,7 @@ export async function submitGuess(
     gender?: string | null;
     middle_notes: string[] | null;
     name?: string;
-    perfumers: { name: string }[] | null;
+    perfumers: string[] | null; // FIX: Array of strings, not objects
     release_year: number | null;
     top_notes: string[] | null;
   };
@@ -740,8 +809,8 @@ export async function submitGuess(
       },
     ),
     perfumerMatch: calculatePerfumerMatch(
-      guessedPerfume.perfumers?.map((p) => p.name) ?? null,
-      answerPerfume.perfumers?.map((p) => p.name) ?? null,
+      guessedPerfume.perfumers ?? null,
+      answerPerfume.perfumers ?? null,
     ),
     yearDirection: yearDiff > 0 ? "lower" : yearDiff < 0 ? "higher" : "equal",
     yearMatch: yearMatch,
@@ -755,18 +824,29 @@ export async function submitGuess(
     timestamp: new Date().toISOString(),
   };
 
+  const updatePayload = {
+    attempts_count: nextAttempts,
+    guesses: [
+      ...((session?.guesses ?? []) as unknown as AttemptFeedback[]),
+      guessEntry,
+    ],
+    last_guess: new Date().toISOString(),
+    last_nonce: newNonce,
+    status: isGameOver ? (isCorrect ? "won" : "lost") : "active",
+  };
+
+  try {
+    // Validate update payload with Zod
+    // Note: Zod 'any()' for JSON fields is lenient, but ensures object structure matches
+    GameSessionsUpdate.parse(updatePayload);
+  } catch (error) {
+    console.error("Game session update validation failed:", error);
+    throw new Error("Game state validation failed");
+  }
+
   const { data: updatedSession, error: updateError } = await supabase
     .from("game_sessions")
-    .update({
-      attempts_count: nextAttempts,
-      guesses: [
-        ...((session?.guesses ?? []) as unknown as AttemptFeedback[]),
-        guessEntry,
-      ],
-      last_guess: new Date().toISOString(),
-      last_nonce: newNonce,
-      status: isGameOver ? (isCorrect ? "won" : "lost") : "active",
-    })
+    .update(updatePayload)
     .eq("id", sessionId)
     .eq("last_nonce", clientNonce)
     .select(
@@ -843,7 +923,11 @@ export async function submitGuess(
     finalScore: isGameOver ? finalScore : undefined,
     gameStatus: updatedSession.status as "active" | "won" | "lost",
     guessedPerfumeDetails: mapPerfumeDetails(guessedPerfume),
-    guessedPerfumers: guessedPerfume.perfumers?.map((p) => p.name) ?? [],
+    guessedPerfumers: guessedPerfume.perfumers ?? [],
+    hasGuessedNotes:
+      (guessedPerfume.top_notes?.length ?? 0) > 0 ||
+      (guessedPerfume.middle_notes?.length ?? 0) > 0 ||
+      (guessedPerfume.base_notes?.length ?? 0) > 0,
     imageUrl: nextImageUrl,
     newNonce: newNonce,
     result: isCorrect ? "correct" : "incorrect",
@@ -866,7 +950,7 @@ function mapPerfumeDetails(perfume: {
 }) {
   return {
     concentration: getArrayName(perfume.concentrations) ?? "Unknown",
-    gender: perfume.gender ?? "Unisex",
+    gender: perfume.gender ?? "Unknown", // Don't default to "Unisex" - Unknown is safer
     year: perfume.release_year ?? 0,
   };
 }
@@ -877,10 +961,24 @@ function mapPerfumeDetails(perfume: {
 export async function resetGame(
   sessionId: string,
 ): Promise<{ error?: string; success: boolean }> {
+  // Validate UUID format for sessionId
+  if (!uuidSchema.safeParse(sessionId).success) {
+    throw new Error("Invalid session ID");
+  }
+
   const supabase = await createClient();
-  const { data: userResult } = await supabase.auth.getUser();
-  const user = userResult?.user;
-  if (!user) throw new Error("Unauthorized");
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  // Authentication is required; getSession() fallback removed per CLAUDE.md
+  // getUser() performs proper JWT validation
+
+  if (!user) {
+    console.error("resetGame: Unauthorized access", { sessionId, userError });
+    throw new Error("Unauthorized");
+  }
 
   const { data: sessionData } = await supabase
     .from("game_sessions")

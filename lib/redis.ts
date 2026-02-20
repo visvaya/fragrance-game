@@ -16,6 +16,24 @@ export const limiters = {
     prefix: "ratelimit:getDailyChallenge",
     redis,
   }),
+  // 3 requests per 10 minutes per user (rare operation, prevent account-takeover loops)
+  migrateAnonymousPlayer: new Ratelimit({
+    limiter: Ratelimit.slidingWindow(3, "10 m"),
+    prefix: "ratelimit:migrateAnonymousPlayer",
+    redis,
+  }),
+  // 3 requests per 10 minutes per user (rare destructive operation)
+  revokeAllSessions: new Ratelimit({
+    limiter: Ratelimit.slidingWindow(3, "10 m"),
+    prefix: "ratelimit:revokeAllSessions",
+    redis,
+  }),
+  // 10 requests per minute per user
+  revokeSession: new Ratelimit({
+    limiter: Ratelimit.slidingWindow(10, "1 m"),
+    prefix: "ratelimit:revokeSession",
+    redis,
+  }),
   // 5 requests per minute per user (prevent session spam)
   startGame: new Ratelimit({
     limiter: Ratelimit.slidingWindow(5, "1 m"),

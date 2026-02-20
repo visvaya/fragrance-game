@@ -1,5 +1,5 @@
-import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { test, expect } from "@playwright/test";
 
 /**
  * Automatyczne testy dostępności (WCAG 2.1) dla kluczowych stron.
@@ -39,9 +39,9 @@ test.describe("Accessibility Audits (Axe)", () => {
     await page.waitForLoadState("networkidle");
 
     // Kliknij przycisk logowania (jeśli istnieje)
-    const loginBtn = page.getByRole("button", { name: /Zaloguj|Login/i });
-    if (await loginBtn.isVisible()) {
-      await loginBtn.click();
+    const loginButton = page.getByRole("button", { name: /Zaloguj|Login/i });
+    if (await loginButton.isVisible()) {
+      await loginButton.click();
       // Poczekaj na animację modala
       await page.waitForTimeout(500);
 

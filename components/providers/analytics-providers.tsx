@@ -1,22 +1,23 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
+
+import dynamic from "next/dynamic";
 
 // Lazy load analytics providers - improves TBT by ~300-500ms
 // These are non-critical for initial render and can load after hydration
 const PostHogProvider = dynamic(
-  () =>
+  async () =>
     import("@/components/providers/posthog-provider").then(
-      (mod) => mod.PostHogProvider,
+      (module_) => module_.PostHogProvider,
     ),
   { ssr: false },
 );
 
 const SentryProvider = dynamic(
-  () =>
+  async () =>
     import("@/components/providers/sentry-provider").then(
-      (mod) => mod.SentryProvider,
+      (module_) => module_.SentryProvider,
     ),
   { ssr: false },
 );

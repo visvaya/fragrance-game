@@ -1,0 +1,15 @@
+{
+  "ignores": [
+    "tailwindcss",
+    "postcss",
+    "@tailwindcss/postcss",
+    "rimraf",
+    "shx",
+    "prettier-plugin-tailwindcss",
+    "tailwindcss-animate",
+    "@vitest/coverage-v8",
+    "eslint-import-resolver-typescript"
+  ],
+  "skip-missing": true,
+  "ignorePatterns": [".next", "coverage", "dist"]
+}

@@ -76,28 +76,30 @@ export function UIPreferencesProvider({
 
   // Load preferences from localStorage on mount
   useEffect(() => {
-    const savedLayout = localStorage.getItem("fragrance-game-layout") as
-      | "narrow"
-      | "wide"
-      | null;
-    if (savedLayout) {
-      setLayoutMode(savedLayout);
-    } else if (window.innerWidth >= 1024) {
-      // Default to wide on desktop if no preference saved
-      setLayoutMode("wide");
-    }
+    requestAnimationFrame(() => {
+      const savedLayout = localStorage.getItem("fragrance-game-layout") as
+        | "narrow"
+        | "wide"
+        | null;
+      if (savedLayout) {
+        setLayoutMode(savedLayout);
+      } else if (window.innerWidth >= 1024) {
+        // Default to wide on desktop if no preference saved
+        setLayoutMode("wide");
+      }
 
-    const savedFont = localStorage.getItem("fragrance-game-font") as
-      | "normal"
-      | "large"
-      | null;
-    if (savedFont) setFontScale(savedFont);
+      const savedFont = localStorage.getItem("fragrance-game-font") as
+        | "normal"
+        | "large"
+        | null;
+      if (savedFont) setFontScale(savedFont);
 
-    const savedTheme = localStorage.getItem("fragrance-game-theme") as
-      | "light"
-      | "dark"
-      | null;
-    if (savedTheme) setTheme(savedTheme);
+      const savedTheme = localStorage.getItem("fragrance-game-theme") as
+        | "light"
+        | "dark"
+        | null;
+      if (savedTheme) setTheme(savedTheme);
+    });
   }, []);
 
   const value = {

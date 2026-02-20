@@ -9,7 +9,8 @@ export {
   GameStateProvider,
   useGameState,
   type Attempt,
-  type AttemptFeedback,
+  type DailyPerfume,
+  type GameState,
 } from "./game-state-context";
 
 export { GameActionsProvider, useGameActions } from "./game-actions-context";

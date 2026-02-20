@@ -18,17 +18,17 @@ test.describe("Smoke Tests - Critical Path @smoke", () => {
 
     // Resilience: check for input OR "no puzzle" message
     const inputField = page.getByTestId("game-input");
-    const noPuzzleMsg = page.locator(
+    const noPuzzleMessage = page.locator(
       "text=/No puzzle today|Come back tomorrow|Brak puzzli|Wróć jutro/i",
     );
 
     await expect(async () => {
       const isInputVisible = await inputField.isVisible();
-      const isMsgVisible = await noPuzzleMsg.isVisible();
-      expect(isInputVisible || isMsgVisible).toBeTruthy();
-    }).toPass({ timeout: 15000 });
+      const isMessageVisible = await noPuzzleMessage.isVisible();
+      expect(isInputVisible || isMessageVisible).toBeTruthy();
+    }).toPass({ timeout: 15_000 });
 
-    if (await noPuzzleMsg.isVisible()) {
+    if (await noPuzzleMessage.isVisible()) {
       console.log(
         "Smoke test note: Application is running, but no puzzle detected for current date/timezone.",
       );

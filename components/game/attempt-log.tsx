@@ -22,6 +22,7 @@ export function AttemptLog() {
   const previousAttemptsLength = useRef(attempts.length);
   const [activeRowIndex, setActiveRowIndex] = useState<number | null>(null);
   const isTouchReference = useRef(false);
+  const [isTouch, setIsTouch] = useState(false);
 
   // Scroll to new attempt
   useEffect(() => {
@@ -149,6 +150,7 @@ export function AttemptLog() {
           const handlePointerDown = (e: React.PointerEvent) => {
             if (e.pointerType === "touch") {
               isTouchReference.current = true;
+              if (!isTouch) setIsTouch(true);
             }
           };
 
@@ -169,7 +171,7 @@ export function AttemptLog() {
               <div
                 className={cn(
                   "relative z-10 flex items-center justify-center border-b border-muted/30 py-3 transition-all duration-300 group-last:border-0",
-                  isTouchReference.current && isActive
+                  isTouch && isActive
                     ? "bg-muted/40"
                     : "group-hover:bg-muted/40",
                 )}
@@ -188,7 +190,7 @@ export function AttemptLog() {
               <div
                 className={cn(
                   "relative z-10 flex min-w-0 flex-col justify-center border-b border-muted/30 py-3 pr-2 pl-2 transition-all duration-300 group-last:border-0",
-                  isTouchReference.current && isActive
+                  isTouch && isActive
                     ? "bg-muted/40"
                     : "group-hover:bg-muted/40",
                 )}
@@ -268,7 +270,7 @@ export function AttemptLog() {
               <div
                 className={cn(
                   "relative z-10 grid w-full grid-cols-5 items-center border-b border-muted/30 py-3 pr-2 pl-1 font-[family-name:var(--font-hand)] text-xl text-primary transition-all duration-300 group-last:border-0",
-                  isTouchReference.current && isActive
+                  isTouch && isActive
                     ? "bg-muted/40"
                     : "group-hover:bg-muted/40",
                 )}
@@ -281,9 +283,12 @@ export function AttemptLog() {
                 {/* Brand */}
                 <div className="flex h-full items-center justify-center">
                   {(() => {
-                    const isMissing =
+                    const targetMissing =
                       !dailyPerfume.brand || dailyPerfume.brand === "Unknown";
-                    if (isMissing) {
+                    const guessMissing =
+                      !attempt.brand || attempt.brand === "Unknown";
+
+                    if (targetMissing || guessMissing) {
                       return (
                         <GameTooltip
                           className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
@@ -515,11 +520,14 @@ export function AttemptLog() {
                 {/* Notes */}
                 <div className="flex h-full items-center justify-center">
                   {(() => {
+                    const answerHasNotes =
+                      dailyPerfume.notes &&
+                      ((dailyPerfume.notes.top?.length || 0) > 0 ||
+                        (dailyPerfume.notes.heart?.length || 0) > 0 ||
+                        (dailyPerfume.notes.base?.length || 0) > 0);
+
                     const isMissing =
-                      !dailyPerfume.notes ||
-                      ((dailyPerfume.notes.top?.length || 0) === 0 &&
-                        (dailyPerfume.notes.heart?.length || 0) === 0 &&
-                        (dailyPerfume.notes.base?.length || 0) === 0);
+                      !answerHasNotes || attempt.hasGuessedNotes === false;
 
                     if (isMissing) {
                       return (
@@ -623,17 +631,17 @@ function TruncatedCell({
     const timeoutId = setTimeout(checkTruncation, 0);
 
     // Debounced resize handler
-    let resizeTimeoutId: number;
+    let resizeTimeoutId: NodeJS.Timeout | null = null;
     const handleResize = () => {
-      clearTimeout(resizeTimeoutId);
-      resizeTimeoutId = window.setTimeout(checkTruncation, 150);
+      if (resizeTimeoutId) clearTimeout(resizeTimeoutId);
+      resizeTimeoutId = globalThis.setTimeout(checkTruncation, 150);
     };
 
     window.addEventListener("resize", handleResize);
 
     return () => {
-      clearTimeout(timeoutId);
-      clearTimeout(resizeTimeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
+      if (resizeTimeoutId) clearTimeout(resizeTimeoutId);
       window.removeEventListener("resize", handleResize);
     };
   }, [content, children]);

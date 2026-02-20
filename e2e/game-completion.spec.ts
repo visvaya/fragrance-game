@@ -136,7 +136,7 @@ test.describe("Game Completion Flows", () => {
       const suggestions = page.getByRole("option");
 
       // Wait for suggestions to appear
-      await expect(suggestions.first()).toBeVisible({ timeout: 7_000 });
+      await expect(suggestions.first()).toBeVisible({ timeout: 7000 });
 
       const suggestion = suggestions.first();
       const suggestionText = await suggestion.textContent();
@@ -145,7 +145,7 @@ test.describe("Game Completion Flows", () => {
       if (i < 5) {
         // For first 5 attempts: simple click and verify cleared input
         await suggestion.click({ force: true });
-        await expect(input).toHaveValue("", { timeout: 3_000 });
+        await expect(input).toHaveValue("", { timeout: 3000 });
       } else {
         // For 6th attempt: use retry logic to handle game over transition
         await expect(async () => {
@@ -157,7 +157,7 @@ test.describe("Game Completion Flows", () => {
           const inputVisible = await input.isVisible();
 
           expect(isFinished || !inputVisible).toBeTruthy();
-        }).toPass({ timeout: 8_000 });
+        }).toPass({ timeout: 8000 });
       }
 
       await page.waitForTimeout(100);

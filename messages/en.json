@@ -1,7 +1,11 @@
 {
   "Metadata": {
     "title": "Eauxle — Olfactory Deduction",
-    "description": "A daily fragrance guessing game. Deduce the mystery perfume from evolving clues."
+    "description": "A daily fragrance guessing game. Deduce the mystery perfume from evolving clues.",
+    "signIn": "Sign In - Eauxle",
+    "signInDescription": "Sign in to your Eauxle account",
+    "signUp": "Sign Up - Eauxle",
+    "signUpDescription": "Create your Eauxle account"
   },
   "Common": {
     "title": "Guess the Perfume",
@@ -36,7 +40,16 @@
     "largeText": "Large Text",
     "darkMode": "Dark Mode",
     "support": "Support Us",
-    "reset": "Reset"
+    "reset": "Reset",
+    "signIn": "Sign In",
+    "createAccount": "Create Account",
+    "signOut": "Sign Out",
+    "manageSessions": "Active Sessions",
+    "signOutGlobal": "Sign Out (All Devices)",
+    "profile": "Your Profile",
+    "signInToProfile": "Sign in to profile",
+    "signedOutSuccess": "Signed out successfully",
+    "signedOutGlobalSuccess": "Successfully signed out from all devices"
   },
   "Footer": {
     "contact": "Contact",
@@ -114,6 +127,8 @@
     "year": "Year",
     "concentration": "Concentration",
     "gender": "Gender",
+    "unknown": "Unknown",
+    "dataUnavailable": "Data unavailable in database",
     "hiddenAttempt": "Hidden in attempt {attempt}",
     "fullyHidden": "Fully hidden in attempt {attempt}",
     "partiallyHidden": "Partially hidden in attempt {attempt}",
@@ -154,11 +169,11 @@
       "genderIncorrect": "Gender: Incorrect",
       "notesCorrect": "Notes: 100% correct",
       "notesPercentage": "Notes: {percent}% correct",
-      "brandMissing": "Brand: No data in database",
-      "perfumerMissing": "Perfumer: No data in database",
-      "yearMissing": "Year: No data in database",
-      "genderMissing": "Gender: No data in database",
-      "notesMissing": "Notes: No data in database"
+      "brandMissing": "Brand: No data available",
+      "perfumerMissing": "Perfumer: No data available",
+      "yearMissing": "Year: No data available",
+      "genderMissing": "Gender: No data available",
+      "notesMissing": "Notes: No data available"
     }
   },
   "Difficulty": {
@@ -168,5 +183,144 @@
     "hard": "Hard",
     "expert": "Expert",
     "beginner": "Beginner"
+  },
+  "Auth": {
+    "common": {
+      "or": "Or",
+      "continueWithGoogle": "Continue with Google"
+    },
+    "login": {
+      "title": "Welcome Back",
+      "description": "Enter your credentials to sign in",
+      "emailLabel": "Email",
+      "emailPlaceholder": "mail@example.com",
+      "passwordLabel": "Password",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "signUpLink": "Sign up",
+      "success": "Logged in successfully",
+      "failed": "Login failed",
+      "error": "An unexpected error occurred",
+      "invalidEmail": "Invalid email address"
+    },
+    "register": {
+      "title": "Create an Account",
+      "description": "Enter your email below to create your account",
+      "emailLabel": "Email",
+      "emailPlaceholder": "mail@example.com",
+      "passwordLabel": "Password",
+      "confirmPasswordLabel": "Confirm Password",
+      "submit": "Sign Up",
+      "hasAccount": "Already have an account?",
+      "signInLink": "Sign in",
+      "success": "Account created!",
+      "successDescription": "Please check your email to confirm your account.",
+      "captchaError": "Please complete the captcha verification",
+      "passwordsDoNotMatch": "Passwords don't match",
+      "passwordMinLength": "Password must be at least 8 characters",
+      "passwordLowercase": "Must contain lowercase letter",
+      "passwordUppercase": "Must contain uppercase letter",
+      "passwordDigit": "Must contain digit",
+      "passwordSpecial": "Must contain special character",
+      "passwordCommon": "Password too common",
+      "invalidEmail": "Invalid email address",
+      "unexpectedError": "An unexpected error occurred",
+      "captchaTitle": "Verification Required",
+      "captchaDescription": "Please verify you are human to start the game.",
+      "captchaLoading": "Loading Captcha...",
+      "invalidFormat": "Invalid password format"
+    },
+    "forgotPassword": {
+      "title": "Reset Password",
+      "description": "Enter your email address and we'll send you a link to reset your password",
+      "emailLabel": "Email",
+      "emailPlaceholder": "mail@example.com",
+      "submit": "Send Reset Link",
+      "backToLogin": "Back to Login",
+      "success": "Check your email",
+      "successDescription": "If an account exists for that email, we have sent password reset instructions.",
+      "error": "Failed to send reset email",
+      "invalidEmail": "Invalid email address"
+    },
+    "resetPassword": {
+      "title": "Set New Password",
+      "description": "Please enter your new password below",
+      "newPasswordLabel": "New Password",
+      "confirmPasswordLabel": "Confirm Password",
+      "submit": "Reset Password",
+      "success": "Password Reset",
+      "successDescription": "Your password has been reset successfully. You can now log in.",
+      "error": "Failed to reset password",
+      "passwordsDoNotMatch": "Passwords do not match"
+    },
+    "header": {
+      "signIn": "Sign In",
+      "createAccount": "Create Account",
+      "signOut": "Sign Out",
+      "manageSessions": "Active Sessions",
+      "signOutGlobal": "Sign Out (All Devices)"
+    },
+    "errorWatcher": {
+      "authError": "Authentication Error",
+      "unknownError": "An unknown error occurred during login.",
+      "loginFailed": "Login Failed",
+      "problemSigningIn": "There was a problem signing you in."
+    },
+    "passwordStrength": {
+      "tooCommon": "Too common",
+      "weak": "Weak",
+      "medium": "Medium",
+      "strong": "Strong",
+      "veryStrong": "Very Strong",
+      "commonWarning": "This password is in the top 100 most common passwords list.",
+      "minChars": "Min. 8 chars",
+      "lowercase": "Lowercase",
+      "uppercase": "Uppercase",
+      "number": "Number",
+      "special": "Special char"
+    }
+  },
+  "Sessions": {
+    "title": "Active Sessions",
+    "description": "Manage your active sessions and devices.",
+    "currentDevice": "This Device",
+    "lastActive": "Last active {time}",
+    "revoke": "Revoke Session",
+    "noSessions": "No active sessions found.",
+    "unknownBrowser": "Unknown Browser",
+    "unknownOS": "Unknown OS",
+    "revokeSuccess": "Session revoked successfully",
+    "revokeError": "Failed to revoke session",
+    "fetchError": "Failed to fetch active sessions",
+    "anonymousTitle": "Guest Session",
+    "anonymousDescription": "You are playing as a guest. Your session is local.",
+    "anonymousClose": "Close",
+    "revokeAll": "Revoke All",
+    "revokeAllConfirm": "Are you sure you want to log out from all devices?"
+  },
+  "Profile": {
+    "title": "User Profile",
+    "description": "Your account details and statistics.",
+    "gamesPlayed": "Games Played",
+    "totalWins": "Total Wins",
+    "activeStreak": "Active Streak",
+    "anonymous": "Anonymous Player",
+    "joined": "Joined"
+  },
+  "Locale": {
+    "code": "en"
+  },
+  "Migration": {
+    "title": "Anonymous Session Detected",
+    "description": "We found anonymous game history on this device. Do you want to attach it to your account? It will be merged with your current history (game results on your account take priority).",
+    "warning": "Important: Choosing 'Skip' means permanently abandoning your anonymous results. Only the history from your account will be loaded.",
+    "cancel": "Skip (Abandon anonymous)",
+    "cancelConfirm": "Are you sure you want to abandon your anonymous history? This action cannot be undone.",
+    "exitConfirm": "Do you want to abort? You will be logged out and returned to your saved anonymous game progress.",
+    "abortHelp": "You can close this window (X) to abort login and return to anonymous play without losing data.",
+    "confirm": "Yes, Merge Progress",
+    "success": "Progress merged successfully!",
+    "error": "Failed to merge progress. Please try again."
   }
 }

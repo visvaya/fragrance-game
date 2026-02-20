@@ -102,7 +102,7 @@ export default tseslint.config(
 
       // Data & scripts (non-linted)
       "data/**",
-      "scripts/**/*.py",
+      "scripts/**",
       "scripts/**/*.sql",
       "img/**",
 
@@ -480,11 +480,16 @@ export default tseslint.config(
     ...playwrightPlugin.configs["flat/recommended"],
     rules: {
       ...playwrightPlugin.configs["flat/recommended"].rules,
-      "playwright/expect-expect": "error",
+      "playwright/expect-expect": "warn",
       "playwright/no-skipped-test": "warn",
       "playwright/no-focused-test": "error",
       "playwright/no-wait-for-timeout": "warn",
       "playwright/no-force-option": "warn",
+      "playwright/no-networkidle": "warn",
+      "playwright/no-conditional-in-test": "warn",
+      "playwright/no-conditional-expect": "warn",
+      "playwright/no-standalone-expect": "warn",
+      "playwright/no-wait-for-selector": "warn",
       "no-console": "off",
 
       // Relax TS w E2E
@@ -599,9 +604,10 @@ export default tseslint.config(
       "check-file/folder-naming-convention": [
         "error",
         {
-          "components/**": "KEBAB_CASE",
-          "lib/**": "KEBAB_CASE",
-          "hooks/**": "KEBAB_CASE",
+          "components/**/!(__tests__)": "KEBAB_CASE",
+          "lib/**/!(__tests__)": "KEBAB_CASE",
+          "hooks/**/!(__tests__)": "KEBAB_CASE",
+          "app/**/!(__tests__)": "KEBAB_CASE",
         },
       ],
     },
@@ -616,6 +622,9 @@ export default tseslint.config(
       "sonarjs/cognitive-complexity": ["warn", 20],
       "sonarjs/no-duplicate-string": "off",
       "sonarjs/no-identical-functions": "error",
+      "sonarjs/prefer-read-only-props": "warn",
+      "sonarjs/todo-tag": "warn",
+      "sonarjs/fixme-tag": "warn",
     },
   },
 

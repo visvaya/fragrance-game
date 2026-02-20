@@ -50,5 +50,6 @@ export default defineConfig({
     command: process.env.CI ? "npm run start" : "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
+    timeout: 90000, // 90s for Next.js cold start (default is 30s)
   },
 });

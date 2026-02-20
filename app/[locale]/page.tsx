@@ -7,7 +7,7 @@ import { GameProvider } from "@/components/game/game-provider";
 // Enable ISR (Incremental Static Regeneration) for daily challenges
 // Revalidate every 24 hours (86400 seconds) to match daily challenge cadence
 // This improves TTFB by serving cached pages from edge, reduces server load
-export const revalidate = 86400; // 24 hours
+export const revalidate = 86_400; // 24 hours
 
 /**
  *

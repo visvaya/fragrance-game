@@ -24,7 +24,7 @@ export function HelpModal({ onClose, open }: HelpModalProperties) {
   const t = useTranslations("HelpModal");
 
   useEffect(() => {
-    setMounted(true);
+    requestAnimationFrame(() => setMounted(true));
   }, []);
 
   // Lock body scroll when modal is open

@@ -49,7 +49,7 @@ function TestComponent() {
       <div data-testid="attempts-count">{game.attempts.length}</div>
       <div data-testid="daily-brand">{game.dailyPerfume.brand}</div>
       <button
-        onClick={() =>
+        onClick={async () =>
           game.makeGuess("Test Perfume", "Test Brand", "perfume-123")
         }
       >

@@ -15,15 +15,27 @@ export default defineConfig({
     },
     coverage: {
       provider: "v8",
-      reporter: ["text", "json", "html"],
-      include: ["lib/**", "app/actions/**", "components/**"],
-      exclude: [
-        "node_modules/",
-        "vitest.setup.ts",
-        "**/*.test.ts",
-        "**/*.test.tsx",
-        "e2e/",
+      reporter: ["text", "json", "html", "json-summary"],
+      include: [
+        "app/actions/**/*.ts",
+        "lib/**/*.{ts,tsx}",
+        "components/game/**/*.tsx",
       ],
+      exclude: [
+        "**/__tests__/**",
+        "**/*.test.{ts,tsx}",
+        "**/*.spec.ts",
+        "node_modules/**",
+        "e2e/**",
+        "vitest.setup.ts",
+        "components/ui/**", // shadcn/ui components (low priority)
+      ],
+      thresholds: {
+        lines: 35,
+        functions: 27,
+        branches: 29,
+        statements: 36,
+      },
     },
   },
 });

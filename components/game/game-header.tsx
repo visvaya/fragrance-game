@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+import dynamic from "next/dynamic";
 
 import {
   Menu,
@@ -12,15 +14,43 @@ import {
   Moon,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+import { toast } from "sonner";
 
-import { usePathname, useRouter } from "@/i18n/routing";
+import { revokeAllSessions } from "@/app/actions/auth-actions";
+import { AuthModal } from "@/components/auth/auth-modal";
+import { Button } from "@/components/ui/button";
+
+const SessionsModal = dynamic(
+  async () =>
+    import("@/components/auth/sessions-modal").then(
+      (module_) => module_.SessionsModal,
+    ),
+  { ssr: false },
+);
+const ProfileModal = dynamic(
+  async () =>
+    import("@/components/profile/profile-modal").then(
+      (module_) => module_.ProfileModal,
+    ),
+  { ssr: false },
+);
+const HelpModal = dynamic(
+  async () =>
+    import("./modals/help-modal").then((module_) => module_.HelpModal),
+  { ssr: false },
+);
+const StatsModal = dynamic(
+  async () =>
+    import("./modals/stats-modal").then((module_) => module_.StatsModal),
+  { ssr: false },
+);
+import { usePathname, useRouter, routing, localeNames } from "@/i18n/routing";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 import { useUIPreferences } from "./contexts";
 import { GameTooltip } from "./game-tooltip";
 import { MobileResetItem } from "./mobile-reset-item";
-import { HelpModal } from "./modals/help-modal";
-import { StatsModal } from "./modals/stats-modal";
 import { ResetButton } from "./reset-button";
 
 /**
@@ -35,12 +65,42 @@ export function GameHeader() {
 
   const [statsOpen, setStatsOpen] = useState(false);
 
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [sessionsModalOpen, setSessionsModalOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [authView, setAuthView] = useState<"login" | "register">("login");
+
+  const openAuth = (view: "login" | "register") => {
+    setAuthView(view);
+    setAuthModalOpen(true);
+    setMenuOpen(false); // Close menu if open
+  };
+
   const router = useRouter();
   const pathname = usePathname();
   const locale = useLocale();
   const t = useTranslations("Header");
+  const [user, setUser] = useState<any>(null);
 
-  const currentLang = locale === "pl" ? "PL" : "EN";
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (_event === "SIGNED_IN" || _event === "SIGNED_OUT") {
+        router.refresh();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [router]);
+
+  const currentLang = locale.toUpperCase();
 
   // Disable all tooltips when any dropdown/menu is open to prevent UI overlap
   const anyDropdownOpen = menuOpen || langOpen;
@@ -145,15 +205,77 @@ export function GameHeader() {
                 : "hidden -translate-y-2 opacity-0",
             )}
           >
-            <button
-              className="flex items-center justify-between border-b border-border px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
-              onClick={(e) => e.preventDefault()}
-            >
-              {t("archive")}
-              <span className="font-sans text-[10px] text-muted-foreground uppercase">
-                (240)
-              </span>
-            </button>
+            {user ? (
+              <>
+                <button
+                  className="flex w-full items-center justify-between border-b border-border px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setProfileModalOpen(true);
+                  }}
+                >
+                  {t("profile")}
+                </button>
+
+                {user.is_anonymous ? (
+                  <>
+                    <button
+                      className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
+                      onClick={() => openAuth("login")}
+                    >
+                      {t("signIn")}
+                    </button>
+                    <button
+                      className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
+                      onClick={() => openAuth("register")}
+                    >
+                      {t("createAccount")}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
+                      onClick={async () => {
+                        setMenuOpen(false);
+                        const supabase = createClient();
+                        await supabase.auth.signOut();
+                        setUser(null);
+                        router.refresh();
+                        toast.success(t("signedOutSuccess"));
+                      }}
+                    >
+                      {t("signOut")}
+                    </button>
+                    <button
+                      className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setSessionsModalOpen(true);
+                      }}
+                    >
+                      {t("manageSessions")}
+                    </button>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                <button
+                  className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
+                  onClick={() => openAuth("login")}
+                >
+                  {t("signIn")}
+                </button>
+                <button
+                  className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
+                  onClick={() => openAuth("register")}
+                >
+                  {t("createAccount")}
+                </button>
+              </>
+            )}
+
             <button
               className="border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
               onClick={(e) => e.preventDefault()}
@@ -273,18 +395,18 @@ export function GameHeader() {
                 : "hidden -translate-y-2 opacity-0",
             )}
           >
-            {["en", "pl"].map((lang) => (
+            {routing.locales.map((lang) => (
               <button
                 className={cn(
                   "px-4 py-2 text-center text-sm font-semibold transition-colors duration-300",
-                  currentLang.toLowerCase() === lang
+                  locale === lang
                     ? "text-foreground underline underline-offset-4"
                     : "text-foreground hover:bg-muted/30 hover:text-primary",
                 )}
                 key={lang}
                 onClick={() => changeLanguage(lang)}
               >
-                {lang === "en" ? "English" : "Polski"}
+                {localeNames[lang] || lang.toUpperCase()}
               </button>
             ))}
           </div>
@@ -313,6 +435,26 @@ export function GameHeader() {
 
       <HelpModal onClose={() => setHelpOpen(false)} open={helpOpen} />
       <StatsModal onClose={() => setStatsOpen(false)} open={statsOpen} />
+      <AuthModal
+        defaultView={authView}
+        isOpen={authModalOpen}
+        onOpenChange={setAuthModalOpen}
+      />
+
+      {user ? (
+        <>
+          <SessionsModal
+            onClose={() => setSessionsModalOpen(false)}
+            open={sessionsModalOpen}
+            user={user}
+          />
+          <ProfileModal
+            onClose={() => setProfileModalOpen(false)}
+            open={profileModalOpen}
+            user={user}
+          />
+        </>
+      ) : null}
     </>
   );
 }

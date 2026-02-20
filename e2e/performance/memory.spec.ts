@@ -14,9 +14,8 @@ test.describe("Performance & Memory Audit", () => {
     // Pobieramy bazowe zużycie pamięci (JS Heap) - wymaga Chromium
     const getMemory = async () => {
       return await page.evaluate(() => {
-        // @ts-ignore - non-standard Chrome property
-        return window.performance.memory
-          ? window.performance.memory.usedJSHeapSize
+        return (globalThis.performance as any).memory
+          ? (globalThis.performance as any).memory.usedJSHeapSize
           : 0;
       });
     };
@@ -53,7 +52,7 @@ test.describe("Performance & Memory Audit", () => {
     console.log(
       `Initial Heap: ${initialMemory / 1024 / 1024}MB, Final Heap: ${finalMemory / 1024 / 1024}MB`,
     );
-    expect(finalMemory).toBeLessThan(initialMemory * 3.0); // Bardzo liberalny limit dla CI
+    expect(finalMemory).toBeLessThan(initialMemory * 3); // Bardzo liberalny limit dla CI
   });
 
   test("Lighthouse performance budget (simulated)", async ({ page }) => {

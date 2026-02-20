@@ -59,6 +59,7 @@ export function GameTooltip({
   // Ref to track if the interaction is touch-based.
   // This prevents the onFocus handler from overriding the onClick toggle on mobile.
   const isTouchReference = React.useRef(false);
+  const [isTouch, setIsTouch] = React.useState(false);
 
   if (disabled) {
     return <>{children}</>;
@@ -84,6 +85,7 @@ export function GameTooltip({
           onBlur={() => {
             // Reset touch flag on blur to allow keyboard focus later
             isTouchReference.current = false;
+            setIsTouch(false);
             setOpen(false);
           }}
           onClick={(e) => {
@@ -107,11 +109,13 @@ export function GameTooltip({
           onPointerDown={(e) => {
             if (e.pointerType === "touch") {
               isTouchReference.current = true;
+              setIsTouch(true);
             }
           }}
           onPointerEnter={(e) => {
             if (e.pointerType === "touch") return;
             isTouchReference.current = false;
+            setIsTouch(false);
             setIsHovered(true);
             setOpen(true);
           }}
@@ -126,7 +130,7 @@ export function GameTooltip({
         >
           {typeof children === "function"
             ? children({
-                isHovered: isTouchReference.current ? open : isHovered,
+                isHovered: isTouch ? open : isHovered,
               })
             : children}
         </div>

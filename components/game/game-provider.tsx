@@ -2,9 +2,12 @@
 
 import { useState, useEffect, type ReactNode } from "react";
 
+import { AuthApiError } from "@supabase/supabase-js";
 import { usePostHog } from "posthog-js/react";
 
 import { initializeGame, startGame } from "@/app/actions/game-actions";
+import { AuthCaptchaModal } from "@/components/auth/auth-captcha-modal";
+import { MigrationModal } from "@/components/auth/migration-modal";
 import { MAX_GUESSES } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 
@@ -17,6 +20,8 @@ import {
   useUIPreferences,
   type Attempt,
 } from "./contexts";
+
+// Skeleton / Default for initialization (prevents null checks everywhere)
 
 // Skeleton / Default for initialization (prevents null checks everywhere)
 const SKELETON_PERFUME = {
@@ -57,9 +62,24 @@ function calculateMaskedValues(
   if (targetYear) {
     const yearString = targetYear.toString();
     if (level >= 5) guessMaskedYear = yearString;
-    else if (level === 4) guessMaskedYear = yearString.slice(0, 3) + "_";
-    else if (level === 3) guessMaskedYear = yearString.slice(0, 2) + "__";
-    else if (level === 2) guessMaskedYear = yearString.slice(0, 1) + "___";
+    else
+      switch (level) {
+        case 4: {
+          guessMaskedYear = yearString.slice(0, 3) + "_";
+          break;
+        }
+        case 3: {
+          guessMaskedYear = yearString.slice(0, 2) + "__";
+          break;
+        }
+        case 2: {
+          {
+            guessMaskedYear = yearString.slice(0, 1) + "___";
+            // No default
+          }
+          break;
+        }
+      }
   }
 
   return { guessMaskedBrand, guessMaskedYear };
@@ -91,7 +111,6 @@ export function useGame() {
 }
 
 // Export Attempt type for backward compatibility
-export type { Attempt };
 
 /**
  * GameProvider - Main orchestrator that manages state and coordinates contexts
@@ -115,7 +134,42 @@ export function GameProvider({ children }: { children: ReactNode }) {
     new Set(),
   );
   const [nonce, setNonce] = useState<string>("");
+  const [isCaptchaRequired, setIsCaptchaRequired] = useState(false);
   const maxAttempts = MAX_GUESSES;
+
+  const handleCaptchaVerify = async (token: string) => {
+    setIsCaptchaRequired(false);
+    setLoading(true);
+    // Retry init with captcha token handling - we trigger a re-run of the effect
+    // But since the effect is [] dep, we'll manually retry the specific auth part here
+    // or cleaner: extract the auth logic.
+    // For now, let's keep it simple: try auth again directly here.
+    const supabase = createClient();
+    try {
+      const { error } = await supabase.auth.signInAnonymously({
+        options: { captchaToken: token },
+      });
+      if (error) {
+        console.error("Retry anonymous auth failed:", error);
+        // If it fails again, we might need to show captcha again or error out
+        // For now, let the page reload or user retry by refreshing
+      } else {
+        // Success! The original useEffect will eventually realize there is a session?
+        // No, the useEffect only runs ONCE. We need to continue initialization.
+        // We can force a reload of the page to restart standard flow,
+        // OR properly refactor initGame to be callable.
+        // Refactoring initGame to be callable is better but tricky with useEffect closure.
+        // For this hotfix, window.location.reload() is safest to ensure full clean state initialization
+        // BUT that might loop if captcha keeps failing.
+        // Better: Call a simplified continuation.
+
+        // Actually, simplest is to just Reload. If session exists (verified), it will skip auth next time.
+        globalThis.location.reload();
+      }
+    } catch (error) {
+      console.error("Captcha verification error:", error);
+    }
+  };
 
   // Initialize Game (with proper auth sequencing)
   useEffect(() => {
@@ -133,11 +187,35 @@ export function GameProvider({ children }: { children: ReactNode }) {
           data: { session: existingSession },
         } = await supabase.auth.getSession();
 
+        // Track Anonymous Session for future migration (if existing)
+        if (existingSession?.user.is_anonymous) {
+          localStorage.setItem(
+            "eauxle_anon_player_id",
+            existingSession.user.id,
+          );
+        }
+
         if (!existingSession) {
           console.log("[GameProvider] No session, signing in anonymously...");
           const { error: authError } = await supabase.auth.signInAnonymously();
           if (authError) {
+            // Check for Captcha requirement first
+            if (
+              authError instanceof AuthApiError &&
+              authError.message.includes("captcha")
+            ) {
+              console.warn(
+                "[GameProvider] Captcha required for anonymous auth - triggering modal",
+              );
+              setIsCaptchaRequired(true);
+              setLoading(false);
+              clearTimeout(safetyTimeout);
+              return;
+            }
+
             console.error("Anonymous auth failed:", authError);
+            setLoading(false);
+            clearTimeout(safetyTimeout);
             return;
           }
 
@@ -155,11 +233,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
               document.cookie.includes("-auth-token");
 
             if (s && hasCookie) {
-              console.log(
-                "[GameProvider] Auth session & cookie verified on attempt",
-                attempt + 1,
-              );
+              // console.log("[GameProvider] Auth session & cookie verified");
               verified = true;
+
+              // Track Anonymous Session for future migration
+              if (s.user.is_anonymous) {
+                localStorage.setItem("eauxle_anon_player_id", s.user.id);
+              }
               break;
             }
 
@@ -179,6 +259,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
         // 2. Fetch challenge and start game in ONE server call (reduces round-trips)
         let { challenge, session } = await initializeGame();
+        console.log("[GameProvider] initializeGame returned:", {
+          challengeId: challenge?.id,
+          hasChallenge: !!challenge,
+          hasSession: !!session,
+          sessionId: session?.sessionId,
+        });
 
         // 2b. If we got challenge but NO session (Unauthorized retry)
         // This happens if the server action is called slightly before cookies are processed
@@ -326,6 +412,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
                 guess: g.perfumeName,
                 isCorrect: g.isCorrect,
                 perfumeId: g.perfumeId,
+                perfumers: g.perfumers,
                 snapshot,
                 year: g.year,
               });
@@ -338,16 +425,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
               setGameState("lost");
           }
         }
+        clearTimeout(safetyTimeout);
+        console.log("[GameProvider] initGame finished");
+        setLoading(false);
       } catch (error) {
         console.error("Failed to init game", error);
-      } finally {
         clearTimeout(safetyTimeout);
         console.log("[GameProvider] initGame finished");
         setLoading(false);
       }
     };
-    initGame();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void initGame();
+    // initGame is defined inside this effect and only needs to run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only initialization
   }, []);
 
   // Track discovered perfumers
@@ -406,38 +496,41 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <UIPreferencesProvider>
-      <GameStateProvider
+    <GameStateProvider
+      attempts={attempts}
+      dailyPerfume={activePerfume}
+      discoveredPerfumers={discoveredPerfumers}
+      gameState={gameState}
+      loading={loading}
+      maxAttempts={maxAttempts}
+      sessionId={sessionId}
+    >
+      <GameActionsProvider
         attempts={attempts}
         dailyPerfume={activePerfume}
         gameState={gameState}
-        loading={loading}
-        sessionId={sessionId}
+        isBrandRevealed={isBrandRevealed}
+        isYearRevealed={isYearRevealed}
         maxAttempts={maxAttempts}
-        discoveredPerfumers={discoveredPerfumers}
+        nonce={nonce}
+        posthog={posthog}
+        sessionId={sessionId}
+        setAttempts={setAttempts}
+        setDailyPerfume={setDailyPerfume}
+        setDiscoveredPerfumers={setDiscoveredPerfumers}
+        setGameState={setGameState}
+        setImageUrl={setImageUrl}
+        setLoading={setLoading}
+        setNonce={setNonce}
+        setSessionId={setSessionId}
       >
-        <GameActionsProvider
-          posthog={posthog}
-          attempts={attempts}
-          gameState={gameState}
-          maxAttempts={maxAttempts}
-          sessionId={sessionId}
-          nonce={nonce}
-          dailyPerfume={activePerfume}
-          isBrandRevealed={isBrandRevealed}
-          isYearRevealed={isYearRevealed}
-          setAttempts={setAttempts}
-          setGameState={setGameState}
-          setImageUrl={setImageUrl}
-          setNonce={setNonce}
-          setDailyPerfume={setDailyPerfume}
-          setLoading={setLoading}
-          setSessionId={setSessionId}
-          setDiscoveredPerfumers={setDiscoveredPerfumers}
-        >
-          {children}
-        </GameActionsProvider>
-      </GameStateProvider>
-    </UIPreferencesProvider>
+        {children}
+        <AuthCaptchaModal
+          isOpen={isCaptchaRequired}
+          onVerify={handleCaptchaVerify}
+        />
+        <MigrationModal />
+      </GameActionsProvider>
+    </GameStateProvider>
   );
 }
