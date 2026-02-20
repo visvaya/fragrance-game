@@ -344,9 +344,6 @@ export async function startGame(
     throw new Error("Unauthorized");
   }
 
-  // Rate limiting
-  await checkRateLimit("startGame", user.id);
-
   const { data: existingSession } = (await supabase
     .from("game_sessions")
     .select("id, last_nonce, attempts_count, guesses, status")
@@ -471,6 +468,9 @@ export async function startGame(
       sessionId: existingSession.id,
     };
   }
+
+  // Rate limiting: only applies to creating NEW sessions, not resuming existing ones
+  await checkRateLimit("startGame", user.id);
 
   const nonce = generateNonce();
   const { data: session, error: insertError } = (await supabase

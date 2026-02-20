@@ -285,7 +285,7 @@ export function AttemptLog() {
 
               <div
                 className={cn(
-                  "relative z-10 grid w-full grid-cols-5 items-center border-b border-muted/30 py-3 pr-2 pl-1 font-[family-name:var(--font-hand)] text-xl text-primary transition-all duration-300 group-last:border-0",
+                  "relative z-10 grid w-full grid-cols-5 items-center border-b border-muted/30 py-3 pr-2 pl-1 font-hand text-xl text-primary transition-all duration-300 group-last:border-0",
                   isTouch && isActive
                     ? "bg-muted/40"
                     : "group-hover:bg-muted/40",
@@ -318,7 +318,7 @@ export function AttemptLog() {
                           className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                           content={t("tooltips.brandMissing")}
                         >
-                          <span className="inline-block cursor-help px-1 font-[family-name:var(--font-hand)] text-base leading-none text-muted-foreground opacity-50">
+                          <span className="inline-block cursor-help px-1 font-hand text-base leading-none text-muted-foreground opacity-50">
                             ?
                           </span>
                         </GameTooltip>
@@ -368,7 +368,7 @@ export function AttemptLog() {
                           className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                           content={t("tooltips.perfumerMissing")}
                         >
-                          <span className="inline-block cursor-help px-1 font-[family-name:var(--font-hand)] text-base leading-none text-muted-foreground opacity-50">
+                          <span className="inline-block cursor-help px-1 font-hand text-base leading-none text-muted-foreground opacity-50">
                             ?
                           </span>
                         </GameTooltip>
@@ -430,7 +430,7 @@ export function AttemptLog() {
                           className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                           content={t("tooltips.yearMissing")}
                         >
-                          <span className="inline-block cursor-help px-1 font-[family-name:var(--font-hand)] text-base leading-none text-muted-foreground opacity-50">
+                          <span className="inline-block cursor-help px-1 font-hand text-base leading-none text-muted-foreground opacity-50">
                             ?
                           </span>
                         </GameTooltip>
@@ -505,7 +505,7 @@ export function AttemptLog() {
                           className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                           content={t("tooltips.genderMissing")}
                         >
-                          <span className="inline-block cursor-help px-1 font-[family-name:var(--font-hand)] text-base leading-none text-muted-foreground opacity-50">
+                          <span className="inline-block cursor-help px-1 font-hand text-base leading-none text-muted-foreground opacity-50">
                             ?
                           </span>
                         </GameTooltip>
@@ -559,7 +559,7 @@ export function AttemptLog() {
                           className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                           content={t("tooltips.notesMissing")}
                         >
-                          <span className="inline-block cursor-help px-1 font-[family-name:var(--font-hand)] text-base leading-none text-muted-foreground opacity-50">
+                          <span className="inline-block cursor-help px-1 font-hand text-base leading-none text-muted-foreground opacity-50">
                             ?
                           </span>
                         </GameTooltip>
@@ -585,7 +585,7 @@ export function AttemptLog() {
                         })}
                       >
                         <span
-                          className={`flex cursor-help items-center font-[family-name:var(--font-hand)] text-sm leading-none sm:text-base ${attempt.feedback.notesMatch >= 0.4 ? "text-warning" : "text-muted-foreground opacity-50"}`}
+                          className={`flex cursor-help items-center font-hand text-sm leading-none sm:text-base ${attempt.feedback.notesMatch >= 0.4 ? "text-warning" : "text-muted-foreground opacity-50"}`}
                         >
                           {Math.round(attempt.feedback.notesMatch * 100)}%
                         </span>

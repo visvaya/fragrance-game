@@ -139,7 +139,7 @@ export function StatsModal({ onClose, open }: StatsModalProperties) {
           </div>
 
           {/* Handwritten note */}
-          <p className="mt-8 rotate-[-1deg] text-center font-[family-name:var(--font-hand)] text-lg text-primary/60">
+          <p className="mt-8 rotate-[-1deg] text-center font-hand text-lg text-primary/60">
             {t("slogan")}
           </p>
         </div>

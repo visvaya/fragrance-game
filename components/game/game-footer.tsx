@@ -31,7 +31,7 @@ export function GameFooter() {
               : "translate-y-4 opacity-0",
           )}
         >
-          <p className="rotate-[-3deg] font-[family-name:var(--font-hand)] text-base whitespace-nowrap text-primary/70">
+          <p className="rotate-[-3deg] font-hand text-base whitespace-nowrap text-primary/70">
             {t("selectHelper")} ↑
           </p>
         </div>
@@ -65,7 +65,7 @@ export function GameFooter() {
           <p className="text-[10px] tracking-[0.2em] text-muted-foreground uppercase">
             {t("copyright")}
           </p>
-          <p className="rotate-[-1deg] font-[family-name:var(--font-hand)] text-lg text-muted-foreground/60 italic">
+          <p className="rotate-[-1deg] font-hand text-lg text-muted-foreground/60 italic">
             {t("slogan")}
           </p>
         </div>

@@ -34,7 +34,7 @@ export function GameBoard() {
         <div className="rounded-md border border-border/50 bg-background p-6 text-center transition-all duration-500 animate-in fade-in zoom-in-95">
           {gameState === "won" ? (
             <div className="duration-500 animate-in fade-in zoom-in">
-              <p className="mb-2 -rotate-2 transform font-[family-name:var(--font-hand)] text-4xl text-success">
+              <p className="mb-2 -rotate-2 transform font-hand text-4xl text-success">
                 {t("magnifique")}
               </p>
               <div className="space-y-1">
@@ -55,7 +55,7 @@ export function GameBoard() {
             </div>
           ) : (
             <div className="duration-500 animate-in fade-in zoom-in">
-              <p className="font-[family-name:var(--font-hand)] text-3xl text-destructive">
+              <p className="font-hand text-3xl text-destructive">
                 {t("answerWas")}
               </p>
               <div className="space-y-1">

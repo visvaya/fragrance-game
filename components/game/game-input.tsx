@@ -373,7 +373,7 @@ export function GameInput() {
         <div className="relative border-x-0 border-t border-border/50 bg-background/80 px-5 py-4 backdrop-blur-md transition-colors duration-500 ease-in-out sm:rounded-t-md sm:border-x">
           {/* Input-like look for closed state */}
           <div className="relative flex items-center justify-center">
-            <span className="font-[family-name:var(--font-hand)] text-lg text-primary">
+            <span className="font-hand text-lg text-primary">
               {isSkeleton ? t("noPuzzle") : t("closed")}
             </span>
           </div>

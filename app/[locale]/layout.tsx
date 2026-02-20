@@ -41,8 +41,8 @@ const playfair = Playfair_Display({
 });
 
 const caveat = Caveat({
-  display: "optional",
-  preload: false,
+  display: "swap",
+  preload: true,
   subsets: ["latin", "latin-ext"],
   variable: "--font-caveat",
   weight: ["400", "500", "600", "700"],
