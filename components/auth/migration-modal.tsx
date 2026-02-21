@@ -8,7 +8,11 @@ import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
-import { migrateAnonymousPlayer } from "@/app/actions/auth-actions";
+import {
+  getAnonSessionAttemptCount,
+  migrateAnonymousPlayer,
+} from "@/app/actions/auth-actions";
+import { useGameState } from "@/components/game/contexts/game-state-context";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,6 +33,7 @@ export function MigrationModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { sessionId } = useGameState();
 
   useEffect(() => {
     const checkMigration = async () => {
@@ -36,7 +41,7 @@ export function MigrationModal() {
       const anonId = localStorage.getItem("eauxle_anon_player_id");
       if (!anonId) return;
 
-      // 2. Check if we are currently logged in
+      // 2. Check if we are currently logged in as a non-anonymous user
       const supabase = createClient();
       const {
         data: { user },
@@ -49,7 +54,20 @@ export function MigrationModal() {
       }
     };
 
+    // Run on mount (handles page load after login)
     checkMigration();
+
+    // Also run on SIGNED_IN to handle mid-session login via auth modal
+    const supabase = createClient();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN") {
+        void checkMigration();
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   // Track if a legitimate choice (Merge or Skip) was made
@@ -59,28 +77,32 @@ export function MigrationModal() {
   // we warn the user and log them out if they confirm.
   const handleOpenChange = async (open: boolean) => {
     if (!open && !choiceMade) {
-      // User is trying to close without choosing
-      // We need to use a slight timeout to allow the Dialog to process the close event first?
-      // Actually, if we return early here, the Dialog state won't update if we control it.
-      // This modal must be blocking. User MUST decide.
-      // If they close without deciding, we interpret that as "I want to go back to being anonymous"
-      // To achieve this UX, we will hook into onOpenChange.
-
-      // Note: Radix Dialog primitives might unmount content if we just let it happen.
-      // We want to intercept.
-      // Standard window.confirm pauses execution.
       if (globalThis.confirm(t("exitConfirm"))) {
-        // User chose to "Exit and restore anonymous state"
-        setIsLoading(true); // Show loading state briefly
+        setIsLoading(true);
+        // Inherit attempt count before signing out — same logic as handleCancel.
+        // Without this, the player could dismiss via X/Esc to get a fresh anonymous
+        // session and bypass the anti-cheat inherited-attempt mechanism.
+        const anonId = localStorage.getItem("eauxle_anon_player_id");
+        if (anonId && sessionId) {
+          try {
+            const { attemptCount } = await getAnonSessionAttemptCount(
+              anonId,
+              sessionId,
+            );
+            if (attemptCount > 0) {
+              sessionStorage.setItem(
+                "eauxle_declined_anon_attempts",
+                String(attemptCount),
+              );
+            }
+          } catch {
+            // Non-critical: if this fails, the player gets a normal fresh start
+          }
+        }
         const supabase = createClient();
-        // We sign out to restore the previous anonymous state (or clean state)
         await supabase.auth.signOut();
-        globalThis.location.reload(); // Hard reload to clear state and show anonymous view
+        globalThis.location.reload();
       } else {
-        // User cancelled exit - do NOT close modal
-        // We force it to stay open; since this function is triggered by an attempted close,
-        // stopping propagation is tricky in controlled component.
-        // But by NOT updating setIsOpen(false), we keep it open in the next render cycle.
         return;
       }
     }
@@ -116,11 +138,35 @@ export function MigrationModal() {
     }
   };
 
-  const handleCancel = () => {
-    // User declined migration. Clear storage to avoid pestering.
+  const handleCancel = async () => {
+    // User declined migration.
+    // Fetch the anonymous session's attempt count BEFORE clearing storage,
+    // so the new authenticated session inherits it and cannot start fresh
+    // with an informational advantage from clues already seen.
+    const anonId = localStorage.getItem("eauxle_anon_player_id");
+    if (anonId && sessionId) {
+      try {
+        const { attemptCount } = await getAnonSessionAttemptCount(
+          anonId,
+          sessionId,
+        );
+        if (attemptCount > 0) {
+          sessionStorage.setItem(
+            "eauxle_declined_anon_attempts",
+            String(attemptCount),
+          );
+        }
+      } catch {
+        // Non-critical: if this fails, the player gets a normal fresh start
+      }
+    }
+
     setChoiceMade(true);
     localStorage.removeItem("eauxle_anon_player_id");
     setIsOpen(false);
+    // Reload so GameProvider reinitializes as the authenticated user
+    // and picks up the inherited attempt count from sessionStorage.
+    globalThis.location.reload();
   };
 
   return (
@@ -144,9 +190,9 @@ export function MigrationModal() {
           <Button
             className="text-muted-foreground hover:text-destructive"
             disabled={isLoading}
-            onClick={() => {
+            onClick={async () => {
               if (globalThis.confirm(t("cancelConfirm"))) {
-                handleCancel();
+                await handleCancel();
               }
             }}
             variant="ghost"

@@ -91,6 +91,8 @@ const GameStateContext = createContext<GameStateContextType | undefined>(
 type GameStateProviderProperties = {
   // State from parent orchestrator
   attempts: Attempt[];
+  /** Attempt count inherited from an anonymous session (declined migration). */
+  baseAttemptCount?: number;
   children: ReactNode;
   dailyPerfume: DailyPerfume;
   discoveredPerfumers: Set<string>;
@@ -107,6 +109,7 @@ type GameStateProviderProperties = {
  */
 export function GameStateProvider({
   attempts,
+  baseAttemptCount = 0,
   children,
   dailyPerfume,
   discoveredPerfumers,
@@ -115,7 +118,7 @@ export function GameStateProvider({
   maxAttempts,
   sessionId,
 }: Readonly<GameStateProviderProperties>) {
-  const currentAttempt = attempts.length + 1;
+  const currentAttempt = attempts.length + 1 + baseAttemptCount;
   const revealLevel = Math.min(currentAttempt, maxAttempts);
 
   // ===== PRIORITY P0: Most Expensive Getters =====

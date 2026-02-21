@@ -329,7 +329,10 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
  */
 export async function startGame(
   challengeId: string,
+  inheritedAttemptCount = 0,
 ): Promise<StartGameResponse> {
+  // Clamp to a safe range: 0–5 (6 would mean the game is already over)
+  const safeInheritedCount = Math.max(0, Math.min(5, inheritedAttemptCount));
   const supabase = await createClient();
   const {
     data: { user },
@@ -476,7 +479,7 @@ export async function startGame(
   const { data: session, error: insertError } = (await supabase
     .from("game_sessions")
     .insert({
-      attempts_count: 0,
+      attempts_count: safeInheritedCount,
       challenge_id: challengeId,
       guesses: [],
       last_guess: null,
@@ -532,7 +535,7 @@ export async function startGame(
     guesses: [],
     imageUrl: imageUrl,
     nonce: nonce,
-    revealState: getRevealPercentages(1),
+    revealState: getRevealPercentages(safeInheritedCount + 1),
     sessionId: session.id,
   };
 }
@@ -540,13 +543,15 @@ export async function startGame(
 /**
  * Inicjalizuje grę, pobierając wyzwanie i rozpoczynając sesję.
  */
-export async function initializeGame(): Promise<InitializeGameResponse> {
+export async function initializeGame(
+  inheritedAttemptCount = 0,
+): Promise<InitializeGameResponse> {
   let challenge: DailyChallenge | null = null;
   try {
     challenge = await getDailyChallenge();
     if (!challenge) return { challenge: null, session: null };
 
-    const session = await startGame(challenge.id);
+    const session = await startGame(challenge.id, inheritedAttemptCount);
     return { challenge, session };
   } catch (error) {
     if (
@@ -741,7 +746,7 @@ export async function submitGuess(
 
   const isCorrect = perfumeId === challenge.perfume_id;
   const nextAttempts = session.attempts_count + 1;
-  const isGameOver = isCorrect || nextAttempts >= 6;
+  const isGameOver = isCorrect || nextAttempts >= MAX_GUESSES;
 
   type PerfumeData = {
     base_notes: string[] | null;
@@ -961,6 +966,11 @@ function mapPerfumeDetails(perfume: {
 export async function resetGame(
   sessionId: string,
 ): Promise<{ error?: string; success: boolean }> {
+  // Guard: reset is a dev/debug feature, disabled in production unless explicitly enabled
+  if (process.env.NEXT_PUBLIC_GAME_RESET_ENABLED !== "true") {
+    return { error: "Reset disabled", success: false };
+  }
+
   // Validate UUID format for sessionId
   if (!uuidSchema.safeParse(sessionId).success) {
     throw new Error("Invalid session ID");

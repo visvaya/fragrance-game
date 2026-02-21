@@ -46,6 +46,7 @@ const createWrapper = (
     posthog: null,
     sessionId: "test-session",
     setAttempts: vi.fn(),
+    setBaseAttemptCount: vi.fn(),
     setDailyPerfume: vi.fn(),
     setDiscoveredPerfumers: vi.fn(),
     setGameState: vi.fn(),

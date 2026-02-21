@@ -88,12 +88,9 @@ export function PyramidClues() {
         </div>
 
         <ul className="space-y-4">
-          <li className="relative flex flex-col gap-2 overflow-hidden rounded-sm border border-border/60 p-4">
-            {/* Colored Strip for Linear (Cyberpunk/Mixed -> maybe primary color or purple?) */}
-            {/* Using primary for consistency with Heart level or specific Linear color */}
-            <div className="absolute top-0 bottom-0 left-0 w-1 bg-primary" />
-
-            <div className="flex items-center gap-2 pl-2">
+          <li className="flex flex-col gap-2 rounded-sm border border-border/60 p-4">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
               <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
                 {t("linearProfile")}{" "}
                 {revealLevel === 1 ? (
@@ -116,7 +113,7 @@ export function PyramidClues() {
               </span>
             </div>
 
-            <div className="pl-2">
+            <div>
               <div className="flex flex-wrap justify-start gap-x-4 gap-y-2 text-sm">
                 {displayNotes.map((note, i) => {
                   const isFullHidden = /^_+$|^\?\?\?\?\?$/.test(note); // Check for full underscores or sentinel
@@ -128,7 +125,7 @@ export function PyramidClues() {
                   if (revealLevel === 1 && note === "?????") {
                     return (
                       <span
-                        className="inline-flex min-h-[30px] cursor-default items-center gap-x-2 rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary"
+                        className="inline-flex min-h-[30px] max-w-full cursor-default flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary"
                         key={`linear-note-${i}-${note.charAt(0)}`}
                       >
                         <GameTooltip
@@ -151,7 +148,7 @@ export function PyramidClues() {
 
                   return (
                     <span
-                      className="inline-flex min-h-[30px] cursor-default items-center gap-x-2 rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary"
+                      className="inline-flex min-h-[30px] max-w-full cursor-default flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary"
                       key={`linear-note-${i}-${note.charAt(0)}`}
                     >
                       {words.map((word, wIndex) => {
@@ -160,7 +157,7 @@ export function PyramidClues() {
                         const showTooltip = hasMasking;
 
                         const content = (
-                          <div className="flex flex-wrap">
+                          <div className="flex flex-nowrap">
                             {word.split("").map((char, index) => {
                               const isSlot = char === "_";
                               if (isSlot) {
@@ -191,7 +188,7 @@ export function PyramidClues() {
                               key={`linear-note-${i}-word-${wIndex}`}
                             >
                               {({ isHovered }: { isHovered?: boolean }) => (
-                                <div className="flex flex-wrap">
+                                <div className="flex flex-nowrap">
                                   {word.split("").map((char, index) => {
                                     const isSlot = char === "_";
                                     if (isSlot) {
@@ -236,9 +233,9 @@ export function PyramidClues() {
 
   // TRADITIONAL PYRAMID LOGIC
   const levels = [
-    { color: "text-[#fcd34d]", name: "Top", notes: notes.top }, // Yellow (Valid Tailwind class for bg- replacement)
-    { color: "text-primary", name: "Heart", notes: notes.heart }, // Amber
-    { color: "text-foreground", name: "Base", notes: notes.base }, // Dark
+    { dotClass: "bg-[#fcd34d]", name: "Top", notes: notes.top },
+    { dotClass: "bg-primary", name: "Heart", notes: notes.heart },
+    { dotClass: "bg-foreground/60", name: "Base", notes: notes.base },
   ];
 
   return (
@@ -253,16 +250,11 @@ export function PyramidClues() {
       <ul className="space-y-4">
         {levels.map((level) => (
           <li
-            className="relative flex flex-col gap-2 overflow-hidden rounded-sm border border-border/60 p-4"
+            className="flex flex-col gap-2 rounded-sm border border-border/60 p-4"
             key={level.name}
           >
-            {/* Colored Strip */}
-            {/* Direct style color injection for yellow to be safe, or use bg-yellow-400 */}
-            <div
-              className={`absolute top-0 bottom-0 left-0 w-1 ${level.name === "Top" ? "bg-[#fcd34d]" : level.color.replace("text-", "bg-")}`}
-            />
-
-            <div className="flex items-center gap-2 pl-2">
+            <div className="flex items-center gap-2">
+              <span className={`h-2 w-2 shrink-0 rounded-full ${level.dotClass}`} />
               <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
                 {t(level.name.toLowerCase())}{" "}
                 {revealLevel === 1 ? (
@@ -287,7 +279,7 @@ export function PyramidClues() {
               </span>
             </div>
 
-            <div className="pl-2">
+            <div>
               {level.notes && level.notes.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {level.notes.map((note, noteIndex) => {
@@ -298,7 +290,7 @@ export function PyramidClues() {
                     if (note === "?????") {
                       return (
                         <span
-                          className="inline-flex min-h-[30px] cursor-default items-center gap-x-2 rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary"
+                          className="inline-flex min-h-[30px] max-w-full cursor-default flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary"
                           key={`${level.name}-note-${noteIndex}-${note.charAt(0)}`}
                         >
                           <GameTooltip
@@ -326,7 +318,7 @@ export function PyramidClues() {
 
                     return (
                       <span
-                        className="inline-flex min-h-[30px] cursor-default items-center gap-x-2 rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary"
+                        className="inline-flex min-h-[30px] max-w-full cursor-default flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary"
                         key={`${level.name}-note-${noteIndex}-${note.charAt(0)}`}
                       >
                         {words.map((word, wIndex) => {
@@ -334,7 +326,7 @@ export function PyramidClues() {
                           const showTooltip = hasMasking;
 
                           const content = (
-                            <div className="flex flex-wrap">
+                            <div className="flex flex-nowrap">
                               {word.split("").map((char, index) => {
                                 const isSlot = char === "_";
                                 if (isSlot) {
@@ -365,7 +357,7 @@ export function PyramidClues() {
                                 key={`${level.name}-note-${noteIndex}-word-${wIndex}`}
                               >
                                 {({ isHovered }: { isHovered?: boolean }) => (
-                                  <div className="flex flex-wrap">
+                                  <div className="flex flex-nowrap">
                                     {word.split("").map((char, index) => {
                                       const isSlot = char === "_";
                                       if (isSlot) {
@@ -403,7 +395,7 @@ export function PyramidClues() {
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  <span className="inline-flex min-h-[30px] cursor-default items-center gap-x-2 rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary">
+                  <span className="inline-flex min-h-[30px] max-w-full cursor-default flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary">
                     <GameTooltip
                       content={t("hiddenNotes", { attempt: currentAttempt })}
                     >

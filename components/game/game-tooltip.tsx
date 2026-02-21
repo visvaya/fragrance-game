@@ -75,7 +75,7 @@ export function GameTooltip({
     >
       <TooltipTrigger asChild>
         <div
-          aria-label={t("ariaLabel")}
+          aria-label={typeof content === "string" ? content : t("ariaLabel")}
           // Use 'div' wrapper to capture events even if child is disabled or prevents propagation
           // Also acts as Hit Area buffer if needed
           className={cn(

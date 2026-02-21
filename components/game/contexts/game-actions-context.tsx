@@ -55,6 +55,8 @@ const GameActionsContext = createContext<GameActionsContextType | undefined>(
 type GameActionsProviderProperties = {
   // State from parent
   attempts: Attempt[];
+  /** Attempt count inherited from an anonymous session (declined migration). */
+  baseAttemptCount?: number;
   children: ReactNode;
   dailyPerfume: DailyPerfume;
   gameState: GameState;
@@ -68,6 +70,7 @@ type GameActionsProviderProperties = {
   sessionId: string | null;
   // State setters from parent
   setAttempts: Dispatch<SetStateAction<Attempt[]>>;
+  setBaseAttemptCount: Dispatch<SetStateAction<number>>;
   setDailyPerfume: Dispatch<SetStateAction<DailyPerfume>>;
   setDiscoveredPerfumers: Dispatch<SetStateAction<Set<string>>>;
   setGameState: Dispatch<SetStateAction<GameState>>;
@@ -127,6 +130,7 @@ function calculateMaskedValues(
  */
 export function GameActionsProvider({
   attempts,
+  baseAttemptCount = 0,
   children,
   dailyPerfume,
   gameState,
@@ -137,6 +141,7 @@ export function GameActionsProvider({
   posthog: _posthog,
   sessionId,
   setAttempts,
+  setBaseAttemptCount,
   setDailyPerfume,
   setDiscoveredPerfumers,
   setGameState,
@@ -149,7 +154,7 @@ export function GameActionsProvider({
     async (perfumeName: string, brand: string, perfumeId: string) => {
       if (
         gameState !== "playing" ||
-        attempts.length >= maxAttempts ||
+        attempts.length + baseAttemptCount >= maxAttempts ||
         !sessionId
       )
         return;
@@ -178,7 +183,7 @@ export function GameActionsProvider({
           return a.snapshot?.genderRevealed;
         });
 
-        const nextAttemptsCount = attempts.length + 1;
+        const nextAttemptsCount = attempts.length + 1 + baseAttemptCount;
 
         const { guessMaskedBrand, guessMaskedYear } = calculateMaskedValues(
           nextAttemptsCount,
@@ -244,7 +249,10 @@ export function GameActionsProvider({
           if (result.imageUrl) {
             setImageUrl(result.imageUrl);
           }
-        } else if (attempts.length + 1 >= maxAttempts) {
+        } else if (
+          result.gameStatus === "lost" ||
+          attempts.length + 1 + baseAttemptCount >= maxAttempts
+        ) {
           setGameState("lost");
         }
       } catch (error) {
@@ -253,6 +261,7 @@ export function GameActionsProvider({
     },
     [
       attempts,
+      baseAttemptCount,
       gameState,
       maxAttempts,
       sessionId,
@@ -279,8 +288,9 @@ export function GameActionsProvider({
       const result = await resetGame(sessionId);
 
       if (result.success) {
-        // Clear all local state
+        // Clear all local state (including inherited anon attempt count)
         setAttempts([]);
+        setBaseAttemptCount(0);
         setGameState("playing");
         setNonce("");
         setSessionId(null);
@@ -347,6 +357,7 @@ export function GameActionsProvider({
     sessionId,
     setLoading,
     setAttempts,
+    setBaseAttemptCount,
     setGameState,
     setNonce,
     setSessionId,

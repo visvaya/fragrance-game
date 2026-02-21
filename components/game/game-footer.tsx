@@ -1,5 +1,6 @@
 "use client";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 
@@ -40,24 +41,24 @@ export function GameFooter() {
 
         {/* Links Group - Stable layout for mobile (column) and desktop (row) */}
         <nav className="mb-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-x-10 sm:gap-y-0">
-          <a
+          <button
             className="font-[family-name:var(--font-playfair)] text-sm text-foreground/80 italic transition-all duration-300 hover:text-primary"
-            href={null as any}
+            onClick={() => toast.info(t("comingSoon"))}
           >
             {t("contact")}
-          </a>
-          <a
+          </button>
+          <button
             className="font-[family-name:var(--font-playfair)] text-sm text-foreground/80 italic transition-all duration-300 hover:text-primary"
-            href={null as any}
+            onClick={() => toast.info(t("comingSoon"))}
           >
             {t("privacy")}
-          </a>
-          <a
+          </button>
+          <button
             className="font-[family-name:var(--font-playfair)] text-sm text-foreground/80 italic transition-all duration-300 hover:text-primary"
-            href={null as any}
+            onClick={() => toast.info(t("comingSoon"))}
           >
             {t("terms")}
-          </a>
+          </button>
         </nav>
 
         {/* Branding & Info */}

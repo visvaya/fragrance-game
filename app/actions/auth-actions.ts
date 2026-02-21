@@ -251,3 +251,44 @@ export async function migrateAnonymousPlayer(anonPlayerId: string) {
   revalidatePath("/");
   return { success: true };
 }
+
+/**
+ * Returns the attempt count from an anonymous player's game session.
+ * Called when a player declines migration — their attempt count is inherited
+ * by the new authenticated session so they cannot start fresh after previewing clues.
+ * @param anonPlayerId - The anonymous player UUID (from localStorage).
+ * @param anonSessionId - The anonymous session UUID (from GameProvider state).
+ * @returns The attempt count (0 if not found or on any error).
+ */
+export async function getAnonSessionAttemptCount(
+  anonPlayerId: string,
+  anonSessionId: string,
+): Promise<{ attemptCount: number }> {
+  const anonPlayerIdResult = z.string().uuid().safeParse(anonPlayerId);
+  const anonSessionIdResult = z.string().uuid().safeParse(anonSessionId);
+
+  if (!anonPlayerIdResult.success || !anonSessionIdResult.success) {
+    return { attemptCount: 0 };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Only callable by an authenticated non-anonymous user
+  if (!user || user.is_anonymous) {
+    return { attemptCount: 0 };
+  }
+
+  const adminSupabase = createAdminClient();
+  const { data } = await adminSupabase
+    .from("game_sessions")
+    .select("attempts_count")
+    .eq("id", anonSessionIdResult.data)
+    .eq("player_id", anonPlayerIdResult.data)
+    .limit(1)
+    .maybeSingle();
+
+  return { attemptCount: data?.attempts_count ?? 0 };
+}

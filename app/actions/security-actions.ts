@@ -1,9 +1,13 @@
 "use server";
 
+import { z } from "zod";
+
 import { COMMON_PASSWORDS } from "@/lib/constants/common-passwords";
 
-// Build a Set for O(1) lookups (case-insensitive: normalize both sides to lowercase)
+// Build a Set for O(1) lookups — case-sensitive, matching passwords as-is
 const COMMON_PASSWORDS_SET = new Set(COMMON_PASSWORDS);
+
+const passwordInputSchema = z.string().min(1).max(128);
 
 /**
  * Server Action to check if a password is too common.
@@ -14,6 +18,11 @@ const COMMON_PASSWORDS_SET = new Set(COMMON_PASSWORDS);
 export async function validatePasswordSafety(
   password: string,
 ): Promise<{ isSafe: boolean }> {
-  const isSafe = !COMMON_PASSWORDS_SET.has(password);
+  const parsed = passwordInputSchema.safeParse(password);
+  if (!parsed.success) {
+    return { isSafe: false };
+  }
+
+  const isSafe = !COMMON_PASSWORDS_SET.has(parsed.data);
   return { isSafe };
 }

@@ -29,6 +29,7 @@
     }
   },
   "Header": {
+    "comingSoon": "Wkrótce dostępne",
     "menu": "Menu",
     "help": "Jak grać",
     "language": "Język",
@@ -52,6 +53,7 @@
     "signedOutGlobalSuccess": "Pomyślnie wylogowano ze wszystkich urządzeń"
   },
   "Footer": {
+    "comingSoon": "Wkrótce dostępne",
     "contact": "Kontakt",
     "privacy": "Polityka prywatności",
     "terms": "Regulamin",
@@ -69,15 +71,15 @@
     "intro": "Wydedukuj tajemniczy zapach.",
     "description": "Codziennie wybierane są nowe perfumy. Masz 6 prób, by je odgadnąć na podstawie ewoluujących wskazówek.",
     "cluesTitle": "Wskazówki:",
-    "cluesDesc": "Obraz staje się wyraźniejszy. Rozwija się marka, rok i płeć.",
+    "cluesDesc": "Obraz staje się wyraźniejszy. Odkrywają się nuty zapachowe, marka, rok, perfumiarz i płeć.",
     "feedbackTitle": "Ikony feedbacku:",
     "feedbackDesc": "informują, jak blisko jesteś.",
     "feedbackCorrect": "Poprawne dopasowanie",
     "feedbackClose": "Częściowe dopasowanie",
     "feedbackWrong": "Niepoprawne",
     "scoreTitle": "Punktacja:",
-    "scoreDesc": "Mniej prób = wyższy wynik.",
-    "doubleEnter": "Podwójne kliknięcie przycisku \"Enter\" wybiera pierwszy dostępny element z listy.",
+    "scoreDesc": "Mniej prób = wyższy wynik. Rzadkie zapachy mają bonus za trudność.",
+    "doubleEnter": "Naciśnij Enter dwa razy, aby wybrać pierwszą sugestię z listy.",
     "note": "Nowe perfumy są udostępniane codziennie o północy UTC.",
     "ariaClose": "Zamknij"
   },
@@ -88,7 +90,7 @@
     "currentStreak": "Aktualna seria",
     "maxStreak": "Najdłuższa seria",
     "distribution": "Rozkład prób",
-    "slogan": "Wąchaj dalej! 🌸",
+    "slogan": "Wąchaj dalej!",
     "ariaClose": "Zamknij"
   },
   "ResetButton": {

@@ -62,6 +62,7 @@ export function GameHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [hasCheckedFirstVisit, setHasCheckedFirstVisit] = useState(false);
 
   const [statsOpen, setStatsOpen] = useState(false);
 
@@ -81,6 +82,20 @@ export function GameHeader() {
   const locale = useLocale();
   const t = useTranslations("Header");
   const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    if (hasCheckedFirstVisit) return;
+    setHasCheckedFirstVisit(true);
+    try {
+      const hasVisited = localStorage.getItem("eauxle:hasVisited");
+      if (!hasVisited) {
+        setHelpOpen(true);
+        localStorage.setItem("eauxle:hasVisited", "1");
+      }
+    } catch {
+      // localStorage may be unavailable in some environments
+    }
+  }, [hasCheckedFirstVisit]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -240,9 +255,9 @@ export function GameHeader() {
                         setMenuOpen(false);
                         const supabase = createClient();
                         await supabase.auth.signOut();
-                        setUser(null);
-                        router.refresh();
-                        toast.success(t("signedOutSuccess"));
+                        // Hard reload: reinitializes GameProvider with a new anonymous session,
+                        // which restores the "Zobacz profil" button in the menu.
+                        globalThis.location.reload();
                       }}
                     >
                       {t("signOut")}
@@ -278,7 +293,10 @@ export function GameHeader() {
 
             <button
               className="border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
-              onClick={(e) => e.preventDefault()}
+              onClick={() => {
+                toast.info(t("comingSoon"));
+                setMenuOpen(false);
+              }}
             >
               {t("about")}
             </button>
@@ -380,7 +398,10 @@ export function GameHeader() {
 
             <button
               className="px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-primary transition-all duration-300 hover:pl-6"
-              onClick={(e) => e.preventDefault()}
+              onClick={() => {
+                toast.info(t("comingSoon"));
+                setMenuOpen(false);
+              }}
             >
               {t("support")}
             </button>

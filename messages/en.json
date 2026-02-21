@@ -29,6 +29,7 @@
     }
   },
   "Header": {
+    "comingSoon": "Coming soon",
     "menu": "Menu",
     "help": "How to play",
     "language": "Language",
@@ -52,6 +53,7 @@
     "signedOutGlobalSuccess": "Successfully signed out from all devices"
   },
   "Footer": {
+    "comingSoon": "Coming soon",
     "contact": "Contact",
     "privacy": "Privacy Policy",
     "terms": "Terms",
@@ -67,17 +69,17 @@
   "HelpModal": {
     "title": "How to Play",
     "intro": "Deduce the mystery fragrance.",
-    "description": "Every day, a new perfume is selected. You have 5 attempts to guess it based on evolving clues.",
+    "description": "Every day, a new perfume is selected. You have 6 attempts to guess it based on evolving clues.",
     "cluesTitle": "Clues:",
-    "cluesDesc": "The image clears up, and more clues help narrow down the year, gender, and family.",
+    "cluesDesc": "The image clears up, fragrance notes are revealed, and the brand, year, perfumer, and gender progressively unlock.",
     "feedbackTitle": "Feedback Icons:",
     "feedbackDesc": "tell you how close you are.",
     "feedbackCorrect": "Correct match",
     "feedbackClose": "Partial match",
     "feedbackWrong": "Incorrect",
     "scoreTitle": "Scoring:",
-    "scoreDesc": "Fewer guesses = higher score.",
-    "doubleEnter": "Double-click \"Enter\" to select the first available item from the list.",
+    "scoreDesc": "Fewer guesses = higher score. Rare fragrances carry a difficulty bonus.",
+    "doubleEnter": "Press Enter twice to quickly select the first suggestion from the list.",
     "note": "A new perfume is released every day at midnight.",
     "ariaClose": "Close"
   },
@@ -88,7 +90,7 @@
     "currentStreak": "Current Streak",
     "maxStreak": "Max Streak",
     "distribution": "Guess Distribution",
-    "slogan": "Keep sniffing! 🌸",
+    "slogan": "Keep sniffing!",
     "ariaClose": "Close"
   },
   "ResetButton": {

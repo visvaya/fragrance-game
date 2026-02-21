@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
@@ -7,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { AttemptLog } from "./attempt-log";
 import { MetaClues } from "./clues/meta-clues";
 import { PyramidClues } from "./clues/pyramid-clues";
+import { Confetti } from "./confetti";
 import { useGameState, useUIPreferences } from "./contexts";
 import { DifficultyDisplay } from "./difficulty-display";
 import { RevealImage } from "./reveal-image";
@@ -19,6 +22,15 @@ export function GameBoard() {
   const { uiPreferences } = useUIPreferences();
   const isWide = uiPreferences.layoutMode === "wide";
   const t = useTranslations("GameBoard");
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  useEffect(() => {
+    if (gameState === "won") {
+      setShowConfetti(true);
+      const timeout = setTimeout(() => setShowConfetti(false), 2800);
+      return () => clearTimeout(timeout);
+    }
+  }, [gameState]);
 
   return (
     <div
@@ -27,6 +39,7 @@ export function GameBoard() {
         isWide ? "max-w-5xl" : "max-w-xl",
       )}
     >
+      {showConfetti ? <Confetti /> : null}
       {/* Game Over Cards ... */}
       {/* ... keeping game over logic same, just wrapper width changes ... */}
 

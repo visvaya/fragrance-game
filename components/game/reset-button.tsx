@@ -14,14 +14,14 @@ import {
 
 import { useGameActions } from "./contexts";
 
-// Debug component: Resetting game state (remove before production)
-// This component allows resetting the game state for debugging purposes.
+// Debug component: enabled only when NEXT_PUBLIC_GAME_RESET_ENABLED=true
 /**
  *
  */
 export function ResetButton({
   tooltipDisabled = false,
 }: Readonly<{ tooltipDisabled?: boolean }>) {
+  if (process.env.NEXT_PUBLIC_GAME_RESET_ENABLED !== "true") return null;
   const { resetGame } = useGameActions();
   const [showConfirm, setShowConfirm] = useState(false);
   const [isResetting, setIsResetting] = useState(false);

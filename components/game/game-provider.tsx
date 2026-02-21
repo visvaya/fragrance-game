@@ -135,6 +135,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
   const [nonce, setNonce] = useState<string>("");
   const [isCaptchaRequired, setIsCaptchaRequired] = useState(false);
+  /**
+   * Attempt count inherited from a declined anonymous-session migration.
+   * When a player plays as anon and then declines migration, this carries over
+   * their used attempts so they cannot start fresh with an informational advantage.
+   */
+  const [baseAttemptCount, setBaseAttemptCount] = useState(0);
   const maxAttempts = MAX_GUESSES;
 
   const handleCaptchaVerify = async (token: string) => {
@@ -258,11 +264,23 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
 
         // 2. Fetch challenge and start game in ONE server call (reduces round-trips)
-        let { challenge, session } = await initializeGame();
+        // Read inherited attempt count stored by MigrationModal.handleCancel
+        const storedInherited = sessionStorage.getItem(
+          "eauxle_declined_anon_attempts",
+        );
+        const inheritedCount = storedInherited
+          ? Math.max(0, Math.min(5, Number.parseInt(storedInherited, 10) || 0))
+          : 0;
+        if (inheritedCount > 0) {
+          sessionStorage.removeItem("eauxle_declined_anon_attempts");
+        }
+
+        let { challenge, session } = await initializeGame(inheritedCount);
         console.log("[GameProvider] initializeGame returned:", {
           challengeId: challenge?.id,
           hasChallenge: !!challenge,
           hasSession: !!session,
+          inheritedCount,
           sessionId: session?.sessionId,
         });
 
@@ -274,7 +292,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           );
           await new Promise((resolve) => setTimeout(resolve, 200)); // Tiny beat
           try {
-            session = await startGame(challenge.id);
+            session = await startGame(challenge.id, inheritedCount);
           } catch (error) {
             console.error("[GameProvider] Retry startGame failed:", error);
           }
@@ -306,6 +324,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
           setNonce(session.nonce); // Store nonce
           if (session.imageUrl) {
             setImageUrl(session.imageUrl);
+          }
+
+          // Restore baseAttemptCount for new sessions with no guess history
+          // (happens when player declined anonymous migration and inherited attempts)
+          if (inheritedCount > 0 && (!session.guesses || session.guesses.length === 0)) {
+            setBaseAttemptCount(inheritedCount);
           }
 
           // If session returned answer (game over), update dailyPerfume
@@ -475,7 +499,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const activePerfume = { ...dailyPerfume, imageUrl };
 
   // Calculate helper flags needed by GameActionsProvider
-  const currentAttempt = attempts.length + 1;
+  const currentAttempt = attempts.length + 1 + baseAttemptCount;
   const revealLevel = Math.min(currentAttempt, maxAttempts);
 
   // Helper to calculate revealed brand (needed for actions context)
@@ -498,6 +522,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   return (
     <GameStateProvider
       attempts={attempts}
+      baseAttemptCount={baseAttemptCount}
       dailyPerfume={activePerfume}
       discoveredPerfumers={discoveredPerfumers}
       gameState={gameState}
@@ -507,6 +532,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     >
       <GameActionsProvider
         attempts={attempts}
+        baseAttemptCount={baseAttemptCount}
         dailyPerfume={activePerfume}
         gameState={gameState}
         isBrandRevealed={isBrandRevealed}
@@ -516,6 +542,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         posthog={posthog}
         sessionId={sessionId}
         setAttempts={setAttempts}
+        setBaseAttemptCount={setBaseAttemptCount}
         setDailyPerfume={setDailyPerfume}
         setDiscoveredPerfumers={setDiscoveredPerfumers}
         setGameState={setGameState}

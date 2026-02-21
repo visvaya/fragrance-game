@@ -108,7 +108,7 @@ function MetaBadge({
     translatedValue === "?????" ? ["?????"] : translatedValue.split(" ");
 
   return (
-    <div className="inline-flex min-h-[30px] cursor-default flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary">
+    <div className="inline-flex min-h-[30px] max-w-full cursor-default flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary">
       {words.map((word: string, wordIndex: number) => {
         const isGenericPlaceholder = word === "?????";
 
@@ -162,7 +162,7 @@ function MetaBadge({
           isWordMasked;
 
         const content = (
-          <div className="flex flex-wrap">
+          <div className="flex flex-nowrap">
             {word.split("").map((char, charIndex) => {
               const isSlot = char === "_";
               if (isSlot) {
@@ -190,7 +190,7 @@ function MetaBadge({
           return (
             <GameTooltip content={tooltipContent} key={wordIndex}>
               {({ isHovered }: { isHovered?: boolean }) => (
-                <div className="flex flex-wrap">
+                <div className="flex flex-nowrap">
                   {word.split("").map((char, charIndex) => {
                     const isSlot = char === "_";
                     if (isSlot) {

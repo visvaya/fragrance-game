@@ -236,48 +236,73 @@ export function AttemptLog() {
                   return (
                     <div className="flex flex-col gap-y-0.5 text-left">
                       {/* Row 1: Name & Concentration */}
-                      <div className="flex w-full min-w-0 flex-col gap-y-0.5 lg:flex-row lg:items-baseline lg:gap-x-1.5 lg:gap-y-0">
+                      {/* Mobile: stacked (each piece on its own line) */}
+                      <div className="flex flex-col gap-y-0.5 lg:hidden">
                         <TruncatedCell
                           className="min-w-0 shrink"
                           content={displayName}
                         />
                         {concentration && concentration !== "Unknown" ? (
-                          <div className="flex items-baseline lg:gap-1.5">
-                            <span className="hidden shrink-0 text-xs text-muted-foreground/30 lg:inline">
-                              •
-                            </span>
-                            <TruncatedCell
-                              className="min-w-0 shrink-[5]"
-                              content={concentration}
-                              textClassName="text-muted-foreground/80 text-xs font-normal truncate tracking-normal"
-                            />
-                          </div>
+                          <TruncatedCell
+                            className="min-w-0 shrink-[5]"
+                            content={concentration}
+                            textClassName="text-muted-foreground/80 text-xs font-normal truncate tracking-normal"
+                          />
                         ) : null}
                       </div>
+                      {/* Desktop: inline with separator */}
+                      <TruncatedCell
+                        className="min-w-0 hidden lg:block"
+                        content={
+                          concentration && concentration !== "Unknown"
+                            ? `${displayName} · ${concentration}`
+                            : displayName
+                        }
+                        textClassName="text-sm truncate tracking-normal"
+                      >
+                        <span className="font-medium text-foreground">{displayName}</span>
+                        {concentration && concentration !== "Unknown" ? (
+                          <>
+                            <span className="mx-1.5 text-xs text-muted-foreground/30">·</span>
+                            <span className="text-xs font-normal text-muted-foreground/80">
+                              {concentration}
+                            </span>
+                          </>
+                        ) : null}
+                      </TruncatedCell>
 
                       {/* Row 2: Brand & Year */}
-                      <div className="flex min-w-0 flex-col gap-y-0.5 text-muted-foreground/80 lg:flex-row lg:items-baseline lg:gap-x-1.5 lg:gap-y-0">
-                        {/* Brand */}
+                      {/* Mobile: stacked (year always fully visible) */}
+                      <div className="flex flex-col gap-y-0.5 text-muted-foreground/80 lg:hidden">
                         <TruncatedCell
                           className="min-w-[30px] shrink"
                           content={attempt.brand}
                           textClassName="text-xs font-normal truncate tracking-normal"
                         />
-
-                        {/* Year */}
                         {attempt.year ? (
-                          <div className="flex items-baseline lg:gap-1.5">
-                            <span className="hidden shrink-0 text-xs text-muted-foreground/30 lg:inline">
-                              •
-                            </span>
-                            <TruncatedCell
-                              className="shrink-0"
-                              content={String(attempt.year)}
-                              textClassName="text-xs font-normal whitespace-nowrap tracking-normal"
-                            />
-                          </div>
+                          <span className="text-xs font-normal whitespace-nowrap">
+                            {attempt.year}
+                          </span>
                         ) : null}
                       </div>
+                      {/* Desktop: inline with separator */}
+                      <TruncatedCell
+                        className="min-w-0 hidden lg:block"
+                        content={
+                          attempt.year
+                            ? `${attempt.brand} · ${attempt.year}`
+                            : attempt.brand
+                        }
+                        textClassName="text-xs font-normal truncate tracking-normal text-muted-foreground/80"
+                      >
+                        <span>{attempt.brand}</span>
+                        {attempt.year ? (
+                          <>
+                            <span className="mx-1.5 text-muted-foreground/30">·</span>
+                            <span>{attempt.year}</span>
+                          </>
+                        ) : null}
+                      </TruncatedCell>
                     </div>
                   );
                 })()}
@@ -671,7 +696,7 @@ function TruncatedCell({
   }, [content, children]);
 
   const inner = (
-    <div className={cn(textClassName, "w-full")} ref={ref}>
+    <div className={cn(textClassName, "max-w-full")} ref={ref}>
       {children || content}
     </div>
   );
