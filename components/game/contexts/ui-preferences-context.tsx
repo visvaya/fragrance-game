@@ -33,46 +33,53 @@ const UIPreferencesContext = createContext<
 export function UIPreferencesProvider({
   children,
 }: Readonly<{ children: ReactNode }>) {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [layoutMode, setLayoutMode] = useState<"narrow" | "wide">("narrow");
-  const [fontScale, setFontScale] = useState<"normal" | "large">("normal");
+  const [preferences, setPreferences] = useState<{
+    fontScale: "normal" | "large";
+    layoutMode: "narrow" | "wide";
+    theme: "light" | "dark";
+  }>({
+    fontScale: "normal",
+    layoutMode: "narrow",
+    theme: "light",
+  });
+
   const [isInputFocused, setIsInputFocused] = useState(false);
 
   const toggleTheme = useCallback(() => {
-    setTheme((previous) => {
-      const next = previous === "light" ? "dark" : "light";
+    setPreferences((previous) => {
+      const next = previous.theme === "light" ? "dark" : "light";
       localStorage.setItem("fragrance-game-theme", next);
-      return next;
+      return { ...previous, theme: next };
     });
   }, []);
 
   const toggleLayoutMode = useCallback(() => {
-    setLayoutMode((previous) => {
-      const next = previous === "narrow" ? "wide" : "narrow";
+    setPreferences((previous) => {
+      const next = previous.layoutMode === "narrow" ? "wide" : "narrow";
       localStorage.setItem("fragrance-game-layout", next);
-      return next;
+      return { ...previous, layoutMode: next };
     });
   }, []);
 
   const toggleFontScale = useCallback(() => {
-    setFontScale((previous) => {
-      const next = previous === "normal" ? "large" : "normal";
+    setPreferences((previous) => {
+      const next = previous.fontScale === "normal" ? "large" : "normal";
       localStorage.setItem("fragrance-game-font", next);
-      return next;
+      return { ...previous, fontScale: next };
     });
   }, []);
 
   // Apply Theme & Font Scale Side Effects
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-  }, [theme]);
+    document.documentElement.classList.toggle("dark", preferences.theme === "dark");
+  }, [preferences.theme]);
 
   useEffect(() => {
     document.documentElement.classList.toggle(
       "large-text",
-      fontScale === "large",
+      preferences.fontScale === "large",
     );
-  }, [fontScale]);
+  }, [preferences.fontScale]);
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -81,24 +88,20 @@ export function UIPreferencesProvider({
         | "narrow"
         | "wide"
         | null;
-      if (savedLayout) {
-        setLayoutMode(savedLayout);
-      } else if (window.innerWidth >= 1024) {
-        // Default to wide on desktop if no preference saved
-        setLayoutMode("wide");
-      }
-
       const savedFont = localStorage.getItem("fragrance-game-font") as
         | "normal"
         | "large"
         | null;
-      if (savedFont) setFontScale(savedFont);
-
       const savedTheme = localStorage.getItem("fragrance-game-theme") as
         | "light"
         | "dark"
         | null;
-      if (savedTheme) setTheme(savedTheme);
+
+      setPreferences((previous) => ({
+        fontScale: savedFont || previous.fontScale,
+        layoutMode: savedLayout || (window.innerWidth >= 1024 ? "wide" : previous.layoutMode),
+        theme: savedTheme || previous.theme,
+      }));
     });
   }, []);
 
@@ -108,7 +111,7 @@ export function UIPreferencesProvider({
     toggleFontScale,
     toggleLayoutMode,
     toggleTheme,
-    uiPreferences: { fontScale, layoutMode, theme },
+    uiPreferences: preferences,
   };
 
   return (

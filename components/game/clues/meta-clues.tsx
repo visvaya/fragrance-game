@@ -32,9 +32,9 @@ export function MetaClues() {
       key: "gender",
       value:
         revealLevel >= 5 ||
-        isGenderRevealed ||
-        gameState === "won" ||
-        gameState === "lost"
+          isGenderRevealed ||
+          gameState === "won" ||
+          gameState === "lost"
           ? dailyPerfume.gender
           : "?????",
     },
@@ -121,13 +121,13 @@ function MetaBadge({
           }
 
           return (
-            <GameTooltip content={tooltipContent} key={wordIndex}>
+            <GameTooltip content={tooltipContent} key={`meta-${clueKey}-placeholder-${wordIndex}`}>
               <div className="flex cursor-help">
                 {[1, 2, 3, 4, 5].map((_, i) => (
                   <div
                     aria-hidden="true"
                     className="mx-[0.5px] h-5 w-2.5 border-b border-muted-foreground/30"
-                    key={`slot-${wordIndex}-${i}`}
+                    key={`meta-slot-${clueKey}-${wordIndex}-${i}`}
                   />
                 ))}
               </div>
@@ -139,7 +139,7 @@ function MetaBadge({
         const isUnknownData = value === "Unknown";
         if (isUnknownData) {
           return (
-            <GameTooltip content={t("dataUnavailable")} key={wordIndex}>
+            <GameTooltip content={t("dataUnavailable")} key={`meta-${clueKey}-unknown-${wordIndex}`}>
               <span className="cursor-help opacity-70">{translatedValue}</span>
             </GameTooltip>
           );
@@ -162,7 +162,7 @@ function MetaBadge({
           isWordMasked;
 
         const content = (
-          <div className="flex flex-nowrap">
+          <div className="flex flex-nowrap" key={`meta-content-${clueKey}-${word}-${wordIndex}`}>
             {word.split("").map((char, charIndex) => {
               const isSlot = char === "_";
               if (isSlot) {
@@ -170,14 +170,14 @@ function MetaBadge({
                   <div
                     aria-hidden="true"
                     className="mx-[0.5px] h-5 w-2.5 border-b border-muted-foreground/30 transition-all duration-300"
-                    key={charIndex}
+                    key={`meta-slot-${clueKey}-${wordIndex}-${charIndex}`}
                   />
                 );
               }
               return (
                 <div
                   className="mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
-                  key={charIndex}
+                  key={`meta-char-${clueKey}-${wordIndex}-${charIndex}`}
                 >
                   {char}
                 </div>
@@ -188,7 +188,7 @@ function MetaBadge({
 
         if (showTooltip) {
           return (
-            <GameTooltip content={tooltipContent} key={wordIndex}>
+            <GameTooltip content={tooltipContent} key={`meta-tt-${clueKey}-${word}-${wordIndex}`}>
               {({ isHovered }: { isHovered?: boolean }) => (
                 <div className="flex flex-nowrap">
                   {word.split("").map((char, charIndex) => {
@@ -197,12 +197,11 @@ function MetaBadge({
                       return (
                         <div
                           aria-hidden="true"
-                          className={`mx-[0.5px] h-5 w-2.5 transition-all duration-300 ${
-                            isHovered
+                          className={`mx-[0.5px] h-5 w-2.5 transition-all duration-300 ${isHovered
                               ? "border-b border-[oklch(0.75_0.15_60)]"
                               : "border-b border-muted-foreground/30"
-                          }`}
-                          key={charIndex}
+                            }`}
+                          key={`meta-tt-slot-${clueKey}-${wordIndex}-${charIndex}`}
                         />
                       );
                     }
@@ -214,7 +213,7 @@ function MetaBadge({
                             ? "text-[oklch(0.75_0.15_60)]"
                             : "text-foreground",
                         )}
-                        key={charIndex}
+                        key={`meta-tt-char-${clueKey}-${wordIndex}-${charIndex}`}
                       >
                         {char}
                       </div>
@@ -226,7 +225,7 @@ function MetaBadge({
           );
         }
 
-        return <div key={wordIndex}>{content}</div>;
+        return <div key={`meta-span-${clueKey}-${word}-${wordIndex}`}>{content}</div>;
       })}
     </div>
   );

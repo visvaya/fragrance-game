@@ -461,7 +461,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     };
     void initGame();
     // initGame is defined inside this effect and only needs to run once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only initialization
+    // eslint_disable-next-line react-hooks/exhaustive-deps -- intentional mount-only initialization
   }, []);
 
   // Track discovered perfumers

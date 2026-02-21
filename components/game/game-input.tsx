@@ -1,116 +1,78 @@
 "use client";
 
 import type React from "react";
-import { useState, useRef, useEffect, useId, useMemo, memo } from "react";
+import { useState, useRef, useEffect, useId, useMemo, memo, useReducer } from "react";
 
 import { Search, Loader2, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import {
-  searchPerfumes,
-  type PerfumeSuggestion,
-} from "@/app/actions/autocomplete";
+import { searchPerfumes, type PerfumeSuggestion } from "@/app/actions/autocomplete";
 import { useMountTransition } from "@/hooks/use-mount-transition";
-import { cn, normalizeText } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 import { useGameState, useGameActions, useUIPreferences } from "./contexts";
+import { HighlightedText } from "./highlighted-text";
+type GameInputState = {
+  isError: boolean;
+  isLoading: boolean;
+  query: string;
+  selectedIndex: number;
+  showSuggestions: boolean;
+  suggestions: PerfumeSuggestion[];
+};
 
-const HighlightedText = memo(
-  ({ query, text }: Readonly<{ query: string; text: string }>) => {
-    const tokens = useMemo(() => {
-      if (!query || query.trim().length < 2) return [text];
+type GameInputAction =
+  | { payload: string; type: "SET_QUERY"; }
+  | { type: "SEARCH_START" }
+  | { payload: PerfumeSuggestion[]; type: "SEARCH_SUCCESS"; }
+  | { type: "SEARCH_ERROR" }
+  | { payload: boolean; type: "SET_SHOW_SUGGESTIONS"; }
+  | { payload: number | ((previous: number) => number); type: "SET_SELECTED_INDEX"; }
+  | { type: "RESET" };
 
-      const normalizedText = normalizeText(text);
-      const searchTerms = query
-        .toLowerCase()
-        .split(/\s+/)
-        .filter((term) => term.length >= 2)
-        .map((term) => normalizeText(term));
+const initialState: GameInputState = {
+  isError: false,
+  isLoading: false,
+  query: "",
+  selectedIndex: -1,
+  showSuggestions: false,
+  suggestions: [],
+};
 
-      if (searchTerms.length === 0) return [text];
-
-      // Find all matches for all terms (exact + fuzzy)
-      const matches: { end: number; start: number }[] = [];
-      for (const term of searchTerms) {
-        // First try exact match
-        let startPos = 0;
-        while ((startPos = normalizedText.indexOf(term, startPos)) !== -1) {
-          matches.push({ end: startPos + term.length, start: startPos });
-          startPos += 1;
-        }
-
-        // If no exact match and term is long enough, try fuzzy prefix matching
-        // e.g., "extremel" matches "extreme" (7/8 chars match)
-        if (matches.length === 0 && term.length >= 4) {
-          const words = normalizedText.split(/\s+/);
-          let wordStart = 0;
-
-          for (const word of words) {
-            // Check if word starts with most of the term (fuzzy prefix)
-            const minPrefixLength = Math.min(term.length - 1, word.length);
-            const termPrefix = term.slice(0, minPrefixLength);
-            const wordPrefix = word.slice(0, minPrefixLength);
-
-            if (
-              minPrefixLength >= 4 &&
-              termPrefix === wordPrefix &&
-              Math.abs(term.length - word.length) <= 2
-            ) {
-              // Fuzzy match - highlight the whole word
-              matches.push({ end: wordStart + word.length, start: wordStart });
-            }
-
-            wordStart += word.length + 1; // +1 for space
-          }
-        }
-      }
-
-      if (matches.length === 0) return [text];
-
-      // Sort matches
-      matches.sort((a, b) => a.start - b.start || b.end - a.end);
-
-      // Merge matches
-      const mergedMatches: { end: number; start: number }[] = [];
-      if (matches.length > 0) {
-        let currentMatch = matches[0];
-        for (let i = 1; i < matches.length; i++) {
-          if (matches[i].start <= currentMatch.end) {
-            currentMatch.end = Math.max(currentMatch.end, matches[i].end);
-          } else {
-            mergedMatches.push(currentMatch);
-            currentMatch = matches[i];
-          }
-        }
-        mergedMatches.push(currentMatch);
-      }
-
-      // Build result
-      const result: React.ReactNode[] = [];
-      let lastIndex = 0;
-
-      for (const [index, match] of mergedMatches.entries()) {
-        if (match.start > lastIndex) {
-          result.push(text.slice(lastIndex, match.start));
-        }
-        result.push(
-          <b className="font-bold" key={`match-${match.start}-${match.end}`}>
-            {text.slice(match.start, match.end)}
-          </b>,
-        );
-        lastIndex = match.end;
-      }
-
-      if (lastIndex < text.length) {
-        result.push(text.slice(lastIndex));
-      }
-
-      return result;
-    }, [text, query]);
-
-    return <>{tokens}</>;
-  },
-);
+function gameInputReducer(state: GameInputState, action: GameInputAction): GameInputState {
+  switch (action.type) {
+    case "SET_QUERY": {
+      return { ...state, query: action.payload, showSuggestions: action.payload.length > 0 };
+    }
+    case "SEARCH_START": {
+      return { ...state, isError: false, isLoading: true };
+    }
+    case "SEARCH_SUCCESS": {
+      return { ...state, isLoading: false, suggestions: action.payload };
+    }
+    case "SEARCH_ERROR": {
+      return { ...state, isError: true, isLoading: false, suggestions: [] };
+    }
+    case "SET_SHOW_SUGGESTIONS": {
+      return { ...state, showSuggestions: action.payload };
+    }
+    case "SET_SELECTED_INDEX": {
+      return {
+        ...state,
+        selectedIndex:
+          typeof action.payload === "function"
+            ? action.payload(state.selectedIndex)
+            : action.payload,
+      };
+    }
+    case "RESET": {
+      return { ...initialState };
+    }
+    default: {
+      return state;
+    }
+  }
+}
 
 /**
  *
@@ -133,14 +95,10 @@ export function GameInput() {
     uiPreferences,
   } = useUIPreferences();
   const t = useTranslations("Game.input");
-  const [query, setQuery] = useState("");
 
-  const [suggestions, setSuggestions] = useState<PerfumeSuggestion[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [state, dispatch] = useReducer(gameInputReducer, initialState);
+  const { isError, isLoading, query, selectedIndex, showSuggestions, suggestions } = state;
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [isError, setIsError] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputReference = useRef<HTMLInputElement>(null);
   const wrapperReference = useRef<HTMLDivElement>(null);
   const listReference = useRef<HTMLDivElement>(null);
@@ -167,16 +125,15 @@ export function GameInput() {
     const timer = setTimeout(() => {
       const sid = sessionId || undefined;
       void (async () => {
+        dispatch({ type: "SEARCH_START" });
         try {
           const results = await searchPerfumes(query, sid, currentAttempt);
           if (ignore) return;
-          setSuggestions(results);
-          setIsLoading(false);
+          dispatch({ payload: results, type: "SEARCH_SUCCESS" });
         } catch (error) {
           if (ignore) return;
           console.error("Autocomplete failed:", error);
-          setSuggestions([]);
-          setIsLoading(false);
+          dispatch({ type: "SEARCH_ERROR" });
         }
       })();
     }, 300);
@@ -226,7 +183,7 @@ export function GameInput() {
         wrapperReference.current &&
         !wrapperReference.current.contains(event.target as Node)
       ) {
-        setShowSuggestions(false);
+        dispatch({ payload: false, type: "SET_SHOW_SUGGESTIONS" });
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -240,9 +197,7 @@ export function GameInput() {
       perfume.perfume_id,
     );
 
-    setQuery("");
-    setSuggestions([]);
-    setShowSuggestions(false);
+    dispatch({ type: "RESET" });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -252,25 +207,31 @@ export function GameInput() {
       case "ArrowDown": {
         e.preventDefault();
         // Cyclic navigation: (current + 1) % length
-        setSelectedIndex((previous) => (previous + 1) % suggestions.length);
+        dispatch({
+          payload: (previous: number) => (previous + 1) % suggestions.length,
+          type: "SET_SELECTED_INDEX",
+        });
 
         break;
       }
       case "ArrowUp": {
         e.preventDefault();
         // Cyclic navigation: wrap to last item if at beginning
-        setSelectedIndex((previous) => {
-          if (previous <= 0) {
-            return suggestions.length - 1;
-          }
-          return previous - 1;
+        dispatch({
+          payload: (previous: number) => {
+            if (previous <= 0) {
+              return suggestions.length - 1;
+            }
+            return previous - 1;
+          },
+          type: "SET_SELECTED_INDEX",
         });
 
         break;
       }
       case "Escape": {
         e.preventDefault();
-        setShowSuggestions(false);
+        dispatch({ payload: false, type: "SET_SHOW_SUGGESTIONS" });
         inputReference.current?.blur();
 
         break;
@@ -299,7 +260,7 @@ export function GameInput() {
           );
 
           if (firstAvailableIndex !== -1) {
-            setSelectedIndex(firstAvailableIndex);
+            dispatch({ payload: firstAvailableIndex, type: "SET_SELECTED_INDEX" });
             // We return early here as we only wanted to highlight
             return;
           }
@@ -422,20 +383,19 @@ export function GameInput() {
               className="w-full border-b-2 border-border bg-transparent pt-3 pr-10 pb-2 font-[family-name:var(--font-playfair)] text-lg text-foreground transition-colors duration-300 outline-none placeholder:font-[family-name:var(--font-playfair)] placeholder:text-sm placeholder:text-muted-foreground placeholder:italic focus:border-primary"
               data-testid="game-input"
               onBlur={() => {
-                setShowSuggestions(false);
+                dispatch({ payload: false, type: "SET_SHOW_SUGGESTIONS" });
                 setIsFocused(false);
               }}
               onChange={(e) => {
                 const value = e.target.value;
-                setQuery(value);
-                setShowSuggestions(true);
+                dispatch({ payload: value, type: "SET_QUERY" });
+
                 if (value.length < 3) {
-                  setSuggestions([]);
-                  setIsLoading(false);
+                  dispatch({ payload: [], type: "SEARCH_SUCCESS" });
                 }
               }}
               onFocus={() => {
-                setShowSuggestions(true);
+                dispatch({ payload: true, type: "SET_SHOW_SUGGESTIONS" });
                 setIsFocused(true);
               }}
               onKeyDown={handleKeyDown}
@@ -522,7 +482,7 @@ export function GameInput() {
                     key={perfume.perfume_id}
                     onClick={async () => handleSelect(perfume)}
                     onMouseDown={(e) => e.preventDefault()}
-                    onMouseEnter={() => setSelectedIndex(index)}
+                    onMouseEnter={() => dispatch({ payload: index, type: "SET_SELECTED_INDEX" })}
                     role="option"
                   >
                     <span className="flex flex-wrap items-baseline gap-x-1 text-foreground">

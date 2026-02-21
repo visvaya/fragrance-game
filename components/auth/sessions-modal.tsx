@@ -58,8 +58,16 @@ export function SessionsModal({
   open,
   user,
 }: SessionsModalProperties) {
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [state, setState] = useState<{
+    currentSessionId: string | null;
+    isLoading: boolean;
+    sessions: Session[];
+  }>({
+    currentSessionId: null,
+    isLoading: true,
+    sessions: [],
+  });
+
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const t = useTranslations("Sessions");
   const tLocale = useTranslations("Locale");
@@ -69,33 +77,30 @@ export function SessionsModal({
   // or should not be manageable
   const isAnonymous = user?.is_anonymous;
 
-  // Use internal state to track "this device"
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-
   useEffect(() => {
     const fetchSessionsInternal = async () => {
       if (isAnonymous) {
-        setSessions([]);
-        setIsLoading(false);
+        setState((previous) => ({ ...previous, isLoading: false, sessions: [] }));
         return;
       }
 
-      setIsLoading(true);
+      setState((previous) => ({ ...previous, isLoading: true }));
       let data: any = null;
       try {
         data = await getSessions();
       } catch (error) {
         console.error("Failed to fetch sessions", error);
         toast.error(t("fetchError"));
-        setIsLoading(false);
+        setState((previous) => ({ ...previous, isLoading: false }));
         return;
       }
 
       if (data) {
-        setSessions(data as Session[]);
+        const newSessions = data as Session[];
+        let newSessionId: string | null = null;
 
-        if (data.length > 0) {
-          const sorted = [...data].sort(
+        if (newSessions.length > 0) {
+          const sorted = [...newSessions].sort(
             (a, b) =>
               new Date(b.last_active_at ?? 0).getTime() -
               new Date(a.last_active_at ?? 0).getTime(),
@@ -112,13 +117,21 @@ export function SessionsModal({
             return storedUA === currentUA;
           });
           if (match) {
-            setCurrentSessionId(match.id);
+            newSessionId = match.id;
           } else if (sorted.length > 0) {
-            setCurrentSessionId(sorted[0].id);
+            newSessionId = sorted[0].id;
           }
         }
+
+        setState((previous) => ({
+          ...previous,
+          currentSessionId: newSessionId,
+          isLoading: false,
+          sessions: newSessions,
+        }));
+      } else {
+        setState((previous) => ({ ...previous, isLoading: false }));
       }
-      setIsLoading(false);
     };
 
     if (open) {
@@ -130,7 +143,7 @@ export function SessionsModal({
     setRevokingId(sessionId);
     try {
       // Check if this is the last session before revocation
-      const isLastSession = sessions.length === 1;
+      const isLastSession = state.sessions.length === 1;
 
       const result = await revokeSession(sessionId);
       if (result.success) {
@@ -144,7 +157,7 @@ export function SessionsModal({
 
         toast.success(t("revokeSuccess"));
         // Optimistically remove from list or refetch
-        setSessions((previous) => previous.filter((s) => s.id !== sessionId));
+        setState((previous) => ({ ...previous, sessions: previous.sessions.filter((s) => s.id !== sessionId) }));
       } else {
         toast.error(t("revokeError"));
       }
@@ -212,11 +225,11 @@ export function SessionsModal({
                 Zamknij
               </Button>
             </div>
-          ) : isLoading ? (
+          ) : state.isLoading ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : sessions.length === 0 ? (
+          ) : state.sessions.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">
               {t("noSessions")}
             </div>
@@ -242,7 +255,7 @@ export function SessionsModal({
                   {t("revokeAll") || "Wyloguj wszystkie"}
                 </Button>
               </div>
-              {sessions.map((session) => {
+              {state.sessions.map((session) => {
                 return (
                   <div
                     className="flex flex-col items-start justify-between gap-4 rounded-lg border bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:p-4"
@@ -260,7 +273,7 @@ export function SessionsModal({
                           <span className="flex shrink-0 items-center gap-1">
                             <Globe className="h-3 w-3" />
                             {String(session.ip_address)}
-                            {session.id === currentSessionId && (
+                            {session.id === state.currentSessionId && (
                               <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                                 {t("currentDevice")}
                               </span>

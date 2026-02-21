@@ -34,6 +34,7 @@ async function checkPasswordSafety(password: string) {
 /**
  * ResetPasswordForm component for authenticated password reset.
  */
+// eslint_disable-next-line react-compiler/react-compiler
 export function ResetPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();

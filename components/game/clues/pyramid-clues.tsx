@@ -149,7 +149,7 @@ export function PyramidClues() {
                   return (
                     <span
                       className="inline-flex min-h-[30px] max-w-full cursor-default flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-md border border-border bg-secondary/50 px-3 py-1 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:bg-secondary"
-                      key={`linear-note-${i}-${note.charAt(0)}`}
+                      key={`linear-note-${note}-${i}`}
                     >
                       {words.map((word, wIndex) => {
                         // Check if word contains masking chars
@@ -157,7 +157,7 @@ export function PyramidClues() {
                         const showTooltip = hasMasking;
 
                         const content = (
-                          <div className="flex flex-nowrap">
+                          <div className="flex flex-nowrap" key={`word-content-${word}-${wIndex}`}>
                             {word.split("").map((char, index) => {
                               const isSlot = char === "_";
                               if (isSlot) {
@@ -165,14 +165,14 @@ export function PyramidClues() {
                                   <div
                                     aria-hidden="true"
                                     className={`mx-[0.5px] h-5 w-2.5 border-b border-muted-foreground/30 transition-all duration-300 ${isFullHidden ? "opacity-50" : "opacity-70"}`}
-                                    key={`linear-note-${i}-slot-${index}`}
+                                    key={`linear-slot-${char}-${index}`}
                                   />
                                 );
                               }
                               return (
                                 <div
                                   className="mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
-                                  key={`linear-note-${i}-char-${index}`}
+                                  key={`linear-char-${char}-${index}`}
                                 >
                                   {char}
                                 </div>
@@ -185,7 +185,7 @@ export function PyramidClues() {
                           return (
                             <GameTooltip
                               content={t("letters", { count: word.length })}
-                              key={`linear-note-${i}-word-${wIndex}`}
+                              key={`linear-tooltip-${word}-${wIndex}`}
                             >
                               {({ isHovered }: { isHovered?: boolean }) => (
                                 <div className="flex flex-nowrap">
@@ -195,19 +195,18 @@ export function PyramidClues() {
                                       return (
                                         <div
                                           aria-hidden="true"
-                                          className={`mx-[0.5px] h-5 w-2.5 transition-all duration-300 ${
-                                            isHovered
+                                          className={`mx-[0.5px] h-5 w-2.5 transition-all duration-300 ${isHovered
                                               ? "border-b border-[oklch(0.75_0.15_60)]"
                                               : `border-b border-muted-foreground/30 ${isFullHidden ? "opacity-50" : "opacity-70"}`
-                                          }`}
-                                          key={index}
+                                            }`}
+                                          key={`linear-slot-tt-${char}-${index}`}
                                         />
                                       );
                                     }
                                     return (
                                       <div
                                         className="mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
-                                        key={index}
+                                        key={`linear-char-tt-${char}-${index}`}
                                       >
                                         {char}
                                       </div>
@@ -218,7 +217,7 @@ export function PyramidClues() {
                             </GameTooltip>
                           );
                         }
-                        return <span key={wIndex}>{content}</span>;
+                        return <span key={`word-span-${word}-${wIndex}`}>{content}</span>;
                       })}
                     </span>
                   );
@@ -364,11 +363,10 @@ export function PyramidClues() {
                                         return (
                                           <div
                                             aria-hidden="true"
-                                            className={`mx-[0.5px] h-5 w-2.5 transition-all duration-300 ${
-                                              isHovered
+                                            className={`mx-[0.5px] h-5 w-2.5 transition-all duration-300 ${isHovered
                                                 ? "border-b border-[oklch(0.75_0.15_60)]"
                                                 : `border-b border-muted-foreground/30 ${isFullHidden ? "opacity-50" : "opacity-70"}`
-                                            }`}
+                                              }`}
                                             key={`slot-${index}`}
                                           />
                                         );

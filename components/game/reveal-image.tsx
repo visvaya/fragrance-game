@@ -25,36 +25,41 @@ export function RevealImage() {
   const t = useTranslations("RevealImage");
   const targetSource = dailyPerfume.imageUrl || "/placeholder.svg";
 
-  const [currentSource, setCurrentSource] = useState(targetSource);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isZoomed, setIsZoomed] = useState(false);
-
-  // Track previous targetSource to derive state
-  const [previousTargetSource, setPreviousTargetSource] =
-    useState(targetSource);
+  const [state, setState] = useState({
+    currentSource: targetSource,
+    isLoaded: false,
+    isZoomed: false,
+    previousTargetSource: targetSource,
+  });
 
   // Derive state: instantly fade out if target changes
-  if (targetSource !== previousTargetSource) {
-    setPreviousTargetSource(targetSource);
-    setIsLoaded(false);
+  if (targetSource !== state.previousTargetSource) {
+    setState((previous) => ({
+      ...previous,
+      isLoaded: false,
+      previousTargetSource: targetSource,
+    }));
   }
 
   // Effect: Detect change in targetSrc and update with transition AFTER fade out
   useEffect(() => {
-    if (targetSource !== currentSource) {
+    if (targetSource !== state.currentSource) {
       // After fade out, swap source and fade in
       const timeout = setTimeout(() => {
-        setCurrentSource(targetSource);
-        setIsLoaded(true);
+        setState((previous) => ({
+          ...previous,
+          currentSource: targetSource,
+          isLoaded: true,
+        }));
       }, 350); // Half of 700ms for smoother transition
 
       return () => clearTimeout(timeout);
     }
-  }, [targetSource, currentSource]);
+  }, [targetSource, state.currentSource]);
 
   // Initial load
   useEffect(() => {
-    requestAnimationFrame(() => setIsLoaded(true));
+    requestAnimationFrame(() => setState((previous) => ({ ...previous, isLoaded: true })));
   }, []);
 
   return (
@@ -71,16 +76,16 @@ export function RevealImage() {
           className={cn(
             "relative aspect-square w-[80%] overflow-hidden rounded-md border border-border bg-muted transition-all duration-300 md:w-full dark:brightness-[0.85]",
             "focus:outline-none",
-            isZoomed ? "cursor-zoom-out" : "cursor-zoom-in",
+            state.isZoomed ? "cursor-zoom-out" : "cursor-zoom-in",
             uiPreferences.fontScale === "large"
               ? "max-w-[280px]"
               : "max-w-[240px]",
           )}
-          onClick={() => setIsZoomed(!isZoomed)}
+          onClick={() => setState((previous) => ({ ...previous, isZoomed: !previous.isZoomed }))}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              setIsZoomed(!isZoomed);
+              setState((previous) => ({ ...previous, isZoomed: !previous.isZoomed }));
             }
           }}
           role="button"
@@ -92,17 +97,17 @@ export function RevealImage() {
             blurDataURL={BLUR_DATA_URL}
             className={cn(
               "object-cover transition-all duration-700 ease-in-out",
-              isZoomed ? "scale-110" : "hover:scale-110",
-              isLoaded ? "opacity-100" : "opacity-0",
+              state.isZoomed ? "scale-110" : "hover:scale-110",
+              state.isLoaded ? "opacity-100" : "opacity-0",
             )}
             fill
-            key={currentSource}
+            key={state.currentSource}
             loading="eager"
             placeholder="blur"
             priority
             quality={90}
             sizes="(max-width: 640px) 100vw, (max-width: 768px) 80vw, 400px"
-            src={currentSource}
+            src={state.currentSource}
           />
 
           {/* Decorative corner marks (always on top) */}

@@ -59,13 +59,22 @@ export function StatsModal({ onClose, open }: StatsModalProperties) {
         }
       }}
       role="presentation"
+      tabIndex={-1}
     >
       <div
         aria-labelledby="stats-modal-title"
+        aria-modal="true"
         className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-xl border border-border bg-background duration-300 animate-in slide-in-from-bottom-4"
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            onClose();
+          }
+        }}
         role="dialog"
+        tabIndex={-1}
       >
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-border p-6 pb-4">
@@ -123,9 +132,8 @@ export function StatsModal({ onClose, open }: StatsModalProperties) {
                   </span>
                   <div className="h-5 flex-1 bg-muted">
                     <div
-                      className={`flex h-full items-center justify-end px-2 text-xs text-primary-foreground transition-all duration-500 ${
-                        isHighest ? "bg-primary" : "bg-foreground"
-                      }`}
+                      className={`flex h-full items-center justify-end px-2 text-xs text-primary-foreground transition-all duration-500 ${isHighest ? "bg-primary" : "bg-foreground"
+                        }`}
                       style={{
                         width: `${Math.max(width, count > 0 ? 10 : 0)}%`,
                       }}
