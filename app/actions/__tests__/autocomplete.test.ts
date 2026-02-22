@@ -47,6 +47,11 @@ vi.mock("@/lib/analytics-server", () => ({
   trackEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("@/lib/cache/autocomplete-cache", () => ({
+  getCachedAutocomplete: vi.fn().mockResolvedValue(null),
+  setCachedAutocomplete: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Import after mocks
 import { trackEvent } from "@/lib/analytics-server";
 import { checkRateLimit } from "@/lib/redis";
@@ -110,7 +115,7 @@ describe("autocomplete", () => {
         await searchPerfumes("L'Eau d'Issey");
 
         expect(mockSupabaseClient.rpc).toHaveBeenCalledWith(
-          "search_perfumes_unaccent",
+          "search_perfumes_unaccent_v2",
           expect.objectContaining({
             search_query: "L'Eau d'Issey",
           }),
@@ -196,7 +201,7 @@ describe("autocomplete", () => {
         await searchPerfumes("Sauvage", "session-123", 3);
 
         expect(mockSupabaseClient.rpc).toHaveBeenCalledWith(
-          "search_perfumes_unaccent",
+          "search_perfumes_unaccent_v2",
           {
             limit_count: 30,
             search_query: "Sauvage",
@@ -599,9 +604,10 @@ describe("autocomplete", () => {
         await searchPerfumes("Sauvage", "session-123", 3);
 
         expect(trackEvent).toHaveBeenCalledWith(
-          "autocomplete_search",
+          "autocomplete_performance_v2",
           expect.objectContaining({
             attempt: 3,
+            cache_hit: false,
             has_results: true,
             query: "Sauvage",
             results_count: 1,
@@ -627,8 +633,9 @@ describe("autocomplete", () => {
         await searchPerfumes("NonexistentXYZ", "session-123", 1);
 
         expect(trackEvent).toHaveBeenCalledWith(
-          "autocomplete_search",
+          "autocomplete_performance_v2",
           expect.objectContaining({
+            cache_hit: false,
             has_results: false,
             query: "NonexistentXYZ",
             results_count: 0,

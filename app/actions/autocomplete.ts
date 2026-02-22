@@ -5,6 +5,7 @@ import {
   getCachedAutocomplete,
   setCachedAutocomplete,
 } from "@/lib/cache/autocomplete-cache";
+import { MAX_GUESSES } from "@/lib/constants";
 import { checkRateLimit } from "@/lib/redis";
 import { createClient } from "@/lib/supabase/server";
 import { maskYear } from "@/lib/utils/brand-masking";
@@ -16,7 +17,7 @@ export type PerfumeSuggestion = {
   display_name: string;
   name: string;
   perfume_id: string;
-  raw_year: number | null; // Added to help frontend grouping if needed
+  raw_year: number | null;
   year: string | null;
 };
 
@@ -28,12 +29,6 @@ type FragranceRow = {
   year: number | null;
 };
 
-/**
- *
- * @param query
- * @param sessionId
- * @param currentAttempt
- */
 export async function searchPerfumes(
   query: string,
   sessionId?: string,
@@ -53,55 +48,44 @@ export async function searchPerfumes(
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 2. Rate Limiting (Server Actions Tier)
+  // 2. Rate Limiting
   if (user) {
     await checkRateLimit("autocomplete", user.id);
   }
 
   // 3. Brand Masking Sync
-  // Use currentAttempt from client instead of querying DB
   const attemptsCount = currentAttempt ?? 0;
+  const isLastAttempt = currentAttempt === MAX_GUESSES;
+  const dbLimit = isLastAttempt ? 50 : 30;
 
-  // 4. Feature flag: Use v2 optimized function (materialized view)
-  const USE_V2 =
-    process.env.NEXT_PUBLIC_AUTOCOMPLETE_V2 === "true" ||
-    process.env.AUTOCOMPLETE_V2 === "true";
-
-  const rpcFunction = USE_V2
-    ? "search_perfumes_unaccent_v2"
-    : "search_perfumes_unaccent";
-
-  // 5. Try Redis cache first (only for v2)
+  // 4. Redis Cache
   let perfumes: FragranceRow[] | null = null;
   let cacheHit = false;
   const startTime = performance.now();
 
-  if (USE_V2) {
-    const cached = await getCachedAutocomplete(validatedQuery, 30);
-    if (cached) {
-      // Transform cached PerfumeSuggestion[] back to FragranceRow[]
-      perfumes = cached.map((item) => ({
-        brand_name: item.brand_masked,
-        concentration: item.concentration,
-        id: item.perfume_id,
-        name: item.name,
-        year: item.raw_year,
-      }));
-      cacheHit = true;
-    }
+  const cached = await getCachedAutocomplete(validatedQuery, dbLimit);
+  if (cached) {
+    perfumes = cached.map((item) => ({
+      brand_name: item.brand_masked,
+      concentration: item.concentration,
+      id: item.perfume_id,
+      name: item.name,
+      year: item.raw_year,
+    }));
+    cacheHit = true;
   }
 
-  // 6. Database Query (if cache miss or v1)
+  // 5. Database Query (cache miss)
   let dbError: { message: string } | null = null;
 
   if (!perfumes) {
-    const result = (await supabase.rpc(rpcFunction, {
-      limit_count: 30,
+    const dbResult = (await supabase.rpc("search_perfumes_unaccent_v2", {
+      limit_count: dbLimit,
       search_query: validatedQuery,
     })) as { data: FragranceRow[] | null; error: { message: string } | null };
 
-    perfumes = result.data;
-    dbError = result.error;
+    perfumes = dbResult.data;
+    dbError = dbResult.error;
   }
 
   const searchTime = performance.now() - startTime;
@@ -109,7 +93,6 @@ export async function searchPerfumes(
   if (dbError) {
     console.error("Autocomplete DB Error:", dbError);
 
-    // Track failed search
     await trackEvent(
       "autocomplete_error",
       {
@@ -125,41 +108,32 @@ export async function searchPerfumes(
 
   if (!perfumes) return [];
 
-  // Track successful search for analytics
-  const analyticsEvent = USE_V2
-    ? "autocomplete_performance_v2"
-    : "autocomplete_search";
-
   await trackEvent(
-    analyticsEvent,
+    "autocomplete_performance_v2",
     {
       attempt: currentAttempt,
-      cache_hit: USE_V2 ? cacheHit : undefined,
+      cache_hit: cacheHit,
       has_results: perfumes.length > 0,
       query: validatedQuery,
       results_count: perfumes.length,
       search_time_ms: Math.round(searchTime),
-      version: USE_V2 ? "v2" : "v1",
     },
     user?.id ?? validatedSessionId ?? "anonymous",
   );
 
-  // 5. Group by (brand + name + concentration) to see if we have duplicates
+  // 6. Group by (brand + name + concentration) to detect year-duplicates
   const grouped = new Map<string, number>();
-  if (perfumes) {
-    for (const p of perfumes) {
-      const key =
-        `${p.brand_name}|${p.name}|${p.concentration ?? ""}`.toLowerCase();
-      grouped.set(key, (grouped.get(key) ?? 0) + 1);
-    }
+  for (const p of perfumes) {
+    const key =
+      `${p.brand_name}|${p.name}|${p.concentration ?? ""}`.toLowerCase();
+    grouped.set(key, (grouped.get(key) ?? 0) + 1);
   }
 
-  const transformed: PerfumeSuggestion[] = (perfumes ?? []).map((p) => {
+  const transformed: PerfumeSuggestion[] = perfumes.map((p) => {
     const brandName = p.brand_name;
     const key = `${brandName}|${p.name}|${p.concentration ?? ""}`.toLowerCase();
     const hasDuplicates = (grouped.get(key) ?? 0) > 1;
 
-    // USER WANT: If more than 1 perfume has same brand/name/concentration, reveal full year
     const maskedYear = hasDuplicates
       ? (p.year?.toString() ?? null)
       : maskYear(p.year, attemptsCount);
@@ -181,24 +155,40 @@ export async function searchPerfumes(
     };
   });
 
-  // 6. Cache results for v2 (if cache miss)
-  if (USE_V2 && !cacheHit && transformed.length > 0) {
-    // Store in Redis cache for future queries (fire-and-forget)
-    void setCachedAutocomplete(validatedQuery, 30, transformed);
+  // 7. Cache results (fire-and-forget)
+  if (!cacheHit && transformed.length > 0) {
+    void setCachedAutocomplete(validatedQuery, dbLimit, transformed);
   }
 
-  // 7. Intelligent Slicing
-  // Standard limit is 10, but we allow expansion if the 10th and 11th items share the same identity
+  // 8. Slicing + Intelligent Expansion
+  // On the last attempt show all results (up to dbLimit=50) — brand is fully
+  // revealed so players can browse all perfumes of a brand without leaving the site.
+  if (isLastAttempt) return transformed;
+
   const DEFAULT_LIMIT = 10;
+  const EXACT_MATCH_LIMIT = 30;
+
   if (transformed.length <= DEFAULT_LIMIT) return transformed;
 
+  const queryLower = validatedQuery.toLowerCase();
+  const exactMatches = transformed.filter(
+    (item) => item.name.toLowerCase() === queryLower,
+  );
+
+  // When ≥10 exact name matches exist, show only those (up to 30).
+  // Prevents non-exact results (e.g. "Patchouli 24") from appearing when
+  // searching for "patchouli" with 26 exact hits.
+  if (exactMatches.length >= DEFAULT_LIMIT) {
+    return exactMatches.slice(0, EXACT_MATCH_LIMIT);
+  }
+
+  // Intelligent Slicing: if the last item in the default window is part of a same-year group
+  // (same brand+name+concentration, different year), expand to include all members.
   let finalCount = DEFAULT_LIMIT;
   const lastIncluded = transformed[DEFAULT_LIMIT - 1];
   const lastIncludedKey =
     `${lastIncluded.brand_masked}|${lastIncluded.name}|${lastIncluded.concentration ?? ""}`.toLowerCase();
 
-  // If the last item in the default window is part of a duplicate group,
-  // we must check if there are more members of that group immediately following it.
   for (let i = DEFAULT_LIMIT; i < transformed.length; i++) {
     const nextItem = transformed[i];
     const nextKey =

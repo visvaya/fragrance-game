@@ -159,6 +159,7 @@ export function GameActionsProvider({
       )
         return;
 
+      setLoading(true);
       try {
         const result = await submitGuess(sessionId, perfumeId, nonce);
 
@@ -257,6 +258,8 @@ export function GameActionsProvider({
         }
       } catch (error) {
         console.error("Guess submission failed:", error);
+      } finally {
+        setLoading(false);
       }
     },
     [
@@ -272,6 +275,7 @@ export function GameActionsProvider({
       setAttempts,
       setGameState,
       setImageUrl,
+      setLoading,
       setNonce,
       setDailyPerfume,
     ],

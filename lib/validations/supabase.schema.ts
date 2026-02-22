@@ -1,6 +1,5 @@
-import { z } from "zod";
-
-import { jsonSchema } from "./json.schema";
+import { jsonSchema } from './json.schema';
+import { z } from 'zod';
 
 // Enum Schemas
 // Table Schemas
@@ -367,9 +366,7 @@ export const PerfumeAssetSourcesInsert = z.object({
   takedown_status: z.string().optional(),
   version: z.number().optional(),
 });
-export type PerfumeAssetSourcesInsert = z.infer<
-  typeof PerfumeAssetSourcesInsert
->;
+export type PerfumeAssetSourcesInsert = z.infer<typeof PerfumeAssetSourcesInsert>;
 
 export const PerfumeAssetSourcesUpdate = z.object({
   id: z.string().optional(),
@@ -382,9 +379,7 @@ export const PerfumeAssetSourcesUpdate = z.object({
   takedown_status: z.string().optional(),
   version: z.number().optional(),
 });
-export type PerfumeAssetSourcesUpdate = z.infer<
-  typeof PerfumeAssetSourcesUpdate
->;
+export type PerfumeAssetSourcesUpdate = z.infer<typeof PerfumeAssetSourcesUpdate>;
 
 export const PerfumeAssets = z.object({
   asset_random_id: z.string(),
@@ -925,3 +920,4 @@ export const UserSessionsUpdate = z.object({
   user_id: z.string().optional(),
 });
 export type UserSessionsUpdate = z.infer<typeof UserSessionsUpdate>;
+

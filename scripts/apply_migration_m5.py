@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv('.env.local')
 
 # Database Configuration from .env.local
-DB_HOST = os.getenv("SUPABASE_DB_HOST", "db.rirboszzqowftfrfmmzp.supabase.co")
+DB_HOST = os.getenv("SUPABASE_DB_HOST")
 DB_NAME = "postgres"
 DB_USER = "postgres"
 DB_PASS = os.getenv("SUPABASE_DB_PASSWORD")

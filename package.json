@@ -30,7 +30,7 @@
     "audit:lighthouse": "python ../.agent/scripts/parse_lighthouse.py ./reports/latest.report.json",
     "clean": "pnpm dlx rimraf .next node_modules",
     "supabase": "pnpm dlx supabase",
-    "supabase:types": "pnpm dlx supabase custom:types",
+    "supabase:types": "pnpm dlx tsx scripts/gen-supabase-types.ts",
     "supabase:advisors": "pnpm supabase db lint --linked",
     "generate:zod": "pnpm dlx tsx scripts/generate-zod.ts --input types/supabase.ts --output lib/validations/supabase.schema.ts",
     "audit:react": "npx -y react-doctor@latest . --verbose --offline --no-ami --yes"
