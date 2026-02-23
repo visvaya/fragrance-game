@@ -44,6 +44,7 @@ const StatsModal = dynamic(
     import("./modals/stats-modal").then((module_) => module_.StatsModal),
   { ssr: false },
 );
+import { useScrollDirection } from "@/hooks/use-scroll-direction";
 import { usePathname, useRouter, routing, localeNames } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -59,6 +60,7 @@ import { ResetButton } from "./reset-button";
 export function GameHeader() {
   const { toggleFontScale, toggleLayoutMode, toggleTheme, uiPreferences } =
     useUIPreferences();
+  const isScrollHidden = useScrollDirection();
   const [modals, setModals] = useState({
     authOpen: false,
     authView: "login" as "login" | "register",
@@ -70,10 +72,13 @@ export function GameHeader() {
     statsOpen: false,
   });
 
-  const [hasCheckedFirstVisit, setHasCheckedFirstVisit] = useState(false);
-
   const openAuth = (view: "login" | "register") => {
-    setModals((previous) => ({ ...previous, authOpen: true, authView: view, menuOpen: false }));
+    setModals((previous) => ({
+      ...previous,
+      authOpen: true,
+      authView: view,
+      menuOpen: false,
+    }));
   };
 
   const router = useRouter();
@@ -83,18 +88,18 @@ export function GameHeader() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    if (hasCheckedFirstVisit) return;
-    setHasCheckedFirstVisit(true);
+    // Show help modal on first visit. We intentionally do NOT write
+    // eauxle:hasVisited here — it's written when the modal is closed.
+    // This way React StrictMode's simulated remount (which resets state)
+    // doesn't prevent the modal from reopening after the simulated unmount.
     try {
-      const hasVisited = localStorage.getItem("eauxle:hasVisited");
-      if (!hasVisited) {
+      if (!localStorage.getItem("eauxle:hasVisited")) {
         setModals((previous) => ({ ...previous, helpOpen: true }));
-        localStorage.setItem("eauxle:hasVisited", "1");
       }
     } catch {
       // localStorage may be unavailable in some environments
     }
-  }, [hasCheckedFirstVisit]);
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -106,7 +111,15 @@ export function GameHeader() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      if (_event === "SIGNED_IN" || _event === "SIGNED_OUT") {
+      // Skip refresh for anonymous sign-in: anonymous sessions are created
+      // automatically on every page load, and router.refresh() would remount
+      // client components, resetting transient UI state (e.g. open modals).
+      const isAnonymousSignIn =
+        _event === "SIGNED_IN" && session?.user?.is_anonymous === true;
+      if (
+        (_event === "SIGNED_IN" || _event === "SIGNED_OUT") &&
+        !isAnonymousSignIn
+      ) {
         router.refresh();
       }
     });
@@ -126,13 +139,19 @@ export function GameHeader() {
 
   return (
     <>
-      <header className="w-full">
+      <header
+        className={cn(
+          "sticky top-0 z-50 w-full transition-transform duration-300 ease-in-out",
+          isScrollHidden && "max-sm:-translate-y-full",
+        )}
+      >
         <nav
           className={cn(
-            "relative mx-auto flex w-full items-center justify-between rounded-b-none border-x-0 border-b border-border/50 bg-background px-5 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 transition-all duration-300 sm:rounded-b-md sm:border-x",
-            uiPreferences.layoutMode === "wide" ? "max-w-5xl" : "max-w-xl",
+            "layout-container relative mx-auto flex w-full items-center justify-between rounded-b-none border-x-0 border-b border-border/50 bg-background/70 px-5 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 backdrop-blur-md transition-all duration-300 sm:rounded-b-md sm:border-x",
+            uiPreferences.layoutMode === "wide" ? "max-w-5xl" : "max-w-2xl",
             modals.menuOpen || modals.langOpen ? "z-50" : "z-20",
           )}
+          suppressHydrationWarning
         >
           {/* Left controls */}
           <div className="flex items-center gap-2 md:gap-4">
@@ -145,7 +164,12 @@ export function GameHeader() {
               <button
                 aria-label={t("menu")}
                 className="p-2 text-foreground transition-colors duration-300 hover:text-primary"
-                onClick={() => setModals((previous) => ({ ...previous, menuOpen: !previous.menuOpen }))}
+                onClick={() =>
+                  setModals((previous) => ({
+                    ...previous,
+                    menuOpen: !previous.menuOpen,
+                  }))
+                }
               >
                 <Menu className="h-5 w-5" />
               </button>
@@ -160,7 +184,9 @@ export function GameHeader() {
               <button
                 aria-label={t("help")}
                 className="relative p-2 text-foreground transition-colors duration-300 hover:text-primary"
-                onClick={() => setModals((previous) => ({ ...previous, helpOpen: true }))}
+                onClick={() =>
+                  setModals((previous) => ({ ...previous, helpOpen: true }))
+                }
               >
                 <HelpCircle className="h-5 w-5" />
               </button>
@@ -187,7 +213,12 @@ export function GameHeader() {
             >
               <button
                 className="flex items-center gap-1 p-2 text-sm font-semibold text-foreground transition-colors duration-300 hover:text-primary"
-                onClick={() => setModals((previous) => ({ ...previous, langOpen: !previous.langOpen }))}
+                onClick={() =>
+                  setModals((previous) => ({
+                    ...previous,
+                    langOpen: !previous.langOpen,
+                  }))
+                }
               >
                 {currentLang}
                 <ChevronDown className="h-3 w-3" />
@@ -203,7 +234,9 @@ export function GameHeader() {
               <button
                 aria-label={t("stats")}
                 className="p-2 text-foreground transition-colors duration-300 hover:text-primary"
-                onClick={() => setModals((previous) => ({ ...previous, statsOpen: true }))}
+                onClick={() =>
+                  setModals((previous) => ({ ...previous, statsOpen: true }))
+                }
               >
                 <BarChart3 className="h-5 w-5" />
               </button>
@@ -213,7 +246,7 @@ export function GameHeader() {
           {/* Menu Dropdown */}
           <div
             className={cn(
-              "!absolute top-full left-5 mt-2 w-56 flex-col overflow-hidden rounded-md border border-border/50 bg-background shadow-xl transition-all duration-300",
+              "!absolute top-full left-5 mt-2 w-56 flex-col overflow-hidden rounded-md border border-border/50 bg-background/95 shadow-2xl shadow-black/10 backdrop-blur-md transition-all duration-300",
               modals.menuOpen
                 ? "flex translate-y-0 opacity-100"
                 : "hidden -translate-y-2 opacity-0",
@@ -224,7 +257,11 @@ export function GameHeader() {
                 <button
                   className="flex w-full items-center justify-between border-b border-border px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
                   onClick={() => {
-                    setModals((previous) => ({ ...previous, menuOpen: false, profileOpen: true }));
+                    setModals((previous) => ({
+                      ...previous,
+                      menuOpen: false,
+                      profileOpen: true,
+                    }));
                   }}
                 >
                   {t("profile")}
@@ -250,7 +287,10 @@ export function GameHeader() {
                     <button
                       className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
                       onClick={async () => {
-                        setModals((previous) => ({ ...previous, menuOpen: false }));
+                        setModals((previous) => ({
+                          ...previous,
+                          menuOpen: false,
+                        }));
                         const supabase = createClient();
                         await supabase.auth.signOut();
                         // Hard reload: reinitializes GameProvider with a new anonymous session,
@@ -263,7 +303,11 @@ export function GameHeader() {
                     <button
                       className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
                       onClick={() => {
-                        setModals((previous) => ({ ...previous, menuOpen: false, sessionsOpen: true }));
+                        setModals((previous) => ({
+                          ...previous,
+                          menuOpen: false,
+                          sessionsOpen: true,
+                        }));
                       }}
                     >
                       {t("manageSessions")}
@@ -407,7 +451,7 @@ export function GameHeader() {
           {/* Language Dropdown */}
           <div
             className={cn(
-              "!absolute top-full right-16 mt-2 w-24 flex-col overflow-hidden rounded-md border border-border/50 bg-background shadow-xl transition-all duration-300",
+              "!absolute top-full right-16 mt-2 w-24 flex-col overflow-hidden rounded-md border border-border/50 bg-background/95 shadow-2xl shadow-black/10 backdrop-blur-md transition-all duration-300",
               modals.langOpen
                 ? "flex translate-y-0 opacity-100"
                 : "hidden -translate-y-2 opacity-0",
@@ -437,11 +481,19 @@ export function GameHeader() {
           aria-label="Close menu"
           className="fixed inset-0 z-40"
           onClick={() => {
-            setModals((previous) => ({ ...previous, langOpen: false, menuOpen: false }));
+            setModals((previous) => ({
+              ...previous,
+              langOpen: false,
+              menuOpen: false,
+            }));
           }}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
-              setModals((previous) => ({ ...previous, langOpen: false, menuOpen: false }));
+              setModals((previous) => ({
+                ...previous,
+                langOpen: false,
+                menuOpen: false,
+              }));
             }
           }}
           role="button"
@@ -449,29 +501,49 @@ export function GameHeader() {
         />
       ) : null}
 
-      <HelpModal onClose={() => setModals((previous) => ({ ...previous, helpOpen: false }))} open={modals.helpOpen} />
-      <StatsModal onClose={() => setModals((previous) => ({ ...previous, statsOpen: false }))} open={modals.statsOpen} />
+      <HelpModal
+        onClose={() => {
+          try {
+            localStorage.setItem("eauxle:hasVisited", "1");
+          } catch {
+            // localStorage may be unavailable in some environments
+          }
+          setModals((previous) => ({ ...previous, helpOpen: false }));
+        }}
+        open={modals.helpOpen}
+      />
+      <StatsModal
+        onClose={() =>
+          setModals((previous) => ({ ...previous, statsOpen: false }))
+        }
+        open={modals.statsOpen}
+      />
       <AuthModal
         defaultView={modals.authView}
         isOpen={modals.authOpen}
-        onOpenChange={(open) => setModals((previous) => ({ ...previous, authOpen: open }))}
+        onOpenChange={(open) =>
+          setModals((previous) => ({ ...previous, authOpen: open }))
+        }
       />
 
       {user ? (
         <>
           <SessionsModal
-            onClose={() => setModals((previous) => ({ ...previous, sessionsOpen: false }))}
+            onClose={() =>
+              setModals((previous) => ({ ...previous, sessionsOpen: false }))
+            }
             open={modals.sessionsOpen}
             user={user}
           />
           <ProfileModal
-            onClose={() => setModals((previous) => ({ ...previous, profileOpen: false }))}
+            onClose={() =>
+              setModals((previous) => ({ ...previous, profileOpen: false }))
+            }
             open={modals.profileOpen}
             user={user}
           />
         </>
       ) : null}
-
     </>
   );
 }

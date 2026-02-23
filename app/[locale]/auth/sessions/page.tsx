@@ -1,10 +1,9 @@
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { getTranslations } from "next-intl/server";
 
-import { SessionCard } from "@/components/auth/session-card";
+import { SessionCard, type Session } from "@/components/auth/session-card";
 import { createClient } from "@/lib/supabase/server";
 
 async function revokeSession(sessionId: string) {
@@ -57,7 +56,7 @@ export default async function SessionsPage() {
       <p className="mb-6 text-muted-foreground">{t("description")}</p>
 
       <div className="space-y-4">
-        {sessions?.map((session) => (
+        {(sessions as Session[] | null)?.map((session) => (
           <SessionCard
             isCurrent={false} // Will be updated by client hook if we wrap it or handle in Card
             key={session.id}

@@ -223,7 +223,13 @@ describe("Game Actions Integration (Mocked)", () => {
         error: null,
       } as any);
 
-      await expect(submitGuess("123e4567-e89b-12d3-a456-426614174003", "f47a-58cc-4372-a567-0e02b2c3d470", "123")).rejects.toThrow(/CONFLICT/);
+      await expect(
+        submitGuess(
+          "123e4567-e89b-12d3-a456-426614174003",
+          "f47a-58cc-4372-a567-0e02b2c3d470",
+          "123",
+        ),
+      ).rejects.toThrow(/CONFLICT/);
     });
   });
 });

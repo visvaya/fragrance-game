@@ -1,6 +1,13 @@
 "use client";
 
-import { Store, Feather, Hourglass, Sparkles, Droplets } from "lucide-react";
+import {
+  Store,
+  Feather,
+  Hourglass,
+  Sparkles,
+  Droplets,
+  Lock,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
@@ -32,9 +39,9 @@ export function MetaClues() {
       key: "gender",
       value:
         revealLevel >= 5 ||
-          isGenderRevealed ||
-          gameState === "won" ||
-          gameState === "lost"
+        isGenderRevealed ||
+        gameState === "won" ||
+        gameState === "lost"
           ? dailyPerfume.gender
           : "?????",
     },
@@ -42,9 +49,9 @@ export function MetaClues() {
 
   return (
     <div className="flex h-full flex-col bg-background p-0">
-      <div className="mb-4 flex items-center gap-2">
-        <Store className="h-4 w-4 text-muted-foreground" />
-        <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground">
+      <div className="group mb-4 flex w-fit cursor-default items-center gap-2">
+        <Store className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:scale-[1.15]" />
+        <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase">
           {t("identity")}
         </h2>
       </div>
@@ -56,7 +63,7 @@ export function MetaClues() {
             key={clue.key}
           >
             {/* Label */}
-            <span className="w-full text-[10px] font-semibold tracking-[0.2em] text-muted-foreground/70 uppercase">
+            <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
               {t(clue.key)}
             </span>
 
@@ -121,15 +128,12 @@ function MetaBadge({
           }
 
           return (
-            <GameTooltip content={tooltipContent} key={`meta-${clueKey}-placeholder-${wordIndex}`}>
-              <div className="flex cursor-help">
-                {[1, 2, 3, 4, 5].map((_, i) => (
-                  <div
-                    aria-hidden="true"
-                    className="mx-[0.5px] h-5 w-2.5 border-b border-muted-foreground/30"
-                    key={`meta-slot-${clueKey}-${wordIndex}-${i}`}
-                  />
-                ))}
+            <GameTooltip
+              content={tooltipContent}
+              key={`meta-${clueKey}-placeholder-${wordIndex}`}
+            >
+              <div className="group flex cursor-help items-center justify-center px-2 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
+                <Lock className="h-3 w-3 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
               </div>
             </GameTooltip>
           );
@@ -139,17 +143,21 @@ function MetaBadge({
         const isUnknownData = value === "Unknown";
         if (isUnknownData) {
           return (
-            <GameTooltip content={t("dataUnavailable")} key={`meta-${clueKey}-unknown-${wordIndex}`}>
+            <GameTooltip
+              content={t("dataUnavailable")}
+              key={`meta-${clueKey}-unknown-${wordIndex}`}
+            >
               <span className="cursor-help opacity-70">{translatedValue}</span>
             </GameTooltip>
           );
         }
 
         const isWordMasked = word.includes("_");
+        const isFullHidden =
+          word === "?????" || (clueKey === "year" && /^_+$/.test(word));
         let tooltipContent = t("letters", { count: word.length });
 
         if (clueKey === "year") {
-          const isFullHidden = /^_+$/.test(word);
           tooltipContent = isFullHidden
             ? t("fullyHidden", { attempt: currentAttempt })
             : t("partiallyHidden", { attempt: currentAttempt });
@@ -162,70 +170,98 @@ function MetaBadge({
           isWordMasked;
 
         const content = (
-          <div className="flex flex-nowrap" key={`meta-content-${clueKey}-${word}-${wordIndex}`}>
-            {word.split("").map((char, charIndex) => {
-              const isSlot = char === "_";
-              if (isSlot) {
+          <div
+            className="flex flex-nowrap"
+            key={`meta-content-${clueKey}-${word}-${wordIndex}`}
+          >
+            {isFullHidden ? (
+              <div className="group flex items-center justify-center px-2 py-1 opacity-80 transition-colors duration-300 hover:opacity-100">
+                <Lock className="h-3 w-3 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
+              </div>
+            ) : (
+              word.split("").map((char, charIndex) => {
+                const isSlot = char === "_";
+                if (isSlot) {
+                  return (
+                    <div
+                      aria-hidden="true"
+                      className="mx-[0.5px] h-5 w-2.5 border-b border-muted-foreground/30 transition-all duration-300"
+                      key={`meta-slot-${clueKey}-${wordIndex}-${charIndex}`}
+                    />
+                  );
+                }
                 return (
                   <div
-                    aria-hidden="true"
-                    className="mx-[0.5px] h-5 w-2.5 border-b border-muted-foreground/30 transition-all duration-300"
-                    key={`meta-slot-${clueKey}-${wordIndex}-${charIndex}`}
-                  />
+                    className="mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
+                    key={`meta-char-${clueKey}-${wordIndex}-${charIndex}`}
+                  >
+                    {char}
+                  </div>
                 );
-              }
-              return (
-                <div
-                  className="mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
-                  key={`meta-char-${clueKey}-${wordIndex}-${charIndex}`}
-                >
-                  {char}
-                </div>
-              );
-            })}
+              })
+            )}
           </div>
         );
 
         if (showTooltip) {
           return (
-            <GameTooltip content={tooltipContent} key={`meta-tt-${clueKey}-${word}-${wordIndex}`}>
+            <GameTooltip
+              content={tooltipContent}
+              key={`meta-tt-${clueKey}-${word}-${wordIndex}`}
+            >
               {({ isHovered }: { isHovered?: boolean }) => (
                 <div className="flex flex-nowrap">
-                  {word.split("").map((char, charIndex) => {
-                    const isSlot = char === "_";
-                    if (isSlot) {
-                      return (
-                        <div
-                          aria-hidden="true"
-                          className={`mx-[0.5px] h-5 w-2.5 transition-all duration-300 ${isHovered
-                              ? "border-b border-[oklch(0.75_0.15_60)]"
-                              : "border-b border-muted-foreground/30"
-                            }`}
-                          key={`meta-tt-slot-${clueKey}-${wordIndex}-${charIndex}`}
-                        />
-                      );
-                    }
-                    return (
-                      <div
+                  {isFullHidden ? (
+                    <div className="flex items-center justify-center px-2 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
+                      <Lock
                         className={cn(
-                          "mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none transition-colors duration-300",
+                          "h-3 w-3 transition-colors duration-300",
                           isHovered
                             ? "text-[oklch(0.75_0.15_60)]"
-                            : "text-foreground",
+                            : "text-muted-foreground",
                         )}
-                        key={`meta-tt-char-${clueKey}-${wordIndex}-${charIndex}`}
-                      >
-                        {char}
-                      </div>
-                    );
-                  })}
+                      />
+                    </div>
+                  ) : (
+                    word.split("").map((char, charIndex) => {
+                      const isSlot = char === "_";
+                      if (isSlot) {
+                        return (
+                          <div
+                            aria-hidden="true"
+                            className={`mx-[0.5px] h-5 w-2.5 transition-all duration-300 ${
+                              isHovered
+                                ? "border-b border-[oklch(0.75_0.15_60)]"
+                                : "border-b border-muted-foreground/30"
+                            }`}
+                            key={`meta-tt-slot-${clueKey}-${wordIndex}-${charIndex}`}
+                          />
+                        );
+                      }
+                      return (
+                        <div
+                          className={cn(
+                            "mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none transition-colors duration-300",
+                            isHovered
+                              ? "text-[oklch(0.75_0.15_60)]"
+                              : "text-foreground",
+                          )}
+                          key={`meta-tt-char-${clueKey}-${wordIndex}-${charIndex}`}
+                        >
+                          {char}
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               )}
             </GameTooltip>
           );
         }
 
-        return <div key={`meta-span-${clueKey}-${word}-${wordIndex}`}>{content}</div>;
+        return (
+          <div key={`meta-span-${clueKey}-${word}-${wordIndex}`}>{content}</div>
+        );
       })}
     </div>
   );

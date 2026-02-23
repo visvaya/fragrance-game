@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (!error && data?.session) {
+    if (!error) {
       // Update session metadata with real browser info (replacing "node")
       const userAgent = request.headers.get("user-agent") || "unknown";
       // x-forwarded-for handling (first IP is client)

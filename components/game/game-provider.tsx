@@ -328,7 +328,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
           // Restore baseAttemptCount for new sessions with no guess history
           // (happens when player declined anonymous migration and inherited attempts)
-          if (inheritedCount > 0 && (!session.guesses || session.guesses.length === 0)) {
+          if (
+            inheritedCount > 0 &&
+            (!session.guesses || session.guesses.length === 0)
+          ) {
             setBaseAttemptCount(inheritedCount);
           }
 

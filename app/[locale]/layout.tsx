@@ -117,7 +117,7 @@ export default async function RootLayout({
   const { locale } = await params;
 
   // Ensure that the incoming `locale` is valid
-  if (!routing.locales.includes(locale as any)) {
+  if (!routing.locales.includes(locale as (typeof routing.locales)[number])) {
     notFound();
   }
 
@@ -128,6 +128,14 @@ export default async function RootLayout({
   return (
     <html lang={locale || routing.defaultLocale} suppressHydrationWarning>
       <head>
+        {/* Blocking script: sets data-layout="wide" on <html> before first paint,
+            eliminating the narrow→wide flash on desktop screens. Runs synchronously
+            during <head> parsing, before the browser renders any body content. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var l=localStorage.getItem('fragrance-game-layout');if(l==='wide'||(!l&&window.innerWidth>=1024)){document.documentElement.setAttribute('data-layout','wide')}}catch(e){}`,
+          }}
+        />
         {process.env.NEXT_PUBLIC_SUPABASE_URL ? (
           <link
             crossOrigin="anonymous"

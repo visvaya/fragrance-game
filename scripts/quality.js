@@ -1,15 +1,24 @@
 /**
  * Quality Audit Script
  * Runs all quality checks, saves reports to /reports, then prints a human-readable summary.
- * Usage: node scripts/quality.js
+ * Usage: node scripts/quality.js [--no-tests]
  */
 
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { printLintSummary } = require('./parse-eslint');
 
+const skipTests = process.argv.includes('--no-tests');
 const reportsDir = path.join(process.cwd(), 'reports');
 const LINT_REPORT = path.join(reportsDir, 'eslint.json');
+const TEXT_REPORT = path.join(reportsDir, 'quality-summary.txt');
+
+let outputLog = "";
+const log = (msg) => {
+    console.log(msg);
+    outputLog += msg + "\n";
+};
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -22,7 +31,7 @@ function run(name, command, outputFile) {
     try {
         const output = execSync(command, {
             encoding: 'utf8',
-            maxBuffer: 10 * 1024 * 1024,
+            maxBuffer: 50 * 1024 * 1024,
             stdio: ['ignore', 'pipe', 'pipe'],
         });
         fs.writeFileSync(outputFile, output);
@@ -36,79 +45,20 @@ function run(name, command, outputFile) {
     }
 }
 
-// ── ESLint Summary ────────────────────────────────────────────────────────────
-
-function printLintSummary(reportPath) {
-    if (!fs.existsSync(reportPath)) return;
-
-    let data;
-    try {
-        data = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-    } catch {
-        console.log('  ⚠️  Could not parse eslint.json');
-        return;
-    }
-
-    const errors = {};
-    const warnings = {};
-    let totalErrors = 0;
-    let totalWarnings = 0;
-    let totalFiles = 0;
-
-    for (const file of data) {
-        if (file.messages.length === 0) continue;
-        totalFiles++;
-        for (const msg of file.messages) {
-            const rule = msg.ruleId || '(parse error)';
-            if (msg.severity === 2) {
-                errors[rule] = (errors[rule] || 0) + 1;
-                totalErrors++;
-            } else {
-                warnings[rule] = (warnings[rule] || 0) + 1;
-                totalWarnings++;
-            }
-        }
-    }
-
-    const pad = (n) => n.toString().padStart(5);
-
-    if (totalErrors > 0) {
-        console.log(`\n  ┌─ ERRORS (${totalErrors} in ${totalFiles} files) ──────────────────────┐`);
-        Object.entries(errors)
-            .sort((a, b) => b[1] - a[1])
-            .forEach(([rule, count]) =>
-                console.log(`  │ ${pad(count)}  ${rule}`)
-            );
-        console.log(`  └──────────────────────────────────────────────────────────────────┘`);
-    } else {
-        console.log(`  ✅ No errors!`);
-    }
-
-    if (totalWarnings > 0) {
-        console.log(`\n  ┌─ WARNINGS (${totalWarnings}) ──────────────────────────────────────────┐`);
-        Object.entries(warnings)
-            .sort((a, b) => b[1] - a[1])
-            .forEach(([rule, count]) =>
-                console.log(`  │ ${pad(count)}  ${rule}`)
-            );
-        console.log(`  └──────────────────────────────────────────────────────────────────┘`);
-    }
-}
-
 // ── Typecheck Summary ─────────────────────────────────────────────────────────
 
 function printTypecheckSummary(reportPath) {
     if (!fs.existsSync(reportPath)) return;
     const content = fs.readFileSync(reportPath, 'utf8').trim();
     if (!content) {
-        console.log(`  ✅ No type errors!`);
+        log(`  ✅ No type errors!`);
         return;
     }
     const lines = content.split('\n').filter(Boolean);
-    console.log(`\n  ┌─ TYPE ERRORS (${lines.length}) ─────────────────────────────────────────┐`);
-    lines.slice(0, 20).forEach(line => console.log(`  │ ${line.trim()}`));
-    if (lines.length > 20) console.log(`  │ ... and ${lines.length - 20} more`);
-    console.log(`  └──────────────────────────────────────────────────────────────────┘`);
+    log(`\n  ┌─ TYPE ERRORS (${lines.length}) ─────────────────────────────────────────┐`);
+    lines.slice(0, 20).forEach(line => log(`  │ ${line.trim()}`));
+    if (lines.length > 20) log(`  │ ... and ${lines.length - 20} more`);
+    log(`  └──────────────────────────────────────────────────────────────────┘`);
 }
 
 // ── Knip Summary ──────────────────────────────────────────────────────────────
@@ -117,21 +67,88 @@ function printKnipSummary(reportPath) {
     if (!fs.existsSync(reportPath)) return;
     let data;
     try {
-        data = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-    } catch {
-        // Output may include non-JSON text (e.g. Knip warnings on stderr)
         const raw = fs.readFileSync(reportPath, 'utf8');
         const jsonStart = raw.indexOf('{');
-        if (jsonStart === -1) { console.log('  ⚠️  Could not parse knip.json'); return; }
-        try { data = JSON.parse(raw.slice(jsonStart)); } catch { return; }
+        if (jsonStart === -1) { log('  ⚠️  Could not parse knip.json'); return; }
+        data = JSON.parse(raw.slice(jsonStart));
+    } catch {
+        log('  ⚠️  Could not parse knip.json'); return;
     }
-    const issueCount = (data.issues || []).reduce((s, f) => s + Object.keys(f).filter(k => k !== 'file').length, 0);
+    const issueCount = (data.issues || []).reduce((s, f) => {
+        return s + Object.keys(f).filter(k => k !== 'file').reduce((sum, key) => {
+            return sum + (Array.isArray(f[key]) ? f[key].length : Object.keys(f[key] || {}).length);
+        }, 0);
+    }, 0);
     const fileCount = (data.files || []).length;
     if (issueCount === 0 && fileCount === 0) {
-        console.log(`  ✅ No dead code found!`);
+        log(`  ✅ No dead code found!`);
     } else {
-        if (fileCount > 0) console.log(`  ⚠️  ${fileCount} unused file(s)`);
-        if (issueCount > 0) console.log(`  ⚠️  ${issueCount} unused export(s)/binding(s)`);
+        if (fileCount > 0) log(`  ⚠️  ${fileCount} unused file(s)`);
+        if (issueCount > 0) log(`  ⚠️  ${issueCount} unused export(s)/binding(s)`);
+
+        // Print specific issues
+        (data.issues || []).forEach(issue => {
+            Object.keys(issue).filter(k => k !== 'file').forEach(category => {
+                const items = issue[category];
+                if (Array.isArray(items) && items.length > 0) {
+                    items.forEach(item => {
+                        const name = item.name || String(item);
+                        const line = item.line ? `:${item.line}` : '';
+                        log(`      - [${category}] ${name} in ${issue.file}${line}`);
+                    });
+                } else if (!Array.isArray(items) && items && Object.keys(items).length > 0) {
+                    Object.keys(items).forEach(key => {
+                        log(`      - [${category}] ${key} in ${issue.file}`);
+                    });
+                }
+            });
+        });
+    }
+}
+
+// ── Depcheck Summary ────────────────────────────────────────────────────────────
+
+function printDepcheckSummary(reportPath) {
+    if (!fs.existsSync(reportPath)) return;
+    let data;
+    try {
+        data = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+    } catch {
+        const raw = fs.readFileSync(reportPath, 'utf8').trim();
+        if (raw) {
+            log('  ⚠️  Depcheck tool crashed or returned invalid JSON. Raw output:');
+            const lines = raw.split('\n');
+            lines.slice(0, 5).forEach(line => log(`    ${line}`));
+            if (lines.length > 5) log(`    ... and ${lines.length - 5} more lines`);
+        } else {
+            log('  ⚠️  Could not parse depcheck.json (empty output)');
+        }
+        return;
+    }
+
+    let hasIssues = false;
+    if (data.dependencies && data.dependencies.length > 0) {
+        log(`\n  ┌─ UNUSED DEPENDENCIES (${data.dependencies.length}) ─────────┐`);
+        data.dependencies.forEach(dep => log(`  │ ${dep}`));
+        log(`  └──────────────────────────────────────┘`);
+        hasIssues = true;
+    }
+    if (data.devDependencies && data.devDependencies.length > 0) {
+        log(`\n  ┌─ UNUSED DEV-DEPENDENCIES (${data.devDependencies.length}) ─┐`);
+        data.devDependencies.forEach(dep => log(`  │ ${dep}`));
+        log(`  └──────────────────────────────────────┘`);
+        hasIssues = true;
+    }
+    if (data.missing && Object.keys(data.missing).length > 0) {
+        const missingKeys = Object.keys(data.missing);
+        log(`\n  ┌─ MISSING DEPENDENCIES (${missingKeys.length}) ─────────┐`);
+        missingKeys.forEach(dep => log(`  │ ${dep}`));
+        log(`  └──────────────────────────────────────┘`);
+        hasIssues = true;
+    }
+
+    if (!hasIssues) {
+        log('  ✅ No unused or missing dependencies!');
     }
 }
 
@@ -139,15 +156,21 @@ function printKnipSummary(reportPath) {
 
 const LINE = '═'.repeat(70);
 
-console.log(`\n${LINE}`);
-console.log(`  🚀  QUALITY AUDIT  –  ${new Date().toLocaleTimeString('pl-PL')}`);
-console.log(`${LINE}`);
+log(`\n${LINE}`);
+log(`  🚀  QUALITY AUDIT  –  ${new Date().toLocaleTimeString('pl-PL')}`);
+if (skipTests) log(`  🧪  Excluding tests from audit`);
+log(`${LINE}`);
 
 ensureDir(reportsDir);
 
+let lintCmd = 'pnpm exec eslint . -f json';
+if (skipTests) {
+    lintCmd += ' --ignore-pattern "**/tests/**" --ignore-pattern "**/e2e/**" --ignore-pattern "**/*.test.ts" --ignore-pattern "**/*.spec.ts"';
+}
+
 const tools = [
     { name: 'typecheck', command: 'pnpm tsc --noEmit', file: 'typecheck.log' },
-    { name: 'lint', command: 'pnpm eslint . -f json', file: 'eslint.json' },
+    { name: 'lint', command: lintCmd, file: t => 'eslint.json' },
     { name: 'format', command: 'pnpm prettier --check .', file: 'format.log' },
     { name: 'knip', command: 'pnpm knip --reporter json', file: 'knip.json' },
     { name: 'depcheck', command: 'pnpm exec depcheck --json', file: 'depcheck.json' },
@@ -155,44 +178,65 @@ const tools = [
 
 const results = {};
 for (const t of tools) {
-    results[t.name] = run(t.name, t.command, path.join(reportsDir, t.file));
+    const filename = typeof t.file === 'function' ? t.file() : t.file;
+    results[t.name] = run(t.name, t.command, path.join(reportsDir, filename));
 }
 
 // ── Summary Section ───────────────────────────────────────────────────────────
 
-console.log(`\n${LINE}`);
-console.log(`  📊  SUMMARY`);
-console.log(`${LINE}`);
+log(`\n${LINE}`);
+log(`  📊  SUMMARY`);
+log(`${LINE}`);
 
-console.log('\n[TYPECHECK]');
+log('\n[TYPECHECK]');
 printTypecheckSummary(path.join(reportsDir, 'typecheck.log'));
 
-console.log('\n[ESLINT]');
+log('\n[ESLINT]');
+// We capture printLintSummary output into our log
+const oldLog = console.log;
+console.log = (m) => { outputLog += m + "\n"; oldLog(m); };
 printLintSummary(LINT_REPORT);
+console.log = oldLog;
 
-console.log('\n[KNIP]');
+log('\n[KNIP]');
 printKnipSummary(path.join(reportsDir, 'knip.json'));
 
-console.log('\n[DEPCHECK]');
-if (results.depcheck) {
-    console.log('  ✅ No unused dependencies!');
-} else {
-    console.log('  ⚠️  See reports/depcheck.json for details');
-}
+log('\n[DEPCHECK]');
+printDepcheckSummary(path.join(reportsDir, 'depcheck.json'));
 
-console.log('\n[PRETTIER]');
+log('\n[PRETTIER]');
 if (results.format) {
-    console.log('  ✅ All files correctly formatted!');
+    log('  ✅ All files correctly formatted!');
 } else {
-    const fmt = fs.readFileSync(path.join(reportsDir, 'format.log'), 'utf8').trim();
-    const bad = fmt.split('\n').filter(l => l.includes('[warn]') && !l.includes('issues found'));
-    bad.forEach(l => console.log(`  ⚠️  ${l.trim()}`));
+    const formatLogPath = path.join(reportsDir, 'format.log');
+    if (fs.existsSync(formatLogPath)) {
+        const fmt = fs.readFileSync(formatLogPath, 'utf8').trim();
+        const cleanFmt = fmt.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
+        const lines = cleanFmt.split('\n');
+        const bad = lines.filter(l => l.includes('[warn]') && !l.includes('issues found'));
+        const adviceLine = lines.find(l => l.toLowerCase().includes('run prettier with --write'));
+
+        if (bad.length === 0) {
+            log('  ⚠️  Prettier failed but no specific unformatted files listed.');
+        } else {
+            bad.slice(0, 10).forEach(l => log(`  ⚠️  ${l.trim()}`));
+            if (bad.length > 10) log(`  │ ... and ${bad.length - 10} more formatting issues`);
+
+            let advice = adviceLine ? adviceLine.trim() : `Code style issues found in ${bad.length} files. Run 'pnpm prettier --write .' to fix.`;
+            advice = advice.replace('[warn]', '').trim();
+            log(`\n  💡 Tip: ${advice}`);
+        }
+    }
 }
 
 const allClean = Object.values(results).every(Boolean);
-console.log(`\n${LINE}`);
-console.log(allClean
+log(`\n${LINE}`);
+log(allClean
     ? `  🎉  All checks passed! Project is clean.`
     : `  ⚠️  Some checks reported issues. See /reports for details.`
 );
-console.log(`${LINE}\n`);
+log(`${LINE}\n`);
+
+// Save total summary to text file for LLM
+fs.writeFileSync(TEXT_REPORT, outputLog.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, ''));
+log(`📄 Full state summary saved to: ${path.relative(process.cwd(), TEXT_REPORT)}`);

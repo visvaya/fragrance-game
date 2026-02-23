@@ -402,3 +402,10 @@ html.lenis body {
   scrollbar-width: none;
   /* Firefox */
 }
+
+/* Pre-hydration wide layout: CSS override set by the inline <head> script.
+   Ensures desktop users see the wide layout immediately — before React hydrates
+   and before JS can read localStorage. Paired with data-layout attr on <html>. */
+html[data-layout="wide"] .layout-container {
+  max-width: 64rem; /* matches Tailwind max-w-5xl */
+}

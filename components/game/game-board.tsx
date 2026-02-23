@@ -36,8 +36,9 @@ export function GameBoard() {
     <div
       className={cn(
         "mx-auto flex w-full flex-col gap-6 transition-all duration-300",
-        isWide ? "max-w-5xl" : "max-w-xl",
+        isWide ? "max-w-[60rem] px-6 sm:px-0" : "max-w-[38rem] px-6 sm:px-0",
       )}
+      suppressHydrationWarning
     >
       {showConfetti ? <Confetti /> : null}
       {/* Game Over Cards ... */}

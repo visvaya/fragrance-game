@@ -3,14 +3,14 @@
 import { useState } from "react";
 
 import { formatDistanceToNow } from "date-fns";
-import { Loader2, Monitor, Smartphone, Laptop, Trash2 } from "lucide-react";
+import { Loader2, Monitor, Smartphone, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-type Session = {
+export type Session = {
   created_at: string;
   device_info: {
     browser?: string;
@@ -25,9 +25,9 @@ type Session = {
 };
 
 type SessionCardProperties = {
-  isCurrent: boolean;
-  onRevoke: (id: string) => Promise<void>;
-  session: Session;
+  readonly isCurrent: boolean;
+  readonly onRevoke: (id: string) => Promise<void>;
+  readonly session: Session;
 };
 
 /**

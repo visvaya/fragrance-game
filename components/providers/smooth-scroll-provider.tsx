@@ -39,7 +39,27 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void initLenis();
 
+    const observer = new MutationObserver(() => {
+      // Radix UI adds data-scroll-locked or pointer-events: none
+      // Our custom modals add overflow: hidden
+      if (
+        document.body.style.overflow === "hidden" ||
+        Object.hasOwn(document.body.dataset, "scrollLocked") ||
+        document.body.style.pointerEvents === "none"
+      ) {
+        lenis?.stop();
+      } else {
+        lenis?.start();
+      }
+    });
+
+    observer.observe(document.body, {
+      attributeFilter: ["style", "data-scroll-locked"],
+      attributes: true,
+    });
+
     return () => {
+      observer.disconnect();
       lenis?.destroy();
       lenis = null;
     };

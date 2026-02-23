@@ -73,24 +73,6 @@ function CardDescription({ className, ...props }: ComponentProps<"div">) {
  * @param root0
  * @param root0.className
  */
-function CardAction({ className, ...props }: ComponentProps<"div">) {
-  return (
-    <div
-      className={cn(
-        "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
-        className,
-      )}
-      data-slot="card-action"
-      {...props}
-    />
-  );
-}
-
-/**
- *
- * @param root0
- * @param root0.className
- */
 function CardContent({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
@@ -118,9 +100,9 @@ function CardFooter({ className, ...props }: ComponentProps<"div">) {
 
 export {
   Card,
-  CardHeader,
-  CardFooter,
-  CardTitle,
-  CardDescription,
   CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
 };

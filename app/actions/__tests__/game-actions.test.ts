@@ -1140,7 +1140,12 @@ describe("game-actions", () => {
           player_id: "user-123",
           status: "active",
         },
-        perfumeAssets: [{ image_url: "https://example.com/f47ac10b-58cc-4372-a567-0e02b2c3d479.jpg" }],
+        perfumeAssets: [
+          {
+            image_url:
+              "https://example.com/f47ac10b-58cc-4372-a567-0e02b2c3d479.jpg",
+          },
+        ],
         user: { id: "user-123" },
       });
 
@@ -1309,13 +1314,13 @@ describe("game-actions", () => {
                 return sessionCallCount === 1
                   ? { data: sessionData, error: null }
                   : {
-                    data: {
-                      ...sessionData,
-                      attempts_count: 3,
-                      status: "won",
-                    },
-                    error: null,
-                  };
+                      data: {
+                        ...sessionData,
+                        attempts_count: 3,
+                        status: "won",
+                      },
+                      error: null,
+                    };
               });
             } else if (table === "game_results") {
               chain.insert = vi.fn().mockResolvedValue({

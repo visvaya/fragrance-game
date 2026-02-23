@@ -4,7 +4,14 @@ import { useEffect, useState } from "react";
 
 import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { createPortal } from "react-dom";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type StatsModalProperties = {
   onClose: () => void;
@@ -34,53 +41,21 @@ export function StatsModal({ onClose, open }: StatsModalProperties) {
     requestAnimationFrame(() => setMounted(true));
   }, []);
 
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = "unset";
-      };
-    }
-  }, [open]);
-
-  if (!open || !mounted) return null;
-
   const maxDistribution = Math.max(...STATS.distribution);
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 p-5 backdrop-blur-sm duration-300 animate-in fade-in"
-      onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          onClose();
-        }
-      }}
-      role="presentation"
-      tabIndex={-1}
-    >
-      <div
-        aria-labelledby="stats-modal-title"
-        aria-modal="true"
-        className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-xl border border-border bg-background duration-300 animate-in slide-in-from-bottom-4"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-          e.stopPropagation();
-          if (e.key === 'Escape') {
-            e.preventDefault();
-            onClose();
-          }
-        }}
-        role="dialog"
-        tabIndex={-1}
+  return (
+    <Dialog onOpenChange={(isOpen) => !isOpen && onClose()} open={open}>
+      <DialogContent
+        className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-xl border border-border bg-background p-0 sm:max-w-md"
+        showCloseButton={false}
       >
-        {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-border p-6 pb-4">
-          <h2 className="font-[family-name:var(--font-playfair)] text-xl text-foreground" id="stats-modal-title">
+        <DialogHeader className="flex flex-row items-center justify-between border-b border-border p-6 pb-4">
+          <DialogTitle className="text-xl text-foreground">
             {t("title")}
-          </h2>
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            {t("played")}
+          </DialogDescription>
           <button
             aria-label={t("ariaClose")}
             className="text-muted-foreground transition-colors hover:text-primary"
@@ -88,7 +63,7 @@ export function StatsModal({ onClose, open }: StatsModalProperties) {
           >
             <X className="h-5 w-5" />
           </button>
-        </div>
+        </DialogHeader>
 
         {/* Content wrapper */}
         <div className="overflow-y-auto p-6 pt-4" data-lenis-prevent>
@@ -126,14 +101,18 @@ export function StatsModal({ onClose, open }: StatsModalProperties) {
               const isHighest = count === maxDistribution && count > 0;
 
               return (
-                <div className="flex items-center gap-3 text-sm" key={`distribution-${index}`}>
+                <div
+                  className="flex items-center gap-3 text-sm"
+                  key={`distribution-${index}`}
+                >
                   <span className="w-5 text-right text-muted-foreground">
                     {index + 1}
                   </span>
                   <div className="h-5 flex-1 bg-muted">
                     <div
-                      className={`flex h-full items-center justify-end px-2 text-xs text-primary-foreground transition-all duration-500 ${isHighest ? "bg-primary" : "bg-foreground"
-                        }`}
+                      className={`flex h-full items-center justify-end px-2 text-xs text-primary-foreground transition-all duration-500 ${
+                        isHighest ? "bg-primary" : "bg-foreground"
+                      }`}
                       style={{
                         width: `${Math.max(width, count > 0 ? 10 : 0)}%`,
                       }}
@@ -151,8 +130,7 @@ export function StatsModal({ onClose, open }: StatsModalProperties) {
             {t("slogan")}
           </p>
         </div>
-      </div>
-    </div>,
-    document.body,
+      </DialogContent>
+    </Dialog>
   );
 }

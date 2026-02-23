@@ -6,8 +6,13 @@ import {
   useState,
   useCallback,
   useEffect,
+  useLayoutEffect,
   type ReactNode,
 } from "react";
+
+// useLayoutEffect on client (fires before paint), useEffect on server (SSR-safe)
+const useIsomorphicLayoutEffect =
+  globalThis.window === undefined ? useEffect : useLayoutEffect;
 
 type UIPreferencesContextType = {
   isInputFocused: boolean;
@@ -69,9 +74,22 @@ export function UIPreferencesProvider({
     });
   }, []);
 
+  // Sync data-layout attribute on <html> so the CSS pre-hydration rule
+  // stays in sync after React hydrates and when the user manually toggles layout.
+  useEffect(() => {
+    if (preferences.layoutMode === "wide") {
+      document.documentElement.dataset.layout = "wide";
+    } else {
+      delete document.documentElement.dataset.layout;
+    }
+  }, [preferences.layoutMode]);
+
   // Apply Theme & Font Scale Side Effects
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", preferences.theme === "dark");
+    document.documentElement.classList.toggle(
+      "dark",
+      preferences.theme === "dark",
+    );
   }, [preferences.theme]);
 
   useEffect(() => {
@@ -81,28 +99,36 @@ export function UIPreferencesProvider({
     );
   }, [preferences.fontScale]);
 
-  // Load preferences from localStorage on mount
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      const savedLayout = localStorage.getItem("fragrance-game-layout") as
-        | "narrow"
-        | "wide"
-        | null;
-      const savedFont = localStorage.getItem("fragrance-game-font") as
-        | "normal"
-        | "large"
-        | null;
-      const savedTheme = localStorage.getItem("fragrance-game-theme") as
-        | "light"
-        | "dark"
-        | null;
+  // Load preferences from localStorage on mount.
+  // useIsomorphicLayoutEffect fires synchronously after DOM update, before the
+  // browser's first paint — eliminates the narrow→wide layout flash on wide screens.
+  useIsomorphicLayoutEffect(() => {
+    const savedLayout = localStorage.getItem("fragrance-game-layout") as
+      | "narrow"
+      | "wide"
+      | null;
+    const savedFont = localStorage.getItem("fragrance-game-font") as
+      | "normal"
+      | "large"
+      | null;
+    const savedTheme = localStorage.getItem("fragrance-game-theme") as
+      | "light"
+      | "dark"
+      | null;
 
-      setPreferences((previous) => ({
-        fontScale: savedFont || previous.fontScale,
-        layoutMode: savedLayout || (window.innerWidth >= 1024 ? "wide" : previous.layoutMode),
-        theme: savedTheme || previous.theme,
-      }));
-    });
+    // Auto-detect system dark mode if no preference is saved
+    const systemDark = globalThis.matchMedia(
+      "(prefers-color-scheme: dark)",
+    ).matches;
+    const defaultTheme = systemDark ? "dark" : "light";
+
+    setPreferences((previous) => ({
+      fontScale: savedFont || previous.fontScale,
+      layoutMode:
+        savedLayout ||
+        (window.innerWidth >= 1024 ? "wide" : previous.layoutMode),
+      theme: savedTheme || defaultTheme,
+    }));
   }, []);
 
   const value = {

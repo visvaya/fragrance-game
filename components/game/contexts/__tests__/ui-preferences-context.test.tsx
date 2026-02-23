@@ -1,4 +1,4 @@
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 import {
@@ -35,6 +35,22 @@ describe("UIPreferencesContext", () => {
     Object.defineProperty(globalThis, "innerWidth", {
       configurable: true,
       value: 800, // Default to narrow (< 1024)
+      writable: true,
+    });
+
+    // Mock window.matchMedia for theme detection
+    Object.defineProperty(globalThis, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        addEventListener: vi.fn(),
+        addListener: vi.fn(), // Deprecated but required by type
+        dispatchEvent: vi.fn(),
+        matches: false, // Default to light theme
+        media: query,
+        onchange: null,
+        removeEventListener: vi.fn(),
+        removeListener: vi.fn(), // Deprecated but required by type
+      })),
       writable: true,
     });
   });
@@ -136,7 +152,7 @@ describe("UIPreferencesContext", () => {
     expect(result.current.isInputFocused).toBe(false);
   });
 
-  it("should load preferences from localStorage on mount", () => {
+  it("should load preferences from localStorage on mount", async () => {
     localStorageMock.setItem("fragrance-game-theme", "dark");
     localStorageMock.setItem("fragrance-game-layout", "wide");
     localStorageMock.setItem("fragrance-game-font", "large");
@@ -145,10 +161,37 @@ describe("UIPreferencesContext", () => {
       wrapper: UIPreferencesProvider,
     });
 
-    expect(result.current.uiPreferences).toEqual({
-      fontScale: "large",
-      layoutMode: "wide",
-      theme: "dark",
+    await waitFor(() => {
+      expect(result.current.uiPreferences).toEqual({
+        fontScale: "large",
+        layoutMode: "wide",
+        theme: "dark",
+      });
+    });
+  });
+
+  it("should auto-detect system dark mode if no saved theme", async () => {
+    // Set system to dark mode
+    vi.mocked(globalThis.matchMedia).mockImplementationOnce(
+      (query: string) =>
+        ({
+          addEventListener: vi.fn(),
+          addListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+          matches: true,
+          media: query,
+          onchange: null,
+          removeEventListener: vi.fn(),
+          removeListener: vi.fn(),
+        }) as unknown as MediaQueryList,
+    );
+
+    const { result } = renderHook(() => useUIPreferences(), {
+      wrapper: UIPreferencesProvider,
+    });
+
+    await waitFor(() => {
+      expect(result.current.uiPreferences.theme).toBe("dark");
     });
   });
 

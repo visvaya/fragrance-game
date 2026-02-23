@@ -13,16 +13,16 @@ export const revalidate = 86_400; // 24 hours
  *
  */
 export default function Home({
-  params,
+  params: _params,
 }: {
-  params: Promise<{ locale: string }>;
+  readonly params: Promise<{ locale: string }>;
 }) {
   return (
     <GameProvider>
       <div className="flex min-h-[100dvh] w-full flex-col items-center">
         <GameHeader />
         <main className="flex w-full flex-1 flex-col items-center px-0 pt-6 pb-0">
-          <div className="flex w-full flex-1 flex-col items-center px-5 pb-6">
+          <div className="flex w-full flex-1 flex-col items-center px-0 pb-6">
             <GameBoard />
           </div>
           <GameInput />

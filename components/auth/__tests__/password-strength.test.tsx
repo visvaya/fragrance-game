@@ -4,8 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 import { PasswordStrength } from "../password-strength";
 
 // Mock useTranslations
+const mockTranslation = (key: string) => key;
+
 vi.mock("next-intl", () => ({
-  useTranslations: () => (key: string) => key,
+  useTranslations: () => mockTranslation,
 }));
 
 describe("PasswordStrength", () => {

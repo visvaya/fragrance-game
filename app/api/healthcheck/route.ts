@@ -9,6 +9,7 @@ import { NextResponse } from "next/server";
  * - Uptime monitoring services
  */
 export async function GET() {
+  await Promise.resolve();
   return NextResponse.json(
     {
       status: "ok",

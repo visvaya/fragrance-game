@@ -25,7 +25,10 @@ export function DifficultyDisplay({ score }: { score: number }) {
       </span>
       <div className="flex text-sm text-amber-500">
         {Array.from({ length: 5 }, (_, i) => (
-          <span className={i < stars ? "opacity-100" : "opacity-20"} key={`star-${i}`}>
+          <span
+            className={i < stars ? "opacity-100" : "opacity-20"}
+            key={`star-${i}`}
+          >
             ★
           </span>
         ))}

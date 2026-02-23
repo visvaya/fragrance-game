@@ -70,7 +70,7 @@ export function ProfileModal({ onClose, open, user }: ProfileModalProperties) {
           </Avatar>
 
           <div className="space-y-1 text-center">
-            <h2 className="text-xl font-bold">
+            <h2 className="font-[family-name:var(--font-playfair)] text-xl font-bold">
               {user.user_metadata?.full_name ||
                 user.email?.split("@")[0] ||
                 t("anonymous")}

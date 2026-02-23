@@ -37,7 +37,7 @@ export const Confetti = memo(function Confetti() {
     >
       {particles.map((p) => (
         <div
-          className="animate-confetti-fall absolute -top-3"
+          className="absolute -top-3 animate-confetti-fall"
           key={p.id}
           style={{
             animationDelay: p.delay,
@@ -49,7 +49,9 @@ export const Confetti = memo(function Confetti() {
             className={p.isSquare ? "rotate-45" : "rounded-full"}
             style={{
               backgroundColor: p.color,
-              height: p.isSquare ? p.size : `${Math.max(2, Number.parseInt(p.size) - 2)}px`,
+              height: p.isSquare
+                ? p.size
+                : `${Math.max(2, Number.parseInt(p.size) - 2)}px`,
               width: p.size,
             }}
           />

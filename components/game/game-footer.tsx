@@ -20,22 +20,10 @@ export function GameFooter() {
       <div
         className={cn(
           "relative mx-auto flex flex-col items-center px-5 pt-8 pb-8 transition-all duration-300",
-          uiPreferences.layoutMode === "wide" ? "max-w-5xl" : "max-w-xl",
+          uiPreferences.layoutMode === "wide" ? "max-w-5xl" : "max-w-2xl",
         )}
       >
-        {/* Helper Text - Reinstated in Footer, animated fade out on focus */}
-        <div
-          className={cn(
-            "pointer-events-none absolute top-2 right-7 transition-all duration-500 ease-in-out",
-            attempts.length === 0 && !isInputFocused
-              ? "translate-y-0 opacity-100"
-              : "translate-y-4 opacity-0",
-          )}
-        >
-          <p className="rotate-[-3deg] font-hand text-base whitespace-nowrap text-primary/70">
-            {t("selectHelper")} ↑
-          </p>
-        </div>
+        {/* Helper Text removed - moved to game-input.tsx as sticky tooltip */}
 
         {/* Links Group - Stable layout for mobile (column) and desktop (row) */}
 

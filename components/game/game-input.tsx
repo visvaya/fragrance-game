@@ -1,18 +1,30 @@
 "use client";
 
 import type React from "react";
-import { useState, useRef, useEffect, useId, useMemo, memo, useReducer } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useId,
+  useMemo,
+  memo,
+  useReducer,
+} from "react";
 
 import { Search, Loader2, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { searchPerfumes, type PerfumeSuggestion } from "@/app/actions/autocomplete";
+import {
+  searchPerfumes,
+  type PerfumeSuggestion,
+} from "@/app/actions/autocomplete";
 import { useMountTransition } from "@/hooks/use-mount-transition";
-import { cn } from "@/lib/utils";
+import { cn, normalizeText } from "@/lib/utils";
 
 import { useGameState, useGameActions, useUIPreferences } from "./contexts";
 import { HighlightedText } from "./highlighted-text";
 type GameInputState = {
+  hasSearched: boolean;
   isError: boolean;
   isLoading: boolean;
   query: string;
@@ -22,15 +34,20 @@ type GameInputState = {
 };
 
 type GameInputAction =
-  | { payload: string; type: "SET_QUERY"; }
+  | { payload: string; type: "SET_QUERY" }
   | { type: "SEARCH_START" }
-  | { payload: PerfumeSuggestion[]; type: "SEARCH_SUCCESS"; }
+  | { payload: PerfumeSuggestion[]; type: "SEARCH_SUCCESS" }
   | { type: "SEARCH_ERROR" }
-  | { payload: boolean; type: "SET_SHOW_SUGGESTIONS"; }
-  | { payload: number | ((previous: number) => number); type: "SET_SELECTED_INDEX"; }
+  | { type: "CLEAR_SUGGESTIONS" }
+  | { payload: boolean; type: "SET_SHOW_SUGGESTIONS" }
+  | {
+    payload: number | ((previous: number) => number);
+    type: "SET_SELECTED_INDEX";
+  }
   | { type: "RESET" };
 
 const initialState: GameInputState = {
+  hasSearched: false,
   isError: false,
   isLoading: false,
   query: "",
@@ -39,19 +56,44 @@ const initialState: GameInputState = {
   suggestions: [],
 };
 
-function gameInputReducer(state: GameInputState, action: GameInputAction): GameInputState {
+function gameInputReducer(
+  state: GameInputState,
+  action: GameInputAction,
+): GameInputState {
   switch (action.type) {
     case "SET_QUERY": {
-      return { ...state, query: action.payload, showSuggestions: action.payload.length > 0 };
+      return {
+        ...state,
+        hasSearched: false,
+        query: action.payload,
+        showSuggestions: action.payload.length > 0,
+      };
     }
     case "SEARCH_START": {
-      return { ...state, isError: false, isLoading: true };
+      return { ...state, hasSearched: false, isError: false, isLoading: true };
     }
     case "SEARCH_SUCCESS": {
-      return { ...state, isLoading: false, suggestions: action.payload };
+      return {
+        ...state,
+        hasSearched: true,
+        isLoading: false,
+        suggestions: action.payload,
+      };
     }
     case "SEARCH_ERROR": {
-      return { ...state, isError: true, isLoading: false, suggestions: [] };
+      return {
+        ...state,
+        hasSearched: true,
+        isError: true,
+        isLoading: false,
+        suggestions: [],
+      };
+    }
+    case "CLEAR_SUGGESTIONS": {
+      // Clears suggestions + resets loading without touching hasSearched.
+      // Used when the query falls below search threshold — cancels any in-flight
+      // request effect and ensures the spinner stops even if the async never resolves.
+      return { ...state, isError: false, isLoading: false, suggestions: [] };
     }
     case "SET_SHOW_SUGGESTIONS": {
       return { ...state, showSuggestions: action.payload };
@@ -75,6 +117,24 @@ function gameInputReducer(state: GameInputState, action: GameInputAction): GameI
 }
 
 /**
+ * Scores a suggestion by how well it matches the query against brand/name.
+ * Results matching only on perfumer name (DB-side) score 0 and sink to the bottom.
+ */
+function relevanceScore(
+  suggestion: PerfumeSuggestion,
+  normalizedQuery: string,
+): number {
+  const brand = normalizeText(suggestion.brand_masked);
+  const name = normalizeText(suggestion.name);
+  if (brand === normalizedQuery || name === normalizedQuery) return 4;
+  if (brand.startsWith(normalizedQuery) || name.startsWith(normalizedQuery))
+    return 3;
+  if (brand.includes(normalizedQuery)) return 2;
+  if (name.includes(normalizedQuery)) return 1;
+  return 0;
+}
+
+/**
  *
  */
 export function GameInput() {
@@ -95,20 +155,52 @@ export function GameInput() {
     uiPreferences,
   } = useUIPreferences();
   const t = useTranslations("Game.input");
+  const tFooter = useTranslations("Footer");
+
+  const isWide = uiPreferences.layoutMode === "wide";
+  const maxWidthClass = isWide ? "max-w-xl" : "max-w-2xl";
 
   const [state, dispatch] = useReducer(gameInputReducer, initialState);
-  const { isError, isLoading, query, selectedIndex, showSuggestions, suggestions } = state;
+  const {
+    hasSearched,
+    isError,
+    isLoading,
+    query,
+    selectedIndex,
+    showSuggestions,
+    suggestions,
+  } = state;
 
   const inputReference = useRef<HTMLInputElement>(null);
   const wrapperReference = useRef<HTMLDivElement>(null);
   const listReference = useRef<HTMLDivElement>(null);
   const previousAttemptsLengthReference = useRef(attempts.length);
 
-  // Animation state
+  const trimmedQuery = query.trim();
+
+  // Delay "Brak wyników" by 500ms so it doesn't flash on fast connections.
+  // Resets immediately when results arrive, loading starts, or query changes.
+  const noResultsRaw =
+    hasSearched &&
+    !isLoading &&
+    suggestions.length === 0 &&
+    trimmedQuery.length > 0;
+  const [noResultsDelayed, setNoResultsDelayed] = useState(false);
+  useEffect(() => {
+    if (!noResultsRaw) {
+      setNoResultsDelayed(false);
+      return;
+    }
+    const timer = setTimeout(() => setNoResultsDelayed(true), 500);
+    return () => clearTimeout(timer);
+  }, [noResultsRaw]);
+
+  // Animation state — list opens when: results exist, loading, or delayed no-results.
+  // Never during the debounce window.
   const shouldShowList =
     showSuggestions &&
-    (suggestions.length > 0 ||
-      (query.length >= 3 && !isLoading && !gameLoading));
+    !gameLoading &&
+    (suggestions.length > 0 || isLoading || noResultsDelayed);
   const hasTransitionedIn = useMountTransition(shouldShowList, 200); // 200ms matches duration-200
 
   const listId = useId();
@@ -117,8 +209,9 @@ export function GameInput() {
   useEffect(() => {
     let ignore = false;
 
-    // Reset results and loading state if query is too short
-    if (query.length < 3) {
+    const tq = query.trim();
+
+    if (tq.length === 0) {
       return;
     }
 
@@ -127,9 +220,24 @@ export function GameInput() {
       void (async () => {
         dispatch({ type: "SEARCH_START" });
         try {
-          const results = await searchPerfumes(query, sid, currentAttempt);
+          const results = await searchPerfumes(tq, sid, currentAttempt);
           if (ignore) return;
-          dispatch({ payload: results, type: "SEARCH_SUCCESS" });
+          // Short queries (< 3 chars): only exact name matches to avoid
+          // noisy partial results for names like "Y" or "Si".
+          const filtered =
+            tq.length < 3
+              ? results.filter(
+                (r) => normalizeText(r.name) === normalizeText(tq),
+              )
+              : results;
+
+          // Re-rank: brand/name matches first, perfumer-only matches last.
+          // Stable sort preserves the DB relevance order within each tier.
+          const nq = normalizeText(tq);
+          const ranked = [...filtered].sort(
+            (a, b) => relevanceScore(b, nq) - relevanceScore(a, nq),
+          );
+          dispatch({ payload: ranked, type: "SEARCH_SUCCESS" });
         } catch (error) {
           if (ignore) return;
           console.error("Autocomplete failed:", error);
@@ -191,11 +299,7 @@ export function GameInput() {
   }, []);
 
   const handleSelect = async (perfume: PerfumeSuggestion) => {
-    await makeGuess(
-      perfume.name,
-      perfume.brand_masked,
-      perfume.perfume_id,
-    );
+    await makeGuess(perfume.name, perfume.brand_masked, perfume.perfume_id);
 
     dispatch({ type: "RESET" });
   };
@@ -260,7 +364,10 @@ export function GameInput() {
           );
 
           if (firstAvailableIndex !== -1) {
-            dispatch({ payload: firstAvailableIndex, type: "SET_SELECTED_INDEX" });
+            dispatch({
+              payload: firstAvailableIndex,
+              type: "SET_SELECTED_INDEX",
+            });
             // We return early here as we only wanted to highlight
             return;
           }
@@ -307,13 +414,8 @@ export function GameInput() {
   // 1. Loading State - Render nothing or a stable placeholder (prevents "No Puzzle" flash)
   if (gameLoading) {
     return (
-      <div
-        className={cn(
-          "sticky bottom-0 z-30 mx-auto w-full",
-          uiPreferences.layoutMode === "wide" ? "max-w-5xl" : "max-w-xl",
-        )}
-      >
-        <div className="relative border-x-0 border-t border-border/50 bg-background/80 px-5 py-8 backdrop-blur-md sm:rounded-t-md sm:border-x">
+      <div className={cn("sticky bottom-0 z-30 mx-auto w-full", maxWidthClass)}>
+        <div className="relative border-x-0 border-t border-border/50 bg-background/70 px-5 py-8 backdrop-blur-md sm:rounded-t-md sm:border-x">
           <div className="flex justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
@@ -325,13 +427,8 @@ export function GameInput() {
   // 2. Closed / No Puzzle State (Only if loaded and invalid)
   if (gameState !== "playing" || isSkeleton) {
     return (
-      <div
-        className={cn(
-          "sticky bottom-0 z-30 mx-auto w-full",
-          uiPreferences.layoutMode === "wide" ? "max-w-5xl" : "max-w-xl",
-        )}
-      >
-        <div className="relative border-x-0 border-t border-border/50 bg-background/80 px-5 py-4 backdrop-blur-md transition-colors duration-500 ease-in-out sm:rounded-t-md sm:border-x">
+      <div className={cn("sticky bottom-0 z-30 mx-auto w-full", maxWidthClass)}>
+        <div className="relative border-x-0 border-t border-border/50 bg-background/70 px-5 py-4 backdrop-blur-md transition-colors duration-500 ease-in-out sm:rounded-t-md sm:border-x">
           {/* Input-like look for closed state */}
           <div className="relative flex items-center justify-center">
             <span className="font-hand text-lg text-primary">
@@ -355,12 +452,28 @@ export function GameInput() {
   }
 
   return (
-    <div
-      className={cn(
-        "sticky bottom-0 z-30 mx-auto w-full",
-        uiPreferences.layoutMode === "wide" ? "max-w-5xl" : "max-w-xl",
-      )}
-    >
+    <div className={cn("sticky bottom-0 z-30 mx-auto w-full", maxWidthClass)}>
+      {/* Onboarding Tooltip — fixed above the sticky input bar */}
+      <div
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute bottom-full left-1/2 z-40 -translate-x-1/2 pb-3 transition-all duration-500 ease-in-out",
+          attempts.length === 0 && !isFocused
+            ? "translate-y-0 opacity-100"
+            : "translate-y-1 opacity-0",
+        )}
+      >
+        <div className="flex flex-col items-center gap-0">
+          <div className="rounded-lg bg-primary px-4 py-1.5 shadow-lg ring-1 ring-primary/20">
+            <p className="font-hand text-sm whitespace-nowrap text-primary-foreground">
+              {tFooter("selectHelper")}
+            </p>
+          </div>
+          {/* Downward-pointing arrow */}
+          <div className="h-0 w-0 border-t-[7px] border-r-[7px] border-l-[7px] border-t-primary border-r-transparent border-l-transparent" />
+        </div>
+      </div>
+
       <div className="relative" ref={wrapperReference}>
         {/* Input Surface (Visual Layer) */}
         <div
@@ -390,8 +503,9 @@ export function GameInput() {
                 const value = e.target.value;
                 dispatch({ payload: value, type: "SET_QUERY" });
 
-                if (value.length < 3) {
-                  dispatch({ payload: [], type: "SEARCH_SUCCESS" });
+                // Clear stale suggestions when input is fully empty.
+                if (value.trim().length === 0) {
+                  dispatch({ type: "CLEAR_SUGGESTIONS" });
                 }
               }}
               onFocus={() => {
@@ -453,9 +567,9 @@ export function GameInput() {
         {/* Suggestions dropdown (Behind Input Surface) */}
         {hasTransitionedIn || shouldShowList ? (
           <div
-            className={`!absolute bottom-full left-0 z-10 max-h-56 w-full touch-pan-y !overflow-y-auto rounded-t-md border-x border-t border-border/50 bg-background ${shouldShowList
-              ? "duration-200 ease-out animate-in fade-in slide-in-from-bottom-12"
-              : "duration-200 ease-in animate-out fade-out slide-out-to-bottom-12"
+            className={`!absolute bottom-full left-0 z-10 max-h-56 w-full touch-pan-y !overflow-y-auto rounded-t-md border-x border-t border-border/50 bg-background shadow-2xl shadow-black/10 ${shouldShowList
+                ? "duration-200 ease-out animate-in fade-in slide-in-from-bottom-12"
+                : "duration-200 ease-in animate-out fade-out slide-out-to-bottom-12"
               } `}
             data-lenis-prevent
             id={listId}
@@ -464,7 +578,9 @@ export function GameInput() {
             role="listbox"
             tabIndex={-1}
           >
-            {suggestions.length === 0 && !isCurrentlyLoading ? (
+            {suggestions.length === 0 &&
+              !isCurrentlyLoading &&
+              shouldShowList ? (
               <div className="px-4 py-8 text-center text-sm text-muted-foreground">
                 {t("noResults")}
               </div>
@@ -482,7 +598,9 @@ export function GameInput() {
                     key={perfume.perfume_id}
                     onClick={async () => handleSelect(perfume)}
                     onMouseDown={(e) => e.preventDefault()}
-                    onMouseEnter={() => dispatch({ payload: index, type: "SET_SELECTED_INDEX" })}
+                    onMouseEnter={() =>
+                      dispatch({ payload: index, type: "SET_SELECTED_INDEX" })
+                    }
                     role="option"
                   >
                     <span className="flex flex-wrap items-baseline gap-x-1 text-foreground">
@@ -501,7 +619,10 @@ export function GameInput() {
                             : ""
                         }
                       >
-                        <HighlightedText query={query} text={perfume.name} />
+                        <HighlightedText
+                          query={trimmedQuery}
+                          text={perfume.name}
+                        />
                       </span>
 
                       {/* Concentration */}

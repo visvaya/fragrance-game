@@ -46,9 +46,8 @@ const Captcha = dynamic(
 );
 
 async function checkPasswordSafety(password: string) {
-  const { validatePasswordSafety } = await import(
-    "@/app/actions/security-actions"
-  );
+  const { validatePasswordSafety } =
+    await import("@/app/actions/security-actions");
   return validatePasswordSafety(password);
 }
 
@@ -166,7 +165,9 @@ export function RegisterForm({
       )}
     >
       <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <h1 className="font-[family-name:var(--font-playfair)] text-2xl font-bold">
+          {t("title")}
+        </h1>
         <p className="text-sm text-muted-foreground">{t("description")}</p>
       </div>
 

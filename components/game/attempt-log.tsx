@@ -2,7 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { X, ArrowUp, ArrowDown, Waves, Check, ScrollText } from "lucide-react";
+import {
+  X,
+  ArrowUp,
+  ArrowDown,
+  Waves,
+  Check,
+  ScrollText,
+  Store,
+  User,
+  Calendar,
+  VenusAndMars,
+  Music,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -75,18 +87,18 @@ export function AttemptLog() {
 
   return (
     <section className="rounded-md border border-border/50 bg-background p-4">
-      <div className="mb-4 flex items-center gap-2">
-        <ScrollText className="h-4 w-4 text-muted-foreground" />
-        <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground">
+      <div className="group mb-4 flex w-fit cursor-default items-center gap-2">
+        <ScrollText className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:scale-[1.15]" />
+        <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase">
           {t("title")}
         </h2>
       </div>
 
       <div className="grid grid-cols-[32px_1fr_minmax(105px,auto)]">
         {/* Header Row - spread into grid columns */}
-        <div className="flex items-center justify-center border-b-2 border-muted/50 pb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        <div className="flex items-center justify-center border-b-2 border-muted/50 pb-2 text-sm font-semibold tracking-widest text-muted-foreground/70 lowercase transition-colors">
           <GameTooltip
-            className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 active:bg-muted/50"
             content={t("columns.attemptTooltip")}
           >
             <span className="w-full cursor-help text-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
@@ -95,53 +107,53 @@ export function AttemptLog() {
           </GameTooltip>
         </div>
 
-        <div className="flex items-center border-b-2 border-muted/50 pb-2 pl-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        <div className="flex items-center border-b-2 border-muted/50 pb-2 pl-2 text-sm font-semibold tracking-widest text-muted-foreground/70 lowercase">
           {t("columns.perfume")}
         </div>
 
-        <div className="grid w-full grid-cols-5 justify-items-center border-b-2 border-muted/50 px-1 pb-2 text-center text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        <div className="grid w-full grid-cols-5 justify-items-center border-b-2 border-muted/50 px-1 pb-2 text-center text-sm font-semibold tracking-widest text-muted-foreground/70 lowercase">
           <GameTooltip
-            className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 active:bg-muted/50"
             content={t("columns.brandTooltip")}
           >
-            <span className="flex min-w-8 cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-              {t("columns.brand")}
+            <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
+              <Store className="h-4 w-4 text-muted-foreground/70" />
             </span>
           </GameTooltip>
 
           <GameTooltip
-            className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 active:bg-muted/50"
             content={t("columns.perfumerTooltip")}
           >
-            <span className="flex min-w-8 cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-              {t("columns.perfumer")}
+            <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
+              <User className="h-4 w-4 text-muted-foreground/70" />
             </span>
           </GameTooltip>
 
           <GameTooltip
-            className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 active:bg-muted/50"
             content={t("columns.yearTooltip")}
           >
-            <span className="flex min-w-8 cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-              {t("columns.year")}
+            <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
+              <Calendar className="h-4 w-4 text-muted-foreground/70" />
             </span>
           </GameTooltip>
 
           <GameTooltip
-            className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 active:bg-muted/50"
             content={t("columns.genderTooltip")}
           >
-            <span className="flex min-w-8 cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-              {t("columns.gender")}
+            <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
+              <VenusAndMars className="h-4 w-4 text-muted-foreground/70" />
             </span>
           </GameTooltip>
 
           <GameTooltip
-            className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
+            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 active:bg-muted/50"
             content={t("columns.notesTooltip")}
           >
-            <span className="flex min-w-8 cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-              {t("columns.notes")}
+            <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
+              <Music className="h-4 w-4 text-muted-foreground/70" />
             </span>
           </GameTooltip>
         </div>
@@ -185,7 +197,10 @@ export function AttemptLog() {
             const borderClass = isLast ? "" : "border-b border-muted/30";
 
             return (
-              <div className="contents" key={`empty-attempt-${attempts.length + i}`}>
+              <div
+                className="contents"
+                key={`empty-attempt-${attempts.length + i}`}
+              >
                 <div
                   className={`flex items-center justify-center py-3 ${borderClass} min-h-[48px]`}
                 >

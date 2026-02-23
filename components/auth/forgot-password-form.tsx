@@ -88,7 +88,9 @@ export function ForgotPasswordForm({
   return (
     <div className="w-full max-w-md space-y-6 rounded-lg border bg-card p-6 shadow-sm">
       <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <h1 className="font-[family-name:var(--font-playfair)] text-2xl font-bold">
+          {t("title")}
+        </h1>
         <p className="text-sm text-muted-foreground">{t("description")}</p>
       </div>
 

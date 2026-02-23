@@ -35,7 +35,7 @@ console.log(`Generating types for project: ${projectId}`);
 
 execSync(
   `pnpm dlx supabase gen types typescript --project-id ${projectId} > types/supabase.ts`,
-  { stdio: "inherit", shell: true },
+  { stdio: "inherit" },
 );
 
 console.log("Done. types/supabase.ts updated.");

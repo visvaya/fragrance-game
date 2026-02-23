@@ -59,14 +59,16 @@ export function RevealImage() {
 
   // Initial load
   useEffect(() => {
-    requestAnimationFrame(() => setState((previous) => ({ ...previous, isLoaded: true })));
+    requestAnimationFrame(() =>
+      setState((previous) => ({ ...previous, isLoaded: true })),
+    );
   }, []);
 
   return (
     <div className="flex h-full w-full flex-col">
-      <div className="mb-4 flex items-center gap-2">
-        <ScanEye className="h-4 w-4 text-muted-foreground" />
-        <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground">
+      <div className="group mb-4 flex w-fit cursor-default items-center gap-2">
+        <ScanEye className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:scale-[1.15]" />
+        <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase">
           {t("visualEvidence")}
         </h2>
       </div>
@@ -81,11 +83,19 @@ export function RevealImage() {
               ? "max-w-[280px]"
               : "max-w-[240px]",
           )}
-          onClick={() => setState((previous) => ({ ...previous, isZoomed: !previous.isZoomed }))}
+          onClick={() =>
+            setState((previous) => ({
+              ...previous,
+              isZoomed: !previous.isZoomed,
+            }))
+          }
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              setState((previous) => ({ ...previous, isZoomed: !previous.isZoomed }));
+              setState((previous) => ({
+                ...previous,
+                isZoomed: !previous.isZoomed,
+              }));
             }
           }}
           role="button"

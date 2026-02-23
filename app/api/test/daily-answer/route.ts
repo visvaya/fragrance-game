@@ -30,7 +30,7 @@ export async function GET() {
     .eq("user_id", user.id)
     .single();
 
-  if (adminError || !adminRecord) {
+  if (adminError) {
     return NextResponse.json(
       { error: "Forbidden: Admin role required" },
       { status: 403 },
@@ -40,7 +40,7 @@ export async function GET() {
   try {
     const supabase = createAdminClient();
     const today = new Date().toISOString().split("T")[0];
-    console.log(`[API TEST] Querying daily_challenges for date: ${today}`);
+    console.warn(`[API TEST] Querying daily_challenges for date: ${today}`);
 
     // 1. Get today's challenge ID
     const { data: challenge, error: challengeError } = await supabase
@@ -49,8 +49,8 @@ export async function GET() {
       .eq("challenge_date", today)
       .single();
 
-    if (challengeError || !challenge) {
-      console.log(
+    if (challengeError) {
+      console.warn(
         "[API TEST] No challenge in DB for today, using fallback perfume",
       );
 
@@ -61,7 +61,7 @@ export async function GET() {
         .limit(1)
         .single();
 
-      if (randomError || !randomPerfume) {
+      if (randomError) {
         return NextResponse.json(
           { error: "No perfumes available in database" },
           { status: 500 },
@@ -69,7 +69,9 @@ export async function GET() {
       }
 
       const formattedPerfume = {
-        brand: (randomPerfume.brands as any)?.name ?? "Unknown",
+        brand:
+          (randomPerfume.brands as unknown as { name: string } | null)?.name ??
+          "Unknown",
         id: randomPerfume.id,
         name: randomPerfume.name,
       };
@@ -77,7 +79,7 @@ export async function GET() {
       return NextResponse.json({ perfume: formattedPerfume });
     }
 
-    console.log(
+    console.warn(
       `[API TEST] Found challenge. Perfume ID: ${challenge.perfume_id}`,
     );
 
@@ -88,7 +90,7 @@ export async function GET() {
       .eq("id", challenge.perfume_id)
       .single();
 
-    if (perfumeError || !perfume) {
+    if (perfumeError) {
       console.error("[API TEST] Perfume details not found:", perfumeError);
       return NextResponse.json(
         { error: "Perfume details not found" },
@@ -98,7 +100,9 @@ export async function GET() {
 
     const formattedPerfume = {
       ...perfume,
-      brand: (perfume.brands as any)?.name ?? "Unknown",
+      brand:
+        (perfume.brands as unknown as { name: string } | null)?.name ??
+        "Unknown",
     };
 
     return NextResponse.json({ perfume: formattedPerfume });

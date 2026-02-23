@@ -1,7 +1,9 @@
 "use client";
 
-import { Circle, Layers } from "lucide-react";
+import { Circle, Layers, Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
+
+import { cn } from "@/lib/utils";
 
 import { useGameState } from "../contexts";
 import { GameTooltip } from "../game-tooltip";
@@ -80,18 +82,18 @@ export function PyramidClues() {
 
     return (
       <div className="rounded-md border border-border/50 bg-background p-4">
-        <div className="mb-4 flex items-center gap-2">
-          <Layers className="h-4 w-4 text-muted-foreground" />
-          <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground">
+        <div className="group mb-4 flex w-fit cursor-default items-center gap-2">
+          <Layers className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:scale-[1.15]" />
+          <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase">
             {t("olfactoryProfile")}
           </h2>
         </div>
 
-        <ul className="space-y-4">
-          <li className="flex flex-col gap-2 rounded-sm border border-border/60 p-4">
+        <ul className="flex flex-col">
+          <li className="flex flex-col gap-2 border-b border-border/60 py-4 first:pt-0 last:border-b-0 last:pb-0">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
-              <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+              <span className="text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
                 {t("linearProfile")}{" "}
                 {revealLevel === 1 ? (
                   <GameTooltip content={t("linearProfileTooltip")}>
@@ -116,7 +118,6 @@ export function PyramidClues() {
             <div>
               <div className="flex flex-wrap justify-start gap-x-4 gap-y-2 text-sm">
                 {displayNotes.map((note, i) => {
-                  const isFullHidden = /^_+$|^\?\?\?\?\?$/.test(note); // Check for full underscores or sentinel
                   const words = note.split(" ");
 
                   // Generic placeholder case (Level 1)
@@ -131,15 +132,8 @@ export function PyramidClues() {
                         <GameTooltip
                           content={t("hiddenNote", { attempt: currentAttempt })}
                         >
-                          <div className="flex cursor-help">
-                            {/* Render 5 generic slots */}
-                            {[1, 2, 3, 4, 5].map((_, idx) => (
-                              <div
-                                aria-hidden="true"
-                                className="mx-[0.5px] h-5 w-2.5 border-b border-muted-foreground/30"
-                                key={`slot-${idx}`}
-                              />
-                            ))}
+                          <div className="group flex cursor-help items-center justify-center px-2 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
+                            <Lock className="h-3 w-3 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
                           </div>
                         </GameTooltip>
                       </span>
@@ -154,30 +148,40 @@ export function PyramidClues() {
                       {words.map((word, wIndex) => {
                         // Check if word contains masking chars
                         const hasMasking = word.includes("_");
+                        const isFullHidden = word === "?????";
                         const showTooltip = hasMasking;
 
                         const content = (
-                          <div className="flex flex-nowrap" key={`word-content-${word}-${wIndex}`}>
-                            {word.split("").map((char, index) => {
-                              const isSlot = char === "_";
-                              if (isSlot) {
+                          <div
+                            className="flex flex-nowrap"
+                            key={`word-content-${word}-${wIndex}`}
+                          >
+                            {isFullHidden ? (
+                              <div className="group flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
+                                <Lock className="h-2.5 w-2.5 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
+                              </div>
+                            ) : (
+                              word.split("").map((char, index) => {
+                                const isSlot = char === "_";
+                                if (isSlot) {
+                                  return (
+                                    <div
+                                      aria-hidden="true"
+                                      className={`mx-[0.5px] h-5 w-2.5 border-b border-muted-foreground/30 transition-all duration-300 ${isFullHidden ? "opacity-50" : "opacity-70"}`}
+                                      key={`linear-slot-${char}-${index}`}
+                                    />
+                                  );
+                                }
                                 return (
                                   <div
-                                    aria-hidden="true"
-                                    className={`mx-[0.5px] h-5 w-2.5 border-b border-muted-foreground/30 transition-all duration-300 ${isFullHidden ? "opacity-50" : "opacity-70"}`}
-                                    key={`linear-slot-${char}-${index}`}
-                                  />
+                                    className="mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
+                                    key={`linear-char-${char}-${index}`}
+                                  >
+                                    {char}
+                                  </div>
                                 );
-                              }
-                              return (
-                                <div
-                                  className="mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
-                                  key={`linear-char-${char}-${index}`}
-                                >
-                                  {char}
-                                </div>
-                              );
-                            })}
+                              })
+                            )}
                           </div>
                         );
 
@@ -189,35 +193,53 @@ export function PyramidClues() {
                             >
                               {({ isHovered }: { isHovered?: boolean }) => (
                                 <div className="flex flex-nowrap">
-                                  {word.split("").map((char, index) => {
-                                    const isSlot = char === "_";
-                                    if (isSlot) {
+                                  {isFullHidden ? (
+                                    <div className="flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
+                                      <Lock
+                                        className={cn(
+                                          "h-2.5 w-2.5 transition-colors duration-300",
+                                          isHovered
+                                            ? "text-[oklch(0.75_0.15_60)]"
+                                            : "text-muted-foreground",
+                                        )}
+                                      />
+                                    </div>
+                                  ) : (
+                                    word.split("").map((char, index) => {
+                                      const isSlot = char === "_";
+                                      if (isSlot) {
+                                        return (
+                                          <div
+                                            aria-hidden="true"
+                                            className={`mx-[0.5px] h-5 w-2.5 transition-all duration-300 ${
+                                              isHovered
+                                                ? "border-b border-[oklch(0.75_0.15_60)]"
+                                                : `border-b border-muted-foreground/30 ${isFullHidden ? "opacity-50" : "opacity-70"}`
+                                            }`}
+                                            key={`linear-slot-tt-${char}-${index}`}
+                                          />
+                                        );
+                                      }
                                       return (
                                         <div
-                                          aria-hidden="true"
-                                          className={`mx-[0.5px] h-5 w-2.5 transition-all duration-300 ${isHovered
-                                              ? "border-b border-[oklch(0.75_0.15_60)]"
-                                              : `border-b border-muted-foreground/30 ${isFullHidden ? "opacity-50" : "opacity-70"}`
-                                            }`}
-                                          key={`linear-slot-tt-${char}-${index}`}
-                                        />
+                                          className="mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
+                                          key={`linear-char-tt-${char}-${index}`}
+                                        >
+                                          {char}
+                                        </div>
                                       );
-                                    }
-                                    return (
-                                      <div
-                                        className="mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
-                                        key={`linear-char-tt-${char}-${index}`}
-                                      >
-                                        {char}
-                                      </div>
-                                    );
-                                  })}
+                                    })
+                                  )}
                                 </div>
                               )}
                             </GameTooltip>
                           );
                         }
-                        return <span key={`word-span-${word}-${wIndex}`}>{content}</span>;
+                        return (
+                          <span key={`word-span-${word}-${wIndex}`}>
+                            {content}
+                          </span>
+                        );
                       })}
                     </span>
                   );
@@ -239,22 +261,24 @@ export function PyramidClues() {
 
   return (
     <div className="rounded-md border border-border/50 bg-background p-4">
-      <div className="mb-4 flex items-center gap-2">
-        <Layers className="h-4 w-4 text-muted-foreground" />
-        <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground">
+      <div className="group mb-4 flex w-fit cursor-default items-center gap-2">
+        <Layers className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:scale-[1.15]" />
+        <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase">
           {t("pyramid")}
         </h2>
       </div>
 
-      <ul className="space-y-4">
+      <ul className="flex flex-col">
         {levels.map((level) => (
           <li
-            className="flex flex-col gap-2 rounded-sm border border-border/60 p-4"
+            className="flex flex-col gap-2 border-b border-border/60 py-4 first:pt-0 last:border-b-0 last:pb-0"
             key={level.name}
           >
             <div className="flex items-center gap-2">
-              <span className={`h-2 w-2 shrink-0 rounded-full ${level.dotClass}`} />
-              <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+              <span
+                className={`h-2 w-2 shrink-0 rounded-full ${level.dotClass}`}
+              />
+              <span className="text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
                 {t(level.name.toLowerCase())}{" "}
                 {revealLevel === 1 ? (
                   <GameTooltip content={t("linearProfileTooltip")}>
@@ -282,7 +306,6 @@ export function PyramidClues() {
               {level.notes && level.notes.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {level.notes.map((note, noteIndex) => {
-                    const isFullHidden = /^_+$|^\?\?\?\?\?$/.test(note);
                     const words = note.split(" ");
 
                     // Check if it's the generic placeholder "??????" passed from GameProvider?
@@ -297,15 +320,8 @@ export function PyramidClues() {
                               attempt: currentAttempt,
                             })}
                           >
-                            <div className="flex cursor-help">
-                              {/* Render 5 generic slots */}
-                              {[1, 2, 3, 4, 5].map((_, idx) => (
-                                <div
-                                  aria-hidden="true"
-                                  className="mx-[0.5px] h-5 w-2.5 border-b border-muted-foreground/30"
-                                  key={idx}
-                                />
-                              ))}
+                            <div className="group flex cursor-help items-center justify-center px-2 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
+                              <Lock className="h-3 w-3 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
                             </div>
                           </GameTooltip>
                         </span>
@@ -322,30 +338,37 @@ export function PyramidClues() {
                       >
                         {words.map((word, wIndex) => {
                           const hasMasking = word.includes("_");
+                          const isFullHidden = word === "?????";
                           const showTooltip = hasMasking;
 
                           const content = (
                             <div className="flex flex-nowrap">
-                              {word.split("").map((char, index) => {
-                                const isSlot = char === "_";
-                                if (isSlot) {
+                              {isFullHidden ? (
+                                <div className="group flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
+                                  <Lock className="h-2.5 w-2.5 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
+                                </div>
+                              ) : (
+                                word.split("").map((char, index) => {
+                                  const isSlot = char === "_";
+                                  if (isSlot) {
+                                    return (
+                                      <div
+                                        aria-hidden="true"
+                                        className={`mx-[0.5px] h-5 w-2.5 border-b border-muted-foreground/30 transition-all duration-300 ${isFullHidden ? "opacity-50" : "opacity-70"}`}
+                                        key={`${level.name}-note-${noteIndex}-slot-${index}`}
+                                      />
+                                    );
+                                  }
                                   return (
                                     <div
-                                      aria-hidden="true"
-                                      className={`mx-[0.5px] h-5 w-2.5 border-b border-muted-foreground/30 transition-all duration-300 ${isFullHidden ? "opacity-50" : "opacity-70"}`}
-                                      key={`${level.name}-note-${noteIndex}-slot-${index}`}
-                                    />
+                                      className="mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
+                                      key={`${level.name}-note-${noteIndex}-char-${index}`}
+                                    >
+                                      {char}
+                                    </div>
                                   );
-                                }
-                                return (
-                                  <div
-                                    className="mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
-                                    key={`${level.name}-note-${noteIndex}-char-${index}`}
-                                  >
-                                    {char}
-                                  </div>
-                                );
-                              })}
+                                })
+                              )}
                             </div>
                           );
 
@@ -357,29 +380,43 @@ export function PyramidClues() {
                               >
                                 {({ isHovered }: { isHovered?: boolean }) => (
                                   <div className="flex flex-nowrap">
-                                    {word.split("").map((char, index) => {
-                                      const isSlot = char === "_";
-                                      if (isSlot) {
+                                    {isFullHidden ? (
+                                      <div className="flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
+                                        <Lock
+                                          className={cn(
+                                            "h-2.5 w-2.5 transition-colors duration-300",
+                                            isHovered
+                                              ? "text-[oklch(0.75_0.15_60)]"
+                                              : "text-muted-foreground",
+                                          )}
+                                        />
+                                      </div>
+                                    ) : (
+                                      word.split("").map((char, index) => {
+                                        const isSlot = char === "_";
+                                        if (isSlot) {
+                                          return (
+                                            <div
+                                              aria-hidden="true"
+                                              className={`mx-[0.5px] h-5 w-2.5 transition-all duration-300 ${
+                                                isHovered
+                                                  ? "border-b border-[oklch(0.75_0.15_60)]"
+                                                  : `border-b border-muted-foreground/30 ${isFullHidden ? "opacity-50" : "opacity-70"}`
+                                              }`}
+                                              key={`slot-${index}`}
+                                            />
+                                          );
+                                        }
                                         return (
                                           <div
-                                            aria-hidden="true"
-                                            className={`mx-[0.5px] h-5 w-2.5 transition-all duration-300 ${isHovered
-                                                ? "border-b border-[oklch(0.75_0.15_60)]"
-                                                : `border-b border-muted-foreground/30 ${isFullHidden ? "opacity-50" : "opacity-70"}`
-                                              }`}
-                                            key={`slot-${index}`}
-                                          />
+                                            className="mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
+                                            key={index}
+                                          >
+                                            {char}
+                                          </div>
                                         );
-                                      }
-                                      return (
-                                        <div
-                                          className="mx-[0.5px] flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
-                                          key={index}
-                                        >
-                                          {char}
-                                        </div>
-                                      );
-                                    })}
+                                      })
+                                    )}
                                   </div>
                                 )}
                               </GameTooltip>
@@ -397,15 +434,8 @@ export function PyramidClues() {
                     <GameTooltip
                       content={t("hiddenNotes", { attempt: currentAttempt })}
                     >
-                      <div className="flex cursor-help">
-                        {/* Generic placeholder for unknown notes */}
-                        {[1, 2, 3].map((_, idx) => (
-                          <div
-                            aria-hidden="true"
-                            className="mx-[0.5px] h-5 w-2.5 border-b border-muted-foreground/30"
-                            key={idx}
-                          />
-                        ))}
+                      <div className="group flex cursor-help items-center justify-center px-2 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
+                        <Lock className="h-3 w-3 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
                       </div>
                     </GameTooltip>
                   </span>

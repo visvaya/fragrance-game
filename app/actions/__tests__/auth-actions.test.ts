@@ -31,7 +31,10 @@ describe("auth-actions", () => {
               data: { user: { email: "test@example.com", id: "user-123" } },
               error: null,
             }),
-            signOut: vi.fn().mockResolvedValue({ error: null }).mockResolvedValue({ error: null }),
+            signOut: vi
+              .fn()
+              .mockResolvedValue({ error: null })
+              .mockResolvedValue({ error: null }),
           },
         };
 
@@ -51,7 +54,10 @@ describe("auth-actions", () => {
               data: { user: { id: "user-123" } },
               error: null,
             }),
-            signOut: vi.fn().mockResolvedValue({ error: null }).mockResolvedValue({ error: null }),
+            signOut: vi
+              .fn()
+              .mockResolvedValue({ error: null })
+              .mockResolvedValue({ error: null }),
           },
         };
 
@@ -84,7 +90,10 @@ describe("auth-actions", () => {
                 },
                 error: null,
               }),
-              signOut: vi.fn().mockResolvedValue({ error: null }).mockResolvedValue({ error: null }),
+              signOut: vi
+                .fn()
+                .mockResolvedValue({ error: null })
+                .mockResolvedValue({ error: null }),
             },
           };
 
@@ -168,9 +177,12 @@ describe("auth-actions", () => {
               data: { user: { id: "user-123" } },
               error: null,
             }),
-            signOut: vi.fn().mockResolvedValue({ error: null }).mockResolvedValue({
-              error: { message: "Failed to sign out", status: 500 },
-            }),
+            signOut: vi
+              .fn()
+              .mockResolvedValue({ error: null })
+              .mockResolvedValue({
+                error: { message: "Failed to sign out", status: 500 },
+              }),
           },
         };
 
@@ -189,9 +201,12 @@ describe("auth-actions", () => {
               data: { user: { id: "user-123" } },
               error: null,
             }),
-            signOut: vi.fn().mockResolvedValue({ error: null }).mockResolvedValue({
-              error: { message: "Network request timeout", status: 408 },
-            }),
+            signOut: vi
+              .fn()
+              .mockResolvedValue({ error: null })
+              .mockResolvedValue({
+                error: { message: "Network request timeout", status: 408 },
+              }),
           },
         };
 
@@ -209,9 +224,12 @@ describe("auth-actions", () => {
               data: { user: { id: "user-123" } },
               error: null,
             }),
-            signOut: vi.fn().mockResolvedValue({ error: null }).mockResolvedValue({
-              error: { message: "Database connection failed", status: 503 },
-            }),
+            signOut: vi
+              .fn()
+              .mockResolvedValue({ error: null })
+              .mockResolvedValue({
+                error: { message: "Database connection failed", status: 503 },
+              }),
           },
         };
 
@@ -259,9 +277,12 @@ describe("auth-actions", () => {
               data: { user: { id: "user-123" } },
               error: null,
             }),
-            signOut: vi.fn().mockResolvedValue({ error: null }).mockResolvedValue({
-              error: { message: "Sign out failed" },
-            }),
+            signOut: vi
+              .fn()
+              .mockResolvedValue({ error: null })
+              .mockResolvedValue({
+                error: { message: "Sign out failed" },
+              }),
           },
         };
 
@@ -281,7 +302,10 @@ describe("auth-actions", () => {
               data: { user: { id: "user-123" } },
               error: null,
             }),
-            signOut: vi.fn().mockResolvedValue({ error: null }).mockResolvedValue({ error: null }),
+            signOut: vi
+              .fn()
+              .mockResolvedValue({ error: null })
+              .mockResolvedValue({ error: null }),
           },
         };
 
@@ -359,7 +383,10 @@ describe("auth-actions", () => {
               },
               error: null,
             }),
-            signOut: vi.fn().mockResolvedValue({ error: null }).mockResolvedValue({ error: null }),
+            signOut: vi
+              .fn()
+              .mockResolvedValue({ error: null })
+              .mockResolvedValue({ error: null }),
           },
         };
 
@@ -381,7 +408,10 @@ describe("auth-actions", () => {
               data: { user: { id: "user-123" } },
               error: null,
             }),
-            signOut: vi.fn().mockResolvedValue({ error: null }).mockResolvedValue({ error: null }),
+            signOut: vi
+              .fn()
+              .mockResolvedValue({ error: null })
+              .mockResolvedValue({ error: null }),
           },
         };
 

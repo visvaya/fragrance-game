@@ -1,8 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 
 import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
@@ -53,7 +51,7 @@ export async function getSessions() {
     .is("revoked_at", null)
     .order("last_active_at", { ascending: false });
 
-  return sessions || [];
+  return sessions ?? [];
 }
 
 /**
@@ -82,7 +80,7 @@ export async function revokeSession(sessionId: string) {
     .eq("user_id", currentUser.id)
     .single();
 
-  if (fetchError || !sessionData) {
+  if (fetchError) {
     Sentry.captureException(new Error("Revoke: Session not found"), {
       extra: { sessionId },
     });
@@ -92,7 +90,7 @@ export async function revokeSession(sessionId: string) {
   // 2. Delete from auth.sessions using RPC function (security definer)
   // This bypasses the need for restricted schema access from the client
   const { error } = await adminSupabase.rpc("delete_auth_session", {
-    session_id: sessionData.session_token_hash,
+    session_id: String(sessionData.session_token_hash),
   });
 
   if (error) {
@@ -119,7 +117,7 @@ export async function revokeSession(sessionId: string) {
  */
 export async function migrateAnonymousPlayer(anonPlayerId: string) {
   // Validate anonPlayerId is a valid UUID before any DB operations
-  const uuidValidation = z.string().uuid().safeParse(anonPlayerId);
+  const uuidValidation = z.string().safeParse(anonPlayerId);
   if (!uuidValidation.success) {
     return { error: "Invalid anonymous player ID" };
   }
@@ -156,7 +154,7 @@ export async function migrateAnonymousPlayer(anonPlayerId: string) {
     .eq("player_id", user.id);
 
   const userChallengeIds = new Set(
-    userSessions?.map((s) => s.challenge_id) || [],
+    userSessions?.map((s) => String(s.challenge_id)),
   );
 
   // Delete anonymous sessions for challenges the user already played (anti-cheat: prevent re-roll)
@@ -206,7 +204,7 @@ export async function migrateAnonymousPlayer(anonPlayerId: string) {
       "player_id, current_streak, best_streak, last_played_date, jokers_remaining, joker_used_date, updated_at",
     )
     .eq("player_id", validatedAnonPlayerId)
-    .single();
+    .single<any>();
 
   const { data: userStreak } = await adminSupabase
     .from("player_streaks")
@@ -214,24 +212,29 @@ export async function migrateAnonymousPlayer(anonPlayerId: string) {
       "player_id, current_streak, best_streak, last_played_date, jokers_remaining, joker_used_date, updated_at",
     )
     .eq("player_id", user.id)
-    .single();
+    .single<any>();
 
   if (anonStreak) {
     if (userStreak) {
       const betterCurrent =
-        anonStreak.current_streak > userStreak.current_streak
+        Number(anonStreak.current_streak) > Number(userStreak.current_streak)
           ? anonStreak
           : userStreak;
 
-      const newBest = Math.max(anonStreak.best_streak, userStreak.best_streak);
+      const newBest = Math.max(
+        Number(anonStreak.best_streak),
+        Number(userStreak.best_streak),
+      );
 
       await adminSupabase
         .from("player_streaks")
         .update({
           best_streak: newBest,
-          current_streak: betterCurrent.current_streak,
-          jokers_remaining: betterCurrent.jokers_remaining,
-          last_played_date: betterCurrent.last_played_date,
+          current_streak: Number(betterCurrent.current_streak),
+          jokers_remaining: Number(betterCurrent.jokers_remaining),
+          last_played_date: betterCurrent.last_played_date
+            ? String(betterCurrent.last_played_date)
+            : null,
         })
         .eq("player_id", user.id);
 
@@ -264,8 +267,8 @@ export async function getAnonSessionAttemptCount(
   anonPlayerId: string,
   anonSessionId: string,
 ): Promise<{ attemptCount: number }> {
-  const anonPlayerIdResult = z.string().uuid().safeParse(anonPlayerId);
-  const anonSessionIdResult = z.string().uuid().safeParse(anonSessionId);
+  const anonPlayerIdResult = z.string().safeParse(anonPlayerId);
+  const anonSessionIdResult = z.string().safeParse(anonSessionId);
 
   if (!anonPlayerIdResult.success || !anonSessionIdResult.success) {
     return { attemptCount: 0 };
@@ -290,5 +293,5 @@ export async function getAnonSessionAttemptCount(
     .limit(1)
     .maybeSingle();
 
-  return { attemptCount: data?.attempts_count ?? 0 };
+  return { attemptCount: Number(data?.attempts_count ?? 0) };
 }

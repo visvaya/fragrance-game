@@ -25,9 +25,8 @@ import { createClient } from "@/lib/supabase/client";
 import { PasswordStrength } from "./password-strength";
 
 async function checkPasswordSafety(password: string) {
-  const { validatePasswordSafety } = await import(
-    "@/app/actions/security-actions"
-  );
+  const { validatePasswordSafety } =
+    await import("@/app/actions/security-actions");
   return validatePasswordSafety(password);
 }
 
@@ -44,7 +43,9 @@ export function ResetPasswordForm() {
 
   const resetPasswordSchema = z
     .object({
-      confirmPassword: z.string().min(1, { message: t("confirmPasswordLabel") }),
+      confirmPassword: z
+        .string()
+        .min(1, { message: t("confirmPasswordLabel") }),
       password: z
         .string()
         .min(8, { message: tAuth("register.passwordMinLength") })

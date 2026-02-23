@@ -18,6 +18,7 @@ const passwordInputSchema = z.string().min(1).max(128);
 export async function validatePasswordSafety(
   password: string,
 ): Promise<{ isSafe: boolean }> {
+  await Promise.resolve();
   const parsed = passwordInputSchema.safeParse(password);
   if (!parsed.success) {
     return { isSafe: false };

@@ -1,9 +1,4 @@
-import {
-  render,
-  screen,
-  waitFor,
-  act,
-} from "@testing-library/react";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -62,7 +57,11 @@ function TestComponent() {
       <div data-testid="daily-brand">{game.dailyPerfume.brand}</div>
       <button
         onClick={async () =>
-          game.makeGuess("Test Perfume", "Test Brand", "f47ac10b-58cc-4372-a567-0e02b2c3d479")
+          game.makeGuess(
+            "Test Perfume",
+            "Test Brand",
+            "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+          )
         }
       >
         Guess
@@ -74,10 +73,8 @@ function TestComponent() {
 function renderWithProviders(ui: React.ReactElement) {
   return render(
     <NextIntlClientProvider locale="en" messages={messages}>
-      <UIPreferencesProvider>
-        {ui}
-      </UIPreferencesProvider>
-    </NextIntlClientProvider>
+      <UIPreferencesProvider>{ui}</UIPreferencesProvider>
+    </NextIntlClientProvider>,
   );
 }
 

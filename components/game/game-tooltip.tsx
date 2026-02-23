@@ -107,7 +107,7 @@ export function GameTooltip({
             setOpen(true);
           }}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
+            if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
               setOpen((previous) => !previous);
             }
@@ -143,7 +143,7 @@ export function GameTooltip({
       </TooltipTrigger>
       <TooltipContent
         // Ensure z-index is correct (Dropdown layer)
-        className="pointer-events-none z-30 max-w-[200px] text-center select-none"
+        className="pointer-events-none z-[60] max-w-[200px] text-center select-none"
         // Prevent tooltip from closing on tap inside (if user taps it by mistake)
         onPointerDownOutside={(e) => {
           // Close on tap outside

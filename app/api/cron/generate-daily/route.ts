@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
 }
 
 async function ensureChallenge(
-  supabase: SupabaseClient<Database>,
+  supabase: SupabaseClient<any, "public", any>,
   dateString: string,
 ) {
   // 1. Check if exists
@@ -85,7 +85,7 @@ async function ensureChallenge(
     return { date: dateString, id: existing.id, status: "exists" };
   }
 
-  console.log(`[CRON] Generating missing challenge for ${dateString}...`);
+  console.warn(`[CRON] Generating missing challenge for ${dateString}...`);
 
   // 2. Fetch exclusion list (Last 30 days is sufficient to avoid recent repeats, keeping pool healthy)
   const exclusionDate = new Date();
@@ -96,7 +96,7 @@ async function ensureChallenge(
     .select("perfume_id")
     .gte("challenge_date", exclusionDate.toISOString().split("T")[0]);
 
-  const rawExcludeIds = recentChallenges?.map((c) => c.perfume_id) || [];
+  const rawExcludeIds = recentChallenges?.map((c) => c.perfume_id) ?? [];
   // Defense-in-depth: validate that all IDs are valid UUIDs before using in query
   const uuidRegex =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -130,7 +130,7 @@ async function ensureChallenge(
       .select("perfume_id")
       .gte("challenge_date", shortExclusionDate.toISOString().split("T")[0]);
 
-    const excludeIds7 = (recent7?.map((c) => c.perfume_id) || []).filter(
+    const excludeIds7 = (recent7?.map((c) => c.perfume_id) ?? []).filter(
       (id) => typeof id === "string" && uuidRegex.test(id),
     );
 
@@ -160,7 +160,9 @@ async function ensureChallenge(
   }
 
   // 4. Random Selection
-  const selected = candidates[Math.floor(Math.random() * candidates.length)];
+  const randomBuffer = new Uint32Array(1);
+  crypto.getRandomValues(randomBuffer);
+  const selected = candidates[randomBuffer[0] % candidates.length];
 
   // 5. Get Next Challenge Number
   const { data: maxChallenge } = await supabase
@@ -170,7 +172,7 @@ async function ensureChallenge(
     .limit(1)
     .single();
 
-  const nextNumber = (maxChallenge?.challenge_number || 0) + 1;
+  const nextNumber = (maxChallenge?.challenge_number ?? 0) + 1;
 
   // 6. Insert & Validate
   const deadline = new Date(dateString);
@@ -193,7 +195,7 @@ async function ensureChallenge(
     if (validationError instanceof z.ZodError) {
       console.error(
         `[CRON] Validation failed for ${dateString}:`,
-        validationError.format(),
+        validationError.issues,
       );
       throw new Error(
         `Validation failed for ${dateString}: ${validationError.message}`,
@@ -214,7 +216,7 @@ async function ensureChallenge(
     );
   }
 
-  console.log(`[CRON] ✅ Created challenge #${nextNumber} for ${dateString}`);
+  console.warn(`[CRON] ✅ Created challenge #${nextNumber} for ${dateString}`);
   return {
     date: dateString,
     id: newChallenge.id,

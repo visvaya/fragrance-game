@@ -13,8 +13,8 @@ import {
 import { Captcha } from "./captcha";
 
 type AuthCaptchaModalProperties = {
-  isOpen: boolean;
-  onVerify: (token: string) => void;
+  readonly isOpen: boolean;
+  readonly onVerify: (token: string) => void;
 };
 
 /**

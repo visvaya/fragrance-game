@@ -1,10 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import { X, Waves } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { createPortal } from "react-dom";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import { MarkerCircle } from "../marker-circle";
 
@@ -20,48 +27,22 @@ type HelpModalProperties = {
  * @param root0.open
  */
 export function HelpModal({ onClose, open }: HelpModalProperties) {
-  const [mounted, setMounted] = useState(false);
   const t = useTranslations("HelpModal");
 
-  useEffect(() => {
-    requestAnimationFrame(() => setMounted(true));
-  }, []);
-
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = "unset";
-      };
-    }
-  }, [open]);
-
-  if (!open || !mounted) return null;
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 p-5 backdrop-blur-sm duration-300 animate-in fade-in"
-      onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          onClose();
-        }
-      }}
-      role="button"
-      tabIndex={0}
-    >
-      <div
-        className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-xl border border-border bg-background duration-300 animate-in slide-in-from-bottom-4"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
-        role="presentation"
+  return (
+    <Dialog onOpenChange={(isOpen) => !isOpen && onClose()} open={open}>
+      <DialogContent
+        className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-xl border border-border bg-background p-0 sm:max-w-md"
+        showCloseButton={false}
       >
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-border p-6 pb-4">
-          <h2 className="font-[family-name:var(--font-playfair)] text-xl text-foreground">
+        <DialogHeader className="flex flex-row items-center justify-between border-b border-border p-6 pb-4">
+          <DialogTitle className="text-xl text-foreground">
             {t("title")}
-          </h2>
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            Instrukcja gry w odgadywanie perfum.
+          </DialogDescription>
           <button
             aria-label={t("ariaClose")}
             className="text-muted-foreground transition-colors hover:text-primary"
@@ -69,7 +50,7 @@ export function HelpModal({ onClose, open }: HelpModalProperties) {
           >
             <X className="h-5 w-5" />
           </button>
-        </div>
+        </DialogHeader>
 
         {/* Content */}
         <div
@@ -145,8 +126,7 @@ export function HelpModal({ onClose, open }: HelpModalProperties) {
             {t("note")}
           </p>
         </div>
-      </div>
-    </div>,
-    document.body,
+      </DialogContent>
+    </Dialog>
   );
 }

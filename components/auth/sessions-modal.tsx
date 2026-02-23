@@ -80,7 +80,11 @@ export function SessionsModal({
   useEffect(() => {
     const fetchSessionsInternal = async () => {
       if (isAnonymous) {
-        setState((previous) => ({ ...previous, isLoading: false, sessions: [] }));
+        setState((previous) => ({
+          ...previous,
+          isLoading: false,
+          sessions: [],
+        }));
         return;
       }
 
@@ -110,8 +114,8 @@ export function SessionsModal({
           const match = sorted.find((s) => {
             const storedUA =
               typeof s.device_info === "object" &&
-                s.device_info !== null &&
-                "user_agent" in s.device_info
+              s.device_info !== null &&
+              "user_agent" in s.device_info
                 ? (s.device_info.user_agent as string)
                 : "";
             return storedUA === currentUA;
@@ -157,7 +161,10 @@ export function SessionsModal({
 
         toast.success(t("revokeSuccess"));
         // Optimistically remove from list or refetch
-        setState((previous) => ({ ...previous, sessions: previous.sessions.filter((s) => s.id !== sessionId) }));
+        setState((previous) => ({
+          ...previous,
+          sessions: previous.sessions.filter((s) => s.id !== sessionId),
+        }));
       } else {
         toast.error(t("revokeError"));
       }
@@ -171,8 +178,8 @@ export function SessionsModal({
   const getDeviceIcon = (deviceInfo: Json | null) => {
     const userAgent =
       typeof deviceInfo === "object" &&
-        deviceInfo !== null &&
-        "user_agent" in deviceInfo
+      deviceInfo !== null &&
+      "user_agent" in deviceInfo
         ? (deviceInfo.user_agent as string)
         : "";
 
@@ -188,8 +195,8 @@ export function SessionsModal({
   const formatDeviceInfo = (deviceInfo: Json | null) => {
     const userAgent =
       typeof deviceInfo === "object" &&
-        deviceInfo !== null &&
-        "user_agent" in deviceInfo
+      deviceInfo !== null &&
+      "user_agent" in deviceInfo
         ? (deviceInfo.user_agent as string)
         : "";
 
@@ -282,17 +289,17 @@ export function SessionsModal({
                           <span className="shrink-0">
                             {session.last_active_at
                               ? t("lastActive", {
-                                time: formatDistanceToNow(
-                                  new Date(session.last_active_at),
-                                  {
-                                    addSuffix: true,
-                                    locale:
-                                      (dateLocales as any)[
-                                      currentLocaleCode
-                                      ] || enUS,
-                                  },
-                                ),
-                              })
+                                  time: formatDistanceToNow(
+                                    new Date(session.last_active_at),
+                                    {
+                                      addSuffix: true,
+                                      locale:
+                                        (dateLocales as any)[
+                                          currentLocaleCode
+                                        ] || enUS,
+                                    },
+                                  ),
+                                })
                               : null}
                           </span>
                         </div>
