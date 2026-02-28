@@ -3,7 +3,7 @@
 import type React from "react";
 import { useState, useRef, useEffect, useId, useMemo, useReducer } from "react";
 
-import { Search, Loader2, X } from "lucide-react";
+import { Search, Loader2, SkipForward, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import {
@@ -15,6 +15,7 @@ import { MASK_CHAR } from "@/lib/constants";
 import { cn, normalizeText } from "@/lib/utils";
 
 import { useGameState, useGameActions, useUIPreferences } from "./contexts";
+import { GameTooltip } from "./game-tooltip";
 import { HighlightedText } from "./highlighted-text";
 type GameInputState = {
   hasSearched: boolean;
@@ -141,7 +142,7 @@ export function GameInput() {
     potentialScore,
     sessionId,
   } = useGameState();
-  const { makeGuess } = useGameActions();
+  const { makeGuess, skipAttempt } = useGameActions();
   const {
     isInputFocused: isFocused,
     setIsInputFocused: setIsFocused,
@@ -470,8 +471,10 @@ export function GameInput() {
             surfaceClasses,
           )}
         >
+          {/* Input + Skip button row */}
+          <div className="flex items-end gap-2">
           {/* Input */}
-          <div className="relative">
+          <div className="relative flex-1">
             <input
               aria-activedescendant={
                 selectedIndex >= 0
@@ -539,6 +542,27 @@ export function GameInput() {
                 <X className="h-5 w-5 text-destructive" />
               </div>
             </div>
+          </div>
+
+          {/* Skip button */}
+          <GameTooltip
+            className="h-8 w-8 items-center justify-center"
+            content={t("skipTooltip")}
+            disableOnMobile
+            sideOffset={8}
+          >
+            <button
+              aria-label={t("skipTooltip")}
+              className="mb-[9px] flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground active:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-30"
+              disabled={gameLoading}
+              onClick={() => {
+                void skipAttempt();
+              }}
+              type="button"
+            >
+              <SkipForward className="h-4 w-4" strokeWidth={1.5} />
+            </button>
+          </GameTooltip>
           </div>
 
           {/* Status bar */}
