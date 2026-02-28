@@ -85,6 +85,9 @@ vi.mock("lucide-react", () => ({
       ≡
     </div>
   ),
+  Lock: ({ className }: { className?: string }) => (
+    <div className={className} data-testid="lock-icon" />
+  ),
 }));
 
 const MOCK_PERFUME_PYRAMID = {

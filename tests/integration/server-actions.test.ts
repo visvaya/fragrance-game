@@ -36,6 +36,7 @@ vi.mock("@/lib/analytics-server", () => ({
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
+  unstable_cache: vi.fn().mockImplementation((fn: unknown) => fn),
 }));
 
 vi.mock("next/headers", () => ({
@@ -226,7 +227,7 @@ describe("Game Actions Integration (Mocked)", () => {
       await expect(
         submitGuess(
           "123e4567-e89b-12d3-a456-426614174003",
-          "f47a-58cc-4372-a567-0e02b2c3d470",
+          "f47ac10b-58cc-4372-a567-0e02b2c3d470",
           "123",
         ),
       ).rejects.toThrow(/CONFLICT/);

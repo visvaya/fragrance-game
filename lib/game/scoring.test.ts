@@ -54,7 +54,7 @@ describe("Reveal Logic", () => {
         perfumerLetters: 0,
         radialMask: 0,
         showGender: false,
-        yearMask: "____",
+        yearMask: "⎵⎵⎵⎵",
       });
       // Attempt 2
       expect(getRevealPercentages(2)).toEqual({
@@ -65,7 +65,7 @@ describe("Reveal Logic", () => {
         perfumerLetters: 0,
         radialMask: 5,
         showGender: false,
-        yearMask: "1___",
+        yearMask: "1⎵⎵⎵",
       });
       // Attempt 3
       expect(getRevealPercentages(3)).toEqual({
@@ -76,7 +76,7 @@ describe("Reveal Logic", () => {
         perfumerLetters: 10,
         radialMask: 8,
         showGender: false,
-        yearMask: "19__",
+        yearMask: "19⎵⎵",
       });
       // Attempt 4
       expect(getRevealPercentages(4)).toEqual({
@@ -87,7 +87,7 @@ describe("Reveal Logic", () => {
         perfumerLetters: 30,
         radialMask: 11,
         showGender: false,
-        yearMask: "197_",
+        yearMask: "197⎵",
       });
       // Attempt 5
       expect(getRevealPercentages(5)).toEqual({
@@ -116,7 +116,7 @@ describe("Reveal Logic", () => {
 
   describe("revealLetters", () => {
     it("should hide all letters at 0%", () => {
-      expect(revealLetters("Dior", 0)).toBe("____");
+      expect(revealLetters("Dior", 0)).toBe("⎵⎵⎵⎵");
     });
 
     it("should show all letters at 100%", () => {
@@ -124,7 +124,7 @@ describe("Reveal Logic", () => {
     });
 
     it("should reveal center letter first (15-25%)", () => {
-      expect(revealLetters("Dior", 25)).toBe("__o_");
+      expect(revealLetters("Dior", 25)).toBe("⎵⎵o⎵");
     });
 
     it("should reveal center outward correctly", () => {
@@ -133,26 +133,26 @@ describe("Reveal Logic", () => {
       // 17% (1 char) -> Center 'n'
       // 17% of 6 is 1.02. Math.ceil would be 2. Math.round is 1. Max(1, round) is 1.
       const res1 = revealLetters("Chanel", 17);
-      expect(res1).toBe("___n__");
+      expect(res1).toBe("⎵⎵⎵n⎵⎵");
 
       // 34% (2.04 -> 2 chars with round)
       // Order: n(3), a(2), e(4)...
       const res2 = revealLetters("Chanel", 34);
-      expect(res2).toBe("__an__");
+      expect(res2).toBe("⎵⎵an⎵⎵");
 
       // 50% (3 letters)
       // Order: 3, 2, 4.
       const res3 = revealLetters("Chanel", 50);
-      expect(res3).toBe("__ane_");
+      expect(res3).toBe("⎵⎵ane⎵");
 
       // 70% (4.2 -> 4 letters)
       // Order: 3, 2, 4, 1.
       const res4 = revealLetters("Chanel", 70);
-      expect(res4).toBe("_hane_");
+      expect(res4).toBe("⎵hane⎵");
     });
 
     it("should always show separators", () => {
-      expect(revealLetters("Yves Saint Laurent", 0)).toBe("____ _____ _______");
+      expect(revealLetters("Yves Saint Laurent", 0)).toBe("⎵⎵⎵⎵ ⎵⎵⎵⎵⎵ ⎵⎵⎵⎵⎵⎵⎵");
     });
   });
 });

@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 
 import { renderHook } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { MASK_CHAR } from "@/lib/constants";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import {
   GameStateProvider,
@@ -120,13 +121,13 @@ describe("GameStateContext", () => {
   });
 
   it("should compute revealedYear progressively", () => {
-    // Level 1: ____
+    // Level 1: MASK_CHAR * 4
     const { result: level1 } = renderHook(() => useGameState(), {
       wrapper: createWrapper({ attempts: [] }),
     });
-    expect(level1.current.revealedYear).toBe("____");
+    expect(level1.current.revealedYear).toBe(MASK_CHAR.repeat(4));
 
-    // Level 2: 1___
+    // Level 2: 1 + MASK_CHAR * 3
     const mockAttempts1: Attempt[] = [
       {
         brand: "Test",
@@ -143,7 +144,7 @@ describe("GameStateContext", () => {
     const { result: level2 } = renderHook(() => useGameState(), {
       wrapper: createWrapper({ attempts: mockAttempts1 }),
     });
-    expect(level2.current.revealedYear).toBe("1___");
+    expect(level2.current.revealedYear).toBe("1" + MASK_CHAR.repeat(3));
   });
 
   it("should compute visibleNotes progressively", () => {
@@ -190,7 +191,7 @@ describe("GameStateContext", () => {
       "Lemon",
       "Neroli",
     ]);
-    expect(level3.current.visibleNotes.heart?.[0]).toContain("_"); // Masked
+    expect(level3.current.visibleNotes.heart?.[0]).toContain(MASK_CHAR); // Masked
   });
 
   it("should compute blurLevel progressively", () => {

@@ -7,9 +7,21 @@ import * as gameActions from "@/app/actions/game-actions";
 import { UIPreferencesProvider } from "../contexts/ui-preferences-context";
 import { GameProvider, useGame } from "../game-provider";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+    back: vi.fn(),
+  }),
+  usePathname: () => "/en",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 // Mock dependencies
 vi.mock("@/app/actions/game-actions", () => ({
   getDailyChallenge: vi.fn(),
+  getDailyChallengeSSR: vi.fn(),
   initializeGame: vi.fn(),
   resetGame: vi.fn(),
   startGame: vi.fn(),
@@ -22,6 +34,9 @@ vi.mock("@/lib/supabase/client", () => ({
       getSession: vi.fn().mockResolvedValue({
         data: { session: { user: { id: "test-user" } } },
       }),
+      onAuthStateChange: vi.fn().mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      }),
       signInAnonymously: vi.fn().mockResolvedValue({
         data: { session: { user: { id: "test-user" } } },
         error: null,
@@ -30,17 +45,25 @@ vi.mock("@/lib/supabase/client", () => ({
   })),
 }));
 
-vi.mock("posthog-js/react", () => ({
-  usePostHog: vi.fn(() => ({
-    capture: vi.fn(),
-  })),
-}));
-
 const messages = {
   Auth: {
     register: {
       title: "Register",
+      captchaTitle: "Verification Required",
+      captchaDescription: "Please verify you are human.",
     },
+  },
+  Migration: {
+    title: "Anonymous Session Detected",
+    description: "Migrate your progress?",
+    warning: "Skipping will abandon anonymous results.",
+    cancel: "Skip",
+    cancelConfirm: "Are you sure?",
+    exitConfirm: "Abort?",
+    abortHelp: "Close to abort.",
+    confirm: "Yes, Merge",
+    success: "Merged!",
+    error: "Failed.",
   },
 };
 
@@ -105,6 +128,7 @@ describe("GameProvider", () => {
       challenge: mockChallenge as any,
       session: mockSession as any,
     });
+    vi.mocked(gameActions.startGame).mockResolvedValue(mockSession as any);
   });
 
   it("initializes game correctly", async () => {
@@ -160,6 +184,41 @@ describe("GameProvider", () => {
     await waitFor(() => {
       expect(screen.getByTestId("game-state")).toHaveTextContent("won");
     });
+  });
+
+  it("uses initialChallenge prop to skip getDailyChallenge roundtrip", async () => {
+    const mockInitialChallenge = {
+      challenge_date: "2026-02-27",
+      clues: {
+        brand: "Chanel",
+        concentration: "EDP",
+        gender: "Feminine",
+        isLinear: false,
+        notes: { base: ["Vanilla"], heart: ["Rose"], top: ["Bergamot"] },
+        perfumer: "Jacques Polge",
+        xsolve: 3,
+        year: 1921,
+      },
+      grace_deadline_at_utc: "2026-02-28T00:00:00Z",
+      id: VALID_CHALLENGE_ID,
+      mode: "standard",
+      snapshot_metadata: {},
+    };
+
+    renderWithProviders(
+      <GameProvider initialChallenge={mockInitialChallenge as any}>
+        <TestComponent />
+      </GameProvider>,
+    );
+
+    await waitFor(() => {
+      // initializeGame should NOT be called when initialChallenge is provided
+      expect(gameActions.initializeGame).not.toHaveBeenCalled();
+      // startGame SHOULD be called with the challenge id
+      expect(gameActions.startGame).toHaveBeenCalledWith(VALID_CHALLENGE_ID, 0);
+    });
+
+    expect(screen.getByTestId("daily-brand")).toHaveTextContent("Chanel");
   });
 
   it("handles making an incorrect guess", async () => {

@@ -3,6 +3,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 // Mock dependencies
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
+  unstable_cache: vi.fn().mockImplementation((fn: unknown) => fn),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -894,7 +895,7 @@ describe("game-actions", () => {
         expect(result.revealState.perfumerLetters).toBe(10);
         expect(result.revealState.notes).toBe(1);
         expect(result.revealState.radialMask).toBe(8);
-        expect(result.revealState.yearMask).toBe("19__");
+        expect(result.revealState.yearMask).toBe("19⎵⎵");
         expect(result.guesses).toBeDefined();
       });
 
@@ -1314,13 +1315,13 @@ describe("game-actions", () => {
                 return sessionCallCount === 1
                   ? { data: sessionData, error: null }
                   : {
-                      data: {
-                        ...sessionData,
-                        attempts_count: 3,
-                        status: "won",
-                      },
-                      error: null,
-                    };
+                    data: {
+                      ...sessionData,
+                      attempts_count: 3,
+                      status: "won",
+                    },
+                    error: null,
+                  };
               });
             } else if (table === "game_results") {
               chain.insert = vi.fn().mockResolvedValue({
@@ -1480,6 +1481,12 @@ describe("game-actions", () => {
               });
             }
 
+            if (table === "game_results") {
+              chain.insert = vi
+                .fn()
+                .mockResolvedValue({ data: { id: "result-123" }, error: null });
+            }
+
             return chain;
           }),
         };
@@ -1518,7 +1525,7 @@ describe("game-actions", () => {
                   data: {
                     challenge_date: "2026-02-12",
                     grace_deadline_at_utc: "2026-02-13T00:00:00Z",
-                    perfume_id: "f47ac10b-58cc-4372-a567-0e02b2c3d479", // Different from guess!
+                    perfume_id: "550e8400-e29b-41d4-a716-446655440000", // Correct answer, different from wrongPerfumeId
                   },
                   error: null,
                 });
