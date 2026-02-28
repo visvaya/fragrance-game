@@ -985,6 +985,142 @@ function mapPerfumeDetails(perfume: {
 }
 
 /**
+ * Pomija aktualną próbę. Zużywa jedną próbę bez podawania perfum.
+ * Jeśli to ostatnia próba, kończy grę przegraną.
+ */
+export async function skipAttempt(
+  sessionId: string,
+  clientNonce: string,
+): Promise<SkipResult> {
+  if (!uuidSchema.safeParse(sessionId).success) {
+    throw new Error("Invalid session ID");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    console.error("skipAttempt: Unauthorized", { sessionId, userError });
+    throw new Error("Unauthorized");
+  }
+
+  await checkRateLimit("skipAttempt", user.id);
+
+  const { data: session, error: sessionError } = (await supabase
+    .from("game_sessions")
+    .select(
+      "id, last_nonce, status, attempts_count, challenge_id, player_id, guesses, start_time",
+    )
+    .eq("id", sessionId)
+    .limit(1)
+    .single()) as {
+    data: {
+      attempts_count: number;
+      challenge_id: string;
+      guesses:
+        | {
+            isCorrect: boolean;
+            isSkip?: boolean;
+            perfumeId: string | null;
+            timestamp: string;
+          }[]
+        | null;
+      id: string;
+      last_nonce: string | number;
+      player_id: string;
+      start_time: string;
+      status: string;
+    } | null;
+    error: Error | null;
+  };
+
+  if (sessionError || !session) throw new Error("Session not found");
+
+  if (String(session.last_nonce) !== clientNonce) {
+    throw new Error(`CONFLICT:${session.last_nonce}`);
+  }
+
+  if (session.status !== "active") {
+    return {
+      gameStatus: session.status as "active" | "won" | "lost",
+      newNonce: String(session.last_nonce),
+    };
+  }
+
+  const nextAttempts = session.attempts_count + 1;
+  const isGameOver = nextAttempts >= MAX_GUESSES;
+  const newNonce = generateNonce();
+  const newStatus: "active" | "lost" = isGameOver ? "lost" : "active";
+
+  const skipEntry = {
+    isCorrect: false,
+    isSkip: true,
+    perfumeId: null,
+    timestamp: new Date().toISOString(),
+  };
+
+  const { error: updateError } = await supabase
+    .from("game_sessions")
+    .update({
+      attempts_count: nextAttempts,
+      guesses: [...(session.guesses ?? []), skipEntry],
+      last_guess: new Date().toISOString(),
+      last_nonce: newNonce,
+      status: newStatus,
+    })
+    .eq("id", sessionId)
+    .eq("last_nonce", clientNonce);
+
+  if (updateError) throw new Error(`CONFLICT:${session.last_nonce}`);
+
+  await trackEvent(
+    "attempt_skipped",
+    {
+      attempt_number: nextAttempts,
+      challenge_id: session.challenge_id,
+      session_id: sessionId,
+    },
+    user.id,
+  );
+
+  if (isGameOver) {
+    const adminSupabase = createAdminClient();
+    const { data: challenge } = await adminSupabase
+      .from("daily_challenges")
+      .select("perfume_id, grace_deadline_at_utc")
+      .eq("id", session.challenge_id)
+      .single();
+
+    if (challenge) {
+      const now = new Date();
+      const isRanked =
+        now <= new Date(String(challenge.grace_deadline_at_utc));
+      await supabase.from("game_results").insert({
+        attempts: nextAttempts,
+        challenge_id: session.challenge_id,
+        is_ranked: isRanked,
+        player_id: user.id,
+        score: 0,
+        score_raw: 0,
+        scoring_version: 1,
+        session_id: sessionId,
+        status: "lost",
+        time_seconds: Math.floor(
+          (now.getTime() - new Date(session.start_time).getTime()) / 1000,
+        ),
+      });
+    }
+  }
+
+  const imageUrl = await getImageUrlForStep(sessionId);
+
+  return { gameStatus: newStatus, imageUrl, newNonce };
+}
+
+/**
  * Resetuje grę dla użytkownika i wyzwania.
  */
 export async function resetGame(
