@@ -37,6 +37,50 @@ export function AttemptRow({
   const t = useTranslations("AttemptLog");
   const isActive = activeRowIndex === index;
 
+  if (attempt.isSkipped) {
+    return (
+      <div className="group contents" data-attempt-row>
+        <div
+          className={cn(
+            "relative z-10 flex items-center justify-center border-b border-muted/30 py-3 opacity-40 transition-all duration-300 group-last:border-0",
+            isTouch && isActive ? "bg-muted/25" : "group-hover:bg-muted/25",
+          )}
+          id={`attempt-${index}`}
+        >
+          <span className="block w-full px-1 text-center font-[family-name:var(--font-playfair)] text-base text-muted-foreground">
+            {ROMAN_NUMERALS[index]}
+          </span>
+        </div>
+
+        <div
+          className={cn(
+            "relative z-10 flex min-w-0 items-center border-b border-muted/30 py-3 pr-2 pl-2 opacity-40 transition-all duration-300 group-last:border-0",
+            isTouch && isActive ? "bg-muted/25" : "group-hover:bg-muted/25",
+          )}
+        >
+          <span className="font-[family-name:var(--font-playfair)] text-sm italic text-muted-foreground">
+            {t("skipped")}
+          </span>
+        </div>
+
+        <div
+          className={cn(
+            "relative z-10 grid w-full grid-cols-5 items-center border-b border-muted/30 py-3 pr-2 pl-1 opacity-20 transition-all duration-300 group-last:border-0",
+            isTouch && isActive ? "bg-muted/25" : "group-hover:bg-muted/25",
+          )}
+        >
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div className="flex h-full items-center justify-center" key={i}>
+              <span className="font-hand text-base text-muted-foreground">
+                —
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="group contents" data-attempt-row>
       <div
