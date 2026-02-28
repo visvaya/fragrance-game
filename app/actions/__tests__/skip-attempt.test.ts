@@ -16,9 +16,8 @@ vi.mock("@/lib/analytics-server", () => ({
   trackEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { createAdminClient, createClient } from "@/lib/supabase/server";
-
 import { skipAttempt } from "@/app/actions/game-actions";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 const SESSION_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
 const NONCE = "12345";
