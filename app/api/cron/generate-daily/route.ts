@@ -5,7 +5,6 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/server";
 import { DailyChallengesInsert } from "@/lib/validations/supabase.schema";
 
-import type { Database } from "@/types/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**

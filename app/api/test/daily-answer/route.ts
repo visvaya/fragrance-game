@@ -24,7 +24,7 @@ export async function GET() {
 
   // Admin role check
   const adminSupabase = createAdminClient();
-  const { data: adminRecord, error: adminError } = await adminSupabase
+  const { error: adminError } = await adminSupabase
     .from("app_admins")
     .select("user_id")
     .eq("user_id", user.id)

@@ -184,7 +184,7 @@ export async function searchPerfumes(
   // 7. Re-rank: brand/name matches first, phonetic-only DB false-positives last.
   // Stable sort preserves DB relevance order within each tier.
   const nq = normalizeText(validatedQuery);
-  const reranked = [...transformed].sort(
+  const reranked = transformed.toSorted(
     (a, b) => relevanceScore(b, nq) - relevanceScore(a, nq),
   );
 
