@@ -1,3 +1,4 @@
+import { MASK_CHAR } from "@/lib/constants";
 import { revealLetters } from "@/lib/game/scoring";
 
 /**
@@ -64,9 +65,9 @@ export function maskYear(
   const yearString = year.toString();
 
   if (safeAttempts >= 5) return yearString;
-  if (safeAttempts === 4) return yearString.slice(0, 3) + "_";
-  if (safeAttempts === 3) return yearString.slice(0, 2) + "__";
-  if (safeAttempts === 2) return yearString.slice(0, 1) + "___";
+  if (safeAttempts === 4) return yearString.slice(0, 3) + MASK_CHAR;
+  if (safeAttempts === 3) return yearString.slice(0, 2) + MASK_CHAR.repeat(2);
+  if (safeAttempts === 2) return yearString.slice(0, 1) + MASK_CHAR.repeat(3);
 
-  return "____";
+  return MASK_CHAR.repeat(4);
 }

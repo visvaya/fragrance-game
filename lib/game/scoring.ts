@@ -1,4 +1,4 @@
-import { MAX_GUESSES } from "@/lib/constants";
+import { MASK_CHAR, MAX_GUESSES } from "@/lib/constants";
 
 /**
  * Scoring and Reveal Logic for Fragrance Game
@@ -71,7 +71,7 @@ export function getRevealPercentages(attempt: number): RevealState {
         perfumerLetters: 0,
         radialMask: 0,
         showGender: false,
-        yearMask: "____",
+        yearMask: MASK_CHAR.repeat(4),
       };
     }
     case 2: {
@@ -84,7 +84,7 @@ export function getRevealPercentages(attempt: number): RevealState {
         perfumerLetters: 0,
         radialMask: 5,
         showGender: false,
-        yearMask: "1___",
+        yearMask: `1${MASK_CHAR.repeat(3)}`,
       };
     }
     case 3: {
@@ -97,7 +97,7 @@ export function getRevealPercentages(attempt: number): RevealState {
         perfumerLetters: 10,
         radialMask: 8,
         showGender: false,
-        yearMask: "19__",
+        yearMask: `19${MASK_CHAR.repeat(2)}`,
       };
     }
     case 4: {
@@ -110,7 +110,7 @@ export function getRevealPercentages(attempt: number): RevealState {
         perfumerLetters: 30,
         radialMask: 11,
         showGender: false,
-        yearMask: "197_",
+        yearMask: `197${MASK_CHAR}`,
       };
     }
     case 5: {
@@ -148,7 +148,7 @@ export function getRevealPercentages(attempt: number): RevealState {
         perfumerLetters: 0,
         radialMask: 0,
         showGender: false,
-        yearMask: "____",
+        yearMask: MASK_CHAR.repeat(4),
       };
     }
   }
@@ -187,7 +187,7 @@ export function revealLetters(text: string, percentage: number): string {
     if (/^\s+$/.test(token)) return token;
 
     // Mask entire word at 0%
-    if (pct === 0) return "_".repeat(token.length);
+    if (pct === 0) return MASK_CHAR.repeat(token.length);
 
     const chars = token.split("");
     const lettersToReveal = Math.max(1, Math.round(chars.length * (pct / 100)));
@@ -197,7 +197,7 @@ export function revealLetters(text: string, percentage: number): string {
     const order = generateSmartRevealOrder(chars.length);
     const revealed = new Set(order.slice(0, lettersToReveal));
 
-    return chars.map((c, i) => (revealed.has(i) ? c : "_")).join("");
+    return chars.map((c, i) => (revealed.has(i) ? c : MASK_CHAR)).join("");
   });
 
   return revealedTokens.join("");
