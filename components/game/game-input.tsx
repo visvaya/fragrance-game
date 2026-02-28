@@ -1,15 +1,7 @@
 "use client";
 
 import type React from "react";
-import {
-  useState,
-  useRef,
-  useEffect,
-  useId,
-  useMemo,
-  memo,
-  useReducer,
-} from "react";
+import { useState, useRef, useEffect, useId, useMemo, useReducer } from "react";
 
 import { Search, Loader2, X } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -19,6 +11,7 @@ import {
   type PerfumeSuggestion,
 } from "@/app/actions/autocomplete";
 import { useMountTransition } from "@/hooks/use-mount-transition";
+import { MASK_CHAR } from "@/lib/constants";
 import { cn, normalizeText } from "@/lib/utils";
 
 import { useGameState, useGameActions, useUIPreferences } from "./contexts";
@@ -152,13 +145,9 @@ export function GameInput() {
   const {
     isInputFocused: isFocused,
     setIsInputFocused: setIsFocused,
-    uiPreferences,
   } = useUIPreferences();
   const t = useTranslations("Game.input");
   const tFooter = useTranslations("Footer");
-
-  const isWide = uiPreferences.layoutMode === "wide";
-  const maxWidthClass = isWide ? "max-w-xl" : "max-w-2xl";
 
   const [state, dispatch] = useReducer(gameInputReducer, initialState);
   const {
@@ -174,7 +163,6 @@ export function GameInput() {
   const inputReference = useRef<HTMLInputElement>(null);
   const wrapperReference = useRef<HTMLDivElement>(null);
   const listReference = useRef<HTMLDivElement>(null);
-  const previousAttemptsLengthReference = useRef(attempts.length);
 
   const trimmedQuery = query.trim();
 
@@ -414,8 +402,8 @@ export function GameInput() {
   // 1. Loading State - Render nothing or a stable placeholder (prevents "No Puzzle" flash)
   if (gameLoading) {
     return (
-      <div className={cn("sticky bottom-0 z-30 mx-auto w-full", maxWidthClass)}>
-        <div className="relative border-x-0 border-t border-border/50 bg-background/70 px-5 py-8 backdrop-blur-md sm:rounded-t-md sm:border-x">
+      <div className={cn("sticky bottom-0 z-30 mx-auto w-full max-w-2xl wide:max-w-xl")}>
+        <div className="relative border-x-0 border-t panel-border panel-shadow bg-background/70 px-5 py-8 backdrop-blur-md sm:rounded-t-md sm:border-x">
           <div className="flex justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
@@ -427,8 +415,8 @@ export function GameInput() {
   // 2. Closed / No Puzzle State (Only if loaded and invalid)
   if (gameState !== "playing" || isSkeleton) {
     return (
-      <div className={cn("sticky bottom-0 z-30 mx-auto w-full", maxWidthClass)}>
-        <div className="relative border-x-0 border-t border-border/50 bg-background/70 px-5 py-4 backdrop-blur-md transition-colors duration-500 ease-in-out sm:rounded-t-md sm:border-x">
+      <div className={cn("sticky bottom-0 z-30 mx-auto w-full max-w-2xl wide:max-w-xl")}>
+        <div className="relative border-x-0 border-t panel-border panel-shadow bg-background/70 px-5 py-4 backdrop-blur-md transition-colors duration-500 ease-in-out sm:rounded-t-md sm:border-x">
           {/* Input-like look for closed state */}
           <div className="relative flex items-center justify-center">
             <span className="font-hand text-lg text-primary">
@@ -452,15 +440,15 @@ export function GameInput() {
   }
 
   return (
-    <div className={cn("sticky bottom-0 z-30 mx-auto w-full", maxWidthClass)}>
+    <div className={cn("sticky bottom-0 z-30 mx-auto w-full max-w-2xl wide:max-w-xl")}>
       {/* Onboarding Tooltip — fixed above the sticky input bar */}
       <div
         aria-hidden="true"
         className={cn(
-          "pointer-events-none absolute bottom-full left-1/2 z-40 -translate-x-1/2 pb-3 transition-all duration-500 ease-in-out",
+          "pointer-events-none absolute bottom-[calc(100%-8px)] left-1/2 z-10 -translate-x-1/2 pb-4 transition-all duration-500 ease-in-out",
           attempts.length === 0 && !isFocused
             ? "translate-y-0 opacity-100"
-            : "translate-y-1 opacity-0",
+            : "translate-y-8 opacity-0",
         )}
       >
         <div className="flex flex-col items-center gap-0">
@@ -478,7 +466,7 @@ export function GameInput() {
         {/* Input Surface (Visual Layer) */}
         <div
           className={cn(
-            "relative z-20 border-x-0 border-t border-border/50 px-5 pt-[2px] pb-3 backdrop-blur-md transition-colors duration-200 ease-in-out sm:border-x",
+            "relative z-20 border-x-0 border-t panel-border panel-shadow px-5 pt-0.5 pb-3 backdrop-blur-md transition-colors duration-200 ease-in-out sm:border-x",
             surfaceClasses,
           )}
         >
@@ -554,7 +542,7 @@ export function GameInput() {
           </div>
 
           {/* Status bar */}
-          <div className="mt-3 flex items-center justify-between text-[10px] tracking-wide text-muted-foreground uppercase">
+          <div className="mt-3 flex items-center justify-between text-xs tracking-wide text-muted-foreground uppercase">
             <span>
               {t("attempt")} {currentAttempt} / {maxAttempts}
             </span>
@@ -567,9 +555,9 @@ export function GameInput() {
         {/* Suggestions dropdown (Behind Input Surface) */}
         {hasTransitionedIn || shouldShowList ? (
           <div
-            className={`!absolute bottom-full left-0 z-10 max-h-56 w-full touch-pan-y !overflow-y-auto rounded-t-md border-x border-t border-border/50 bg-background shadow-2xl shadow-black/10 ${shouldShowList
-                ? "duration-200 ease-out animate-in fade-in slide-in-from-bottom-12"
-                : "duration-200 ease-in animate-out fade-out slide-out-to-bottom-12"
+            className={`!absolute bottom-full left-0 z-10 max-h-56 w-full touch-pan-y !overflow-y-auto rounded-t-md border-x border-t panel-border panel-shadow bg-background/100 backdrop-blur-none ${shouldShowList
+              ? "duration-200 ease-out animate-in fade-in slide-in-from-bottom-12"
+              : "duration-200 ease-in animate-out fade-out slide-out-to-bottom-12"
               } `}
             data-lenis-prevent
             id={listId}
@@ -639,14 +627,14 @@ export function GameInput() {
                           <span className="text-muted-foreground/30">•</span>
                           <span className="inline-flex items-baseline">
                             {(() => {
-                              if (!perfume.year.includes("_")) {
+                              if (!perfume.year.includes(MASK_CHAR)) {
                                 return <span>{perfume.year}</span>;
                               }
 
-                              if (perfume.year === "____") {
+                              if (perfume.year === MASK_CHAR.repeat(4)) {
                                 return (
                                   <span className="font-mono tracking-widest text-muted-foreground opacity-30">
-                                    ____
+                                    {MASK_CHAR.repeat(4)}
                                   </span>
                                 );
                               }
@@ -656,7 +644,7 @@ export function GameInput() {
                                   {/* eslint_disable-next-line unicorn/prefer-spread */}
                                   {[...perfume.year].map((char, i) => (
                                     <span
-                                      className={`${char === "_" ? "font-mono text-muted-foreground opacity-40" : "text-foreground"} whitespace-pre`}
+                                      className={`${char === MASK_CHAR ? "font-mono text-muted-foreground opacity-40" : "text-foreground"} whitespace-pre`}
                                       key={i}
                                     >
                                       {char}

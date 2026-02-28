@@ -45,7 +45,7 @@ const caveat = Caveat({
   preload: true,
   subsets: ["latin", "latin-ext"],
   variable: "--font-caveat",
-  weight: ["400", "500", "600", "700"],
+  weight: ["400"],
 });
 
 /**
@@ -143,6 +143,16 @@ export default async function RootLayout({
             rel="preconnect"
           />
         ) : null}
+        {/* R2 CDN assets — krytyczne dla LCP (obrazy butelek perfum) */}
+        <link
+          crossOrigin=""
+          href={`https://${process.env.NEXT_PUBLIC_ASSETS_HOST ?? "assets.eauxle.com"}`}
+          rel="preconnect"
+        />
+        {/* PostHog analytics */}
+        <link href="https://eu.i.posthog.com" rel="preconnect" />
+        {/* Sentry CDN — dns-prefetch wystarczy (SDK ładowany na idle) */}
+        <link href="https://browser.sentry-cdn.com" rel="dns-prefetch" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${caveat.variable} font-sans antialiased`}

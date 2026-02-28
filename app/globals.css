@@ -2,6 +2,7 @@
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant wide (&:is(html[data-layout="wide"] *));
 
 html.large-text {
   font-size: 112.5%;
@@ -12,15 +13,14 @@ html.large-text {
 :root {
   /* Primary palette - elegant cream and amber */
   --background: oklch(0.98 0.005 85);
-  /* Off-white paper */
-  --foreground: oklch(0.18 0.01 260);
-  /* Ink charcoal */
+  /* Ink charcoal (warm dark brown) */
+  --foreground: oklch(0.25 0.03 55);
 
   --card: oklch(0.97 0.008 85);
-  --card-foreground: oklch(0.18 0.01 260);
+  --card-foreground: oklch(0.25 0.03 55);
 
   --popover: oklch(0.98 0.005 85);
-  --popover-foreground: oklch(0.18 0.01 260);
+  --popover-foreground: oklch(0.25 0.03 55);
 
   /* Amber accent - the signature marker color */
   --primary: oklch(0.72 0.16 55);
@@ -28,10 +28,10 @@ html.large-text {
   --primary-foreground: oklch(0.98 0.005 85);
 
   --secondary: oklch(0.94 0.01 85);
-  --secondary-foreground: oklch(0.18 0.01 260);
+  --secondary-foreground: oklch(0.25 0.03 55);
 
   --muted: oklch(0.92 0.01 85);
-  --muted-foreground: oklch(0.45 0.01 260);
+  --muted-foreground: oklch(0.48 0.04 55);
 
   --accent: oklch(0.72 0.16 55);
   /* Amber accent */
@@ -41,16 +41,16 @@ html.large-text {
   --destructive-foreground: oklch(0.98 0.005 85);
 
   --success: oklch(0.85 0.1 140);
-  --success-foreground: oklch(0.18 0.01 260);
+  --success-foreground: oklch(0.25 0.03 55);
 
   --warning: oklch(0.85 0.15 70);
-  --warning-foreground: oklch(0.18 0.01 260);
+  --warning-foreground: oklch(0.25 0.03 55);
 
   --info: oklch(0.85 0.05 240);
-  --info-foreground: oklch(0.18 0.01 260);
+  --info-foreground: oklch(0.25 0.03 55);
 
-  --border: oklch(0.88 0.01 85);
-  --border-strong: oklch(0.18 0.01 260);
+  --border: oklch(0.85 0.02 55);
+  --border-strong: oklch(0.35 0.03 55);
   --input: oklch(0.92 0.01 85);
   --ring: oklch(0.72 0.16 55);
 
@@ -65,11 +65,11 @@ html.large-text {
 
   /* Sidebar */
   --sidebar: oklch(0.96 0.008 85);
-  --sidebar-foreground: oklch(0.18 0.01 260);
+  --sidebar-foreground: oklch(0.25 0.03 55);
   --sidebar-primary: oklch(0.72 0.16 55);
   --sidebar-primary-foreground: oklch(0.98 0.005 85);
   --sidebar-accent: oklch(0.94 0.01 85);
-  --sidebar-accent-foreground: oklch(0.18 0.01 260);
+  --sidebar-accent-foreground: oklch(0.25 0.03 55);
   --sidebar-border: oklch(0.88 0.01 85);
   --sidebar-ring: oklch(0.72 0.16 55);
 }
@@ -239,11 +239,29 @@ html.large-text {
 }
 
 @utility bg-gradient-amber {
-  background: linear-gradient(
-    135deg,
-    oklch(0.72 0.16 55) 0%,
-    oklch(0.68 0.18 50) 100%
-  );
+  background: linear-gradient(135deg,
+      oklch(0.72 0.16 55) 0%,
+      oklch(0.68 0.18 50) 100%);
+}
+
+@utility bg-striped-pattern {
+  background-image: repeating-linear-gradient(45deg,
+      transparent,
+      transparent 4px,
+      oklch(var(--color-foreground) / 0.06) 4px,
+      oklch(var(--color-foreground) / 0.06) 8px);
+}
+
+@utility panel-shadow {
+  @apply shadow-sm shadow-stone-300/40 dark:shadow-stone-900/50;
+}
+
+@utility panel-border {
+  @apply border-border/60;
+}
+
+@utility panel-standard {
+  @apply rounded-md border panel-border bg-background p-4 panel-shadow;
 }
 
 /* Custom handwritten marker circle animation */
@@ -328,13 +346,11 @@ html.large-text {
   bottom: -4px;
   width: 100%;
   height: 3px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--primary) 10%,
-    var(--primary) 90%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      var(--primary) 10%,
+      var(--primary) 90%,
+      transparent 100%);
   border-radius: 50%;
   transform: rotate(-1deg);
   opacity: 0.7;
@@ -403,9 +419,19 @@ html.lenis body {
   /* Firefox */
 }
 
-/* Pre-hydration wide layout: CSS override set by the inline <head> script.
-   Ensures desktop users see the wide layout immediately — before React hydrates
-   and before JS can read localStorage. Paired with data-layout attr on <html>. */
-html[data-layout="wide"] .layout-container {
-  max-width: 64rem; /* matches Tailwind max-w-5xl */
+/* Reserve scrollbar gutter at all times so react-remove-scroll-bar calculates
+   gap=0 and never applies margin-right/padding-right to body. This eliminates
+   the layout shift that causes position:sticky to flicker when dialogs open/close. */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Override react-remove-scroll-bar's `overflow: hidden !important` on body.
+   When any Radix Dialog opens, it adds data-scroll-locked to body which triggers
+   that library's injected style. overflow:hidden breaks position:sticky on the
+   game input. overflow:clip clips content identically but does NOT create a
+   scroll container, so sticky continues to work. Higher specificity (html body)
+   ensures this rule wins over the library's body[data-scroll-locked] rule. */
+html body[data-scroll-locked] {
+  overflow: clip !important;
 }
