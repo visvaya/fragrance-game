@@ -6,13 +6,8 @@ import {
   useState,
   useCallback,
   useEffect,
-  useLayoutEffect,
   type ReactNode,
 } from "react";
-
-// useLayoutEffect on client (fires before paint), useEffect on server (SSR-safe)
-const useIsomorphicLayoutEffect =
-  globalThis.window === undefined ? useEffect : useLayoutEffect;
 
 type UIPreferencesContextType = {
   isInputFocused: boolean;
@@ -100,35 +95,49 @@ export function UIPreferencesProvider({
   }, [preferences.fontScale]);
 
   // Load preferences from localStorage on mount.
-  // useIsomorphicLayoutEffect fires synchronously after DOM update, before the
-  // browser's first paint — eliminates the narrow→wide layout flash on wide screens.
-  useIsomorphicLayoutEffect(() => {
-    const savedLayout = localStorage.getItem("fragrance-game-layout") as
-      | "narrow"
-      | "wide"
-      | null;
-    const savedFont = localStorage.getItem("fragrance-game-font") as
-      | "normal"
-      | "large"
-      | null;
-    const savedTheme = localStorage.getItem("fragrance-game-theme") as
-      | "light"
-      | "dark"
-      | null;
+  // Deferred to useEffect + rAF to avoid blocking the initial paint (TBT reduction).
+  // Only calls setPreferences if computed values differ from current state — avoids
+  // spurious re-renders (and LCP repaint) on Lighthouse/cold loads with empty localStorage.
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      const savedLayout = localStorage.getItem("fragrance-game-layout") as
+        | "narrow"
+        | "wide"
+        | null;
+      const savedFont = localStorage.getItem("fragrance-game-font") as
+        | "normal"
+        | "large"
+        | null;
+      const savedTheme = localStorage.getItem("fragrance-game-theme") as
+        | "light"
+        | "dark"
+        | null;
 
-    // Auto-detect system dark mode if no preference is saved
-    const systemDark = globalThis.matchMedia(
-      "(prefers-color-scheme: dark)",
-    ).matches;
-    const defaultTheme = systemDark ? "dark" : "light";
+      // Auto-detect system dark mode if no preference is saved
+      const systemDark = globalThis.matchMedia(
+        "(prefers-color-scheme: dark)",
+      ).matches;
+      const defaultTheme = systemDark ? "dark" : "light";
 
-    setPreferences((previous) => ({
-      fontScale: savedFont || previous.fontScale,
-      layoutMode:
-        savedLayout ||
-        (window.innerWidth >= 1024 ? "wide" : previous.layoutMode),
-      theme: savedTheme || defaultTheme,
-    }));
+      setPreferences((previous) => {
+        const nextFont = savedFont ?? previous.fontScale;
+        const nextLayout =
+          savedLayout ??
+          (window.innerWidth >= 1024 ? "wide" : previous.layoutMode);
+        const nextTheme = savedTheme ?? defaultTheme;
+
+        // Skip update if nothing changed — avoids unnecessary re-render and LCP repaint
+        if (
+          nextFont === previous.fontScale &&
+          nextLayout === previous.layoutMode &&
+          nextTheme === previous.theme
+        ) {
+          return previous;
+        }
+
+        return { fontScale: nextFont, layoutMode: nextLayout, theme: nextTheme };
+      });
+    });
   }, []);
 
   const value = {

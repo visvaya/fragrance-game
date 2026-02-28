@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
-import { AttemptLog } from "./attempt-log";
 import { MetaClues } from "./clues/meta-clues";
 import { PyramidClues } from "./clues/pyramid-clues";
 import { Confetti } from "./confetti";
@@ -14,13 +14,21 @@ import { useGameState, useUIPreferences } from "./contexts";
 import { DifficultyDisplay } from "./difficulty-display";
 import { RevealImage } from "./reveal-image";
 
+// AttemptLog is loaded dynamically with ssr: false — it shows attempt history
+// which is always empty on initial SSR, so skipping SSR avoids a hydration mismatch
+// (SSR renders nothing vs client shows nothing → consistent, no re-render needed).
+// PyramidClues and MetaClues are NOT dynamic — their text content is LCP-candidate.
+const AttemptLog = dynamic(
+  () => import("./attempt-log").then((m) => m.AttemptLog),
+  { loading: () => null, ssr: false },
+);
+
 /**
  *
  */
 export function GameBoard() {
   const { dailyPerfume, gameState, xsolveScore } = useGameState();
   const { uiPreferences } = useUIPreferences();
-  const isWide = uiPreferences.layoutMode === "wide";
   const t = useTranslations("GameBoard");
   const [showConfetti, setShowConfetti] = useState(false);
 
@@ -35,8 +43,7 @@ export function GameBoard() {
   return (
     <div
       className={cn(
-        "mx-auto flex w-full flex-col gap-6 transition-all duration-300",
-        isWide ? "max-w-[60rem] px-6 sm:px-0" : "max-w-[38rem] px-6 sm:px-0",
+        "mx-auto flex w-full max-w-[38rem] wide:max-w-[60rem] flex-col gap-6 px-6 transition-all duration-300 sm:px-0",
       )}
       suppressHydrationWarning
     >
@@ -45,7 +52,7 @@ export function GameBoard() {
       {/* ... keeping game over logic same, just wrapper width changes ... */}
 
       {gameState !== "playing" && (
-        <div className="rounded-md border border-border/50 bg-background p-6 text-center transition-all duration-500 animate-in fade-in zoom-in-95">
+        <div className="panel-standard p-6 text-center transition-all duration-500 animate-in fade-in zoom-in-95">
           {gameState === "won" ? (
             <div className="duration-500 animate-in fade-in zoom-in">
               <p className="mb-2 -rotate-2 transform font-hand text-4xl text-success">
@@ -55,7 +62,7 @@ export function GameBoard() {
                 <p className="font-[family-name:var(--font-playfair)] text-2xl font-semibold">
                   {dailyPerfume.name}
                   {dailyPerfume.concentration &&
-                  dailyPerfume.concentration !== "Unknown" ? (
+                    dailyPerfume.concentration !== "Unknown" ? (
                     <span className="ml-2 text-lg text-muted-foreground not-italic">
                       • {dailyPerfume.concentration}
                     </span>
@@ -76,7 +83,7 @@ export function GameBoard() {
                 <p className="font-[family-name:var(--font-playfair)] text-2xl font-semibold">
                   {dailyPerfume.name}
                   {dailyPerfume.concentration &&
-                  dailyPerfume.concentration !== "Unknown" ? (
+                    dailyPerfume.concentration !== "Unknown" ? (
                     <span className="ml-2 text-lg text-muted-foreground not-italic">
                       • {dailyPerfume.concentration}
                     </span>
@@ -95,18 +102,15 @@ export function GameBoard() {
       {/* Main Game Content */}
       <div
         className={cn(
-          "gap-6 transition-all duration-300",
-          isWide
-            ? "grid grid-cols-1 items-start md:grid-cols-2"
-            : "flex flex-col",
+          "flex flex-col gap-6 transition-all duration-300 wide:grid wide:grid-cols-1 wide:items-start wide:md:grid-cols-2",
         )}
       >
         {/* Left Column (Wide) / Top (Stack) */}
         <div className="space-y-6">
-          <div className="rounded-md border border-border/50 bg-background p-4">
+          <div className="panel-standard p-4">
             <RevealImage />
           </div>
-          <div className="rounded-md border border-border/50 bg-background p-4">
+          <div className="panel-standard p-4">
             <MetaClues />
           </div>
         </div>
