@@ -37,6 +37,11 @@ async function initLenis() {
  */
 export function SmoothScrollProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
+    // Skip Lenis entirely on mobile — no init, no RAF loop, no MutationObserver
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      return;
+    }
+
     void initLenis();
 
     const observer = new MutationObserver(() => {

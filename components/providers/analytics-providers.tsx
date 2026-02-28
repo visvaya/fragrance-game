@@ -2,30 +2,13 @@
 
 import type { ReactNode } from "react";
 
-import dynamic from "next/dynamic";
-
-// Lazy load analytics providers - improves TBT by ~300-500ms
-// These are non-critical for initial render and can load after hydration
-const PostHogProvider = dynamic(
-  async () =>
-    import("@/components/providers/posthog-provider").then(
-      (module_) => module_.PostHogProvider,
-    ),
-  { ssr: false },
-);
-
-const SentryProvider = dynamic(
-  async () =>
-    import("@/components/providers/sentry-provider").then(
-      (module_) => module_.SentryProvider,
-    ),
-  { ssr: false },
-);
+import { PostHogProvider } from "@/components/providers/posthog-provider";
+import { SentryProvider } from "@/components/providers/sentry-provider";
 
 /**
- * Client component wrapper for lazy-loaded analytics providers.
- * Extracted to separate file because dynamic() with ssr:false
- * can only be used in Client Components.
+ * Client component wrapper for analytics providers.
+ * Both providers initialize lazily via useEffect and always render children,
+ * so they are safe to server-render without dynamic(ssr:false).
  */
 export function AnalyticsProviders({
   children,

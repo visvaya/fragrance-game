@@ -2,6 +2,22 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 
+// Module-level ref — set when PostHog initializes, used by captureAnalyticsEvent
+let _posthogInstance: {
+  capture: (event: string, props?: Record<string, unknown>) => void;
+} | null = null;
+
+/**
+ * Capture an analytics event without requiring React context.
+ * No-op if PostHog hasn't loaded yet — events are dropped silently before initialization.
+ */
+export function captureAnalyticsEvent(
+  event: string,
+  props?: Record<string, unknown>,
+): void {
+  _posthogInstance?.capture(event, props);
+}
+
 /**
  * PostHogProvider handles lazy loading of posthog-js.
  * This prevents posthog from being included in the main bundle,
@@ -30,6 +46,7 @@ async function initPostHog(
     });
 
     setPhClient(posthog);
+    _posthogInstance = posthog;
     setPHProvider(() => Provider);
   } catch (error) {
     console.error("Failed to load PostHog:", error);
