@@ -14,8 +14,15 @@ const nextConfig = {
     optimizePackageImports: [
       "lucide-react",
       "date-fns",
-      "recharts",
       "@radix-ui/react-icons",
+      "@radix-ui/react-alert-dialog",
+      "@radix-ui/react-avatar",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-label",
+      "@radix-ui/react-scroll-area",
+      "@radix-ui/react-separator",
+      "@radix-ui/react-slot",
+      "@radix-ui/react-tooltip",
     ],
     turbopackFileSystemCacheForDev: true,
   },
@@ -113,9 +120,10 @@ const serverConfig = withSentryConfig(
     // Optimization: Reduce bundle size by excluding features we don't use
     bundleSizeOptimizations: {
       excludeDebugStatements: true,
+      excludeMetricsAggregator: true,
       excludeReplayShadowDom: true,
       excludeReplayWorker: true,
-      excludeTracing: true, // Optimized: disable tracing on client
+      excludeTracing: true,
     },
   },
 );
