@@ -12,6 +12,7 @@ import {
 import {
   initializeGame,
   resetGame,
+  skipAttempt,
   submitGuess,
 } from "@/app/actions/game-actions";
 import { MASK_CHAR } from "@/lib/constants";
@@ -46,6 +47,7 @@ type GameActionsContextType = {
     perfumeId: string,
   ) => Promise<void>;
   resetGame: () => Promise<void>;
+  skipAttempt: () => Promise<void>;
 };
 
 const GameActionsContext = createContext<GameActionsContextType | undefined>(
@@ -278,6 +280,60 @@ export function GameActionsProvider({
     ],
   );
 
+  const handleSkip = useCallback(async () => {
+    if (
+      gameState !== "playing" ||
+      attempts.length + baseAttemptCount >= maxAttempts ||
+      !sessionId
+    )
+      return;
+
+    setLoading(true);
+    try {
+      const result = await skipAttempt(sessionId, nonce);
+
+      if (result.newNonce) setNonce(result.newNonce);
+      if (result.imageUrl) setImageUrl(result.imageUrl);
+
+      setAttempts((previous) => [
+        ...previous,
+        {
+          brand: "",
+          feedback: {
+            brandMatch: false,
+            notesMatch: 0,
+            perfumerMatch: "none",
+            yearDirection: "equal",
+            yearMatch: "wrong",
+          },
+          guess: "",
+          isCorrect: false,
+          isSkipped: true,
+        },
+      ]);
+
+      if (result.gameStatus === "lost") {
+        setGameState("lost");
+      }
+    } catch (error) {
+      console.error("Skip failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    attempts,
+    baseAttemptCount,
+    gameState,
+    maxAttempts,
+    nonce,
+    sessionId,
+    setAttempts,
+    setGameState,
+    setImageUrl,
+    setLoading,
+    setNonce,
+  ]);
+
   const handleReset = useCallback(async () => {
     if (!sessionId) {
       console.warn("[GameProvider] No session to reset");
@@ -370,6 +426,7 @@ export function GameActionsProvider({
   const value = {
     makeGuess,
     resetGame: handleReset,
+    skipAttempt: handleSkip,
   };
 
   return (
