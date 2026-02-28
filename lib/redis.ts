@@ -46,6 +46,12 @@ export const limiters = {
     prefix: "ratelimit:submitGuess",
     redis,
   }),
+  // 10 requests per minute per user (same limit as submitGuess)
+  skipAttempt: new Ratelimit({
+    limiter: Ratelimit.slidingWindow(10, "1 m"),
+    prefix: "ratelimit:skipAttempt",
+    redis,
+  }),
 };
 
 /**

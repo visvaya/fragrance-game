@@ -399,48 +399,77 @@ export async function startGame(
 
     if (rawGuesses.length > 0) {
       const adminSupabase = createAdminClient();
-      const perfumeIds = rawGuesses.map((g) => g.perfumeId);
 
-      const { data: perfumes } = (await adminSupabase
-        .from("perfumes")
-        .select(
-          "id, name, brands(name), release_year, concentrations(name), gender, perfumers",
-        )
-        .in("id", perfumeIds)) as {
-        data:
-          | {
-              brands: { name: string } | null;
-              concentrations: { name: string } | null;
-              gender: string | null;
-              id: string;
-              name: string;
-              perfumers: string[] | null;
-              release_year: number | null;
-            }[]
-          | null;
-      };
+      const realGuessIds = rawGuesses
+        .filter((g) => !(g as { isSkip?: boolean }).isSkip && g.perfumeId)
+        .map((g) => g.perfumeId as string);
 
-      if (perfumes && perfumes.length > 0) {
-        const perfumeMap = new Map(perfumes.map((p) => [p.id, p]));
+      let perfumeMap = new Map<
+        string,
+        {
+          brands: { name: string } | null;
+          concentrations: { name: string } | null;
+          gender: string | null;
+          id: string;
+          name: string;
+          perfumers: string[] | null;
+          release_year: number | null;
+        }
+      >();
 
-        for (const guess of rawGuesses) {
-          const p = perfumeMap.get(guess.perfumeId);
-          if (p) {
-            enrichedGuesses.push({
-              brandName:
-                (p.brands as { name: string } | null)?.name ?? "Unknown",
-              concentration: (p.concentrations as { name: string } | null)
-                ?.name,
-              feedback: guess.feedback,
-              gender: p.gender ?? undefined,
-              isCorrect: guess.isCorrect,
-              perfumeId: guess.perfumeId,
-              perfumeName: p.name,
-              perfumers: p.perfumers ?? [],
-              timestamp: guess.timestamp,
-              year: p.release_year ?? undefined,
-            });
-          }
+      if (realGuessIds.length > 0) {
+        const { data: perfumes } = (await adminSupabase
+          .from("perfumes")
+          .select(
+            "id, name, brands(name), release_year, concentrations(name), gender, perfumers",
+          )
+          .in("id", realGuessIds)) as {
+          data:
+            | {
+                brands: { name: string } | null;
+                concentrations: { name: string } | null;
+                gender: string | null;
+                id: string;
+                name: string;
+                perfumers: string[] | null;
+                release_year: number | null;
+              }[]
+            | null;
+        };
+
+        if (perfumes) {
+          perfumeMap = new Map(perfumes.map((p) => [p.id, p]));
+        }
+      }
+
+      for (const guess of rawGuesses) {
+        if ((guess as { isSkip?: boolean }).isSkip) {
+          enrichedGuesses.push({
+            brandName: "",
+            isCorrect: false,
+            isSkip: true,
+            perfumeId: "",
+            perfumeName: "",
+            timestamp: guess.timestamp,
+          });
+          continue;
+        }
+
+        const p = perfumeMap.get(guess.perfumeId);
+        if (p) {
+          enrichedGuesses.push({
+            brandName:
+              (p.brands as { name: string } | null)?.name ?? "Unknown",
+            concentration: (p.concentrations as { name: string } | null)?.name,
+            feedback: guess.feedback,
+            gender: p.gender ?? undefined,
+            isCorrect: guess.isCorrect,
+            perfumeId: guess.perfumeId,
+            perfumeName: p.name,
+            perfumers: p.perfumers ?? [],
+            timestamp: guess.timestamp,
+            year: p.release_year ?? undefined,
+          });
         }
       }
     }

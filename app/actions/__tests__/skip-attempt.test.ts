@@ -83,12 +83,10 @@ describe("skipAttempt", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns active status when attempts remain", async () => {
-    vi.mocked(createClient).mockResolvedValue(
-      makeClientMock(makeSession(2)) as ReturnType<typeof makeClientMock>,
-    );
-    vi.mocked(createAdminClient).mockReturnValue(
-      makeAdminMock() as ReturnType<typeof makeAdminMock>,
-    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(createClient).mockResolvedValue(makeClientMock(makeSession(2)) as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(createAdminClient).mockReturnValue(makeAdminMock() as any);
 
     const result = await skipAttempt(SESSION_ID, NONCE);
 
@@ -98,12 +96,10 @@ describe("skipAttempt", () => {
   });
 
   it("returns lost when last attempt is skipped (attempts_count = 5)", async () => {
-    vi.mocked(createClient).mockResolvedValue(
-      makeClientMock(makeSession(5)) as ReturnType<typeof makeClientMock>,
-    );
-    vi.mocked(createAdminClient).mockReturnValue(
-      makeAdminMock() as ReturnType<typeof makeAdminMock>,
-    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(createClient).mockResolvedValue(makeClientMock(makeSession(5)) as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(createAdminClient).mockReturnValue(makeAdminMock() as any);
 
     const result = await skipAttempt(SESSION_ID, NONCE);
 
@@ -112,9 +108,8 @@ describe("skipAttempt", () => {
 
   it("throws on nonce mismatch", async () => {
     const session = { ...makeSession(), last_nonce: "DIFFERENT" };
-    vi.mocked(createClient).mockResolvedValue(
-      makeClientMock(session) as ReturnType<typeof makeClientMock>,
-    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(createClient).mockResolvedValue(makeClientMock(session) as any);
 
     await expect(skipAttempt(SESSION_ID, "WRONG")).rejects.toThrow();
   });
