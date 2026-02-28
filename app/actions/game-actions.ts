@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_cache } from "next/cache";
 
 import { z } from "zod";
 
@@ -1032,3 +1032,125 @@ export async function resetGame(
   revalidatePath("/");
   return { success: true };
 }
+
+/**
+ * Pobiera pełne dane dzisiejszego wyzwania bez wymagania auth użytkownika.
+ * Używane wyłącznie do SSR w page.tsx (ISR-safe).
+ * W razie błędu zwraca null — GameProvider fallback'uje do initializeGame().
+ * Wynik jest cachowany przez Next.js na 24h (revalidate: 86_400).
+ */
+export const getDailyChallengeSSR = unstable_cache(
+  async (): Promise<DailyChallenge | null> => {
+    const adminSupabase = createAdminClient();
+    const targetDate = new Date().toISOString().split("T")[0];
+
+    const { data, error } = await adminSupabase
+      .from("daily_challenges_public")
+      .select("challenge_date, grace_deadline_at_utc, id, mode, snapshot_metadata")
+      .eq("challenge_date", targetDate)
+      .limit(1)
+      .single();
+
+    if (error || !data) {
+      if (error?.code === "PGRST116") return null;
+      console.error("[getDailyChallengeSSR] Error fetching public challenge:", error);
+      return null;
+    }
+
+    const { data: challengePrivate } = await adminSupabase
+      .from("daily_challenges")
+      .select("perfume_id")
+      .eq("id", data.id)
+      .single();
+
+    if (!challengePrivate) return null;
+
+    const { data: perfume } = (await adminSupabase
+      .from("perfumes")
+      .select(`
+        release_year, gender, is_linear, xsolve_score,
+        top_notes, middle_notes, base_notes, perfumers,
+        brands (name), concentrations (name)
+      `)
+      .eq("id", challengePrivate.perfume_id)
+      .single()) as {
+      data: {
+        base_notes: string[] | null;
+        brands: { name: string } | null;
+        concentrations: { name: string } | null;
+        gender: string | null;
+        is_linear: boolean | null;
+        middle_notes: string[] | null;
+        perfumers: string[] | null;
+        release_year: number | null;
+        top_notes: string[] | null;
+        xsolve_score: number | null;
+      } | null;
+    };
+
+    if (!perfume || perfume.xsolve_score == null) return null;
+
+    return {
+      ...data,
+      clues: {
+        brand: perfume.brands?.name ?? "Unknown",
+        concentration: perfume.concentrations?.name ?? "Unknown",
+        gender: perfume.gender || "Unknown",
+        isLinear: perfume.is_linear ?? false,
+        notes: {
+          base: perfume.base_notes ?? [],
+          heart: perfume.middle_notes ?? [],
+          top: perfume.top_notes ?? [],
+        },
+        perfumer:
+          perfume.perfumers && perfume.perfumers.length > 0
+            ? perfume.perfumers.join(", ")
+            : "Unknown",
+        xsolve: perfume.xsolve_score,
+        year: perfume.release_year ?? 0,
+      },
+    } as DailyChallenge;
+  },
+  ["daily-challenge-ssr"],
+  { revalidate: 86_400, tags: ["daily-challenge"] },
+);
+
+/**
+ * Pobiera URL obrazka step-1 dzisiejszego wyzwania bez wymagania auth.
+ * Używane wyłącznie do SSR preload w page.tsx (ISR-safe).
+ * W razie błędu zwraca null — GameProvider fallback'uje do /placeholder.svg.
+ * Wynik jest cachowany przez Next.js na 24h (revalidate: 86_400).
+ */
+export const getDailyStep1ImageUrl = unstable_cache(
+  async (): Promise<string | null> => {
+    try {
+      const adminSupabase = createAdminClient();
+      const targetDate = new Date().toISOString().split("T")[0];
+
+      const { data: challenge } = await adminSupabase
+        .from("daily_challenges")
+        .select("perfume_id")
+        .eq("challenge_date", targetDate)
+        .limit(1)
+        .single();
+
+      if (!challenge) return null;
+
+      const { data: assets } = await adminSupabase
+        .from("perfume_assets")
+        .select("image_key_step_1")
+        .eq("perfume_id", challenge.perfume_id)
+        .single();
+
+      if (!assets?.image_key_step_1) return null;
+
+      const assetsHost =
+        process.env.NEXT_PUBLIC_ASSETS_HOST ?? "assets.eauxle.com";
+      return `https://${assetsHost}/${assets.image_key_step_1}`;
+    } catch {
+      return null; // graceful fallback
+    }
+  },
+  ["daily-step1-image"],
+  { revalidate: 86_400, tags: ["daily-challenge"] },
+);

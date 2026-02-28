@@ -3,12 +3,12 @@
 import { useState, useEffect, type ReactNode } from "react";
 
 import { AuthApiError } from "@supabase/supabase-js";
-import { usePostHog } from "posthog-js/react";
 
-import { initializeGame, startGame } from "@/app/actions/game-actions";
+import { initializeGame, startGame, type DailyChallenge } from "@/app/actions/game-actions";
+import { captureAnalyticsEvent } from "@/components/providers/posthog-provider";
 import { AuthCaptchaModal } from "@/components/auth/auth-captcha-modal";
 import { MigrationModal } from "@/components/auth/migration-modal";
-import { MAX_GUESSES } from "@/lib/constants";
+import { MASK_CHAR, MAX_GUESSES } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 
 import {
@@ -39,7 +39,7 @@ const SKELETON_PERFUME = {
   },
   perfumer: "?????" as string,
   xsolve: 0 as number,
-  year: "____" as string | number,
+  year: MASK_CHAR.repeat(4) as string | number,
 };
 
 type GameState = "playing" | "won" | "lost";
@@ -58,23 +58,23 @@ function calculateMaskedValues(
   const guessMaskedBrand = level === 1 ? "?????" : targetBrand;
 
   // Year
-  let guessMaskedYear = "____";
+  let guessMaskedYear = MASK_CHAR.repeat(4);
   if (targetYear) {
     const yearString = targetYear.toString();
     if (level >= 5) guessMaskedYear = yearString;
     else
       switch (level) {
         case 4: {
-          guessMaskedYear = yearString.slice(0, 3) + "_";
+          guessMaskedYear = yearString.slice(0, 3) + MASK_CHAR;
           break;
         }
         case 3: {
-          guessMaskedYear = yearString.slice(0, 2) + "__";
+          guessMaskedYear = yearString.slice(0, 2) + MASK_CHAR.repeat(2);
           break;
         }
         case 2: {
           {
-            guessMaskedYear = yearString.slice(0, 1) + "___";
+            guessMaskedYear = yearString.slice(0, 1) + MASK_CHAR.repeat(3);
             // No default
           }
           break;
@@ -117,19 +117,38 @@ export function useGame() {
  * All state lives here as single source of truth
  * Contexts receive state and setters as props
  */
-export function GameProvider({ children }: { children: ReactNode }) {
-  const posthog = usePostHog();
-
+export function GameProvider({
+  children,
+  initialChallenge,
+  initialImageUrl,
+}: {
+  children: ReactNode;
+  initialChallenge?: DailyChallenge | null;
+  initialImageUrl?: string | null;
+}) {
   // === Core Game State (Single Source of Truth) ===
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [gameState, setGameState] = useState<GameState>("playing");
-  const [imageUrl, setImageUrl] = useState<string>(
-    "/placeholder.svg?height=400&width=400",
-  );
+  const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg?height=400&width=400");
   const [loading, setLoading] = useState(true);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [dailyPerfume, setDailyPerfume] =
-    useState<typeof SKELETON_PERFUME>(SKELETON_PERFUME);
+  const [dailyPerfume, setDailyPerfume] = useState<typeof SKELETON_PERFUME>(
+    initialChallenge?.clues
+      ? {
+        brand: initialChallenge.clues.brand,
+        concentration: initialChallenge.clues.concentration,
+        gender: initialChallenge.clues.gender,
+        id: "daily",
+        imageUrl: initialImageUrl ?? "/placeholder.svg?height=400&width=400",
+        isLinear: initialChallenge.clues.isLinear,
+        name: "Mystery Perfume",
+        notes: initialChallenge.clues.notes,
+        perfumer: initialChallenge.clues.perfumer,
+        xsolve: initialChallenge.clues.xsolve,
+        year: initialChallenge.clues.year,
+      }
+      : SKELETON_PERFUME,
+  );
   const [discoveredPerfumers, setDiscoveredPerfumers] = useState<Set<string>>(
     new Set(),
   );
@@ -180,7 +199,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
   // Initialize Game (with proper auth sequencing)
   useEffect(() => {
     const initGame = async () => {
-      console.log("[GameProvider] initGame started");
       const safetyTimeout = setTimeout(() => {
         console.warn("[GameProvider] initGame safety timeout reached!");
         setLoading(false);
@@ -202,7 +220,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
 
         if (!existingSession) {
-          console.log("[GameProvider] No session, signing in anonymously...");
           const { error: authError } = await supabase.auth.signInAnonymously();
           if (authError) {
             // Check for Captcha requirement first
@@ -227,19 +244,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
           // Verification loop with exponential backoff: Ensure session is set in client state AND cookies
           let verified = false;
-          const maxAttempts = 5; // Reduced from 10
+          const maxAttempts = 3;
           for (let attempt = 0; attempt < maxAttempts; attempt++) {
             const {
               data: { session: s },
             } = await supabase.auth.getSession();
 
-            // Check if cookie is present (Server Actions rely on this!)
-            const hasCookie =
-              document.cookie.includes("sb-") &&
-              document.cookie.includes("-auth-token");
-
-            if (s && hasCookie) {
-              // console.log("[GameProvider] Auth session & cookie verified");
+            // getSession() reads from Supabase client state which is populated from
+            // cookies by @supabase/ssr — if session exists, the cookie is already set.
+            if (s) {
               verified = true;
 
               // Track Anonymous Session for future migration
@@ -249,9 +262,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
               break;
             }
 
-            // Exponential backoff: 100ms, 200ms, 400ms, 800ms, 1600ms
+            // Exponential backoff: 50ms, 100ms, 200ms
             await new Promise((resolve) =>
-              setTimeout(resolve, 100 * Math.pow(2, attempt)),
+              setTimeout(resolve, 50 * Math.pow(2, attempt)),
             );
           }
           if (!verified) {
@@ -263,7 +276,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        // 2. Fetch challenge and start game in ONE server call (reduces round-trips)
+        // 2. Fetch challenge and start game
         // Read inherited attempt count stored by MigrationModal.handleCancel
         const storedInherited = sessionStorage.getItem(
           "eauxle_declined_anon_attempts",
@@ -275,14 +288,23 @@ export function GameProvider({ children }: { children: ReactNode }) {
           sessionStorage.removeItem("eauxle_declined_anon_attempts");
         }
 
-        let { challenge, session } = await initializeGame(inheritedCount);
-        console.log("[GameProvider] initializeGame returned:", {
-          challengeId: challenge?.id,
-          hasChallenge: !!challenge,
-          hasSession: !!session,
-          inheritedCount,
-          sessionId: session?.sessionId,
-        });
+        let challenge: DailyChallenge | null;
+        let session: Awaited<ReturnType<typeof startGame>> | null;
+
+        if (initialChallenge) {
+          // Challenge known from SSR — call only startGame (1 roundtrip instead of 2)
+          challenge = initialChallenge;
+          session = null;
+          try {
+            session = await startGame(initialChallenge.id, inheritedCount);
+          } catch (error) {
+            console.error("[GameProvider] startGame with SSR challenge failed:", error);
+            // session remains null — retry logic below (challenge && !session) will handle it
+          }
+        } else {
+          // Fallback: SSR didn't provide challenge (no daily challenge, DB error)
+          ({ challenge, session } = await initializeGame(inheritedCount));
+        }
 
         // 2b. If we got challenge but NO session (Unauthorized retry)
         // This happens if the server action is called slightly before cookies are processed
@@ -299,12 +321,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
 
         if (challenge && session) {
-          posthog.capture("daily_challenge_viewed", {
+          captureAnalyticsEvent("daily_challenge_viewed", {
             challenge_number: challenge.id,
           });
 
-          // Setup Daily Perfume Clues
-          if (challenge.clues) {
+          // Setup Daily Perfume Clues — skip when already initialized from SSR prop
+          if (!initialChallenge && challenge.clues) {
             setDailyPerfume({
               brand: challenge.clues.brand,
               concentration: challenge.clues.concentration,
@@ -453,12 +475,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
           }
         }
         clearTimeout(safetyTimeout);
-        console.log("[GameProvider] initGame finished");
         setLoading(false);
       } catch (error) {
         console.error("Failed to init game", error);
         clearTimeout(safetyTimeout);
-        console.log("[GameProvider] initGame finished");
         setLoading(false);
       }
     };
@@ -516,7 +536,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const isBrandRevealed =
     attempts.some((a) => a.feedback.brandMatch) ||
     getRevealedBrandHelper(dailyPerfume.brand, revealLevel) ===
-      dailyPerfume.brand;
+    dailyPerfume.brand;
 
   const isYearRevealed = attempts.some(
     (a) => a.feedback.yearMatch === "correct",
@@ -542,7 +562,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
         isYearRevealed={isYearRevealed}
         maxAttempts={maxAttempts}
         nonce={nonce}
-        posthog={posthog}
         sessionId={sessionId}
         setAttempts={setAttempts}
         setBaseAttemptCount={setBaseAttemptCount}

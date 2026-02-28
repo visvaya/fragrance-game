@@ -1,3 +1,4 @@
+import { getDailyChallengeSSR, getDailyStep1ImageUrl } from "@/app/actions/game-actions";
 import { GameBoard } from "@/components/game/game-board";
 import { GameFooter } from "@/components/game/game-footer";
 import { GameHeader } from "@/components/game/game-header";
@@ -12,23 +13,46 @@ export const revalidate = 86_400; // 24 hours
 /**
  *
  */
-export default function Home({
+export default async function Home({
   params: _params,
 }: {
   readonly params: Promise<{ locale: string }>;
 }) {
+  // Oba wywołania równolegle — oba cached, nie blokują się nawzajem
+  const [initialImageUrl, initialChallenge] = await Promise.all([
+    getDailyStep1ImageUrl(),
+    getDailyChallengeSSR(),
+  ]);
+
+  // Preload the LCP image. Next.js image optimizer serves /_next/image?url=...&w=750&q=90
+  // for mobile (375px viewport × 2x DPR = 750px). This hint fires before hydration.
+  const preloadUrl = initialImageUrl
+    ? `/_next/image?url=${encodeURIComponent(initialImageUrl)}&w=750&q=90`
+    : null;
+
   return (
-    <GameProvider>
-      <div className="flex min-h-[100dvh] w-full flex-col items-center">
-        <GameHeader />
-        <main className="flex w-full flex-1 flex-col items-center px-0 pt-6 pb-0">
-          <div className="flex w-full flex-1 flex-col items-center px-0 pb-6">
-            <GameBoard />
-          </div>
-          <GameInput />
-        </main>
-        <GameFooter />
-      </div>
-    </GameProvider>
+    <>
+      {preloadUrl && (
+        // eslint-disable-next-line @next/next/no-head-element
+        <link
+          as="image"
+          fetchPriority="high"
+          href={preloadUrl}
+          rel="preload"
+        />
+      )}
+      <GameProvider initialChallenge={initialChallenge} initialImageUrl={initialImageUrl}>
+        <div className="flex min-h-[100dvh] w-full flex-col items-center">
+          <GameHeader />
+          <main className="flex w-full flex-1 flex-col items-center px-0 pt-6 pb-0">
+            <div className="flex w-full flex-1 flex-col items-center px-0 pb-6">
+              <GameBoard />
+            </div>
+            <GameInput />
+          </main>
+          <GameFooter />
+        </div>
+      </GameProvider>
+    </>
   );
 }
