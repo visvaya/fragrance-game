@@ -1,7 +1,6 @@
 "use client";
 
 import { format } from "date-fns";
-import { pl, enUS } from "date-fns/locale";
 import {
   User as UserIcon,
   Mail,
@@ -22,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { getDateLocale } from "@/lib/i18n/date-fns";
 
 import type { User } from "@supabase/supabase-js";
 
@@ -49,7 +49,7 @@ export function ProfileModal({ onClose, open, user }: ProfileModalProperties) {
 
   const joinDate = user.created_at
     ? format(new Date(user.created_at), "PPP", {
-        locale: locale === "pl" ? pl : enUS,
+        locale: getDateLocale(locale),
       })
     : "-";
 

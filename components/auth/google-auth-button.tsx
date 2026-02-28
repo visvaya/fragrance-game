@@ -5,6 +5,18 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 
+const handleGoogleSignIn = async () => {
+  const supabase = createClient();
+  const origin = globalThis.location.origin;
+
+  await supabase.auth.signInWithOAuth({
+    options: {
+      redirectTo: `${origin}/api/auth/callback`,
+    },
+    provider: "google",
+  });
+};
+
 /**
  * GoogleAuthButton component that handles OAuth login.
  * Performed locally on client to ensure User-Agent and IP are correctly
@@ -12,18 +24,6 @@ import { createClient } from "@/lib/supabase/client";
  */
 export function GoogleAuthButton() {
   const t = useTranslations("Auth.common");
-
-  const handleGoogleSignIn = async () => {
-    const supabase = createClient();
-    const origin = globalThis.location.origin;
-
-    await supabase.auth.signInWithOAuth({
-      options: {
-        redirectTo: `${origin}/api/auth/callback`,
-      },
-      provider: "google",
-    });
-  };
 
   return (
     <Button

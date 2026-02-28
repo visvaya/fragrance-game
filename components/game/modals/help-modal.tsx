@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
-
 import { X, Waves } from "lucide-react";
 import { useTranslations } from "next-intl";
 

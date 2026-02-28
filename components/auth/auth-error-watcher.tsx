@@ -28,7 +28,7 @@ function AuthErrorWatcherInner() {
     }
 
     // 2. Check hash fragment (OAuth errors)
-    if (globalThis.window !== undefined && globalThis.location.hash) {
+    if (globalThis.location.hash) {
       const hashParameters = new URLSearchParams(
         globalThis.location.hash.slice(1),
       );

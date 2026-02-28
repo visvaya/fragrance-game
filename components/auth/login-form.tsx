@@ -22,19 +22,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { useRouter } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
-
-/**
- * LoginForm component for user authentication.
- * Handles sign in with email and password.
- */
 import { cn } from "@/lib/utils";
 
-type LoginFormProperties = {
-  className?: string;
-  onForgotPasswordClick?: () => void;
-  onRegisterClick?: () => void;
-  onSuccess?: () => void;
-  viewMode?: "page" | "modal";
+export type LoginFormProperties = {
+  readonly className?: string;
+  readonly onForgotPasswordClick?: () => void;
+  readonly onRegisterClick?: () => void;
+  readonly onSuccess?: () => void;
 };
 
 /**
@@ -46,7 +40,6 @@ export function LoginForm({
   onForgotPasswordClick,
   onRegisterClick,
   onSuccess,
-  viewMode = "page",
 }: LoginFormProperties) {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -55,7 +48,7 @@ export function LoginForm({
   const tCommon = useTranslations("Auth.common");
 
   const loginSchema = z.object({
-    email: z.string().email({ message: t("invalidEmail") }),
+    email: z.email({ message: t("invalidEmail") }),
     password: z.string().min(1, { message: t("passwordLabel") }),
   });
 
@@ -155,7 +148,7 @@ export function LoginForm({
                   <button
                     className="text-sm text-primary hover:underline"
                     onClick={
-                      onForgotPasswordClick ||
+                      onForgotPasswordClick ??
                       (() => router.push("/auth/forgot-password"))
                     }
                     type="button"
@@ -184,7 +177,7 @@ export function LoginForm({
         {t("noAccount")}{" "}
         <button
           className="underline hover:text-primary"
-          onClick={onRegisterClick || (() => router.push("/auth/register"))}
+          onClick={onRegisterClick ?? (() => router.push("/auth/register"))}
           type="button"
         >
           {t("signUpLink")}

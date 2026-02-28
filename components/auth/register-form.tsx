@@ -51,10 +51,10 @@ async function checkPasswordSafety(password: string) {
   return validatePasswordSafety(password);
 }
 
-type RegisterFormProperties = {
-  className?: string;
-  onLoginClick?: () => void;
-  onSuccess?: () => void;
+export type RegisterFormProperties = {
+  readonly className?: string;
+  readonly onLoginClick?: () => void;
+  readonly onSuccess?: () => void;
 };
 
 /**
@@ -76,7 +76,7 @@ export function RegisterForm({
   const registerSchema = z
     .object({
       confirmPassword: z.string().min(1, { message: t("passwordLabel") }),
-      email: z.string().email({ message: t("invalidEmail") }),
+      email: z.email({ message: t("invalidEmail") }),
       password: z
         .string()
         .min(8, { message: t("passwordMinLength") })
@@ -251,7 +251,7 @@ export function RegisterForm({
         {t("hasAccount")}{" "}
         <button
           className="underline hover:text-primary"
-          onClick={onLoginClick || (() => router.push("/auth/login"))}
+          onClick={onLoginClick ?? (() => router.push("/auth/login"))}
           type="button"
         >
           {t("signInLink")}

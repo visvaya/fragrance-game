@@ -22,21 +22,15 @@ import { Input } from "@/components/ui/input";
 import { useRouter } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
 
-/**
- *
- */
-import { cn } from "@/lib/utils";
-
-type ForgotPasswordFormProperties = {
-  className?: string;
-  onLoginClick?: () => void;
+export type ForgotPasswordFormProperties = {
+  readonly className?: string;
+  readonly onLoginClick?: () => void;
 };
 
 /**
  *
  */
 export function ForgotPasswordForm({
-  className,
   onLoginClick,
 }: ForgotPasswordFormProperties) {
   const [isLoading, setIsLoading] = useState(false);
@@ -122,7 +116,7 @@ export function ForgotPasswordForm({
       <div className="text-center text-sm">
         <button
           className="underline hover:text-primary"
-          onClick={onLoginClick || (() => router.push("/auth/login"))}
+          onClick={onLoginClick ?? (() => router.push("/auth/login"))}
           type="button"
         >
           {t("backToLogin")}

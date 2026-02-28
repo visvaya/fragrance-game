@@ -1,12 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 import dynamic from "next/dynamic";
 
 import { useTranslations } from "next-intl";
 
-const LoginForm = dynamic(
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+import type { ForgotPasswordFormProperties } from "@/components/auth/forgot-password-form";
+import type { LoginFormProperties } from "@/components/auth/login-form";
+import type { RegisterFormProperties } from "@/components/auth/register-form";
+
+const LoginForm = dynamic<LoginFormProperties>(
   async () => import("@/components/auth/login-form").then((m) => m.LoginForm),
   {
     loading: () => (
@@ -17,7 +30,7 @@ const LoginForm = dynamic(
     ssr: false,
   },
 );
-const RegisterForm = dynamic(
+const RegisterForm = dynamic<RegisterFormProperties>(
   async () =>
     import("@/components/auth/register-form").then((m) => m.RegisterForm),
   {
@@ -29,7 +42,7 @@ const RegisterForm = dynamic(
     ssr: false,
   },
 );
-const ForgotPasswordForm = dynamic(
+const ForgotPasswordForm = dynamic<ForgotPasswordFormProperties>(
   async () =>
     import("@/components/auth/forgot-password-form").then(
       (m) => m.ForgotPasswordForm,
@@ -43,15 +56,6 @@ const ForgotPasswordForm = dynamic(
     ssr: false,
   },
 );
-
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 type AuthView = "login" | "register" | "forgot-password";
 
@@ -78,7 +82,13 @@ export function AuthModal({
   // Controlled vs Uncontrolled state
   const isControlled = isOpen !== undefined;
   const open = isControlled ? isOpen : internalOpen;
-  const setOpen = isControlled ? onOpenChange! : setInternalOpen;
+  const setOpen = (value: boolean) => {
+    if (isControlled && onOpenChange) {
+      onOpenChange(value);
+    } else {
+      setInternalOpen(value);
+    }
+  };
 
   // Sync view with defaultView prop when modal opens
   // This fixes the issue where 'Create Account' might open 'Login' if previously viewed
@@ -161,7 +171,6 @@ export function AuthModal({
               onForgotPasswordClick={() => setView("forgot-password")}
               onRegisterClick={() => setView("register")}
               onSuccess={handleSuccess}
-              viewMode="modal"
             />
           )}
 

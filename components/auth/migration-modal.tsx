@@ -55,7 +55,7 @@ export function MigrationModal() {
     };
 
     // Run on mount (handles page load after login)
-    checkMigration();
+    void checkMigration();
 
     // Also run on SIGNED_IN to handle mid-session login via auth modal
     const supabase = createClient();

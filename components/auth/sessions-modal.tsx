@@ -3,14 +3,8 @@
 import { useEffect, useState } from "react";
 
 import { formatDistanceToNow } from "date-fns";
-import { pl, enUS } from "date-fns/locale";
 import { Laptop, Phone, Globe, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-
-const dateLocales = {
-  en: enUS,
-  pl,
-};
 import { toast } from "sonner";
 import { UAParser } from "ua-parser-js";
 
@@ -19,7 +13,6 @@ import {
   revokeSession,
   revokeAllSessions,
 } from "@/app/actions/auth-actions";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { getDateLocale } from "@/lib/i18n/date-fns";
 import { createClient } from "@/lib/supabase/client";
 
 import type { Json } from "@/types/supabase";
@@ -45,9 +39,9 @@ type Session = {
 };
 
 type SessionsModalProperties = {
-  onClose: () => void;
-  open: boolean;
-  user: User;
+  readonly onClose: () => void;
+  readonly open: boolean;
+  readonly user: User;
 };
 
 /**
@@ -104,7 +98,7 @@ export function SessionsModal({
         let newSessionId: string | null = null;
 
         if (newSessions.length > 0) {
-          const sorted = [...newSessions].sort(
+          const sorted = newSessions.toSorted(
             (a, b) =>
               new Date(b.last_active_at ?? 0).getTime() -
               new Date(a.last_active_at ?? 0).getTime(),
@@ -114,8 +108,8 @@ export function SessionsModal({
           const match = sorted.find((s) => {
             const storedUA =
               typeof s.device_info === "object" &&
-              s.device_info !== null &&
-              "user_agent" in s.device_info
+                s.device_info !== null &&
+                "user_agent" in s.device_info
                 ? (s.device_info.user_agent as string)
                 : "";
             return storedUA === currentUA;
@@ -139,7 +133,7 @@ export function SessionsModal({
     };
 
     if (open) {
-      fetchSessionsInternal();
+      void fetchSessionsInternal();
     }
   }, [open, isAnonymous, t]);
 
@@ -178,30 +172,39 @@ export function SessionsModal({
   const getDeviceIcon = (deviceInfo: Json | null) => {
     const userAgent =
       typeof deviceInfo === "object" &&
-      deviceInfo !== null &&
-      "user_agent" in deviceInfo
+        deviceInfo !== null &&
+        "user_agent" in deviceInfo
         ? (deviceInfo.user_agent as string)
         : "";
 
-    if (userAgent === "node" || userAgent.toLowerCase().includes("node-fetch"))
+    if (
+      userAgent === "node" ||
+      userAgent.toLowerCase().includes("node-fetch")
+    ) {
       return <Laptop className="h-4 w-4" />;
+    }
     const ua = new UAParser(userAgent);
     const device = ua.getDevice();
-    if (device.type === "mobile" || device.type === "tablet")
+    if (device.type === "mobile" || device.type === "tablet") {
       return <Phone className="h-4 w-4" />;
+    }
     return <Laptop className="h-4 w-4" />;
   };
 
   const formatDeviceInfo = (deviceInfo: Json | null) => {
     const userAgent =
       typeof deviceInfo === "object" &&
-      deviceInfo !== null &&
-      "user_agent" in deviceInfo
+        deviceInfo !== null &&
+        "user_agent" in deviceInfo
         ? (deviceInfo.user_agent as string)
         : "";
 
-    if (userAgent === "node" || userAgent.toLowerCase().includes("node-fetch"))
+    if (
+      userAgent === "node" ||
+      userAgent.toLowerCase().includes("node-fetch")
+    ) {
       return t("currentDevice");
+    }
 
     const ua = new UAParser(userAgent);
     const browser = ua.getBrowser();
@@ -209,7 +212,118 @@ export function SessionsModal({
 
     if (!browser.name && !os.name) return userAgent.slice(0, 30) + "...";
 
-    return `${browser.name || t("unknownBrowser")} on ${os.name || t("unknownOS")}`;
+    return `${browser.name ?? t("unknownBrowser")} on ${os.name ?? t("unknownOS")}`;
+  };
+
+  /**
+   * Render internal content of the scroll area
+   */
+  const renderContent = () => {
+    if (isAnonymous) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-4 py-8 text-center text-muted-foreground">
+          <p>{t("anonymousDescription")}</p>
+          <Button onClick={onClose} variant="outline">
+            {t("anonymousClose")}
+          </Button>
+        </div>
+      );
+    }
+
+    if (state.isLoading) {
+      return (
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+
+    if (state.sessions.length === 0) {
+      return (
+        <div className="py-8 text-center text-muted-foreground">
+          {t("noSessions")}
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4 pt-1">
+        <div className="mb-4 flex justify-end">
+          <Button
+            onClick={async () => {
+              if (globalThis.confirm(t("revokeAllConfirm"))) {
+                const supabase = createClient();
+                await revokeAllSessions();
+                await supabase.auth.signOut();
+                globalThis.location.reload();
+              }
+            }}
+            size="sm"
+            variant="destructive"
+          >
+            {t("revokeAll")}
+          </Button>
+        </div>
+        {state.sessions.map((session) => {
+          const lastActiveAt = session.last_active_at
+            ? new Date(session.last_active_at)
+            : null;
+
+          return (
+            <div
+              className="flex flex-col items-start justify-between gap-4 rounded-lg border bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:p-4"
+              key={session.id}
+            >
+              <div className="flex w-full items-start gap-4">
+                <div className="h-fit shrink-0 rounded-full bg-muted p-2">
+                  {getDeviceIcon(session.device_info)}
+                </div>
+                <div className="w-full min-w-0 space-y-1">
+                  <p className="text-sm leading-none font-medium break-all sm:break-normal">
+                    {formatDeviceInfo(session.device_info)}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <span className="flex shrink-0 items-center gap-1">
+                      <Globe className="h-3 w-3" />
+                      {String(session.ip_address)}
+                      {session.id === state.currentSessionId && (
+                        <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                          {t("currentDevice")}
+                        </span>
+                      )}
+                    </span>
+                    <span className="shrink-0">
+                      {lastActiveAt
+                        ? t("lastActive", {
+                          time: formatDistanceToNow(lastActiveAt, {
+                            addSuffix: true,
+                            locale: getDateLocale(currentLocaleCode),
+                          }),
+                        })
+                        : null}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                className="mt-2 w-full shrink-0 sm:mt-0 sm:w-auto"
+                disabled={!!revokingId}
+                onClick={async () => handleRevoke(session.id)}
+                size="sm"
+                variant="destructive"
+              >
+                {revokingId === session.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  t("revoke")
+                )}
+              </Button>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
@@ -218,112 +332,12 @@ export function SessionsModal({
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>
-            {isAnonymous
-              ? "Anonimowi gracze nie mają historii sesji."
-              : t("description")}
+            {isAnonymous ? t("anonymousHistory") : t("description")}
           </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="max-h-[50vh] rounded-md bg-background/50 pr-4 sm:max-h-[60vh]">
-          {isAnonymous ? (
-            <div className="flex flex-col items-center justify-center gap-4 py-8 text-center text-muted-foreground">
-              <p>Grasz jako gość. Twoja sesja jest lokalna.</p>
-              <Button onClick={onClose} variant="outline">
-                Zamknij
-              </Button>
-            </div>
-          ) : state.isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : state.sessions.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">
-              {t("noSessions")}
-            </div>
-          ) : (
-            <div className="space-y-4 pt-1">
-              <div className="mb-4 flex justify-end">
-                <Button
-                  onClick={async () => {
-                    if (
-                      confirm(
-                        "Czy na pewno chcesz wylogować wszystkie urządzenia?",
-                      )
-                    ) {
-                      const supabase = createClient();
-                      await revokeAllSessions();
-                      await supabase.auth.signOut();
-                      globalThis.location.reload();
-                    }
-                  }}
-                  size="sm"
-                  variant="destructive"
-                >
-                  {t("revokeAll") || "Wyloguj wszystkie"}
-                </Button>
-              </div>
-              {state.sessions.map((session) => {
-                return (
-                  <div
-                    className="flex flex-col items-start justify-between gap-4 rounded-lg border bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:p-4"
-                    key={session.id}
-                  >
-                    <div className="flex w-full items-start gap-4">
-                      <div className="h-fit shrink-0 rounded-full bg-muted p-2">
-                        {getDeviceIcon(session.device_info)}
-                      </div>
-                      <div className="w-full min-w-0 space-y-1">
-                        <p className="text-sm leading-none font-medium break-all sm:break-normal">
-                          {formatDeviceInfo(session.device_info)}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                          <span className="flex shrink-0 items-center gap-1">
-                            <Globe className="h-3 w-3" />
-                            {String(session.ip_address)}
-                            {session.id === state.currentSessionId && (
-                              <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                                {t("currentDevice")}
-                              </span>
-                            )}
-                          </span>
-                          <span className="shrink-0">
-                            {session.last_active_at
-                              ? t("lastActive", {
-                                  time: formatDistanceToNow(
-                                    new Date(session.last_active_at),
-                                    {
-                                      addSuffix: true,
-                                      locale:
-                                        (dateLocales as any)[
-                                          currentLocaleCode
-                                        ] || enUS,
-                                    },
-                                  ),
-                                })
-                              : null}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <Button
-                      className="mt-2 w-full shrink-0 sm:mt-0 sm:w-auto"
-                      disabled={!!revokingId}
-                      onClick={async () => handleRevoke(session.id)}
-                      size="sm"
-                      variant="destructive"
-                    >
-                      {revokingId === session.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        t("revoke")
-                      )}
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          {renderContent()}
         </ScrollArea>
       </DialogContent>
     </Dialog>

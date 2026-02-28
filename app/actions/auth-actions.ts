@@ -20,8 +20,14 @@ export async function revokeAllSessions() {
   const supabase = await createClient();
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
-  if (user) await checkRateLimit("revokeAllSessions", user.id);
+
+  if (userError || !user) {
+    return { error: "Not authenticated" };
+  }
+
+  await checkRateLimit("revokeAllSessions", user.id);
   const { error } = await supabase.auth.signOut({ scope: "global" });
   if (error) return { error: error.message };
   revalidatePath("/");
@@ -197,6 +203,16 @@ export async function migrateAnonymousPlayer(anonPlayerId: string) {
     return { error: "Failed to migrate results" };
   }
 
+  type PlayerStreak = {
+    best_streak: number;
+    current_streak: number;
+    joker_used_date: string | null;
+    jokers_remaining: number;
+    last_played_date: string | null;
+    player_id: string;
+    updated_at: string;
+  };
+
   // 4. Handle Streaks (Merge Logic)
   const { data: anonStreak } = await adminSupabase
     .from("player_streaks")
@@ -204,7 +220,7 @@ export async function migrateAnonymousPlayer(anonPlayerId: string) {
       "player_id, current_streak, best_streak, last_played_date, jokers_remaining, joker_used_date, updated_at",
     )
     .eq("player_id", validatedAnonPlayerId)
-    .single<any>();
+    .single<PlayerStreak>();
 
   const { data: userStreak } = await adminSupabase
     .from("player_streaks")
@@ -212,29 +228,24 @@ export async function migrateAnonymousPlayer(anonPlayerId: string) {
       "player_id, current_streak, best_streak, last_played_date, jokers_remaining, joker_used_date, updated_at",
     )
     .eq("player_id", user.id)
-    .single<any>();
+    .single<PlayerStreak>();
 
   if (anonStreak) {
     if (userStreak) {
       const betterCurrent =
-        Number(anonStreak.current_streak) > Number(userStreak.current_streak)
+        anonStreak.current_streak > userStreak.current_streak
           ? anonStreak
           : userStreak;
 
-      const newBest = Math.max(
-        Number(anonStreak.best_streak),
-        Number(userStreak.best_streak),
-      );
+      const newBest = Math.max(anonStreak.best_streak, userStreak.best_streak);
 
       await adminSupabase
         .from("player_streaks")
         .update({
           best_streak: newBest,
-          current_streak: Number(betterCurrent.current_streak),
-          jokers_remaining: Number(betterCurrent.jokers_remaining),
-          last_played_date: betterCurrent.last_played_date
-            ? String(betterCurrent.last_played_date)
-            : null,
+          current_streak: betterCurrent.current_streak,
+          jokers_remaining: betterCurrent.jokers_remaining,
+          last_played_date: betterCurrent.last_played_date,
         })
         .eq("player_id", user.id);
 

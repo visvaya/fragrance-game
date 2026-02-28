@@ -82,7 +82,7 @@ export function StatsModal({ onClose, open }: StatsModalProperties) {
                 <span className="block font-[family-name:var(--font-playfair)] text-3xl text-foreground">
                   {stat.value}
                 </span>
-                <span className="text-[10px] tracking-wide text-muted-foreground uppercase">
+                <span className="text-xs tracking-wide text-muted-foreground uppercase">
                   {stat.label}
                 </span>
               </div>

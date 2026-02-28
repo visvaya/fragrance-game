@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getDateLocale } from "@/lib/i18n/date-fns";
 
 export type Session = {
   created_at: string;
@@ -40,6 +41,7 @@ export function SessionCard({
 }: SessionCardProperties) {
   const [loading, setLoading] = useState(false);
   const t = useTranslations("Sessions");
+  const locale = useTranslations("Locale")("code");
 
   const handleRevoke = async () => {
     setLoading(true);
@@ -72,6 +74,7 @@ export function SessionCard({
               {t("lastActive", {
                 time: formatDistanceToNow(new Date(session.last_active_at), {
                   addSuffix: true,
+                  locale: getDateLocale(locale),
                 }),
               })}
             </span>
