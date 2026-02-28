@@ -22,6 +22,7 @@ export type Attempt = {
   guess: string;
   hasGuessedNotes?: boolean; // True if guessed perfume has notes data
   isCorrect?: boolean;
+  isSkipped?: boolean;
   perfumeId?: string;
   perfumers?: string[];
   snapshot?: {

@@ -48,6 +48,7 @@ type GuessHistoryItem = {
   feedback?: AttemptFeedback;
   gender?: string;
   isCorrect: boolean;
+  isSkip?: boolean;
   perfumeId: string;
   perfumeName: string;
   perfumers?: string[];
@@ -97,6 +98,12 @@ type GuessResult = {
   newNonce: string;
   result: "correct" | "incorrect";
   revealState: RevealState;
+};
+
+type SkipResult = {
+  gameStatus: "active" | "won" | "lost";
+  imageUrl?: string | null;
+  newNonce: string;
 };
 
 // --- Helpers ---

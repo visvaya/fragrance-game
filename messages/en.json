@@ -25,7 +25,10 @@
       "attempt": "Attempt",
       "score": "Potential Score",
       "noResults": "No results found",
-      "noPuzzle": "No puzzle today"
+      "noPuzzle": "No puzzle today",
+      "skip": "Skip",
+      "skipTooltip": "Skip this attempt",
+      "skipped": "Skipped"
     }
   },
   "Header": {
@@ -155,6 +158,7 @@
       "notesTooltip": "Notes"
     },
     "by": "by",
+    "skipped": "— Skipped",
     "tooltips": {
       "brandCorrect": "Brand: Correct",
       "brandIncorrect": "Brand: Incorrect",

@@ -25,7 +25,10 @@
       "attempt": "Próba",
       "score": "Potencjalny wynik",
       "noResults": "Brak wyników",
-      "noPuzzle": "Brak zagadki na dziś"
+      "noPuzzle": "Brak zagadki na dziś",
+      "skip": "Pomiń",
+      "skipTooltip": "Pomiń tę próbę",
+      "skipped": "Pominięto"
     }
   },
   "Header": {
@@ -155,6 +158,7 @@
       "notesTooltip": "Nuty"
     },
     "by": "od",
+    "skipped": "— Pominięto",
     "tooltips": {
       "brandCorrect": "Marka: Poprawna",
       "brandIncorrect": "Marka: Niepoprawna",
