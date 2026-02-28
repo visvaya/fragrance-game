@@ -27,7 +27,7 @@ export function RevealImage() {
 
   const [state, setState] = useState({
     currentSource: targetSource,
-    isLoaded: false,
+    isLoaded: true,
     isZoomed: false,
     previousTargetSource: targetSource,
   });
@@ -57,13 +57,6 @@ export function RevealImage() {
     }
   }, [targetSource, state.currentSource]);
 
-  // Initial load
-  useEffect(() => {
-    requestAnimationFrame(() =>
-      setState((previous) => ({ ...previous, isLoaded: true })),
-    );
-  }, []);
-
   return (
     <div className="flex h-full w-full flex-col">
       <div className="group mb-4 flex w-fit cursor-default items-center gap-2">
@@ -76,7 +69,7 @@ export function RevealImage() {
       <div className="flex flex-1 flex-col items-center justify-center gap-4">
         <div
           className={cn(
-            "relative aspect-square w-[80%] overflow-hidden rounded-md border border-border bg-muted transition-all duration-300 md:w-full dark:brightness-[0.85]",
+            "relative aspect-square w-4/5 overflow-hidden rounded-md border border-border bg-muted transition-all duration-300 md:w-full dark:brightness-[0.85]",
             "focus:outline-none",
             state.isZoomed ? "cursor-zoom-out" : "cursor-zoom-in",
             uiPreferences.fontScale === "large"

@@ -1,36 +1,28 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 import {
-  X,
-  ArrowUp,
-  ArrowDown,
-  Waves,
-  Check,
   ScrollText,
   Store,
   User,
+  Users,
   Calendar,
   VenusAndMars,
   Music,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
-import { cn } from "@/lib/utils";
-
+import { AttemptRow } from "./attempt-row";
 import { useGameState } from "./contexts";
 import { GameTooltip } from "./game-tooltip";
 
 const ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI"];
 
-import { useTranslations } from "next-intl";
-
-import { AttemptRow } from "./attempt-row";
-
 /**
- *
+ * Komponent logu prób gracza.
  */
-export function AttemptLog() {
+export const AttemptLog = memo(function AttemptLog() {
   const { attempts, dailyPerfume, gameState, maxAttempts } = useGameState();
   const t = useTranslations("AttemptLog");
   const previousAttemptsLength = useRef(attempts.length);
@@ -46,7 +38,7 @@ export function AttemptLog() {
       gameState === "playing"
     ) {
       const lastIndex = attempts.length - 1;
-      const element = document.getElementById(`attempt-${lastIndex}`);
+      const element = document.querySelector(`#attempt-${lastIndex}`);
       if (element) {
         setTimeout(() => {
           element.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -86,7 +78,7 @@ export function AttemptLog() {
   }, []);
 
   return (
-    <section className="rounded-md border border-border/50 bg-background p-4">
+    <section className="panel-standard">
       <div className="group mb-4 flex w-fit cursor-default items-center gap-2">
         <ScrollText className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:scale-[1.15]" />
         <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase">
@@ -126,7 +118,13 @@ export function AttemptLog() {
             content={t("columns.perfumerTooltip")}
           >
             <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-              <User className="h-4 w-4 text-muted-foreground/70" />
+              {attempts.length > 0 &&
+                dailyPerfume.perfumer &&
+                dailyPerfume.perfumer.includes(",") ? (
+                <Users className="h-4 w-4 text-muted-foreground/70" />
+              ) : (
+                <User className="h-4 w-4 text-muted-foreground/70" />
+              )}
             </span>
           </GameTooltip>
 
@@ -159,8 +157,6 @@ export function AttemptLog() {
         </div>
 
         {attempts.map((attempt, index) => {
-          const isActive = activeRowIndex === index;
-
           const handlePointerDown = (e: React.PointerEvent) => {
             if (e.pointerType === "touch") {
               isTouchReference.current = true;
@@ -202,16 +198,16 @@ export function AttemptLog() {
                 key={`empty-attempt-${attempts.length + i}`}
               >
                 <div
-                  className={`flex items-center justify-center py-3 ${borderClass} min-h-[48px]`}
+                  className={`flex items-center justify-center py-3 ${borderClass} min-h-12`}
                 >
                   <span className="block text-center font-[family-name:var(--font-playfair)] text-muted-foreground opacity-30">
                     {ROMAN_NUMERALS[attempts.length + i]}
                   </span>
                 </div>
-                <div className={`py-3 ${borderClass} min-h-[48px] pr-2 pl-2`}>
+                <div className={`py-3 ${borderClass} min-h-12 pr-2 pl-2`}>
                   <span className="text-muted-foreground opacity-30">...</span>
                 </div>
-                <div className={`py-3 ${borderClass} min-h-[48px]`} />
+                <div className={`py-3 ${borderClass} min-h-12`} />
               </div>
             );
           },
@@ -219,4 +215,4 @@ export function AttemptLog() {
       </div>
     </section>
   );
-}
+});

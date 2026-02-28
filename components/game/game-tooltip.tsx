@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { useState, useRef, type ReactNode  } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -12,11 +12,9 @@ import {
 import { cn } from "@/lib/utils";
 
 type GameTooltipProperties = {
-  children:
-    | React.ReactNode
-    | ((props: { isHovered: boolean }) => React.ReactNode);
+  children: ReactNode | ((props: { isHovered: boolean }) => ReactNode);
   className?: string;
-  content: React.ReactNode;
+  content: ReactNode;
   /**
    * If true, the tooltip logic is disabled and keys are passed through.
    */
@@ -53,13 +51,13 @@ export function GameTooltip({
   disableOnMobile = false,
   sideOffset = 1,
 }: GameTooltipProperties) {
-  const [open, setOpen] = React.useState(false);
-  const [isHovered, setIsHovered] = React.useState(false);
+  const [open, setOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const t = useTranslations("GameTooltip");
   // Ref to track if the interaction is touch-based.
   // This prevents the onFocus handler from overriding the onClick toggle on mobile.
-  const isTouchReference = React.useRef(false);
-  const [isTouch, setIsTouch] = React.useState(false);
+  const isTouchReference = useRef(false);
+  const [isTouch, setIsTouch] = useState(false);
 
   if (disabled) {
     return <>{children}</>;

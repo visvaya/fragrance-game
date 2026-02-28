@@ -110,9 +110,9 @@
   },
   "PyramidClues": {
     "olfactoryProfile": "Olfactory Profile",
-    "linearProfile": "Linear Profile",
-    "noteCount": "number of notes: {count}",
-    "noteCountUnknown": "number of notes: <q>?</q>",
+    "linearProfile": "Linear",
+    "noteCount": "notes: {count}",
+    "noteCountUnknown": "notes: <q>?</q>",
     "linearProfileTooltip": "The number of notes is hidden in the 1st attempt",
     "pyramid": "Pyramid",
     "top": "Top",
@@ -299,7 +299,8 @@
     "anonymousDescription": "You are playing as a guest. Your session is local.",
     "anonymousClose": "Close",
     "revokeAll": "Revoke All",
-    "revokeAllConfirm": "Are you sure you want to log out from all devices?"
+    "revokeAllConfirm": "Are you sure you want to log out from all devices?",
+    "anonymousHistory": "Anonymous players do not have session history."
   },
   "Profile": {
     "title": "User Profile",

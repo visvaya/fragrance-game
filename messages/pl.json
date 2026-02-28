@@ -110,9 +110,9 @@
   },
   "PyramidClues": {
     "olfactoryProfile": "Profil zapachowy",
-    "linearProfile": "Profil liniowy",
-    "noteCount": "liczba nut: {count}",
-    "noteCountUnknown": "liczba nut: <q>?</q>",
+    "linearProfile": "Linearny",
+    "noteCount": "nuty: {count}",
+    "noteCountUnknown": "nuty: <q>?</q>",
     "linearProfileTooltip": "Liczba nut jest ukryta w 1. próbie",
     "pyramid": "Piramida",
     "top": "Głowa",
@@ -299,7 +299,8 @@
     "anonymousDescription": "Grasz jako gość. Twoja sesja jest lokalna.",
     "anonymousClose": "Zamknij",
     "revokeAll": "Wyloguj wszystkie",
-    "revokeAllConfirm": "Czy na pewno chcesz wylogować wszystkie urządzenia?"
+    "revokeAllConfirm": "Czy na pewno chcesz wylogować wszystkie urządzenia?",
+    "anonymousHistory": "Anonimowi gracze nie mają historii sesji."
   },
   "Profile": {
     "title": "Profil użytkownika",

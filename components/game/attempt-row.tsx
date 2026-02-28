@@ -122,7 +122,7 @@ export function AttemptRow({
                 }
                 textClassName="text-sm truncate tracking-normal"
               >
-                <span className="font-medium text-foreground">
+                <span className="font-semibold text-foreground">
                   {displayName}
                 </span>
                 {concentration && concentration !== "Unknown" ? (
@@ -143,10 +143,10 @@ export function AttemptRow({
                 <TruncatedCell
                   className="min-w-[30px] shrink"
                   content={attempt.brand}
-                  textClassName="text-xs font-normal truncate tracking-normal"
+                  textClassName="text-xs font-medium truncate tracking-normal"
                 />
                 {attempt.year ? (
-                  <span className="text-xs font-normal whitespace-nowrap">
+                  <span className="text-xs font-medium whitespace-nowrap">
                     {attempt.year}
                   </span>
                 ) : null}
@@ -159,13 +159,13 @@ export function AttemptRow({
                     ? `${attempt.brand} · ${attempt.year}`
                     : attempt.brand
                 }
-                textClassName="text-xs font-normal truncate tracking-normal text-muted-foreground/80"
+                textClassName="text-xs font-medium truncate tracking-normal text-muted-foreground/80"
               >
-                <span>{attempt.brand}</span>
+                <span className="text-foreground">{attempt.brand}</span>
                 {attempt.year ? (
                   <>
-                    <span className="mx-1.5 text-muted-foreground/30">·</span>
-                    <span>{attempt.year}</span>
+                    <span className="mx-1.5 font-normal text-muted-foreground/30">·</span>
+                    <span className="text-foreground">{attempt.year}</span>
                   </>
                 ) : null}
               </TruncatedCell>

@@ -68,7 +68,7 @@ export function MarkerCircle({
       </svg>
 
       {/* Letter */}
-      <span className="relative z-10 text-[10px] font-medium text-success dark:text-success">
+      <span className="relative z-10 text-xs font-medium text-success dark:text-success">
         {letter}
       </span>
     </span>

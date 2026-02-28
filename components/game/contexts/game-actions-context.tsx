@@ -14,10 +14,10 @@ import {
   resetGame,
   submitGuess,
 } from "@/app/actions/game-actions";
+import { MASK_CHAR } from "@/lib/constants";
 import { revealLetters } from "@/lib/game/scoring";
 
 import type { Attempt } from "./game-state-context";
-import type { PostHog } from "posthog-js";
 
 type GameState = "playing" | "won" | "lost";
 
@@ -65,8 +65,6 @@ type GameActionsProviderProperties = {
   isYearRevealed: boolean;
   maxAttempts: number;
   nonce: string;
-  // PostHog for analytics
-  posthog: PostHog | null;
   sessionId: string | null;
   // State setters from parent
   setAttempts: Dispatch<SetStateAction<Attempt[]>>;
@@ -97,23 +95,23 @@ function calculateMaskedValues(
       : revealLetters(targetBrand, brandPercentages[Math.min(level - 1, 5)]);
 
   // Year
-  let guessMaskedYear = "____";
+  let guessMaskedYear = MASK_CHAR.repeat(4);
   if (targetYear) {
     const yearString = targetYear.toString();
     if (level >= 5) guessMaskedYear = yearString;
     else
       switch (level) {
         case 4: {
-          guessMaskedYear = yearString.slice(0, 3) + "_";
+          guessMaskedYear = yearString.slice(0, 3) + MASK_CHAR;
           break;
         }
         case 3: {
-          guessMaskedYear = yearString.slice(0, 2) + "__";
+          guessMaskedYear = yearString.slice(0, 2) + MASK_CHAR.repeat(2);
           break;
         }
         case 2: {
           {
-            guessMaskedYear = yearString.slice(0, 1) + "___";
+            guessMaskedYear = yearString.slice(0, 1) + MASK_CHAR.repeat(3);
             // No default
           }
           break;
@@ -138,7 +136,6 @@ export function GameActionsProvider({
   isYearRevealed,
   maxAttempts,
   nonce,
-  posthog: _posthog,
   sessionId,
   setAttempts,
   setBaseAttemptCount,
@@ -313,7 +310,7 @@ export function GameActionsProvider({
           },
           perfumer: "?????" as string,
           xsolve: 0 as number,
-          year: "____" as string | number,
+          year: MASK_CHAR.repeat(4) as string | number,
         });
         setImageUrl("/placeholder.svg");
         setDiscoveredPerfumers(new Set());

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
+import { MASK_CHAR } from "@/lib/constants";
 import { revealLetters } from "@/lib/game/scoring";
 
 // Re-export types from game-provider for convenience
@@ -264,10 +265,10 @@ export function GameStateProvider({
     const year = dailyPerfume.year.toString();
 
     if (revealLevel >= 5) return year;
-    if (revealLevel === 4) return year.slice(0, 3) + "_";
-    if (revealLevel === 3) return year.slice(0, 2) + "__";
-    if (revealLevel === 2) return year.slice(0, 1) + "___";
-    return "____";
+    if (revealLevel === 4) return year.slice(0, 3) + MASK_CHAR;
+    if (revealLevel === 3) return year.slice(0, 2) + MASK_CHAR.repeat(2);
+    if (revealLevel === 2) return year.slice(0, 1) + MASK_CHAR.repeat(3);
+    return MASK_CHAR.repeat(4);
   }, [revealLevel, dailyPerfume.year, attempts, gameState]);
 
   /**
