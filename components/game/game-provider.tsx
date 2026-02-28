@@ -375,6 +375,23 @@ export function GameProvider({
             const percentages = [0, 0, 0.15, 0.4, 0.7, 1]; // Same as getRevealedBrandHelper
 
             for (const [index, g] of session.guesses.entries()) {
+              if ((g as { isSkip?: boolean }).isSkip) {
+                enrichedAttempts.push({
+                  brand: "",
+                  feedback: {
+                    brandMatch: false,
+                    notesMatch: 0,
+                    perfumerMatch: "none",
+                    yearDirection: "equal",
+                    yearMatch: "wrong",
+                  },
+                  guess: "",
+                  isCorrect: false,
+                  isSkipped: true,
+                });
+                continue;
+              }
+
               const currentLevel = index + 1;
               const isCorrect = g.isCorrect;
 
