@@ -148,7 +148,7 @@ export function GameHeader() {
       >
         <nav
           className={cn(
-            "relative mx-auto flex w-full max-w-2xl wide:max-w-5xl items-center justify-between rounded-b-none border-x-0 border-b panel-border panel-shadow bg-background/70 px-5 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 backdrop-blur-md transition-all duration-300 sm:rounded-b-md sm:border-x",
+            "relative mx-auto flex w-full max-w-2xl items-center justify-between rounded-b-none border-x-0 border-b panel-border bg-background/70 px-5 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 panel-shadow backdrop-blur-md transition-all duration-300 sm:rounded-b-md sm:border-x wide:max-w-5xl",
             modals.menuOpen || modals.langOpen ? "z-50" : "z-20",
           )}
           suppressHydrationWarning
@@ -163,7 +163,7 @@ export function GameHeader() {
             >
               <button
                 aria-label={t("menu")}
-                className="p-2 text-foreground transition-colors duration-300 hover:text-primary"
+                className="rounded-sm p-2 text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
                 onClick={() =>
                   setModals((previous) => ({
                     ...previous,
@@ -183,7 +183,7 @@ export function GameHeader() {
             >
               <button
                 aria-label={t("help")}
-                className="relative p-2 text-foreground transition-colors duration-300 hover:text-primary"
+                className="relative rounded-sm p-2 text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
                 onClick={() =>
                   setModals((previous) => ({ ...previous, helpOpen: true }))
                 }
@@ -194,7 +194,7 @@ export function GameHeader() {
           </div>
 
           {/* Logo */}
-          <h1 className="absolute left-1/2 -translate-x-1/2 transform font-[family-name:var(--font-playfair)] text-2xl font-bold tracking-tight text-foreground uppercase">
+          <h1 className="absolute left-1/2 -translate-x-1/2 transform font-[family-name:var(--font-playfair)] text-2xl font-semibold tracking-tight text-foreground lowercase">
             Eauxle
           </h1>
 
@@ -212,7 +212,7 @@ export function GameHeader() {
               disableOnMobile
             >
               <button
-                className="flex items-center gap-1 p-2 text-sm font-semibold text-foreground transition-colors duration-300 hover:text-primary"
+                className="flex items-center gap-1 rounded-sm p-2 text-sm font-semibold text-foreground lowercase transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
                 onClick={() =>
                   setModals((previous) => ({
                     ...previous,
@@ -233,7 +233,7 @@ export function GameHeader() {
             >
               <button
                 aria-label={t("stats")}
-                className="p-2 text-foreground transition-colors duration-300 hover:text-primary"
+                className="rounded-sm p-2 text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
                 onClick={() =>
                   setModals((previous) => ({ ...previous, statsOpen: true }))
                 }
@@ -252,7 +252,7 @@ export function GameHeader() {
           {/* Menu Dropdown */}
           <div
             className={cn(
-              "pointer-events-auto absolute top-full left-5 mt-2 w-56 flex-col overflow-hidden rounded-md border panel-border panel-shadow bg-background/70 backdrop-blur-md transition-all duration-300",
+              "pointer-events-auto absolute top-full left-5 mt-2 w-56 flex-col overflow-hidden rounded-md border panel-border bg-background/70 panel-shadow backdrop-blur-md transition-all duration-300",
               modals.menuOpen
                 ? "flex translate-y-0 opacity-100"
                 : "hidden -translate-y-2 opacity-0",
@@ -262,7 +262,7 @@ export function GameHeader() {
             {user ? (
               <>
                 <button
-                  className="flex w-full items-center justify-between border-b border-border px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
+                  className="flex w-full items-center justify-between border-b border-border px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
                   onClick={() => {
                     setModals((previous) => ({
                       ...previous,
@@ -277,13 +277,13 @@ export function GameHeader() {
                 {user.is_anonymous ? (
                   <>
                     <button
-                      className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
+                      className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
                       onClick={() => openAuth("login")}
                     >
                       {t("signIn")}
                     </button>
                     <button
-                      className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
+                      className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
                       onClick={() => openAuth("register")}
                     >
                       {t("createAccount")}
@@ -292,7 +292,7 @@ export function GameHeader() {
                 ) : (
                   <>
                     <button
-                      className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
+                      className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
                       onClick={async () => {
                         setModals((previous) => ({
                           ...previous,
@@ -308,7 +308,7 @@ export function GameHeader() {
                       {t("signOut")}
                     </button>
                     <button
-                      className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
+                      className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
                       onClick={() => {
                         setModals((previous) => ({
                           ...previous,
@@ -325,13 +325,13 @@ export function GameHeader() {
             ) : (
               <>
                 <button
-                  className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
+                  className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
                   onClick={() => openAuth("login")}
                 >
                   {t("signIn")}
                 </button>
                 <button
-                  className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
+                  className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
                   onClick={() => openAuth("register")}
                 >
                   {t("createAccount")}
@@ -340,7 +340,7 @@ export function GameHeader() {
             )}
 
             <button
-              className="border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-all duration-300 hover:pl-6 hover:text-primary"
+              className="border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
               onClick={() => {
                 toast.info(t("comingSoon"));
                 setModals((previous) => ({ ...previous, menuOpen: false }));
@@ -351,13 +351,13 @@ export function GameHeader() {
 
             {/* Appearance Section */}
             <div className="border-b border-border bg-muted/20 px-5 py-3">
-              <h3 className="mb-3 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+              <h3 className="mb-3 text-[0.625rem] font-semibold tracking-widest text-muted-foreground uppercase">
                 {t("appearance")}
               </h3>
               <div className="space-y-3">
                 {/* Wide Layout Toggle */}
                 <button
-                  className="group flex w-full items-center justify-between text-foreground transition-colors hover:text-primary"
+                  className="group hidden w-full items-center justify-between text-foreground transition-colors hover:text-primary lg:flex"
                   onClick={toggleLayoutMode}
                 >
                   <div className="flex items-center gap-2">
@@ -445,7 +445,7 @@ export function GameHeader() {
             <MobileResetItem />
 
             <button
-              className="px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-primary transition-all duration-300 hover:pl-6"
+              className="px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
               onClick={() => {
                 toast.info(t("comingSoon"));
                 setModals((previous) => ({ ...previous, menuOpen: false }));
@@ -458,7 +458,7 @@ export function GameHeader() {
           {/* Language Dropdown */}
           <div
             className={cn(
-              "pointer-events-auto absolute top-full right-16 mt-2 w-24 flex-col overflow-hidden rounded-md border panel-border panel-shadow bg-background/70 backdrop-blur-md transition-all duration-300",
+              "pointer-events-auto absolute top-full right-16 mt-2 w-36 flex-col overflow-hidden rounded-md border panel-border bg-background/70 panel-shadow backdrop-blur-md transition-all duration-300",
               modals.langOpen
                 ? "flex translate-y-0 opacity-100"
                 : "hidden -translate-y-2 opacity-0",
@@ -468,15 +468,20 @@ export function GameHeader() {
             {routing.locales.map((lang) => (
               <button
                 className={cn(
-                  "px-4 py-2 text-center text-sm font-semibold transition-colors duration-300",
+                  "flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors duration-300",
                   locale === lang
-                    ? "text-foreground underline underline-offset-4"
-                    : "text-foreground hover:bg-muted/30 hover:text-primary",
+                    ? "border-l-2 border-primary pl-3 text-foreground"
+                    : "text-foreground hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground",
                 )}
                 key={lang}
                 onClick={() => changeLanguage(lang)}
               >
-                {localeNames[lang] || lang.toUpperCase()}
+                <span className="font-sans text-xs text-muted-foreground">
+                  {lang}
+                </span>
+                <span className="font-[family-name:var(--font-playfair)] text-sm">
+                  {localeNames[lang] ?? lang}
+                </span>
               </button>
             ))}
           </div>
@@ -484,32 +489,30 @@ export function GameHeader() {
       </header>
 
       {/* Click outside to close dropdowns */}
-      {
-        modals.menuOpen || modals.langOpen ? (
-          <div
-            aria-label="Close menu"
-            className="fixed inset-0 z-40"
-            onClick={() => {
+      {modals.menuOpen || modals.langOpen ? (
+        <div
+          aria-label="Close menu"
+          className="fixed inset-0 z-40"
+          onClick={() => {
+            setModals((previous) => ({
+              ...previous,
+              langOpen: false,
+              menuOpen: false,
+            }));
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
               setModals((previous) => ({
                 ...previous,
                 langOpen: false,
                 menuOpen: false,
               }));
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                setModals((previous) => ({
-                  ...previous,
-                  langOpen: false,
-                  menuOpen: false,
-                }));
-              }
-            }}
-            role="button"
-            tabIndex={-1}
-          />
-        ) : null
-      }
+            }
+          }}
+          role="button"
+          tabIndex={-1}
+        />
+      ) : null}
 
       <HelpModal
         onClose={() => {
@@ -536,26 +539,24 @@ export function GameHeader() {
         }
       />
 
-      {
-        user ? (
-          <>
-            <SessionsModal
-              onClose={() =>
-                setModals((previous) => ({ ...previous, sessionsOpen: false }))
-              }
-              open={modals.sessionsOpen}
-              user={user}
-            />
-            <ProfileModal
-              onClose={() =>
-                setModals((previous) => ({ ...previous, profileOpen: false }))
-              }
-              open={modals.profileOpen}
-              user={user}
-            />
-          </>
-        ) : null
-      }
+      {user ? (
+        <>
+          <SessionsModal
+            onClose={() =>
+              setModals((previous) => ({ ...previous, sessionsOpen: false }))
+            }
+            open={modals.sessionsOpen}
+            user={user}
+          />
+          <ProfileModal
+            onClose={() =>
+              setModals((previous) => ({ ...previous, profileOpen: false }))
+            }
+            open={modals.profileOpen}
+            user={user}
+          />
+        </>
+      ) : null}
     </>
   );
 }

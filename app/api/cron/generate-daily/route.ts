@@ -5,8 +5,6 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/server";
 import { DailyChallengesInsert } from "@/lib/validations/supabase.schema";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
-
 /**
  * Vercel Cron Job: Generate Daily Challenge
  *
@@ -69,16 +67,19 @@ export async function GET(request: NextRequest) {
 }
 
 async function ensureChallenge(
-  supabase: SupabaseClient<any, "public", any>,
+  supabase: ReturnType<typeof createAdminClient>,
   dateString: string,
 ) {
   // 1. Check if exists
-  const { data: existing } = await supabase
+  const queryResult1 = await supabase
     .from("daily_challenges")
     .select("id, challenge_number, perfume_id")
     .eq("challenge_date", dateString)
     .limit(1)
     .single();
+  const { data: existing } = queryResult1 as {
+    data: { challenge_number: number; id: string; perfume_id: string } | null;
+  };
 
   if (existing) {
     return { date: dateString, id: existing.id, status: "exists" };
@@ -90,10 +91,13 @@ async function ensureChallenge(
   const exclusionDate = new Date();
   exclusionDate.setUTCDate(exclusionDate.getUTCDate() - 30);
 
-  const { data: recentChallenges } = await supabase
+  const queryResult2 = await supabase
     .from("daily_challenges")
     .select("perfume_id")
     .gte("challenge_date", exclusionDate.toISOString().split("T")[0]);
+  const { data: recentChallenges } = queryResult2 as {
+    data: { perfume_id: string }[] | null;
+  };
 
   const rawExcludeIds = recentChallenges?.map((c) => c.perfume_id) ?? [];
   // Defense-in-depth: validate that all IDs are valid UUIDs before using in query
@@ -114,7 +118,10 @@ async function ensureChallenge(
     query = query.not("perfume_id", "in", `(${excludeIds.join(",")})`);
   }
 
-  let { data: candidates, error } = await query;
+  let { data: candidates, error } = (await query) as {
+    data: { perfume_id: string }[] | null;
+    error: { message: string } | null;
+  };
 
   // Fallback: If pool exhausted (unlikely), try excluding only last 7 days
   if (error || !candidates || candidates.length === 0) {
@@ -124,10 +131,13 @@ async function ensureChallenge(
 
     const shortExclusionDate = new Date();
     shortExclusionDate.setUTCDate(shortExclusionDate.getUTCDate() - 7);
-    const { data: recent7 } = await supabase
+    const queryResult3 = await supabase
       .from("daily_challenges")
       .select("perfume_id")
       .gte("challenge_date", shortExclusionDate.toISOString().split("T")[0]);
+    const { data: recent7 } = queryResult3 as {
+      data: { perfume_id: string }[] | null;
+    };
 
     const excludeIds7 = (recent7?.map((c) => c.perfume_id) ?? []).filter(
       (id) => typeof id === "string" && uuidRegex.test(id),
@@ -147,7 +157,10 @@ async function ensureChallenge(
       );
     }
 
-    const retryResult = await retryQuery;
+    const retryResult = (await retryQuery) as {
+      data: { perfume_id: string }[] | null;
+      error: { message: string } | null;
+    };
     candidates = retryResult.data;
     error = retryResult.error;
   }
@@ -164,12 +177,15 @@ async function ensureChallenge(
   const selected = candidates[randomBuffer[0] % candidates.length];
 
   // 5. Get Next Challenge Number
-  const { data: maxChallenge } = await supabase
+  const queryResult4 = await supabase
     .from("daily_challenges")
     .select("challenge_number")
     .order("challenge_number", { ascending: false })
     .limit(1)
     .single();
+  const { data: maxChallenge } = queryResult4 as {
+    data: { challenge_number: number } | null;
+  };
 
   const nextNumber = (maxChallenge?.challenge_number ?? 0) + 1;
 
@@ -203,15 +219,19 @@ async function ensureChallenge(
     throw validationError;
   }
 
-  const { data: newChallenge, error: insertError } = await supabase
+  const queryResult5 = await supabase
     .from("daily_challenges")
     .insert(newChallengePayload)
     .select()
     .single();
+  const { data: newChallenge, error: insertError } = queryResult5 as {
+    data: { id: string } | null;
+    error: { message: string } | null;
+  };
 
-  if (insertError) {
+  if (insertError || !newChallenge) {
     throw new Error(
-      `Failed to insert challenge for ${dateString}: ${insertError.message}`,
+      `Failed to insert challenge for ${dateString}: ${insertError?.message}`,
     );
   }
 

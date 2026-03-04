@@ -132,7 +132,8 @@ function cleanNote(note: string | null | undefined): string {
     const pattern = new RegExp(String.raw`\b${word}\b`, "gi");
     t = t.replace(pattern, "");
   }
-  t = t.replaceAll(/\(.*?\)/g, "");
+  // eslint-disable-next-line sonarjs/slow-regex
+  t = t.replaceAll(/\([^)]*\)/g, "");
   t = t.replaceAll(/\s+/g, " ").trim();
   t = t.replace(/[,-]$/, "").trim();
   return t.toLowerCase();
@@ -238,9 +239,8 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     .limit(1)
     .single();
 
-  if (error || !data) {
+  if (error) {
     if (
-      error &&
       typeof error === "object" &&
       "code" in error &&
       error.code === "PGRST116"
@@ -402,7 +402,7 @@ export async function startGame(
 
       const realGuessIds = rawGuesses
         .filter((g) => !(g as { isSkip?: boolean }).isSkip && g.perfumeId)
-        .map((g) => g.perfumeId as string);
+        .map((g) => g.perfumeId);
 
       let perfumeMap = new Map<
         string,
@@ -458,8 +458,7 @@ export async function startGame(
         const p = perfumeMap.get(guess.perfumeId);
         if (p) {
           enrichedGuesses.push({
-            brandName:
-              (p.brands as { name: string } | null)?.name ?? "Unknown",
+            brandName: (p.brands as { name: string } | null)?.name ?? "Unknown",
             concentration: (p.concentrations as { name: string } | null)?.name,
             feedback: guess.feedback,
             gender: p.gender ?? undefined,
@@ -772,7 +771,7 @@ export async function submitGuess(
         yearDirection: "equal",
         yearMatch: "wrong",
       },
-      gameStatus: session.status as "active" | "won" | "lost",
+      gameStatus: session.status as GuessResult["gameStatus"],
       hasGuessedNotes: false,
       newNonce: String(session.last_nonce),
       result: "incorrect",
@@ -877,7 +876,7 @@ export async function submitGuess(
     timestamp: new Date().toISOString(),
   };
 
-  let newStatus: "active" | "won" | "lost" = "active";
+  let newStatus: GuessResult["gameStatus"] = "active";
   if (isGameOver) {
     newStatus = isCorrect ? "won" : "lost";
   }
@@ -1125,8 +1124,7 @@ export async function skipAttempt(
 
     if (challenge) {
       const now = new Date();
-      const isRanked =
-        now <= new Date(String(challenge.grace_deadline_at_utc));
+      const isRanked = now <= new Date(String(challenge.grace_deadline_at_utc));
       await supabase.from("game_results").insert({
         attempts: nextAttempts,
         challenge_id: session.challenge_id,
@@ -1218,14 +1216,19 @@ export const getDailyChallengeSSR = unstable_cache(
 
     const { data, error } = await adminSupabase
       .from("daily_challenges_public")
-      .select("challenge_date, grace_deadline_at_utc, id, mode, snapshot_metadata")
+      .select(
+        "challenge_date, grace_deadline_at_utc, id, mode, snapshot_metadata",
+      )
       .eq("challenge_date", targetDate)
       .limit(1)
       .single();
 
-    if (error || !data) {
-      if (error?.code === "PGRST116") return null;
-      console.error("[getDailyChallengeSSR] Error fetching public challenge:", error);
+    if (error) {
+      if (error.code === "PGRST116") return null;
+      console.error(
+        "[getDailyChallengeSSR] Error fetching public challenge:",
+        error,
+      );
       return null;
     }
 
@@ -1239,11 +1242,13 @@ export const getDailyChallengeSSR = unstable_cache(
 
     const { data: perfume } = (await adminSupabase
       .from("perfumes")
-      .select(`
+      .select(
+        `
         release_year, gender, is_linear, xsolve_score,
         top_notes, middle_notes, base_notes, perfumers,
         brands (name), concentrations (name)
-      `)
+      `,
+      )
       .eq("id", challengePrivate.perfume_id)
       .single()) as {
       data: {
@@ -1260,7 +1265,7 @@ export const getDailyChallengeSSR = unstable_cache(
       } | null;
     };
 
-    if (!perfume || perfume.xsolve_score == null) return null;
+    if (perfume?.xsolve_score == null) return null;
 
     return {
       ...data,

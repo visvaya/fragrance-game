@@ -140,5 +140,18 @@
         "@opentelemetry/api"
       ]
     }
+  },
+  "depcheck": {
+    "ignores": [
+      "cross-env",
+      "tailwindcss-animate",
+      "@tailwindcss/postcss",
+      "@vitest/coverage-v8",
+      "eslint-import-resolver-typescript",
+      "postcss",
+      "prettier-plugin-tailwindcss",
+      "rimraf",
+      "tailwindcss"
+    ]
   }
 }

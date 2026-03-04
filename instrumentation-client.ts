@@ -1,21 +1,30 @@
 import * as Sentry from "@sentry/nextjs";
 
-export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
+// Silences Sentry SDK warning about missing export.
+// Must NOT reference Sentry.captureRouterTransitionStart directly — that pulls
+// tracing code into the bundle despite excludeTracing: true.
 
-// function to sanitize PII from Sentry events
-function sanitizePII(data: any): any {
+/**
+ *
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+export function onRouterTransitionStart() {}
+
+function sanitizePII(data: unknown): unknown {
   if (!data) return data;
   if (typeof data !== "object") return data;
 
   const sensitive = ["email", "password", "token", "secret", "key"];
-  const sanitized = Array.isArray(data) ? [...data] : { ...data };
+  const sanitized = Array.isArray(data)
+    ? [...(data as unknown[])]
+    : { ...(data as Record<string, unknown>) };
 
   for (const key of Object.keys(sanitized)) {
-    const value = sanitized[key];
+    const value = (sanitized as Record<string, unknown>)[key];
     if (sensitive.some((s) => key.toLowerCase().includes(s))) {
-      sanitized[key] = "[REDACTED]";
+      (sanitized as Record<string, unknown>)[key] = "[REDACTED]";
     } else if (typeof value === "object") {
-      sanitized[key] = sanitizePII(value);
+      (sanitized as Record<string, unknown>)[key] = sanitizePII(value);
     }
   }
 
@@ -23,16 +32,16 @@ function sanitizePII(data: any): any {
 }
 
 Sentry.init({
-  beforeSend(event, hint) {
-    // Remove PII from breadcrumbs
+  beforeSend(event) {
     if (event.breadcrumbs) {
       event.breadcrumbs = event.breadcrumbs.map((crumb) => ({
         ...crumb,
-        data: crumb.data ? sanitizePII(crumb.data) : undefined,
+        data: crumb.data
+          ? (sanitizePII(crumb.data) as Record<string, unknown>)
+          : undefined,
       }));
     }
 
-    // Remove email from user context
     if (event.user) {
       delete event.user.email;
       delete event.user.ip_address;
@@ -40,14 +49,8 @@ Sentry.init({
 
     return event;
   },
-
-  // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,
-
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-
   integrations: [],
-
-  // Adjust this value in production, or use tracesSampler for greater control
-  tracesSampleRate: 0.1,
+  tracesSampleRate: 0,
 });

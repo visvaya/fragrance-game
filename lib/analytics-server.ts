@@ -5,11 +5,9 @@ import { PostHog } from "posthog-node";
 let posthogClient: PostHog | null = null;
 
 function getPostHogClient() {
-  if (!posthogClient) {
-    posthogClient = new PostHog(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-      host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
-    });
-  }
+  posthogClient ??= new PostHog(process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "", {
+    host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+  });
   return posthogClient;
 }
 
@@ -57,7 +55,7 @@ export async function identifyUser(
     const client = getPostHogClient();
     client.identify({
       distinctId,
-      properties: properties || {},
+      properties: properties ?? {},
     });
     await client.shutdown();
   } catch (error) {

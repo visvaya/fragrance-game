@@ -2,10 +2,12 @@
 
 import { type ReactNode, useEffect } from "react";
 
-let lenis: any = null;
+import type Lenis from "lenis";
 
+let lenis: Lenis | null = null;
 async function initLenis() {
-  if (globalThis.window === undefined || window.innerWidth < 1024) {
+  // eslint-disable-next-line unicorn/prefer-global-this
+  if (typeof window === "undefined" || globalThis.window.innerWidth < 1024) {
     return;
   }
 
@@ -35,10 +37,13 @@ async function initLenis() {
  * @param props - Component props.
  * @param props.children - Child elements to wrap.
  */
-export function SmoothScrollProvider({ children }: { children: ReactNode }) {
+export function SmoothScrollProvider({
+  children,
+}: Readonly<{ children: ReactNode }>) {
   useEffect(() => {
     // Skip Lenis entirely on mobile — no init, no RAF loop, no MutationObserver
-    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+    // eslint-disable-next-line unicorn/prefer-global-this
+    if (typeof window !== "undefined" && globalThis.window.innerWidth < 1024) {
       return;
     }
 

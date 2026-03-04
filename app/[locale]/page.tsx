@@ -1,4 +1,7 @@
-import { getDailyChallengeSSR, getDailyStep1ImageUrl } from "@/app/actions/game-actions";
+import {
+  getDailyChallengeSSR,
+  getDailyStep1ImageUrl,
+} from "@/app/actions/game-actions";
 import { GameBoard } from "@/components/game/game-board";
 import { GameFooter } from "@/components/game/game-footer";
 import { GameHeader } from "@/components/game/game-header";
@@ -32,16 +35,13 @@ export default async function Home({
 
   return (
     <>
-      {preloadUrl && (
-        // eslint-disable-next-line @next/next/no-head-element
-        <link
-          as="image"
-          fetchPriority="high"
-          href={preloadUrl}
-          rel="preload"
-        />
-      )}
-      <GameProvider initialChallenge={initialChallenge} initialImageUrl={initialImageUrl}>
+      {preloadUrl ? (
+        <link as="image" fetchPriority="high" href={preloadUrl} rel="preload" />
+      ) : null}
+      <GameProvider
+        initialChallenge={initialChallenge}
+        initialImageUrl={initialImageUrl}
+      >
         <div className="flex min-h-[100dvh] w-full flex-col items-center">
           <GameHeader />
           <main className="flex w-full flex-1 flex-col items-center px-0 pt-6 pb-0">

@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
  * @param root0
  * @param root0.score
  */
-export function DifficultyDisplay({ score }: { score: number }) {
+export function DifficultyDisplay({ score }: Readonly<{ score: number }>) {
   const t = useTranslations("Difficulty");
   // Based on DB percentiles: p80=0.58, p60=0.51, p40=0.43, p20=0.35
   const getDifficulty = (s: number) => {

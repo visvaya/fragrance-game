@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import dynamic from "next/dynamic";
+
 import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
@@ -10,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { MetaClues } from "./clues/meta-clues";
 import { PyramidClues } from "./clues/pyramid-clues";
 import { Confetti } from "./confetti";
-import { useGameState, useUIPreferences } from "./contexts";
+import { useGameState } from "./contexts";
 import { DifficultyDisplay } from "./difficulty-display";
 import { RevealImage } from "./reveal-image";
 
@@ -19,7 +20,7 @@ import { RevealImage } from "./reveal-image";
 // (SSR renders nothing vs client shows nothing → consistent, no re-render needed).
 // PyramidClues and MetaClues are NOT dynamic — their text content is LCP-candidate.
 const AttemptLog = dynamic(
-  () => import("./attempt-log").then((m) => m.AttemptLog),
+  async () => import("./attempt-log").then((m) => m.AttemptLog),
   { loading: () => null, ssr: false },
 );
 
@@ -28,7 +29,7 @@ const AttemptLog = dynamic(
  */
 export function GameBoard() {
   const { dailyPerfume, gameState, xsolveScore } = useGameState();
-  const { uiPreferences } = useUIPreferences();
+
   const t = useTranslations("GameBoard");
   const [showConfetti, setShowConfetti] = useState(false);
 
@@ -43,7 +44,7 @@ export function GameBoard() {
   return (
     <div
       className={cn(
-        "mx-auto flex w-full max-w-[38rem] wide:max-w-[60rem] flex-col gap-6 px-6 transition-all duration-300 sm:px-0",
+        "mx-auto flex w-full max-w-[38rem] flex-col gap-6 px-6 transition-all duration-300 sm:px-0 wide:max-w-[60rem]",
       )}
       suppressHydrationWarning
     >
@@ -62,7 +63,7 @@ export function GameBoard() {
                 <p className="font-[family-name:var(--font-playfair)] text-2xl font-semibold">
                   {dailyPerfume.name}
                   {dailyPerfume.concentration &&
-                    dailyPerfume.concentration !== "Unknown" ? (
+                  dailyPerfume.concentration !== "Unknown" ? (
                     <span className="ml-2 text-lg text-muted-foreground not-italic">
                       • {dailyPerfume.concentration}
                     </span>
@@ -83,7 +84,7 @@ export function GameBoard() {
                 <p className="font-[family-name:var(--font-playfair)] text-2xl font-semibold">
                   {dailyPerfume.name}
                   {dailyPerfume.concentration &&
-                    dailyPerfume.concentration !== "Unknown" ? (
+                  dailyPerfume.concentration !== "Unknown" ? (
                     <span className="ml-2 text-lg text-muted-foreground not-italic">
                       • {dailyPerfume.concentration}
                     </span>
@@ -102,7 +103,7 @@ export function GameBoard() {
       {/* Main Game Content */}
       <div
         className={cn(
-          "flex flex-col gap-6 transition-all duration-300 wide:grid wide:grid-cols-1 wide:items-start wide:md:grid-cols-2",
+          "flex flex-col gap-6 transition-all duration-300 wide:grid wide:grid-cols-1 wide:items-start wide:md:grid-cols-[9fr_11fr]",
         )}
       >
         {/* Left Column (Wide) / Top (Stack) */}

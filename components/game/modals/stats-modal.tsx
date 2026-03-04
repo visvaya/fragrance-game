@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -33,13 +31,8 @@ const STATS = {
  * @param root0.onClose
  * @param root0.open
  */
-export function StatsModal({ onClose, open }: StatsModalProperties) {
-  const [mounted, setMounted] = useState(false);
+export function StatsModal({ onClose, open }: Readonly<StatsModalProperties>) {
   const t = useTranslations("StatsModal");
-
-  useEffect(() => {
-    requestAnimationFrame(() => setMounted(true));
-  }, []);
 
   const maxDistribution = Math.max(...STATS.distribution);
 

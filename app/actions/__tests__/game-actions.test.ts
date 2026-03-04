@@ -3,7 +3,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 // Mock dependencies
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
-  unstable_cache: vi.fn().mockImplementation((fn: unknown) => fn),
+  unstable_cache: vi.fn().mockImplementation((function_: unknown) => function_),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -1315,13 +1315,13 @@ describe("game-actions", () => {
                 return sessionCallCount === 1
                   ? { data: sessionData, error: null }
                   : {
-                    data: {
-                      ...sessionData,
-                      attempts_count: 3,
-                      status: "won",
-                    },
-                    error: null,
-                  };
+                      data: {
+                        ...sessionData,
+                        attempts_count: 3,
+                        status: "won",
+                      },
+                      error: null,
+                    };
               });
             } else if (table === "game_results") {
               chain.insert = vi.fn().mockResolvedValue({

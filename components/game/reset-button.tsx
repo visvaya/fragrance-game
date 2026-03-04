@@ -21,12 +21,13 @@ import { useGameActions } from "./contexts";
 export function ResetButton({
   tooltipDisabled = false,
 }: Readonly<{ tooltipDisabled?: boolean }>) {
-  if (process.env.NEXT_PUBLIC_GAME_RESET_ENABLED !== "true") return null;
   const { resetGame } = useGameActions();
   const [showConfirm, setShowConfirm] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const t = useTranslations("ResetButton");
+
+  if (process.env.NEXT_PUBLIC_GAME_RESET_ENABLED !== "true") return null;
 
   const handleConfirmedReset = async () => {
     setIsResetting(true);
@@ -51,7 +52,7 @@ export function ResetButton({
           <TooltipTrigger asChild>
             <button
               aria-label={t("ariaLabel")}
-              className="flex items-center justify-center p-1 text-foreground/70 transition-colors duration-300 hover:text-primary"
+              className="flex items-center justify-center rounded-sm p-2 text-foreground/70 transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
               onClick={() => setShowConfirm(true)}
             >
               <RotateCcw size={18} />

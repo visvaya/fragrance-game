@@ -23,12 +23,15 @@
       "placeholder": "Napisz jakie to perfumy...",
       "closed": "Wróć jutro po kolejną zagadkę!",
       "attempt": "Próba",
-      "score": "Potencjalny wynik",
+      "score": "Wynik",
       "noResults": "Brak wyników",
       "noPuzzle": "Brak zagadki na dziś",
       "skip": "Pomiń",
       "skipTooltip": "Pomiń tę próbę",
-      "skipped": "Pominięto"
+      "skipped": "Pominięto",
+      "skipConfirmTitle": "Pominąć tę próbę?",
+      "skipConfirmCancel": "Anuluj",
+      "skipConfirmConfirm": "Pomiń"
     }
   },
   "Header": {
@@ -60,7 +63,7 @@
     "contact": "Kontakt",
     "privacy": "Polityka prywatności",
     "terms": "Regulamin",
-    "copyright": "© 2025 Eauxle. Dla perfumomaniaków!",
+    "copyright": "© 2025 Eauxle",
     "slogan": "Trenuj swój nos, dzień po dniu...",
     "selectHelper": "Wybierz z listy"
   },
@@ -108,15 +111,19 @@
   },
   "RevealImage": {
     "visualEvidence": "Flakon",
+    "titleTooltip": "Zdjęcie flakonu. Na początku jest mocno rozmyte, ale z każdą kolejną próbą staje się coraz wyraźniejsze. Pełne zdjęcie zobaczysz na koniec gry.",
     "altBase": "Tajemniczy flakon perfum",
     "altReveal": "Tajemnicze perfumy"
   },
   "PyramidClues": {
     "olfactoryProfile": "Profil zapachowy",
+    "olfactoryProfileTooltip": "Próba 1.: Ukryta liczba i długość nazw nut. Próba 2.: Widoczna liczba nut i długość ich nazw. Próba 3. i 4.: Część nut zostaje odsłonięta. Od 5. próby: Wszystkie nuty w pełni widoczne.",
+    "pyramidTooltip": "Próba 1.: Ukryta liczba i długość nazw nut. Próba 2.: Widoczna liczba nut i długość ich nazw. Próba 3. i 4.: Niektóre poziomy zostają odsłonięte. Od 5. próby: Wszystkie nuty w pełni widoczne.",
     "linearProfile": "Linearny",
     "noteCount": "nuty: {count}",
     "noteCountUnknown": "nuty: <q>?</q>",
-    "linearProfileTooltip": "Liczba nut jest ukryta w 1. próbie",
+    "linearProfileTooltip": "W 1. próbie liczba ukrytych nut nie jest podana",
+    "linearMeaning": "Profil linearny — kompozycja bez klasycznego podziału na głowę, serce i bazę. Pojedyncze nuty są odsłaniane z każdą kolejną próbą.",
     "pyramid": "Piramida",
     "top": "Głowa",
     "heart": "Serce",
@@ -127,8 +134,10 @@
   },
   "MetaClues": {
     "identity": "Dane",
+    "titleTooltip": "Kluczowe informacje: marka, perfumiarz, rok wydania i płeć. Litery i cyfry marki, perfumiarza oraz roku są stopniowo odsłaniane z każdą kolejną próbą. Płeć jest w pełni ukryta aż do 5. próby.",
     "brand": "Marka",
     "perfumer": "Perfumiarz",
+    "perfumers": "Perfumiarze",
     "year": "Rok",
     "concentration": "Koncentracja",
     "gender": "Płeć",
@@ -137,11 +146,12 @@
     "hiddenAttempt": "Ukryte w próbie {attempt}.",
     "fullyHidden": "Całkowicie ukryte w próbie {attempt}.",
     "partiallyHidden": "Częściowo ukryte w próbie {attempt}.",
-    "hiddenUntil": "Ukryte do momentu odgadnięcia",
+    "genderHiddenUntil": "Odkrywana po 4. próbie lub gdy wpisane perfumy będą mieć tę samą przypisaną płeć",
     "letters": "Liczba liter: {count}"
   },
   "AttemptLog": {
     "title": "Notatnik",
+    "titleTooltip": "Historia twoich prób. Ikony i ich kolory wskazują, jak bliskie były twoje typy w odniesieniu do rzeczywistej marki, perfumiarza, roku, płci i nut.",
     "columns": {
       "attempt": "#",
       "attemptTooltip": "Numer próby",
@@ -150,6 +160,7 @@
       "brandTooltip": "Marka",
       "perfumer": "P",
       "perfumerTooltip": "Perfumiarz",
+      "perfumersTooltip": "Perfumiarze",
       "year": "R",
       "yearTooltip": "Rok",
       "gender": "P",
@@ -158,7 +169,7 @@
       "notesTooltip": "Nuty"
     },
     "by": "od",
-    "skipped": "— Pominięto",
+    "skipped": "Pominięto",
     "tooltips": {
       "brandCorrect": "Marka: Poprawna",
       "brandIncorrect": "Marka: Niepoprawna",

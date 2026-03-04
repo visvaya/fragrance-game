@@ -14,12 +14,12 @@ export function TruncatedCell({
   className,
   content,
   textClassName = "font-medium text-foreground text-sm line-clamp-1 break-words max-w-full tracking-normal",
-}: {
+}: Readonly<{
   children?: React.ReactNode;
   className?: string;
   content: string;
   textClassName?: string;
-}) {
+}>) {
   const ref = useRef<HTMLDivElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
 
@@ -48,7 +48,7 @@ export function TruncatedCell({
     window.addEventListener("resize", handleResize);
 
     return () => {
-      if (timeoutId) clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
       if (resizeTimeoutId) clearTimeout(resizeTimeoutId);
       window.removeEventListener("resize", handleResize);
     };

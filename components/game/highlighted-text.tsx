@@ -4,6 +4,7 @@ import { normalizeText } from "@/lib/utils";
 
 export const HighlightedText = memo(
   ({ query, text }: Readonly<{ query: string; text: string }>) => {
+    // eslint-disable-next-line sonarjs/cognitive-complexity
     const tokens = useMemo(() => {
       if (!query || query.trim().length < 2) return [text];
 
@@ -76,7 +77,7 @@ export const HighlightedText = memo(
       const result: React.ReactNode[] = [];
       let lastIndex = 0;
 
-      for (const [index, match] of mergedMatches.entries()) {
+      for (const match of mergedMatches) {
         if (match.start > lastIndex) {
           result.push(text.slice(lastIndex, match.start));
         }

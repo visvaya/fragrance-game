@@ -121,6 +121,8 @@ const serverConfig = withSentryConfig(
     bundleSizeOptimizations: {
       excludeDebugStatements: true,
       excludeMetricsAggregator: true,
+      excludeReplayCanvas: true,
+      excludeReplayIframe: true,
       excludeReplayShadowDom: true,
       excludeReplayWorker: true,
       excludeTracing: true,

@@ -23,12 +23,15 @@
       "placeholder": "Guess the fragrance...",
       "closed": "Come back tomorrow for new essence...",
       "attempt": "Attempt",
-      "score": "Potential Score",
+      "score": "Score",
       "noResults": "No results found",
       "noPuzzle": "No puzzle today",
       "skip": "Skip",
       "skipTooltip": "Skip this attempt",
-      "skipped": "Skipped"
+      "skipped": "Skipped",
+      "skipConfirmTitle": "Skip this attempt?",
+      "skipConfirmCancel": "Cancel",
+      "skipConfirmConfirm": "Skip"
     }
   },
   "Header": {
@@ -60,7 +63,7 @@
     "contact": "Contact",
     "privacy": "Privacy Policy",
     "terms": "Terms",
-    "copyright": "© 2025 Eauxle. Designed for Fragheads.",
+    "copyright": "© 2025 Eauxle",
     "slogan": "Train your nose, one day at a time...",
     "selectHelper": "Select from list"
   },
@@ -108,15 +111,19 @@
   },
   "RevealImage": {
     "visualEvidence": "Visual Evidence",
+    "titleTooltip": "Bottle photo. Initially heavily blurred, it becomes clearer with each subsequent attempt. The full image is revealed at the end of the game.",
     "altBase": "Mystery perfume image",
     "altReveal": "Mystery perfume"
   },
   "PyramidClues": {
     "olfactoryProfile": "Olfactory Profile",
+    "olfactoryProfileTooltip": "Attempt 1: Note count and word lengths hidden. Attempt 2: Note count and word lengths revealed. Attempts 3 & 4: Some notes are revealed. Attempt 5+: All notes fully visible.",
+    "pyramidTooltip": "Attempt 1: Note count and word lengths hidden. Attempt 2: Note count and word lengths revealed. Attempts 3 & 4: Some levels are revealed. Attempt 5+: All notes fully visible.",
     "linearProfile": "Linear",
     "noteCount": "notes: {count}",
     "noteCountUnknown": "notes: <q>?</q>",
-    "linearProfileTooltip": "The number of notes is hidden in the 1st attempt",
+    "linearProfileTooltip": "In the 1st attempt, the total number of masked notes is hidden",
+    "linearMeaning": "Linear profile — there is no classic top, heart, and base division. Individual notes are gradually revealed with each attempt.",
     "pyramid": "Pyramid",
     "top": "Top",
     "heart": "Heart",
@@ -127,8 +134,10 @@
   },
   "MetaClues": {
     "identity": "Identity",
+    "titleTooltip": "Key details: brand, perfumer, release year, and gender. Letters and digits for brand, perfumer, and year are progressively unmasked with each subsequent attempt. Gender remains fully hidden until attempt 5.",
     "brand": "Brand",
     "perfumer": "Perfumer",
+    "perfumers": "Perfumers",
     "year": "Year",
     "concentration": "Concentration",
     "gender": "Gender",
@@ -137,11 +146,12 @@
     "hiddenAttempt": "Hidden in attempt {attempt}",
     "fullyHidden": "Fully hidden in attempt {attempt}",
     "partiallyHidden": "Partially hidden in attempt {attempt}",
-    "hiddenUntil": "Hidden until determined",
+    "genderHiddenUntil": "Revealed after attempt 4 or when a guessed perfume shares the same gender",
     "letters": "{count} letters"
   },
   "AttemptLog": {
     "title": "Investigation Log",
+    "titleTooltip": "History of your attempts. The icons and their colors indicate how close your guesses were regarding the actual brand, perfumer, year, gender, and notes.",
     "columns": {
       "attempt": "#",
       "attemptTooltip": "Attempt Number",
@@ -150,6 +160,7 @@
       "brandTooltip": "Brand",
       "perfumer": "P",
       "perfumerTooltip": "Perfumer",
+      "perfumersTooltip": "Perfumers",
       "year": "Y",
       "yearTooltip": "Year",
       "gender": "G",
@@ -158,7 +169,7 @@
       "notesTooltip": "Notes"
     },
     "by": "by",
-    "skipped": "— Skipped",
+    "skipped": "Skipped",
     "tooltips": {
       "brandCorrect": "Brand: Correct",
       "brandIncorrect": "Brand: Incorrect",

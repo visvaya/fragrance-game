@@ -43,25 +43,37 @@ export async function GET() {
     console.warn(`[API TEST] Querying daily_challenges for date: ${today}`);
 
     // 1. Get today's challenge ID
-    const { data: challenge, error: challengeError } = await supabase
+    const queryResult1 = await supabase
       .from("daily_challenges")
       .select("perfume_id, challenge_date")
       .eq("challenge_date", today)
       .single();
+    const { data: challenge, error: challengeError } = queryResult1 as {
+      data: { challenge_date: string; perfume_id: string } | null;
+      error: { message: string } | null;
+    };
 
-    if (challengeError) {
+    if (challengeError || !challenge) {
       console.warn(
         "[API TEST] No challenge in DB for today, using fallback perfume",
       );
 
       // Fallback: Return ANY perfume from database (for testing purposes)
-      const { data: randomPerfume, error: randomError } = await supabase
+      const queryResult2 = await supabase
         .from("perfumes")
         .select("name, brands(name), id")
         .limit(1)
         .single();
+      const { data: randomPerfume, error: randomError } = queryResult2 as {
+        data: {
+          brands: { name: string } | null;
+          id: string;
+          name: string;
+        } | null;
+        error: { message: string } | null;
+      };
 
-      if (randomError) {
+      if (randomError || !randomPerfume) {
         return NextResponse.json(
           { error: "No perfumes available in database" },
           { status: 500 },
@@ -84,13 +96,21 @@ export async function GET() {
     );
 
     // 2. Get the perfume details
-    const { data: perfume, error: perfumeError } = await supabase
+    const queryResult3 = await supabase
       .from("perfumes")
       .select("name, brands(name), id")
       .eq("id", challenge.perfume_id)
       .single();
+    const { data: perfume, error: perfumeError } = queryResult3 as {
+      data: {
+        brands: { name: string } | null;
+        id: string;
+        name: string;
+      } | null;
+      error: { message: string } | null;
+    };
 
-    if (perfumeError) {
+    if (perfumeError || !perfume) {
       console.error("[API TEST] Perfume details not found:", perfumeError);
       return NextResponse.json(
         { error: "Perfume details not found" },

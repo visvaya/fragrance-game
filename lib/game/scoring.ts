@@ -15,8 +15,6 @@ export type RevealState = {
   yearMask: string; // '----' or full year
 };
 
-type GameStatus = "playing" | "won" | "lost";
-
 // Points per attempt (1st attempt = 1000, 6th = 168)
 // Formula: 1000 * (0.7 ^ (attempt - 1))
 const ATTEMPT_SCORES: Record<number, number> = {
@@ -139,7 +137,10 @@ export function getRevealPercentages(attempt: number): RevealState {
         yearMask: "FULL",
       };
     }
+    // eslint-disable-next-line sonarjs/no-duplicated-branches
     default: {
+      // Same as case 1 – safeAttempt is clamped to 1-6 so this is unreachable,
+      // but required for exhaustive return-type checking by TypeScript.
       return {
         blur: 10,
         brandLetters: 0,
@@ -189,7 +190,8 @@ export function revealLetters(text: string, percentage: number): string {
     // Mask entire word at 0%
     if (pct === 0) return MASK_CHAR.repeat(token.length);
 
-    const chars = token.split("");
+    // eslint-disable-next-line @typescript-eslint/no-misused-spread
+    const chars = [...token];
     const lettersToReveal = Math.max(1, Math.round(chars.length * (pct / 100)));
 
     if (lettersToReveal >= chars.length) return token;
@@ -240,7 +242,8 @@ function generateSmartRevealOrder(length: number): number[] {
   order.push(0);
 
   if (process.env.NODE_ENV === "development") {
-    console.log(
+    // eslint-disable-next-line no-console
+    console.debug(
       `SmartReveal(${length}): SubLen=${subLength}, Center=${centerAbsolute}, Order=${JSON.stringify(order)}`,
     );
   }

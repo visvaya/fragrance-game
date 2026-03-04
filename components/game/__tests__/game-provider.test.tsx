@@ -8,13 +8,13 @@ import { UIPreferencesProvider } from "../contexts/ui-preferences-context";
 import { GameProvider, useGame } from "../game-provider";
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-    refresh: vi.fn(),
-    back: vi.fn(),
-  }),
   usePathname: () => "/en",
+  useRouter: () => ({
+    back: vi.fn(),
+    push: vi.fn(),
+    refresh: vi.fn(),
+    replace: vi.fn(),
+  }),
   useSearchParams: () => new URLSearchParams(),
 }));
 
@@ -48,22 +48,22 @@ vi.mock("@/lib/supabase/client", () => ({
 const messages = {
   Auth: {
     register: {
-      title: "Register",
-      captchaTitle: "Verification Required",
       captchaDescription: "Please verify you are human.",
+      captchaTitle: "Verification Required",
+      title: "Register",
     },
   },
   Migration: {
-    title: "Anonymous Session Detected",
-    description: "Migrate your progress?",
-    warning: "Skipping will abandon anonymous results.",
+    abortHelp: "Close to abort.",
     cancel: "Skip",
     cancelConfirm: "Are you sure?",
-    exitConfirm: "Abort?",
-    abortHelp: "Close to abort.",
     confirm: "Yes, Merge",
-    success: "Merged!",
+    description: "Migrate your progress?",
     error: "Failed.",
+    exitConfirm: "Abort?",
+    success: "Merged!",
+    title: "Anonymous Session Detected",
+    warning: "Skipping will abandon anonymous results.",
   },
 };
 
@@ -177,7 +177,7 @@ describe("GameProvider", () => {
       expect(screen.getByTestId("daily-brand")).toHaveTextContent("Chanel"),
     );
 
-    await act(async () => {
+    await act(() => {
       screen.getByText("Guess").click();
     });
 
@@ -251,7 +251,7 @@ describe("GameProvider", () => {
       expect(screen.getByTestId("daily-brand")).toHaveTextContent("Chanel"),
     );
 
-    await act(async () => {
+    await act(() => {
       screen.getByText("Guess").click();
     });
 

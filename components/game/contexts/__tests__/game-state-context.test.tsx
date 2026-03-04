@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 
 import { renderHook } from "@testing-library/react";
+import { describe, it, expect } from "vitest";
+
 import { MASK_CHAR } from "@/lib/constants";
-import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import {
   GameStateProvider,

@@ -11,7 +11,7 @@ export function useScrollDirection(threshold = 60) {
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
-    let lastScrollY = globalThis.window?.scrollY ?? 0;
+    let lastScrollY = window.scrollY;
 
     const handleScroll = () => {
       const currentScrollY = window.scrollY;

@@ -164,8 +164,9 @@ log(`${LINE}`);
 ensureDir(reportsDir);
 
 let lintCmd = 'pnpm exec eslint . -f json';
+
 if (skipTests) {
-    lintCmd += ' --ignore-pattern "**/tests/**" --ignore-pattern "**/e2e/**" --ignore-pattern "**/*.test.ts" --ignore-pattern "**/*.spec.ts"';
+    lintCmd += ' --ignore-pattern "**/tests/**" --ignore-pattern "**/__tests__/**" --ignore-pattern "**/e2e/**" --ignore-pattern "**/*.test.ts" --ignore-pattern "**/*.test.tsx" --ignore-pattern "**/*.spec.ts" --ignore-pattern "**/*.spec.tsx"';
 }
 
 const tools = [

@@ -26,7 +26,7 @@ const mockSupabase = {
 
 vi.mock("@/lib/supabase/server", () => ({
   createAdminClient: vi.fn(() => mockSupabase),
-  createClient: vi.fn(async () => mockSupabase),
+  createClient: vi.fn(() => Promise.resolve(mockSupabase)),
 }));
 
 vi.mock("@/lib/analytics-server", () => ({
@@ -36,26 +36,17 @@ vi.mock("@/lib/analytics-server", () => ({
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
-  unstable_cache: vi.fn().mockImplementation((fn: unknown) => fn),
+  unstable_cache: vi.fn().mockImplementation((function_: unknown) => function_),
 }));
 
 vi.mock("next/headers", () => ({
-  cookies: vi.fn(async () => ({
-    getAll: vi.fn(),
-    set: vi.fn(),
-  })),
+  cookies: vi.fn(() =>
+    Promise.resolve({
+      getAll: vi.fn(),
+      set: vi.fn(),
+    }),
+  ),
 }));
-
-// Mock crypto for nonce generation
-if (!globalThis.crypto) {
-  (globalThis as any).crypto = {
-    getRandomValues: (array: any) => {
-      for (let i = 0; i < array.length; i++)
-        array[i] = Math.floor(Math.random() * 100);
-      return array;
-    },
-  };
-}
 
 describe("Game Actions Integration (Mocked)", () => {
   beforeEach(() => {
@@ -95,10 +86,10 @@ describe("Game Actions Integration (Mocked)", () => {
       // 3. Chain of single() calls:
       // - After insert to get session
       // - To get challenge
-      mockSupabase.single.mockImplementation(async () => {
+      mockSupabase.single.mockImplementation(() => {
         const table = (mockSupabase as any)._lastTable;
         if (table === "game_sessions") {
-          return {
+          return Promise.resolve({
             data: {
               attempts_count: 0,
               challenge_id: "550e8400-e29b-41d4-a716-446655440001",
@@ -110,21 +101,27 @@ describe("Game Actions Integration (Mocked)", () => {
               status: "active",
             },
             error: null,
-          };
+          });
         }
         if (
           table === "daily_challenges_public" ||
           table === "daily_challenges"
         ) {
-          return {
+          return Promise.resolve({
             data: {
               grace_deadline_at_utc: "2026-01-01T00:00:00Z",
               perfume_id: "f47a-58cc-4372-a567-0e02b2c3d470",
             },
             error: null,
-          };
+          });
         }
-        return { data: null, error: null };
+        if (table === "perfume_assets") {
+          return Promise.resolve({
+            data: { image_key_step_1: "test-bg.jpg" },
+            error: null,
+          });
+        }
+        return Promise.resolve({ data: null, error: null });
       });
 
       const result = await startGame("550e8400-e29b-41d4-a716-446655440001");
@@ -152,12 +149,12 @@ describe("Game Actions Integration (Mocked)", () => {
       });
 
       let callCount = 0;
-      mockSupabase.single.mockImplementation(async () => {
+      mockSupabase.single.mockImplementation(() => {
         const table = (mockSupabase as any)._lastTable;
         if (table === "game_sessions") {
           const status = callCount > 0 ? "won" : "active";
           callCount++;
-          return {
+          return Promise.resolve({
             data: {
               attempts_count: 0,
               challenge_id: "550e8400-e29b-41d4-a716-446655440002",
@@ -169,13 +166,16 @@ describe("Game Actions Integration (Mocked)", () => {
               status: status,
             },
             error: null,
-          };
+          });
         }
         if (table === "daily_challenges") {
-          return { data: { perfume_id: perfumeId }, error: null };
+          return Promise.resolve({
+            data: { perfume_id: perfumeId },
+            error: null,
+          });
         }
         if (table === "perfumes") {
-          return {
+          return Promise.resolve({
             data: {
               base_notes: [],
               brand_id: "b1",
@@ -187,12 +187,15 @@ describe("Game Actions Integration (Mocked)", () => {
               top_notes: [],
             },
             error: null,
-          };
+          });
         }
         if (table === "perfume_assets") {
-          return { data: { image_key_step_1: "test.jpg" }, error: null };
+          return Promise.resolve({
+            data: { image_key_step_1: "test.jpg" },
+            error: null,
+          });
         }
-        return { data: null, error: null };
+        return Promise.resolve({ data: null, error: null });
       });
 
       // For update

@@ -4,10 +4,14 @@ import { useState, useEffect, type ReactNode } from "react";
 
 import { AuthApiError } from "@supabase/supabase-js";
 
-import { initializeGame, startGame, type DailyChallenge } from "@/app/actions/game-actions";
-import { captureAnalyticsEvent } from "@/components/providers/posthog-provider";
+import {
+  initializeGame,
+  startGame,
+  type DailyChallenge,
+} from "@/app/actions/game-actions";
 import { AuthCaptchaModal } from "@/components/auth/auth-captcha-modal";
 import { MigrationModal } from "@/components/auth/migration-modal";
+import { captureAnalyticsEvent } from "@/components/providers/posthog-provider";
 import { MASK_CHAR, MAX_GUESSES } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 
@@ -16,12 +20,9 @@ import {
   useGameState,
   GameActionsProvider,
   useGameActions,
-  UIPreferencesProvider,
   useUIPreferences,
   type Attempt,
 } from "./contexts";
-
-// Skeleton / Default for initialization (prevents null checks everywhere)
 
 // Skeleton / Default for initialization (prevents null checks everywhere)
 const SKELETON_PERFUME = {
@@ -52,8 +53,6 @@ function calculateMaskedValues(
   targetBrand: string,
   targetYear: number | string,
 ) {
-  // Brand
-  const brandPercentages = [0, 0, 0.15, 0.4, 0.7, 1];
   // Simplified reveal for hydration - actual logic in contexts/game-state-context.tsx
   const guessMaskedBrand = level === 1 ? "?????" : targetBrand;
 
@@ -89,6 +88,7 @@ function calculateMaskedValues(
  * Backward-compatible unified hook
  * Combines all three contexts for components not yet migrated
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useGame() {
   const state = useGameState();
   const actions = useGameActions();
@@ -112,6 +112,13 @@ export function useGame() {
 
 // Export Attempt type for backward compatibility
 
+// Helper to calculate revealed brand (needed for actions context)
+function getRevealedBrandHelper(brand: string, level: number) {
+  if (level === 1) return "?????";
+  // Simplified - full logic in GameStateContext
+  return brand; // Placeholder
+}
+
 /**
  * GameProvider - Main orchestrator that manages state and coordinates contexts
  * All state lives here as single source of truth
@@ -121,32 +128,34 @@ export function GameProvider({
   children,
   initialChallenge,
   initialImageUrl,
-}: {
+}: Readonly<{
   children: ReactNode;
   initialChallenge?: DailyChallenge | null;
   initialImageUrl?: string | null;
-}) {
+}>) {
   // === Core Game State (Single Source of Truth) ===
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [gameState, setGameState] = useState<GameState>("playing");
-  const [imageUrl, setImageUrl] = useState<string>("/placeholder.svg?height=400&width=400");
+  const [imageUrl, setImageUrl] = useState<string>(
+    "/placeholder.svg?height=400&width=400",
+  );
   const [loading, setLoading] = useState(true);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [dailyPerfume, setDailyPerfume] = useState<typeof SKELETON_PERFUME>(
     initialChallenge?.clues
       ? {
-        brand: initialChallenge.clues.brand,
-        concentration: initialChallenge.clues.concentration,
-        gender: initialChallenge.clues.gender,
-        id: "daily",
-        imageUrl: initialImageUrl ?? "/placeholder.svg?height=400&width=400",
-        isLinear: initialChallenge.clues.isLinear,
-        name: "Mystery Perfume",
-        notes: initialChallenge.clues.notes,
-        perfumer: initialChallenge.clues.perfumer,
-        xsolve: initialChallenge.clues.xsolve,
-        year: initialChallenge.clues.year,
-      }
+          brand: initialChallenge.clues.brand,
+          concentration: initialChallenge.clues.concentration,
+          gender: initialChallenge.clues.gender,
+          id: "daily",
+          imageUrl: initialImageUrl ?? "/placeholder.svg?height=400&width=400",
+          isLinear: initialChallenge.clues.isLinear,
+          name: "Mystery Perfume",
+          notes: initialChallenge.clues.notes,
+          perfumer: initialChallenge.clues.perfumer,
+          xsolve: initialChallenge.clues.xsolve,
+          year: initialChallenge.clues.year,
+        }
       : SKELETON_PERFUME,
   );
   const [discoveredPerfumers, setDiscoveredPerfumers] = useState<Set<string>>(
@@ -198,6 +207,7 @@ export function GameProvider({
 
   // Initialize Game (with proper auth sequencing)
   useEffect(() => {
+    // eslint-disable-next-line sonarjs/cognitive-complexity
     const initGame = async () => {
       const safetyTimeout = setTimeout(() => {
         console.warn("[GameProvider] initGame safety timeout reached!");
@@ -298,7 +308,10 @@ export function GameProvider({
           try {
             session = await startGame(initialChallenge.id, inheritedCount);
           } catch (error) {
-            console.error("[GameProvider] startGame with SSR challenge failed:", error);
+            console.error(
+              "[GameProvider] startGame with SSR challenge failed:",
+              error,
+            );
             // session remains null — retry logic below (challenge && !session) will handle it
           }
         } else {
@@ -326,7 +339,7 @@ export function GameProvider({
           });
 
           // Setup Daily Perfume Clues — skip when already initialized from SSR prop
-          if (!initialChallenge && challenge.clues) {
+          if (!initialChallenge) {
             setDailyPerfume({
               brand: challenge.clues.brand,
               concentration: challenge.clues.concentration,
@@ -350,10 +363,7 @@ export function GameProvider({
 
           // Restore baseAttemptCount for new sessions with no guess history
           // (happens when player declined anonymous migration and inherited attempts)
-          if (
-            inheritedCount > 0 &&
-            (!session.guesses || session.guesses.length === 0)
-          ) {
+          if (inheritedCount > 0 && session.guesses.length === 0) {
             setBaseAttemptCount(inheritedCount);
           }
 
@@ -362,17 +372,16 @@ export function GameProvider({
             setDailyPerfume((previous) => ({
               ...previous,
               concentration: session.answerConcentration,
-              name: session.answerName!,
+              name: session.answerName ?? "",
             }));
           }
 
           // Hydrate Attempts
-          if (session.guesses && session.guesses.length > 0) {
+          if (session.guesses.length > 0) {
             // Reconstruct history with correct progressive disclosure snapshots
             const enrichedAttempts: Attempt[] = [];
             // Track running state for hydration replay
             // We need to simulate the "game state" at each step to determine what was revealed
-            const percentages = [0, 0, 0.15, 0.4, 0.7, 1]; // Same as getRevealedBrandHelper
 
             for (const [index, g] of session.guesses.entries()) {
               if ((g as { isSkip?: boolean }).isSkip) {
@@ -399,14 +408,13 @@ export function GameProvider({
               const brandMatch =
                 g.brandName.toLowerCase() ===
                 challenge.clues.brand.toLowerCase();
-              const yearMatchDiff = (g.year || 0) - challenge.clues.year;
-              const yearMatch = isCorrect
-                ? "correct"
-                : Math.abs(yearMatchDiff) <= 3 && yearMatchDiff !== 0
-                  ? "close"
-                  : yearMatchDiff === 0
-                    ? "correct"
-                    : "wrong";
+              const yearMatchDiff = (g.year ?? 0) - challenge.clues.year;
+              let yearMatch: "correct" | "close" | "wrong" = "wrong";
+              if (isCorrect || yearMatchDiff === 0) {
+                yearMatch = "correct";
+              } else if (Math.abs(yearMatchDiff) <= 3) {
+                yearMatch = "close";
+              }
 
               // 2. Was it revealed by PREVIOUS attempts (or this one)?
               // Running check: Is it revealed by ANY guess up to now?
@@ -422,7 +430,7 @@ export function GameProvider({
               // 3. Was it revealed by LEVEL logic?
               // Calculate Clues for Snapshot (Use GUESS values)
               const { guessMaskedBrand, guessMaskedYear } =
-                calculateMaskedValues(currentLevel, g.brandName, g.year || 0);
+                calculateMaskedValues(currentLevel, g.brandName, g.year ?? 0);
 
               // Check Reveal Status for Global State (Use ANSWER values) - needed for boolean flags
               // Note: game logic says "isBrandRevealed" if dailyPerfume.brand is revealed.
@@ -459,19 +467,21 @@ export function GameProvider({
                 yearRevealed: anyYearMatch || yearRevealedByLevel,
               };
 
+              let yearDirection: "lower" | "higher" | "equal" = "equal";
+              if (yearMatchDiff > 0) {
+                yearDirection = "lower";
+              } else if (yearMatchDiff < 0) {
+                yearDirection = "higher";
+              }
+
               enrichedAttempts.push({
                 brand: g.brandName,
                 concentration: g.concentration,
-                feedback: g.feedback || {
+                feedback: g.feedback ?? {
                   brandMatch,
                   notesMatch: isCorrect ? 1 : 0, // approximated fallback
                   perfumerMatch: isCorrect ? "full" : "none", // approximated fallback
-                  yearDirection:
-                    yearMatchDiff > 0
-                      ? "lower"
-                      : yearMatchDiff < 0
-                        ? "higher"
-                        : "equal",
+                  yearDirection,
                   yearMatch: yearMatch,
                 },
                 gender: g.gender,
@@ -501,10 +511,10 @@ export function GameProvider({
     };
     void initGame();
     // initGame is defined inside this effect and only needs to run once on mount
-    // eslint_disable-next-line react-hooks/exhaustive-deps -- intentional mount-only initialization
-  }, []);
+  }, [initialChallenge, maxAttempts]);
 
   // Track discovered perfumers
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   useEffect(() => {
     const newDiscovered = new Set<string>();
     for (const attempt of attempts) {
@@ -512,7 +522,7 @@ export function GameProvider({
         attempt.feedback.perfumerMatch === "full" ||
         attempt.feedback.perfumerMatch === "partial"
       ) {
-        const guessPerfumers = attempt.perfumers || [];
+        const guessPerfumers = attempt.perfumers ?? [];
         const answerPerfumers = new Set(
           dailyPerfume.perfumer.split(",").map((p) => p.trim().toLowerCase()),
         );
@@ -542,18 +552,10 @@ export function GameProvider({
   const currentAttempt = attempts.length + 1 + baseAttemptCount;
   const revealLevel = Math.min(currentAttempt, maxAttempts);
 
-  // Helper to calculate revealed brand (needed for actions context)
-  const getRevealedBrandHelper = (brand: string, level: number) => {
-    if (level === 1) return "?????";
-    const percentages = [0, 0, 0.15, 0.4, 0.7, 1];
-    // Simplified - full logic in GameStateContext
-    return brand; // Placeholder
-  };
-
   const isBrandRevealed =
     attempts.some((a) => a.feedback.brandMatch) ||
     getRevealedBrandHelper(dailyPerfume.brand, revealLevel) ===
-    dailyPerfume.brand;
+      dailyPerfume.brand;
 
   const isYearRevealed = attempts.some(
     (a) => a.feedback.yearMatch === "correct",

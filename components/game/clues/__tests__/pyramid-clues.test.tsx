@@ -12,47 +12,51 @@ import {
 import { PyramidClues } from "../pyramid-clues";
 
 // Mock next-intl
-vi.mock("next-intl", () => ({
-  useTranslations: () => {
-    const t = (key: string, params?: Record<string, unknown>) => {
-      const translations: Record<string, string | Function> = {
-        base: "Base Notes",
-        heart: "Heart Notes",
-        hiddenNote: "Hidden note",
-        letters: ({ count }: { count: number }) => `${count} letters`,
-        linearProfile: "Linear Profile",
-        linearProfileTooltip: "Linear fragrance - notes evolve uniformly",
-        noteCount: ({ count }: { count: number }) => `${count} notes`,
-        noteCountUnknown: "? notes",
-        olfactoryProfile: "Olfactory Profile",
-        pyramid: "Fragrance Pyramid",
-        top: "Top Notes",
-      };
-      const value = translations[key];
-      if (typeof value === "function" && params) {
-        return value(params);
-      }
-      if (typeof value === "function") {
-        return value;
-      }
-      return value || key;
-    };
+vi.mock("next-intl", () => {
+  type TranslationParameters = Record<string, unknown>;
+  type TranslationFunction = (params: TranslationParameters) => string;
+  type RichHandlerFunction = (chunks: string) => React.ReactNode;
 
-    // Add rich method for t.rich() calls
-    t.rich = (key: string, handlers?: Record<string, Function>) => {
-      if (key === "noteCountUnknown") {
-        const text = "?";
-        if (handlers?.q) {
-          return handlers.q(text);
-        }
-        return text;
-      }
-      return key;
+  const t = (key: string, params?: TranslationParameters) => {
+    const translations: Record<string, string | TranslationFunction> = {
+      base: "Base Notes",
+      heart: "Heart Notes",
+      hiddenNote: "Hidden note",
+      letters: (p: TranslationParameters) => `${String(p.count)} letters`,
+      linearMeaning: "Linear profile - no top/heart/base division",
+      linearProfile: "Linear Profile",
+      linearProfileTooltip: "Linear fragrance - notes evolve uniformly",
+      noteCount: (p: TranslationParameters) => `${String(p.count)} notes`,
+      noteCountUnknown: "? notes",
+      olfactoryProfile: "Olfactory Profile",
+      pyramid: "Fragrance Pyramid",
+      top: "Top Notes",
     };
+    const value = translations[key];
+    if (typeof value === "function" && params !== undefined) {
+      return value(params);
+    }
+    if (typeof value === "function") {
+      return value({});
+    }
+    return typeof value === "string" ? value : key;
+  };
 
-    return t;
-  },
-}));
+  t.rich = (key: string, handlers?: Record<string, RichHandlerFunction>) => {
+    if (key === "noteCountUnknown") {
+      const text = "?";
+      if (handlers?.q) {
+        return handlers.q(text);
+      }
+      return text;
+    }
+    return key;
+  };
+
+  return {
+    useTranslations: () => t,
+  };
+});
 
 // Mock GameTooltip
 vi.mock("../../game-tooltip", () => ({

@@ -4,13 +4,39 @@ import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 import { TruncatedCell } from "./attempt-log-truncated-cell";
+import { DotFiller } from "./dot-filler";
 import { GameTooltip } from "./game-tooltip";
+import { IconCell, iconInnerVariants } from "./icon-cell";
 
 import type { Attempt, DailyPerfume } from "./contexts";
 
-const ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI"];
+type RowCellProperties = React.HTMLAttributes<HTMLDivElement> & {
+  isActive: boolean;
+  isTouch: boolean;
+};
 
-type AttemptRowProperties = {
+function RowCell({
+  children,
+  className,
+  isActive,
+  isTouch,
+  ...props
+}: RowCellProperties) {
+  return (
+    <div
+      className={cn(
+        "relative z-10 border-b border-muted/30 py-3 transition-all duration-300 group-last:border-0",
+        isTouch && isActive ? "bg-muted/10" : "group-hover:bg-muted/10",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+
+type AttemptRowProperties = Readonly<{
   activeRowIndex: number | null;
   attempt: Attempt;
   dailyPerfume: DailyPerfume;
@@ -19,7 +45,7 @@ type AttemptRowProperties = {
   index: number;
   isTouch: boolean;
   totalAttempts: number;
-};
+}>;
 
 /**
  *
@@ -37,92 +63,86 @@ export function AttemptRow({
   const t = useTranslations("AttemptLog");
   const isActive = activeRowIndex === index;
 
+  const interactiveProperties = {
+    onClick: handleClick,
+    onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleClick(e as unknown as React.MouseEvent);
+      }
+    },
+    onPointerDown: handlePointerDown,
+    role: "button" as const,
+    tabIndex: 0,
+  };
+
   if (attempt.isSkipped) {
     return (
       <div className="group contents" data-attempt-row>
-        <div
-          className={cn(
-            "relative z-10 flex items-center justify-center border-b border-muted/30 py-3 opacity-40 transition-all duration-300 group-last:border-0",
-            isTouch && isActive ? "bg-muted/25" : "group-hover:bg-muted/25",
-          )}
+        <RowCell
+          className="flex items-center justify-center"
           id={`attempt-${index}`}
+          isActive={isActive}
+          isTouch={isTouch}
         >
-          <span className="block w-full px-1 text-center font-[family-name:var(--font-playfair)] text-base text-muted-foreground">
-            {ROMAN_NUMERALS[index]}
+          <span className="block w-full pr-1 text-center text-[0.8125rem] font-normal text-muted-foreground">
+            {index + 1}
           </span>
-        </div>
+        </RowCell>
 
-        <div
-          className={cn(
-            "relative z-10 flex min-w-0 items-center border-b border-muted/30 py-3 pr-2 pl-2 opacity-40 transition-all duration-300 group-last:border-0",
-            isTouch && isActive ? "bg-muted/25" : "group-hover:bg-muted/25",
-          )}
+        <RowCell
+          className="flex min-w-0 flex-row items-center gap-2 pr-0 pl-2"
+          isActive={isActive}
+          isTouch={isTouch}
         >
-          <span className="font-[family-name:var(--font-playfair)] text-sm italic text-muted-foreground">
+          <span className="shrink-0 text-[0.8125rem] text-foreground/75 lowercase">
             {t("skipped")}
           </span>
-        </div>
+          <DotFiller />
+        </RowCell>
 
-        <div
-          className={cn(
-            "relative z-10 grid w-full grid-cols-5 items-center border-b border-muted/30 py-3 pr-2 pl-1 opacity-20 transition-all duration-300 group-last:border-0",
-            isTouch && isActive ? "bg-muted/25" : "group-hover:bg-muted/25",
-          )}
+        <RowCell
+          className="grid w-full grid-cols-5 pr-0.5 pl-1 opacity-20"
+          isActive={isActive}
+          isTouch={isTouch}
         >
           {Array.from({ length: 5 }).map((_, i) => (
-            <div className="flex h-full items-center justify-center" key={i}>
+            <div
+              className={`flex h-full items-center justify-center ${i < 4 ? "border-r border-dotted border-muted/30" : ""}`}
+              key={i}
+            >
               <span className="font-hand text-base text-muted-foreground">
                 —
               </span>
             </div>
           ))}
-        </div>
+        </RowCell>
       </div>
     );
   }
 
   return (
     <div className="group contents" data-attempt-row>
-      <div
-        className={cn(
-          "relative z-10 flex items-center justify-center border-b border-muted/30 py-3 transition-all duration-300 group-last:border-0",
-          isTouch && isActive ? "bg-muted/25" : "group-hover:bg-muted/25",
-        )}
+      <RowCell
+        className="flex items-center justify-center"
         id={`attempt-${index}`}
-        onClick={handleClick}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            handleClick(e as unknown as React.MouseEvent);
-          }
-        }}
-        onPointerDown={handlePointerDown}
-        role="button"
-        tabIndex={0}
+        isActive={isActive}
+        isTouch={isTouch}
+        {...interactiveProperties}
       >
         {index === totalAttempts - 1 && !attempt.isCorrect && (
           <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
         )}
-        <span className="block w-full px-1 text-center font-[family-name:var(--font-playfair)] text-base text-muted-foreground">
-          {ROMAN_NUMERALS[index]}
+        <span className="block w-full pr-1 text-center text-[0.8125rem] font-normal text-muted-foreground">
+          {index + 1}
         </span>
-      </div>
+      </RowCell>
 
-      <div
-        className={cn(
-          "relative z-10 flex min-w-0 flex-col justify-center border-b border-muted/30 py-3 pr-2 pl-2 transition-all duration-300 group-last:border-0",
-          isTouch && isActive ? "bg-muted/25" : "group-hover:bg-muted/25",
-        )}
-        onClick={handleClick}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            handleClick(e as unknown as React.MouseEvent);
-          }
-        }}
-        onPointerDown={handlePointerDown}
-        role="button"
-        tabIndex={0}
+      <RowCell
+        className="flex min-w-0 flex-row items-center gap-2 pr-0 pl-2"
+        isActive={isActive}
+        isTouch={isTouch}
+        {...interactiveProperties}
       >
         {index === totalAttempts - 1 && !attempt.isCorrect && (
           <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
@@ -140,99 +160,98 @@ export function AttemptRow({
           }
 
           return (
-            <div className="flex flex-col gap-y-0.5 text-left">
-              {/* Row 1: Name & Concentration */}
-              {/* Mobile: stacked (each piece on its own line) */}
-              <div className="flex flex-col gap-y-0.5 lg:hidden">
-                <TruncatedCell
-                  className="min-w-0 shrink"
-                  content={displayName}
-                />
-                {concentration && concentration !== "Unknown" ? (
+            <>
+              <div className="flex min-w-0 shrink flex-col gap-y-0.5 text-left">
+                {/* Row 1: Name & Concentration */}
+                {/* Mobile: stacked (each piece on its own line) */}
+                <div className="flex flex-col gap-y-0.5 lg:hidden">
                   <TruncatedCell
-                    className="min-w-0 shrink-[5]"
-                    content={concentration}
-                    textClassName="text-muted-foreground/80 text-xs font-normal truncate tracking-normal"
+                    className="min-w-0 shrink"
+                    content={displayName}
                   />
-                ) : null}
-              </div>
-              {/* Desktop: inline with separator */}
-              <TruncatedCell
-                className="hidden min-w-0 lg:block"
-                content={
-                  concentration && concentration !== "Unknown"
-                    ? `${displayName} · ${concentration}`
-                    : displayName
-                }
-                textClassName="text-sm truncate tracking-normal"
-              >
-                <span className="font-semibold text-foreground">
-                  {displayName}
-                </span>
-                {concentration && concentration !== "Unknown" ? (
-                  <>
-                    <span className="mx-1.5 text-xs text-muted-foreground/30">
-                      ·
-                    </span>
-                    <span className="text-xs font-normal text-muted-foreground/80">
-                      {concentration}
-                    </span>
-                  </>
-                ) : null}
-              </TruncatedCell>
-
-              {/* Row 2: Brand & Year */}
-              {/* Mobile: stacked (year always fully visible) */}
-              <div className="flex flex-col gap-y-0.5 text-muted-foreground/80 lg:hidden">
+                  {concentration && concentration !== "Unknown" ? (
+                    <TruncatedCell
+                      className="min-w-0 shrink-[5]"
+                      content={concentration}
+                      textClassName="text-muted-foreground/80 text-xs font-normal truncate tracking-normal"
+                    />
+                  ) : null}
+                </div>
+                {/* Desktop: inline with separator */}
                 <TruncatedCell
-                  className="min-w-[30px] shrink"
-                  content={attempt.brand}
-                  textClassName="text-xs font-medium truncate tracking-normal"
-                />
-                {attempt.year ? (
-                  <span className="text-xs font-medium whitespace-nowrap">
-                    {attempt.year}
+                  className="hidden min-w-0 lg:block"
+                  content={
+                    concentration && concentration !== "Unknown"
+                      ? `${displayName} · ${concentration}`
+                      : displayName
+                  }
+                  textClassName="text-sm truncate tracking-normal"
+                >
+                  <span className="font-semibold text-foreground">
+                    {displayName}
                   </span>
-                ) : null}
+                  {concentration && concentration !== "Unknown" ? (
+                    <>
+                      <span className="mx-1.5 text-xs text-muted-foreground/30">
+                        ·
+                      </span>
+                      <span className="text-xs font-normal text-muted-foreground/80">
+                        {concentration}
+                      </span>
+                    </>
+                  ) : null}
+                </TruncatedCell>
+
+                {/* Row 2: Brand & Year */}
+                {/* Mobile: stacked (year always fully visible) */}
+                <div className="flex flex-col gap-y-0.5 text-muted-foreground/80 lg:hidden">
+                  <TruncatedCell
+                    className="min-w-[30px] shrink"
+                    content={attempt.brand}
+                    textClassName="text-xs font-medium truncate tracking-normal"
+                  />
+                  {attempt.year ? (
+                    <span className="text-xs font-medium whitespace-nowrap">
+                      {attempt.year}
+                    </span>
+                  ) : null}
+                </div>
+                {/* Desktop: inline with separator */}
+                <TruncatedCell
+                  className="hidden min-w-0 lg:block"
+                  content={
+                    attempt.year
+                      ? `${attempt.brand} · ${attempt.year}`
+                      : attempt.brand
+                  }
+                  textClassName="text-xs font-medium truncate tracking-normal text-muted-foreground/80"
+                >
+                  <span className="text-muted-foreground/80">
+                    {attempt.brand}
+                  </span>
+                  {attempt.year ? (
+                    <>
+                      <span className="mx-1.5 font-normal text-muted-foreground/30">
+                        ·
+                      </span>
+                      <span className="text-muted-foreground/80">
+                        {attempt.year}
+                      </span>
+                    </>
+                  ) : null}
+                </TruncatedCell>
               </div>
-              {/* Desktop: inline with separator */}
-              <TruncatedCell
-                className="hidden min-w-0 lg:block"
-                content={
-                  attempt.year
-                    ? `${attempt.brand} · ${attempt.year}`
-                    : attempt.brand
-                }
-                textClassName="text-xs font-medium truncate tracking-normal text-muted-foreground/80"
-              >
-                <span className="text-foreground">{attempt.brand}</span>
-                {attempt.year ? (
-                  <>
-                    <span className="mx-1.5 font-normal text-muted-foreground/30">·</span>
-                    <span className="text-foreground">{attempt.year}</span>
-                  </>
-                ) : null}
-              </TruncatedCell>
-            </div>
+              <DotFiller />
+            </>
           );
         })()}
-      </div>
+      </RowCell>
 
-      <div
-        className={cn(
-          "relative z-10 grid w-full grid-cols-5 items-center border-b border-muted/30 py-3 pr-2 pl-1 font-hand text-xl text-primary transition-all duration-300 group-last:border-0",
-          isTouch && isActive ? "bg-muted/25" : "group-hover:bg-muted/25",
-        )}
-        onClick={handleClick}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            handleClick(e as unknown as React.MouseEvent);
-          }
-        }}
-        onPointerDown={handlePointerDown}
-        role="button"
-        tabIndex={0}
+      <RowCell
+        className="grid w-full grid-cols-5 pr-0.5 pl-1 font-hand text-xl text-primary"
+        isActive={isActive}
+        isTouch={isTouch}
+        {...interactiveProperties}
       >
         {index === totalAttempts - 1 && !attempt.isCorrect && (
           <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
@@ -250,9 +269,18 @@ export function AttemptRow({
                   className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                   content={t("tooltips.brandMissing")}
                 >
-                  <span className="inline-block cursor-help rounded-sm p-1 font-hand text-base leading-none text-muted-foreground opacity-50 transition-colors hover:bg-muted/60 active:bg-muted/60">
-                    ?
-                  </span>
+                  <IconCell
+                    as="span"
+                    className="font-hand text-base leading-none text-muted-foreground"
+                    layout="icon"
+                    variant="muted"
+                  >
+                    <span
+                      className={cn(iconInnerVariants(), "-translate-x-0.5")}
+                    >
+                      ?
+                    </span>
+                  </IconCell>
                 </GameTooltip>
               );
             }
@@ -263,9 +291,14 @@ export function AttemptRow({
                   className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                   content={t("tooltips.brandCorrect")}
                 >
-                  <div className="flex h-6 w-6 cursor-default items-center justify-center rounded-sm transition-colors hover:bg-muted/60 active:bg-muted/60">
-                    <Check className="h-4 w-4 text-success" />
-                  </div>
+                  <IconCell cursor="default" variant="success">
+                    <Check
+                      className={cn(
+                        "h-4 w-4 text-success",
+                        iconInnerVariants(),
+                      )}
+                    />
+                  </IconCell>
                 </GameTooltip>
               );
             }
@@ -275,12 +308,15 @@ export function AttemptRow({
                 className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                 content={t("tooltips.brandIncorrect")}
               >
-                <span className="cursor-help rounded-sm p-1 opacity-50 transition-colors hover:bg-muted/60 active:bg-muted/60">
+                <IconCell as="span" layout="pad" variant="muted">
                   <X
-                    className="h-4 w-4 -skew-x-12 transform text-muted-foreground"
+                    className={cn(
+                      "h-4 w-4 text-muted-foreground",
+                      iconInnerVariants({ skewed: true }),
+                    )}
                     strokeWidth={1.5}
                   />
-                </span>
+                </IconCell>
               </GameTooltip>
             );
           })()}
@@ -299,9 +335,18 @@ export function AttemptRow({
                   className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                   content={t("tooltips.perfumerMissing")}
                 >
-                  <span className="inline-block cursor-help rounded-sm p-1 font-hand text-base leading-none text-muted-foreground opacity-50 transition-colors hover:bg-muted/60 active:bg-muted/60">
-                    ?
-                  </span>
+                  <IconCell
+                    as="span"
+                    className="font-hand text-base leading-none text-muted-foreground"
+                    layout="icon"
+                    variant="muted"
+                  >
+                    <span
+                      className={cn(iconInnerVariants(), "-translate-x-0.5")}
+                    >
+                      ?
+                    </span>
+                  </IconCell>
                 </GameTooltip>
               );
             }
@@ -312,9 +357,14 @@ export function AttemptRow({
                   className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                   content={t("tooltips.perfumerFull")}
                 >
-                  <div className="flex h-6 w-6 cursor-default items-center justify-center rounded-sm transition-colors hover:bg-muted/60 active:bg-muted/60">
-                    <Check className="h-4 w-4 text-success" />
-                  </div>
+                  <IconCell cursor="default" variant="success">
+                    <Check
+                      className={cn(
+                        "h-4 w-4 text-success",
+                        iconInnerVariants(),
+                      )}
+                    />
+                  </IconCell>
                 </GameTooltip>
               );
             } else if (attempt.feedback.perfumerMatch === "partial") {
@@ -323,12 +373,15 @@ export function AttemptRow({
                   className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                   content={t("tooltips.perfumerPartial")}
                 >
-                  <span className="cursor-help rounded-sm p-1 transition-colors hover:bg-muted/60 active:bg-muted/60">
+                  <IconCell as="span" layout="pad" variant="warning">
                     <Waves
-                      className="h-4 w-4 -skew-x-12 transform text-muted-foreground opacity-50"
+                      className={cn(
+                        "h-4 w-4 text-warning",
+                        iconInnerVariants({ skewed: true }),
+                      )}
                       strokeWidth={1.5}
                     />
-                  </span>
+                  </IconCell>
                 </GameTooltip>
               );
             } else {
@@ -337,12 +390,15 @@ export function AttemptRow({
                   className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                   content={t("tooltips.perfumerIncorrect")}
                 >
-                  <span className="cursor-help rounded-sm p-1 opacity-50 transition-colors hover:bg-muted/60 active:bg-muted/60">
+                  <IconCell as="span" layout="pad" variant="muted">
                     <X
-                      className="h-4 w-4 -skew-x-12 transform text-muted-foreground"
+                      className={cn(
+                        "h-4 w-4 text-muted-foreground",
+                        iconInnerVariants({ skewed: true }),
+                      )}
                       strokeWidth={1.5}
                     />
-                  </span>
+                  </IconCell>
                 </GameTooltip>
               );
             }
@@ -360,9 +416,18 @@ export function AttemptRow({
                   className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                   content={t("tooltips.yearMissing")}
                 >
-                  <span className="inline-block cursor-help rounded-sm p-1 font-hand text-base leading-none text-muted-foreground opacity-50 transition-colors hover:bg-muted/60 active:bg-muted/60">
-                    ?
-                  </span>
+                  <IconCell
+                    as="span"
+                    className="font-hand text-base leading-none text-muted-foreground"
+                    layout="icon"
+                    variant="muted"
+                  >
+                    <span
+                      className={cn(iconInnerVariants(), "-translate-x-0.5")}
+                    >
+                      ?
+                    </span>
+                  </IconCell>
                 </GameTooltip>
               );
             }
@@ -372,44 +437,58 @@ export function AttemptRow({
                 className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                 content={t("tooltips.yearCorrect")}
               >
-                <div className="flex h-6 w-6 cursor-default items-center justify-center rounded-sm transition-colors hover:bg-muted/60 active:bg-muted/60">
-                  <Check className="h-4 w-4 text-success" />
-                </div>
+                <IconCell cursor="default" variant="success">
+                  <Check
+                    className={cn("h-4 w-4 text-success", iconInnerVariants())}
+                  />
+                </IconCell>
               </GameTooltip>
             ) : (
               <div className="flex h-full w-full flex-col items-center justify-center">
                 <GameTooltip
                   className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
-                  content={
-                    attempt.feedback.yearMatch === "close"
-                      ? attempt.feedback.yearDirection === "higher"
+                  content={(() => {
+                    if (attempt.feedback.yearMatch === "close") {
+                      return attempt.feedback.yearDirection === "higher"
                         ? t("tooltips.yearCloseHigher")
-                        : t("tooltips.yearCloseLower")
-                      : attempt.feedback.yearDirection === "higher"
-                        ? t("tooltips.yearWrongHigher")
-                        : t("tooltips.yearWrongLower")
-                  }
+                        : t("tooltips.yearCloseLower");
+                    }
+                    return attempt.feedback.yearDirection === "higher"
+                      ? t("tooltips.yearWrongHigher")
+                      : t("tooltips.yearWrongLower");
+                  })()}
                 >
-                  <span
-                    className={cn(
-                      "flex h-6 w-6 cursor-help items-center justify-center rounded-sm transition-colors hover:bg-muted/60 active:bg-muted/60",
+                  <IconCell
+                    as="span"
+                    className={
                       attempt.feedback.yearMatch === "close"
                         ? "text-warning"
-                        : "text-muted-foreground opacity-50",
-                    )}
+                        : "text-muted-foreground"
+                    }
+                    variant={
+                      attempt.feedback.yearMatch === "close"
+                        ? "warning"
+                        : "muted"
+                    }
                   >
                     {attempt.feedback.yearDirection === "higher" ? (
                       <ArrowUp
-                        className="h-4 w-4 -skew-x-12 transform"
+                        className={cn(
+                          "h-4 w-4",
+                          iconInnerVariants({ skewed: true }),
+                        )}
                         strokeWidth={1.5}
                       />
                     ) : (
                       <ArrowDown
-                        className="h-4 w-4 -skew-x-12 transform"
+                        className={cn(
+                          "h-4 w-4",
+                          iconInnerVariants({ skewed: true }),
+                        )}
                         strokeWidth={1.5}
                       />
                     )}
-                  </span>
+                  </IconCell>
                 </GameTooltip>
               </div>
             );
@@ -420,12 +499,10 @@ export function AttemptRow({
         <div className="flex h-full items-center justify-center">
           {(() => {
             const guessGender = attempt.gender?.toLowerCase() || "unknown";
-            const targetGender =
-              dailyPerfume.gender?.toLowerCase() || "unknown";
+            const targetGender = dailyPerfume.gender.toLowerCase() || "unknown";
 
-            const targetMissing =
-              targetGender === "unknown" || !dailyPerfume.gender;
-            const guessMissing = guessGender === "unknown" || !attempt.gender;
+            const targetMissing = targetGender === "unknown";
+            const guessMissing = guessGender === "unknown";
 
             if (targetMissing || guessMissing) {
               return (
@@ -433,9 +510,18 @@ export function AttemptRow({
                   className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                   content={t("tooltips.genderMissing")}
                 >
-                  <span className="inline-block cursor-help rounded-sm p-1 font-hand text-base leading-none text-muted-foreground opacity-50 transition-colors hover:bg-muted/60 active:bg-muted/60">
-                    ?
-                  </span>
+                  <IconCell
+                    as="span"
+                    className="font-hand text-base leading-none text-muted-foreground"
+                    layout="icon"
+                    variant="muted"
+                  >
+                    <span
+                      className={cn(iconInnerVariants(), "-translate-x-0.5")}
+                    >
+                      ?
+                    </span>
+                  </IconCell>
                 </GameTooltip>
               );
             }
@@ -446,9 +532,14 @@ export function AttemptRow({
                   className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                   content={t("tooltips.genderCorrect")}
                 >
-                  <div className="flex h-6 w-6 cursor-default items-center justify-center rounded-sm transition-colors hover:bg-muted/60 active:bg-muted/60">
-                    <Check className="h-4 w-4 text-success" />
-                  </div>
+                  <IconCell cursor="default" variant="success">
+                    <Check
+                      className={cn(
+                        "h-4 w-4 text-success",
+                        iconInnerVariants(),
+                      )}
+                    />
+                  </IconCell>
                 </GameTooltip>
               );
             }
@@ -458,12 +549,15 @@ export function AttemptRow({
                 className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                 content={t("tooltips.genderIncorrect")}
               >
-                <span className="cursor-help rounded-sm p-1 opacity-50 transition-colors hover:bg-muted/60 active:bg-muted/60">
+                <IconCell as="span" layout="pad" variant="muted">
                   <X
-                    className="h-4 w-4 -skew-x-12 transform text-muted-foreground"
+                    className={cn(
+                      "h-4 w-4 text-muted-foreground",
+                      iconInnerVariants({ skewed: true }),
+                    )}
                     strokeWidth={1.5}
                   />
-                </span>
+                </IconCell>
               </GameTooltip>
             );
           })()}
@@ -473,10 +567,9 @@ export function AttemptRow({
         <div className="flex h-full items-center justify-center">
           {(() => {
             const answerHasNotes =
-              dailyPerfume.notes &&
-              ((dailyPerfume.notes.top?.length || 0) > 0 ||
-                (dailyPerfume.notes.heart?.length || 0) > 0 ||
-                (dailyPerfume.notes.base?.length || 0) > 0);
+              dailyPerfume.notes.top.length > 0 ||
+              dailyPerfume.notes.heart.length > 0 ||
+              dailyPerfume.notes.base.length > 0;
 
             const isMissing =
               !answerHasNotes || attempt.hasGuessedNotes === false;
@@ -487,9 +580,18 @@ export function AttemptRow({
                   className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                   content={t("tooltips.notesMissing")}
                 >
-                  <span className="inline-block cursor-help rounded-sm p-1 font-hand text-base leading-none text-muted-foreground opacity-50 transition-colors hover:bg-muted/60 active:bg-muted/60">
-                    ?
-                  </span>
+                  <IconCell
+                    as="span"
+                    className="font-hand text-base leading-none text-muted-foreground"
+                    layout="icon"
+                    variant="muted"
+                  >
+                    <span
+                      className={cn(iconInnerVariants(), "-translate-x-0.5")}
+                    >
+                      ?
+                    </span>
+                  </IconCell>
                 </GameTooltip>
               );
             }
@@ -499,9 +601,11 @@ export function AttemptRow({
                 className="h-7 w-7 items-center justify-center sm:h-8 sm:w-8"
                 content={t("tooltips.notesCorrect")}
               >
-                <div className="flex h-6 w-6 cursor-default items-center justify-center rounded-sm transition-colors hover:bg-muted/60 active:bg-muted/60">
-                  <Check className="h-5 w-5 text-success" />
-                </div>
+                <IconCell cursor="default" variant="success">
+                  <Check
+                    className={cn("h-5 w-5 text-success", iconInnerVariants())}
+                  />
+                </IconCell>
               </GameTooltip>
             ) : (
               <GameTooltip
@@ -510,16 +614,28 @@ export function AttemptRow({
                   percent: Math.round(attempt.feedback.notesMatch * 100),
                 })}
               >
-                <span
-                  className={`flex cursor-help items-center rounded-sm px-1.5 py-1 font-hand text-sm leading-none transition-colors hover:bg-muted/60 active:bg-muted/60 sm:text-base ${attempt.feedback.notesMatch >= 0.4 ? "text-warning" : "text-muted-foreground opacity-50"}`}
+                <IconCell
+                  as="span"
+                  className={cn(
+                    "font-hand text-sm leading-none sm:text-base",
+                    attempt.feedback.notesMatch >= 0.4
+                      ? "text-warning"
+                      : "text-muted-foreground",
+                  )}
+                  layout="text"
+                  variant={
+                    attempt.feedback.notesMatch >= 0.4 ? "warning" : "muted"
+                  }
                 >
-                  {Math.round(attempt.feedback.notesMatch * 100)}%
-                </span>
+                  <span className={iconInnerVariants()}>
+                    {Math.round(attempt.feedback.notesMatch * 100)}%
+                  </span>
+                </IconCell>
               </GameTooltip>
             );
           })()}
         </div>
-      </div>
+      </RowCell>
     </div>
   );
 }

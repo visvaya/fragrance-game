@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, type ReactNode  } from "react";
+import { useState, useRef, type ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -50,7 +50,7 @@ export function GameTooltip({
   disabled = false,
   disableOnMobile = false,
   sideOffset = 1,
-}: GameTooltipProperties) {
+}: Readonly<GameTooltipProperties>) {
   const [open, setOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const t = useTranslations("GameTooltip");
@@ -143,7 +143,7 @@ export function GameTooltip({
         // Ensure z-index is correct (Dropdown layer)
         className="pointer-events-none z-[60] max-w-[200px] text-center select-none"
         // Prevent tooltip from closing on tap inside (if user taps it by mistake)
-        onPointerDownOutside={(e) => {
+        onPointerDownOutside={(_e) => {
           // Close on tap outside
           setOpen(false);
         }}

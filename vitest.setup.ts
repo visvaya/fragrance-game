@@ -1,10 +1,18 @@
+import { webcrypto } from "node:crypto";
+
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
 
 // ==================== Browser API Mocks ====================
 
-Object.defineProperty(window, "matchMedia", {
-  writable: true,
+// Mock crypto for nonce generation and Next.js / Supabase internals
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+if (!globalThis.crypto) {
+  // @ts-expect-error - webcrypto is a compatible subset of Crypto
+  globalThis.crypto = webcrypto;
+}
+
+Object.defineProperty(globalThis, "matchMedia", {
   value: (query: string) => ({
     addEventListener: vi.fn(),
     addListener: vi.fn(),
@@ -15,6 +23,7 @@ Object.defineProperty(window, "matchMedia", {
     removeEventListener: vi.fn(),
     removeListener: vi.fn(),
   }),
+  writable: true,
 });
 
 // ==================== Global Mocks ====================
@@ -35,9 +44,9 @@ vi.mock("@upstash/redis", () => ({
 
 vi.mock("@upstash/ratelimit", () => {
   class Ratelimit {
-    static slidingWindow = vi.fn().mockReturnValue({});
-    static fixedWindow = vi.fn().mockReturnValue({});
-    static tokenBucket = vi.fn().mockReturnValue({});
+    static readonly slidingWindow = vi.fn().mockReturnValue({});
+    static readonly fixedWindow = vi.fn().mockReturnValue({});
+    static readonly tokenBucket = vi.fn().mockReturnValue({});
     limit = vi.fn().mockResolvedValue({
       limit: 10,
       remaining: 9,

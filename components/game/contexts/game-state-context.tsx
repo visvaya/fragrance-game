@@ -153,7 +153,7 @@ export function GameStateProvider({
 
     if (revealLevel === 4) {
       return {
-        base: mask(dailyPerfume.notes.base || []),
+        base: mask(dailyPerfume.notes.base),
         heart: dailyPerfume.notes.heart,
         top: dailyPerfume.notes.top,
       };
@@ -161,17 +161,17 @@ export function GameStateProvider({
 
     if (revealLevel === 3) {
       return {
-        base: mask(dailyPerfume.notes.base || []),
-        heart: mask(dailyPerfume.notes.heart || []),
+        base: mask(dailyPerfume.notes.base),
+        heart: mask(dailyPerfume.notes.heart),
         top: dailyPerfume.notes.top,
       };
     }
 
     if (revealLevel === 2) {
       return {
-        base: mask(dailyPerfume.notes.base || []),
-        heart: mask(dailyPerfume.notes.heart || []),
-        top: mask(dailyPerfume.notes.top || []),
+        base: mask(dailyPerfume.notes.base),
+        heart: mask(dailyPerfume.notes.heart),
+        top: mask(dailyPerfume.notes.top),
       };
     }
 
@@ -286,7 +286,7 @@ export function GameStateProvider({
 
     const isRevealed = attempts.some(
       (a) =>
-        a.snapshot?.genderRevealed ||
+        a.snapshot?.genderRevealed ??
         a.gender?.toLowerCase() === dailyPerfume.gender.toLowerCase(),
     );
     if (isGameOver || isRevealed) return dailyPerfume.gender;
@@ -335,7 +335,7 @@ export function GameStateProvider({
     () =>
       attempts.some(
         (a) =>
-          a.snapshot?.genderRevealed ||
+          a.snapshot?.genderRevealed ??
           a.gender?.toLowerCase() === dailyPerfume.gender.toLowerCase(),
       ),
     [attempts, dailyPerfume.gender],
@@ -377,6 +377,7 @@ export function GameStateProvider({
  * useGameState - Hook to access game state
  * Use this for components that need game data (clues, attempts, progress)
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useGameState() {
   const context = useContext(GameStateContext);
   if (!context) {

@@ -5,6 +5,7 @@ import { LoginForm } from "@/components/auth/login-form";
 /**
  *
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export async function generateMetadata({
   params,
 }: {

@@ -58,9 +58,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // 2. Internationalization
-  let response: NextResponse;
-
-  response = pathname.startsWith("/api")
+  const response: NextResponse = pathname.startsWith("/api")
     ? NextResponse.next()
     : intlMiddleware(request);
 
@@ -139,6 +137,7 @@ export async function proxy(request: NextRequest) {
 }
 
 // Next.js 16 supports both named export 'proxy' and default export.
+// eslint-disable-next-line import-x/no-default-export
 export default proxy;
 
 export const config = {

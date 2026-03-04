@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useState,
+  type ReactNode,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 
 // Module-level ref — set when PostHog initializes, used by captureAnalyticsEvent
 let _posthogInstance: {
@@ -11,6 +17,7 @@ let _posthogInstance: {
  * Capture an analytics event without requiring React context.
  * No-op if PostHog hasn't loaded yet — events are dropped silently before initialization.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function captureAnalyticsEvent(
   event: string,
   props?: Record<string, unknown>,
@@ -23,23 +30,32 @@ export function captureAnalyticsEvent(
  * This prevents posthog from being included in the main bundle,
  * improving initial load performance (TBT, LCP).
  */
+
 async function initPostHog(
-  setPhClient: (client: any) => void,
-  setPHProvider: (provider: any) => void,
+  setPhClient: (client: unknown) => void,
+  setPhProvider: Dispatch<SetStateAction<React.ElementType | null>>,
 ) {
   try {
     // Dynamic import posthog-js
     const { default: posthog } = await import("posthog-js");
     const { PostHogProvider: Provider } = await import("posthog-js/react");
 
-    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "", {
+      advanced_disable_feature_flags: true,
       api_host: "/ph-proxy",
+      autocapture: false,
       capture_pageview: false,
+      disable_external_dependency_loading: true,
       disable_session_recording: true,
+      disable_surveys: true,
+      enable_heatmaps: false,
       loaded: (ph) => {
-        if (process.env.NODE_ENV === "development")
-          console.log("PostHog (lazy) loaded", ph);
+        if (process.env.NODE_ENV === "development") {
+          // eslint-disable-next-line no-console
+          console.debug("PostHog (lazy) loaded", ph);
+        }
       },
+      opt_in_site_apps: false,
       person_profiles: "identified_only",
       ui_host:
         process.env.NEXT_PUBLIC_POSTHOG_UI_HOST || "https://eu.posthog.com",
@@ -47,7 +63,7 @@ async function initPostHog(
 
     setPhClient(posthog);
     _posthogInstance = posthog;
-    setPHProvider(() => Provider);
+    setPhProvider(() => Provider);
   } catch (error) {
     console.error("Failed to load PostHog:", error);
   }
@@ -58,28 +74,50 @@ async function initPostHog(
  * This prevents posthog from being included in the main bundle,
  * improving initial load performance (TBT, LCP).
  */
-export function PostHogProvider({ children }: { children: ReactNode }) {
-  const [PHProvider, setPHProvider] = useState<any>(null);
-  const [phClient, setPhClient] = useState<any>(null);
+export function PostHogProvider({
+  children,
+}: Readonly<{ children: ReactNode }>) {
+  const [phProvider, setPhProvider] = useState<React.ElementType | null>(null);
+  const [phClient, setPhClient] = useState<unknown>(null);
 
   useEffect(() => {
-    // Wait for browser idle to load analytics
-    if ("requestIdleCallback" in globalThis) {
-      (globalThis as any).requestIdleCallback(
-        async () => initPostHog(setPhClient, setPHProvider),
-        {
-          timeout: 6000,
-        },
-      );
-    } else {
-      setTimeout(() => void initPostHog(setPhClient, setPHProvider), 3000);
+    let triggered = false;
+
+    const load = () => {
+      if (triggered) return;
+      triggered = true;
+      cleanup();
+      void initPostHog(setPhClient, setPhProvider);
+    };
+
+    const events = ["click", "scroll", "keydown", "touchstart"] as const;
+    const options: AddEventListenerOptions = { once: true, passive: true };
+
+    for (const event of events) {
+      globalThis.addEventListener(event, load, options);
     }
+
+    // Safety net: if no interaction after 15s, load anyway
+    const timer = setTimeout(load, 15_000);
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      for (const event of events) {
+        globalThis.removeEventListener(event, load);
+      }
+    };
+
+    return cleanup;
   }, []);
 
   // Return children directly until PostHog is loaded to avoid blocking render
-  if (!PHProvider || !phClient) {
+  if (!phProvider || !phClient) {
     return <>{children}</>;
   }
 
-  return <PHProvider client={phClient}>{children}</PHProvider>;
+  const ProviderComponent = phProvider;
+  return (
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+    <ProviderComponent client={phClient as any}>{children}</ProviderComponent>
+  );
 }

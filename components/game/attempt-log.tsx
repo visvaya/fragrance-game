@@ -13,11 +13,12 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
+import { cn } from "@/lib/utils";
+
 import { AttemptRow } from "./attempt-row";
 import { useGameState } from "./contexts";
 import { GameTooltip } from "./game-tooltip";
-
-const ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI"];
 
 /**
  * Komponent logu prób gracza.
@@ -25,6 +26,8 @@ const ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI"];
 export const AttemptLog = memo(function AttemptLog() {
   const { attempts, dailyPerfume, gameState, maxAttempts } = useGameState();
   const t = useTranslations("AttemptLog");
+  const { handlePointerDown: handleIconTap, scaled: iconScaled } =
+    useScaleOnTap();
   const previousAttemptsLength = useRef(attempts.length);
   const [activeRowIndex, setActiveRowIndex] = useState<number | null>(null);
   const isTouchReference = useRef(false);
@@ -79,18 +82,30 @@ export const AttemptLog = memo(function AttemptLog() {
 
   return (
     <section className="panel-standard">
-      <div className="group mb-4 flex w-fit cursor-default items-center gap-2">
-        <ScrollText className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:scale-[1.15]" />
-        <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase">
-          {t("title")}
-        </h2>
+      <div className="mb-4 flex w-fit cursor-default items-center">
+        <GameTooltip content={t("titleTooltip")} sideOffset={6}>
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "inline-flex transition-transform duration-300 hover:scale-[1.15]",
+                iconScaled && "scale-[1.15]",
+              )}
+              onPointerDown={handleIconTap}
+            >
+              <ScrollText className="h-4 w-4 text-muted-foreground" />
+            </span>
+            <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase">
+              {t("title")}
+            </h2>
+          </div>
+        </GameTooltip>
       </div>
 
       <div className="grid grid-cols-[32px_1fr_minmax(105px,auto)]">
         {/* Header Row - spread into grid columns */}
         <div className="flex items-center justify-center border-b-2 border-muted/50 pb-2 text-sm font-semibold tracking-widest text-muted-foreground/70 lowercase transition-colors">
           <GameTooltip
-            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 active:bg-muted/50"
+            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
             content={t("columns.attemptTooltip")}
           >
             <span className="w-full cursor-help text-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
@@ -105,53 +120,55 @@ export const AttemptLog = memo(function AttemptLog() {
 
         <div className="grid w-full grid-cols-5 justify-items-center border-b-2 border-muted/50 px-1 pb-2 text-center text-sm font-semibold tracking-widest text-muted-foreground/70 lowercase">
           <GameTooltip
-            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 active:bg-muted/50"
+            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
             content={t("columns.brandTooltip")}
           >
             <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-              <Store className="h-4 w-4 text-muted-foreground/70" />
+              <Store className="h-4 w-4" />
             </span>
           </GameTooltip>
 
           <GameTooltip
-            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 active:bg-muted/50"
-            content={t("columns.perfumerTooltip")}
+            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+            content={
+              attempts.length > 0 && dailyPerfume.perfumer.includes(",")
+                ? t("columns.perfumersTooltip")
+                : t("columns.perfumerTooltip")
+            }
           >
             <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-              {attempts.length > 0 &&
-                dailyPerfume.perfumer &&
-                dailyPerfume.perfumer.includes(",") ? (
-                <Users className="h-4 w-4 text-muted-foreground/70" />
+              {attempts.length > 0 && dailyPerfume.perfumer.includes(",") ? (
+                <Users className="h-4 w-4" />
               ) : (
-                <User className="h-4 w-4 text-muted-foreground/70" />
+                <User className="h-4 w-4" />
               )}
             </span>
           </GameTooltip>
 
           <GameTooltip
-            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 active:bg-muted/50"
+            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
             content={t("columns.yearTooltip")}
           >
             <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-              <Calendar className="h-4 w-4 text-muted-foreground/70" />
+              <Calendar className="h-4 w-4" />
             </span>
           </GameTooltip>
 
           <GameTooltip
-            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 active:bg-muted/50"
+            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
             content={t("columns.genderTooltip")}
           >
             <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-              <VenusAndMars className="h-4 w-4 text-muted-foreground/70" />
+              <VenusAndMars className="h-4 w-4" />
             </span>
           </GameTooltip>
 
           <GameTooltip
-            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 active:bg-muted/50"
+            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
             content={t("columns.notesTooltip")}
           >
             <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-              <Music className="h-4 w-4 text-muted-foreground/70" />
+              <Music className="h-4 w-4" />
             </span>
           </GameTooltip>
         </div>
@@ -200,12 +217,14 @@ export const AttemptLog = memo(function AttemptLog() {
                 <div
                   className={`flex items-center justify-center py-3 ${borderClass} min-h-12`}
                 >
-                  <span className="block text-center font-[family-name:var(--font-playfair)] text-muted-foreground opacity-30">
-                    {ROMAN_NUMERALS[attempts.length + i]}
+                  <span className="block w-full pr-1 text-center text-[0.8125rem] font-normal text-muted-foreground opacity-30">
+                    {attempts.length + i + 1}
                   </span>
                 </div>
                 <div className={`py-3 ${borderClass} min-h-12 pr-2 pl-2`}>
-                  <span className="text-muted-foreground opacity-30">...</span>
+                  <span className="text-sm font-medium text-muted-foreground opacity-30">
+                    ...
+                  </span>
                 </div>
                 <div className={`py-3 ${borderClass} min-h-12`} />
               </div>

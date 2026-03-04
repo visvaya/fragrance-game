@@ -3,13 +3,22 @@
 import type React from "react";
 import { useState, useRef, useEffect, useId, useMemo, useReducer } from "react";
 
-import { Search, Loader2, SkipForward, X } from "lucide-react";
+import { Search, Loader2, SkipForward, X, ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import {
   searchPerfumes,
   type PerfumeSuggestion,
 } from "@/app/actions/autocomplete";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useMountTransition } from "@/hooks/use-mount-transition";
 import { MASK_CHAR } from "@/lib/constants";
 import { cn, normalizeText } from "@/lib/utils";
@@ -35,9 +44,9 @@ type GameInputAction =
   | { type: "CLEAR_SUGGESTIONS" }
   | { payload: boolean; type: "SET_SHOW_SUGGESTIONS" }
   | {
-    payload: number | ((previous: number) => number);
-    type: "SET_SELECTED_INDEX";
-  }
+      payload: number | ((previous: number) => number);
+      type: "SET_SELECTED_INDEX";
+    }
   | { type: "RESET" };
 
 const initialState: GameInputState = {
@@ -118,8 +127,7 @@ function relevanceScore(
   suggestion: PerfumeSuggestion,
   normalizedQuery: string,
 ): number {
-  const brand = normalizeText(suggestion.brand_masked);
-  const name = normalizeText(suggestion.name);
+  const { brand_norm: brand, name_norm: name } = suggestion;
   if (brand === normalizedQuery || name === normalizedQuery) return 4;
   if (brand.startsWith(normalizedQuery) || name.startsWith(normalizedQuery))
     return 3;
@@ -131,6 +139,7 @@ function relevanceScore(
 /**
  *
  */
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export function GameInput() {
   const {
     attempts,
@@ -143,13 +152,12 @@ export function GameInput() {
     sessionId,
   } = useGameState();
   const { makeGuess, skipAttempt } = useGameActions();
-  const {
-    isInputFocused: isFocused,
-    setIsInputFocused: setIsFocused,
-  } = useUIPreferences();
+  const { isInputFocused: isFocused, setIsInputFocused: setIsFocused } =
+    useUIPreferences();
   const t = useTranslations("Game.input");
   const tFooter = useTranslations("Footer");
 
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
   const [state, dispatch] = useReducer(gameInputReducer, initialState);
   const {
     hasSearched,
@@ -164,6 +172,10 @@ export function GameInput() {
   const inputReference = useRef<HTMLInputElement>(null);
   const wrapperReference = useRef<HTMLDivElement>(null);
   const listReference = useRef<HTMLDivElement>(null);
+  const previousResultsReference = useRef<{
+    query: string;
+    results: PerfumeSuggestion[];
+  } | null>(null);
 
   const trimmedQuery = query.trim();
 
@@ -194,14 +206,29 @@ export function GameInput() {
 
   const listId = useId();
 
-  // Debounced search
+  // Debounced search with client-side prefix filtering
   useEffect(() => {
     let ignore = false;
 
     const tq = query.trim();
 
     if (tq.length === 0) {
+      previousResultsReference.current = null;
       return;
+    }
+
+    // Instant client-side filter when query extends previous (e.g. "fo" -> "for")
+    if (
+      previousResultsReference.current &&
+      tq.startsWith(previousResultsReference.current.query)
+    ) {
+      const nq = normalizeText(tq);
+      const localFiltered = previousResultsReference.current.results.filter(
+        (r) => r.brand_norm.includes(nq) || r.name_norm.includes(nq),
+      );
+      if (localFiltered.length > 0) {
+        dispatch({ payload: localFiltered, type: "SEARCH_SUCCESS" });
+      }
     }
 
     const timer = setTimeout(() => {
@@ -216,17 +243,22 @@ export function GameInput() {
           const filtered =
             tq.length < 3
               ? results.filter(
-                (r) => normalizeText(r.name) === normalizeText(tq),
-              )
+                  // eslint-disable-next-line sonarjs/no-nested-functions
+                  (r) => {
+                    return normalizeText(r.name) === normalizeText(tq);
+                  },
+                )
               : results;
 
           // Re-rank: brand/name matches first, perfumer-only matches last.
           // Stable sort preserves the DB relevance order within each tier.
           const nq = normalizeText(tq);
-          const ranked = [...filtered].sort(
-            (a, b) => relevanceScore(b, nq) - relevanceScore(a, nq),
-          );
+          // eslint-disable-next-line sonarjs/no-nested-functions
+          const ranked = filtered.toSorted((a, b) => {
+            return relevanceScore(b, nq) - relevanceScore(a, nq);
+          });
           dispatch({ payload: ranked, type: "SEARCH_SUCCESS" });
+          previousResultsReference.current = { query: tq, results: ranked };
         } catch (error) {
           if (ignore) return;
           console.error("Autocomplete failed:", error);
@@ -256,11 +288,7 @@ export function GameInput() {
 
   // Scroll input into view on mobile focus
   useEffect(() => {
-    if (
-      isFocused &&
-      globalThis.window !== undefined &&
-      globalThis.window.innerWidth < 640
-    ) {
+    if (isFocused && globalThis.window.innerWidth < 640) {
       const timer = setTimeout(() => {
         // block: "center" is safer as it puts the input
         // in the middle of the remaining visual viewport
@@ -372,7 +400,7 @@ export function GameInput() {
           );
 
           if (!isDuplicate) {
-            handleSelect(perfumeToSelect);
+            void handleSelect(perfumeToSelect);
           }
         }
 
@@ -403,8 +431,12 @@ export function GameInput() {
   // 1. Loading State - Render nothing or a stable placeholder (prevents "No Puzzle" flash)
   if (gameLoading) {
     return (
-      <div className={cn("sticky bottom-0 z-30 mx-auto w-full max-w-2xl wide:max-w-xl")}>
-        <div className="relative border-x-0 border-t panel-border panel-shadow bg-background/70 px-5 py-8 backdrop-blur-md sm:rounded-t-md sm:border-x">
+      <div
+        className={cn(
+          "sticky bottom-0 z-30 mx-auto w-full max-w-2xl wide:max-w-xl",
+        )}
+      >
+        <div className="relative border-x-0 border-t panel-border bg-background/70 px-5 py-8 panel-shadow backdrop-blur-md sm:rounded-t-md sm:border-x">
           <div className="flex justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
@@ -416,8 +448,12 @@ export function GameInput() {
   // 2. Closed / No Puzzle State (Only if loaded and invalid)
   if (gameState !== "playing" || isSkeleton) {
     return (
-      <div className={cn("sticky bottom-0 z-30 mx-auto w-full max-w-2xl wide:max-w-xl")}>
-        <div className="relative border-x-0 border-t panel-border panel-shadow bg-background/70 px-5 py-4 backdrop-blur-md transition-colors duration-500 ease-in-out sm:rounded-t-md sm:border-x">
+      <div
+        className={cn(
+          "sticky bottom-0 z-30 mx-auto w-full max-w-2xl wide:max-w-xl",
+        )}
+      >
+        <div className="relative border-x-0 border-t panel-border bg-background/70 px-5 py-4 panel-shadow backdrop-blur-md transition-colors duration-500 ease-in-out sm:rounded-t-md sm:border-x">
           {/* Input-like look for closed state */}
           <div className="relative flex items-center justify-center">
             <span className="font-hand text-lg text-primary">
@@ -441,7 +477,11 @@ export function GameInput() {
   }
 
   return (
-    <div className={cn("sticky bottom-0 z-30 mx-auto w-full max-w-2xl wide:max-w-xl")}>
+    <div
+      className={cn(
+        "sticky bottom-0 z-30 mx-auto w-full max-w-2xl wide:max-w-xl",
+      )}
+    >
       {/* Onboarding Tooltip — fixed above the sticky input bar */}
       <div
         aria-hidden="true"
@@ -453,13 +493,12 @@ export function GameInput() {
         )}
       >
         <div className="flex flex-col items-center gap-0">
-          <div className="rounded-lg bg-primary px-4 py-1.5 shadow-lg ring-1 ring-primary/20">
-            <p className="font-hand text-sm whitespace-nowrap text-primary-foreground">
+          <div className="rounded-lg border border-primary/40 bg-background px-4 py-1.5">
+            <p className="font-hand text-base whitespace-nowrap text-primary">
               {tFooter("selectHelper")}
             </p>
           </div>
-          {/* Downward-pointing arrow */}
-          <div className="h-0 w-0 border-t-[7px] border-r-[7px] border-l-[7px] border-t-primary border-r-transparent border-l-transparent" />
+          <ChevronDown className="h-3 w-3 text-primary/60" strokeWidth={2} />
         </div>
       </div>
 
@@ -467,14 +506,12 @@ export function GameInput() {
         {/* Input Surface (Visual Layer) */}
         <div
           className={cn(
-            "relative z-20 border-x-0 border-t panel-border panel-shadow px-5 pt-0.5 pb-3 backdrop-blur-md transition-colors duration-200 ease-in-out sm:border-x",
+            "relative z-20 border-x-0 border-t panel-border px-5 pt-1.5 pb-1.5 panel-shadow backdrop-blur-md transition-colors duration-200 ease-in-out sm:border-x",
             surfaceClasses,
           )}
         >
-          {/* Input + Skip button row */}
-          <div className="flex items-end gap-2">
           {/* Input */}
-          <div className="relative flex-1">
+          <div className="relative">
             <input
               aria-activedescendant={
                 selectedIndex >= 0
@@ -484,7 +521,7 @@ export function GameInput() {
               aria-autocomplete="list"
               aria-controls={listId}
               aria-expanded={shouldShowList}
-              className="w-full border-b-2 border-border bg-transparent pt-3 pr-10 pb-2 font-[family-name:var(--font-playfair)] text-lg text-foreground transition-colors duration-300 outline-none placeholder:font-[family-name:var(--font-playfair)] placeholder:text-sm placeholder:text-muted-foreground placeholder:italic focus:border-primary"
+              className="w-full border-b-2 border-border bg-transparent pt-2 pr-10 pb-1 pl-1 text-lg text-foreground transition-colors duration-300 outline-none placeholder:text-base placeholder:text-muted-foreground placeholder:lowercase focus:border-primary"
               data-testid="game-input"
               onBlur={() => {
                 dispatch({ payload: false, type: "SET_SHOW_SUGGESTIONS" });
@@ -507,10 +544,11 @@ export function GameInput() {
               placeholder={t("placeholder")}
               ref={inputReference}
               role="combobox"
+              spellCheck={false}
               type="text"
               value={query}
             />
-            <div className="pointer-events-none absolute top-[calc(50%+1px)] right-0 flex h-8 w-8 -translate-y-1/2 items-center justify-center">
+            <div className="pointer-events-none absolute top-[calc(50%+1px)] right-0.5 flex h-8 w-8 -translate-y-1/2 items-center justify-center">
               {/* Search Icon */}
               <div
                 className={cn(
@@ -544,33 +582,39 @@ export function GameInput() {
             </div>
           </div>
 
-          {/* Skip button */}
-          <GameTooltip
-            className="h-8 w-8 items-center justify-center"
-            content={t("skipTooltip")}
-            disableOnMobile
-            sideOffset={8}
-          >
-            <button
-              aria-label={t("skipTooltip")}
-              className="mb-[9px] flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground active:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-30"
-              disabled={gameLoading}
-              onClick={() => {
-                void skipAttempt();
-              }}
-              type="button"
-            >
-              <SkipForward className="h-4 w-4" strokeWidth={1.5} />
-            </button>
-          </GameTooltip>
-          </div>
-
           {/* Status bar */}
-          <div className="mt-3 flex items-center justify-between text-xs tracking-wide text-muted-foreground uppercase">
-            <span>
-              {t("attempt")} {currentAttempt} / {maxAttempts}
+          <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center text-xs tracking-wide text-muted-foreground lowercase">
+            <span className="pl-1 whitespace-nowrap lining-nums tabular-nums">
+              {t("attempt")}: {currentAttempt} / {maxAttempts}
             </span>
-            <span className="font-semibold text-primary">
+            <div className="flex justify-center">
+              <GameTooltip
+                content={t("skipTooltip")}
+                disableOnMobile
+                sideOffset={8}
+              >
+                <button
+                  aria-label={t("skipTooltip")}
+                  className="flex h-7 w-7 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-30"
+                  disabled={gameLoading}
+                  onClick={() => {
+                    if (
+                      globalThis.matchMedia(
+                        "(hover: none) and (pointer: coarse)",
+                      ).matches
+                    ) {
+                      setShowSkipConfirm(true);
+                    } else {
+                      void skipAttempt();
+                    }
+                  }}
+                  type="button"
+                >
+                  <SkipForward className="h-3.5 w-3.5" />
+                </button>
+              </GameTooltip>
+            </div>
+            <span className="pr-1 text-right whitespace-nowrap text-primary">
               {t("score")}: {potentialScore}
             </span>
           </div>
@@ -579,10 +623,11 @@ export function GameInput() {
         {/* Suggestions dropdown (Behind Input Surface) */}
         {hasTransitionedIn || shouldShowList ? (
           <div
-            className={`!absolute bottom-full left-0 z-10 max-h-56 w-full touch-pan-y !overflow-y-auto rounded-t-md border-x border-t panel-border panel-shadow bg-background/100 backdrop-blur-none ${shouldShowList
-              ? "duration-200 ease-out animate-in fade-in slide-in-from-bottom-12"
-              : "duration-200 ease-in animate-out fade-out slide-out-to-bottom-12"
-              } `}
+            className={`!absolute bottom-full left-0 z-10 max-h-56 w-full touch-pan-y !overflow-y-auto rounded-t-md border-x border-t panel-border bg-background/100 panel-shadow backdrop-blur-none ${
+              shouldShowList
+                ? "duration-200 ease-out animate-in fade-in slide-in-from-bottom-12"
+                : "duration-200 ease-in animate-out fade-out slide-out-to-bottom-12"
+            } `}
             data-lenis-prevent
             id={listId}
             onMouseDown={(e) => e.preventDefault()}
@@ -591,8 +636,8 @@ export function GameInput() {
             tabIndex={-1}
           >
             {suggestions.length === 0 &&
-              !isCurrentlyLoading &&
-              shouldShowList ? (
+            !isCurrentlyLoading &&
+            shouldShowList ? (
               <div className="px-4 py-8 text-center text-sm text-muted-foreground">
                 {t("noResults")}
               </div>
@@ -618,7 +663,7 @@ export function GameInput() {
                     <span className="flex flex-wrap items-baseline gap-x-1 text-foreground">
                       {/* Brand Revealed */}
                       <span className="text-foreground">
-                        {perfume.brand_masked}
+                        {perfume.brand_masked.replaceAll(MASK_CHAR, "_")}
                       </span>
 
                       <span className="text-muted-foreground/30">•</span>
@@ -657,24 +702,33 @@ export function GameInput() {
 
                               if (perfume.year === MASK_CHAR.repeat(4)) {
                                 return (
-                                  <span className="font-mono tracking-widest text-muted-foreground opacity-30">
-                                    {MASK_CHAR.repeat(4)}
+                                  <span className="tracking-widest text-muted-foreground opacity-30">
+                                    {/* eslint-disable-next-line @typescript-eslint/no-misused-spread */}
+                                    {[..."____"].map((char, i) => (
+                                      <span className="inline-block" key={i}>
+                                        {char}
+                                      </span>
+                                    ))}
                                   </span>
                                 );
                               }
 
                               return (
-                                <>
-                                  {/* eslint_disable-next-line unicorn/prefer-spread */}
+                                <span className="tracking-widest">
+                                  {/* eslint-disable-next-line @typescript-eslint/no-misused-spread */}
                                   {[...perfume.year].map((char, i) => (
                                     <span
-                                      className={`${char === MASK_CHAR ? "font-mono text-muted-foreground opacity-40" : "text-foreground"} whitespace-pre`}
+                                      className={
+                                        char === MASK_CHAR
+                                          ? "inline-block text-muted-foreground opacity-40"
+                                          : "text-foreground"
+                                      }
                                       key={i}
                                     >
-                                      {char}
+                                      {char === MASK_CHAR ? "_" : char}
                                     </span>
                                   ))}
-                                </>
+                                </span>
                               );
                             })()}
                           </span>
@@ -688,6 +742,24 @@ export function GameInput() {
           </div>
         ) : null}
       </div>
+
+      <AlertDialog onOpenChange={setShowSkipConfirm} open={showSkipConfirm}>
+        <AlertDialogContent onClickOutside={() => setShowSkipConfirm(false)}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("skipConfirmTitle")}</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("skipConfirmCancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                void skipAttempt();
+              }}
+            >
+              {t("skipConfirmConfirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

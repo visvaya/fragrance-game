@@ -69,7 +69,7 @@ export function SessionsModal({
 
   // Don't fetch sessions for anonymous users as they are not tracked in user_sessions the same way
   // or should not be manageable
-  const isAnonymous = user?.is_anonymous;
+  const isAnonymous = user.is_anonymous;
 
   useEffect(() => {
     const fetchSessionsInternal = async () => {
@@ -83,7 +83,7 @@ export function SessionsModal({
       }
 
       setState((previous) => ({ ...previous, isLoading: true }));
-      let data: any = null;
+      let data: unknown = null;
       try {
         data = await getSessions();
       } catch (error) {
@@ -108,8 +108,8 @@ export function SessionsModal({
           const match = sorted.find((s) => {
             const storedUA =
               typeof s.device_info === "object" &&
-                s.device_info !== null &&
-                "user_agent" in s.device_info
+              s.device_info !== null &&
+              "user_agent" in s.device_info
                 ? (s.device_info.user_agent as string)
                 : "";
             return storedUA === currentUA;
@@ -172,8 +172,8 @@ export function SessionsModal({
   const getDeviceIcon = (deviceInfo: Json | null) => {
     const userAgent =
       typeof deviceInfo === "object" &&
-        deviceInfo !== null &&
-        "user_agent" in deviceInfo
+      deviceInfo !== null &&
+      "user_agent" in deviceInfo
         ? (deviceInfo.user_agent as string)
         : "";
 
@@ -194,8 +194,8 @@ export function SessionsModal({
   const formatDeviceInfo = (deviceInfo: Json | null) => {
     const userAgent =
       typeof deviceInfo === "object" &&
-        deviceInfo !== null &&
-        "user_agent" in deviceInfo
+      deviceInfo !== null &&
+      "user_agent" in deviceInfo
         ? (deviceInfo.user_agent as string)
         : "";
 
@@ -295,11 +295,11 @@ export function SessionsModal({
                     <span className="shrink-0">
                       {lastActiveAt
                         ? t("lastActive", {
-                          time: formatDistanceToNow(lastActiveAt, {
-                            addSuffix: true,
-                            locale: getDateLocale(currentLocaleCode),
-                          }),
-                        })
+                            time: formatDistanceToNow(lastActiveAt, {
+                              addSuffix: true,
+                              locale: getDateLocale(currentLocaleCode),
+                            }),
+                          })
                         : null}
                     </span>
                   </div>

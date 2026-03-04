@@ -24,7 +24,7 @@ type HelpModalProperties = {
  * @param root0.onClose
  * @param root0.open
  */
-export function HelpModal({ onClose, open }: HelpModalProperties) {
+export function HelpModal({ onClose, open }: Readonly<HelpModalProperties>) {
   const t = useTranslations("HelpModal");
 
   return (

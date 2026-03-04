@@ -51,6 +51,7 @@ const caveat = Caveat({
 /**
  * Generuje metadane dla strony.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export async function generateMetadata({
   params,
 }: {
@@ -86,6 +87,7 @@ export async function generateMetadata({
 /**
  *
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export async function generateViewport({
   params,
 }: {
@@ -149,8 +151,6 @@ export default async function RootLayout({
           href={`https://${process.env.NEXT_PUBLIC_ASSETS_HOST ?? "assets.eauxle.com"}`}
           rel="preconnect"
         />
-        {/* PostHog analytics */}
-        <link href="https://eu.i.posthog.com" rel="preconnect" />
         {/* Sentry CDN — dns-prefetch wystarczy (SDK ładowany na idle) */}
         <link href="https://browser.sentry-cdn.com" rel="dns-prefetch" />
       </head>

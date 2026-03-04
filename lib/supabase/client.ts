@@ -2,9 +2,9 @@ import { createBrowserClient } from "@supabase/ssr";
 
 /**
  * Tworzy klienta Supabase do użycia w komponencie po stronie przeglądarki (Client Components).
- * Wykorzystuje @supabase/ssr, który automatycznie zarządza ciasteczkami sesji.
+ * Wykorzystuje \`@supabase/ssr\`, który automatycznie zarządza ciasteczkami sesji.
  * @returns Klient Supabase skonfigurowany dla przeglądarki
- * @throws Error gdy brakuje zmiennych środowiskowych NEXT_PUBLIC_SUPABASE_URL lub NEXT_PUBLIC_SUPABASE_ANON_KEY
+ * @throws {Error} gdy brakuje zmiennych środowiskowych NEXT_PUBLIC_SUPABASE_URL lub NEXT_PUBLIC_SUPABASE_ANON_KEY
  * @example
  * ```tsx
  * 'use client'
@@ -28,9 +28,11 @@ export function createClient() {
 
   // Use local proxy to bypass uMatrix/AdBlockers
   // Valid URL is required by createBrowserClient
-  const isBrowser = globalThis.window !== undefined;
+  // eslint-disable-next-line unicorn/prefer-global-this
+  const isBrowser = typeof window !== "undefined";
   const proxyUrl = isBrowser
-    ? `${globalThis.location.origin}/api/db`
+    ? // eslint-disable-next-line unicorn/prefer-global-this
+      `${window.location.origin}/api/db`
     : supabaseUrl;
 
   // Determine the correct cookie name prefix from the REAL Supabase URL

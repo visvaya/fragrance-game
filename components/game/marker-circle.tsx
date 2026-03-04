@@ -7,11 +7,11 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-type MarkerCircleProperties = {
+type MarkerCircleProperties = Readonly<{
   className?: string;
   letter: string;
   title?: string;
-};
+}>;
 
 /**
  *
@@ -31,7 +31,6 @@ export function MarkerCircle({
         "relative inline-flex h-6 w-6 items-center justify-center focus:outline-none",
         className,
       )}
-      tabIndex={0}
     >
       {/* SVG hand-drawn circle */}
       <svg

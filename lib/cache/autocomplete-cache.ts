@@ -1,16 +1,8 @@
 /**
  * Redis-based caching layer for autocomplete results
  *
- * OPTIMIZATION: Phase 3
- * Expected gain: ~50-100ms on cache hits (40-60% hit rate)
- *
  * Cache key format: autocomplete:v2:{query}:{limit}
- * TTL: 10 seconds (balances freshness vs performance)
- *
- * Usage:
- * 1. Try cache first with getCachedAutocomplete()
- * 2. On miss, query database
- * 3. Store result with setCachedAutocomplete()
+ * TTL: 300 seconds (dataset changes once daily via cron)
  */
 
 import { redis } from "@/lib/redis";
@@ -18,7 +10,7 @@ import { redis } from "@/lib/redis";
 import type { PerfumeSuggestion } from "@/app/actions/autocomplete";
 
 const CACHE_PREFIX = "autocomplete:v2";
-const CACHE_TTL = 30; // seconds (increased from 10 for better hit rate)
+const CACHE_TTL = 300; // seconds — perfume dataset refreshes once daily
 
 /**
  * Generates cache key for autocomplete query
@@ -27,7 +19,6 @@ const CACHE_TTL = 30; // seconds (increased from 10 for better hit rate)
  * @returns Cache key string
  */
 function getCacheKey(query: string, limit: number): string {
-  // Normalize query to lowercase for consistent cache hits
   const normalizedQuery = query.toLowerCase().trim();
   return `${CACHE_PREFIX}:${normalizedQuery}:${limit}`;
 }
@@ -44,19 +35,9 @@ export async function getCachedAutocomplete(
 ): Promise<PerfumeSuggestion[] | null> {
   try {
     const key = getCacheKey(query, limit);
-    console.log("[CACHE GET]", { key, limit, query });
-    const cached = await redis.get<PerfumeSuggestion[]>(key);
-
-    if (cached) {
-      console.log("[CACHE HIT]", { items: cached.length, key });
-      return cached;
-    }
-
-    console.log("[CACHE MISS]", { key });
-    return null;
-  } catch (error) {
-    // Graceful degradation: if Redis fails, log and return null
-    console.error("[CACHE ERROR - GET]", error);
+    return await redis.get<PerfumeSuggestion[]>(key);
+  } catch {
+    // Graceful degradation: if Redis fails, return null
     return null;
   }
 }
@@ -74,30 +55,8 @@ export async function setCachedAutocomplete(
 ): Promise<void> {
   try {
     const key = getCacheKey(query, limit);
-    console.log("[CACHE SET]", {
-      items: results.length,
-      key,
-      limit,
-      query,
-      sample: results[0],
-    });
-
-    // Store with TTL
     await redis.set(key, results, { ex: CACHE_TTL });
-    console.log("[CACHE SET SUCCESS]", { key });
-
-    // Verify the data was actually stored
-    const verify = await redis.get<PerfumeSuggestion[]>(key);
-    if (verify) {
-      console.log("[CACHE VERIFY SUCCESS]", {
-        key,
-        stored_items: verify.length,
-      });
-    } else {
-      console.error("[CACHE VERIFY FAILED]", { key, reason: "Data not found" });
-    }
-  } catch (error) {
+  } catch {
     // Graceful degradation: log but don't throw
-    console.error("[CACHE ERROR - SET]", error);
   }
 }

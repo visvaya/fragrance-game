@@ -1,2 +1,2 @@
-type Messages = typeof import("../messages/en.json");
-declare type IntlMessages = {} & Messages;
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+declare type IntlMessages = typeof import("../messages/pl.json");

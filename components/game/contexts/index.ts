@@ -15,7 +15,4 @@ export {
 
 export { GameActionsProvider, useGameActions } from "./game-actions-context";
 
-export {
-  UIPreferencesProvider,
-  useUIPreferences,
-} from "./ui-preferences-context";
+export { useUIPreferences } from "./ui-preferences-context";

@@ -1,37 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
-
 /**
- *
- * @param root0
- * @param root0.children
+ * Passthrough provider. Sentry is initialized eagerly in instrumentation-client.ts
+ * (loaded synchronously by Next.js client entry point).
+ * This component exists to keep the provider tree stable — no lazy loading needed.
  */
-async function initSentry() {
-  await import("@/instrumentation-client");
-}
-
-/**
- *
- * @param root0
- * @param root0.children
- */
-export function SentryProvider({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    if ("requestIdleCallback" in globalThis) {
-      (globalThis as any).requestIdleCallback(
-        () => {
-          void initSentry();
-        },
-        { timeout: 5000 },
-      );
-    } else {
-      // Fallback for Safari < 2023
-      setTimeout(() => {
-        void initSentry();
-      }, 3000);
-    }
-  }, []);
-
+export function SentryProvider({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return <>{children}</>;
 }

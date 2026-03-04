@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { maskBrand, maskYear } from "../brand-masking";
 
+const countDigits = (string_: string) =>
+  [...string_].filter((c) => c !== "⎵").length;
+
 describe("maskBrand", () => {
   describe("placeholder at attempt 1", () => {
     it('shows "•••" placeholder at attempt 1', () => {
@@ -286,10 +289,6 @@ describe("maskYear", () => {
       const mask3 = maskYear(year, 3);
       const mask4 = maskYear(year, 4);
       const mask5 = maskYear(year, 5);
-
-      // Count visible digits (non-underscore characters)
-      const countDigits = (string_: string) =>
-        string_.split("").filter((c) => c !== "⎵").length;
 
       expect(countDigits(mask1!)).toBeLessThanOrEqual(countDigits(mask2!));
       expect(countDigits(mask2!)).toBeLessThanOrEqual(countDigits(mask3!));

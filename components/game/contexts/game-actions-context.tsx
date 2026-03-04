@@ -378,21 +378,19 @@ export function GameActionsProvider({
         const { challenge, session } = await initializeGame();
 
         if (challenge && session) {
-          if (challenge.clues) {
-            setDailyPerfume({
-              brand: challenge.clues.brand,
-              concentration: challenge.clues.concentration,
-              gender: challenge.clues.gender,
-              id: "daily",
-              imageUrl: "/placeholder.svg",
-              isLinear: challenge.clues.isLinear,
-              name: "Mystery Perfume",
-              notes: challenge.clues.notes,
-              perfumer: challenge.clues.perfumer,
-              xsolve: challenge.clues.xsolve,
-              year: challenge.clues.year,
-            });
-          }
+          setDailyPerfume({
+            brand: challenge.clues.brand,
+            concentration: challenge.clues.concentration,
+            gender: challenge.clues.gender,
+            id: "daily",
+            imageUrl: "/placeholder.svg",
+            isLinear: challenge.clues.isLinear,
+            name: "Mystery Perfume",
+            notes: challenge.clues.notes,
+            perfumer: challenge.clues.perfumer,
+            xsolve: challenge.clues.xsolve,
+            year: challenge.clues.year,
+          });
 
           setSessionId(session.sessionId);
           setNonce(session.nonce);
@@ -440,6 +438,7 @@ export function GameActionsProvider({
  * useGameActions - Hook to access game actions
  * Use this for components that trigger mutations (input, reset button)
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useGameActions() {
   const context = useContext(GameActionsContext);
   if (!context) {

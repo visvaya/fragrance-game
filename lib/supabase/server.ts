@@ -4,12 +4,12 @@ import { createServerClient } from "@supabase/ssr";
 
 /**
  * Tworzy klienta Supabase do użycia w Server Components, Route Handlers i Server Actions.
- * Wykorzystuje @supabase/ssr z obsługą ciasteczek Next.js.
+ * Wykorzystuje \`@supabase/ssr\` z obsługą ciasteczek Next.js.
  *
  * UWAGA: Ten klient ma dostęp tylko do odczytu ciasteczek w Server Components.
  * Dla operacji wymagających zapisu ciasteczek (auth) użyj middleware.
  * @returns Promise z klientem Supabase skonfigurowanym dla serwera
- * @throws Error gdy brakuje zmiennych środowiskowych
+ * @throws {Error} gdy brakuje zmiennych środowiskowych
  * @example
  * ```tsx
  * // W Server Component
@@ -66,7 +66,7 @@ export async function createClient() {
  * OSTRZEŻENIE: Używaj WYŁĄCZNIE w Server Actions/API Routes.
  * NIGDY nie eksponuj tego klienta na frontendzie!
  * @returns Klient Supabase z uprawnieniami administracyjnymi
- * @throws Error gdy brakuje SUPABASE_SERVICE_ROLE_KEY
+ * @throws {Error} gdy brakuje SUPABASE_SERVICE_ROLE_KEY
  */
 export function createAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

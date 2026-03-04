@@ -209,6 +209,7 @@ html.large-text {
 
   body {
     @apply relative flex min-h-[100dvh] flex-col bg-background text-foreground transition-colors duration-300 ease-in-out;
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
     overscroll-behavior-y: none;
     isolation: isolate;
   }
@@ -239,17 +240,31 @@ html.large-text {
 }
 
 @utility bg-gradient-amber {
-  background: linear-gradient(135deg,
-      oklch(0.72 0.16 55) 0%,
-      oklch(0.68 0.18 50) 100%);
+  background: linear-gradient(
+    135deg,
+    oklch(0.72 0.16 55) 0%,
+    oklch(0.68 0.18 50) 100%
+  );
 }
 
 @utility bg-striped-pattern {
-  background-image: repeating-linear-gradient(45deg,
-      transparent,
-      transparent 4px,
-      oklch(var(--color-foreground) / 0.06) 4px,
-      oklch(var(--color-foreground) / 0.06) 8px);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    oklch(var(--color-foreground) / 0.06) 4px,
+    oklch(var(--color-foreground) / 0.06) 8px
+  );
+}
+
+@utility bg-slot-mask-amber {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 1.5px,
+    color-mix(in oklch, var(--primary) 20%, transparent) 1.5px,
+    color-mix(in oklch, var(--primary) 20%, transparent) 2.5px
+  );
 }
 
 @utility panel-shadow {
@@ -346,11 +361,13 @@ html.large-text {
   bottom: -4px;
   width: 100%;
   height: 3px;
-  background: linear-gradient(90deg,
-      transparent 0%,
-      var(--primary) 10%,
-      var(--primary) 90%,
-      transparent 100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--primary) 10%,
+    var(--primary) 90%,
+    transparent 100%
+  );
   border-radius: 50%;
   transform: rotate(-1deg);
   opacity: 0.7;

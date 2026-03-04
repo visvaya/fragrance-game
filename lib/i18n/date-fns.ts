@@ -1,4 +1,4 @@
-import { enUS, pl, type Locale  } from "date-fns/locale";
+import { enUS, pl, type Locale } from "date-fns/locale";
 
 /**
  * Map of application locale codes to date-fns Locale objects.

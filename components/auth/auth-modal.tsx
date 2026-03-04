@@ -59,12 +59,12 @@ const ForgotPasswordForm = dynamic<ForgotPasswordFormProperties>(
 
 type AuthView = "login" | "register" | "forgot-password";
 
-type AuthModalProperties = {
+type AuthModalProperties = Readonly<{
   children?: React.ReactNode;
   defaultView?: AuthView;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
-};
+}>;
 
 /**
  *
