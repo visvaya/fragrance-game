@@ -1,6 +1,7 @@
 import {
   getDailyChallengeSSR,
   getDailyStep1ImageUrl,
+  getPlayerDailySession,
 } from "@/app/actions/game-actions";
 import { GameBoard } from "@/components/game/game-board";
 import { GameFooter } from "@/components/game/game-footer";
@@ -8,10 +9,10 @@ import { GameHeader } from "@/components/game/game-header";
 import { GameInput } from "@/components/game/game-input";
 import { GameProvider } from "@/components/game/game-provider";
 
-// Enable ISR (Incremental Static Regeneration) for daily challenges
-// Revalidate every 24 hours (86400 seconds) to match daily challenge cadence
-// This improves TTFB by serving cached pages from edge, reduces server load
-export const revalidate = 86_400; // 24 hours
+// Challenge data is served from Next.js cache (updated daily via revalidate tag).
+// Player session (initialSession) is dynamic per-request — no ISR compatible.
+// This route is now fully dynamic, but challenge queries are still cached via
+// unstable_cache inside getDailyChallengeSSR / getDailyStep1ImageUrl.
 
 /**
  *
@@ -21,11 +22,18 @@ export default async function Home({
 }: {
   readonly params: Promise<{ locale: string }>;
 }) {
-  // Oba wywołania równolegle — oba cached, nie blokują się nawzajem
+  // Fetch challenge data (cached 24h) and player session (per-request) in parallel
   const [initialImageUrl, initialChallenge] = await Promise.all([
     getDailyStep1ImageUrl(),
     getDailyChallengeSSR(),
   ]);
+
+  // Pre-fetch the player's existing game session server-side.
+  // Only works if player has an auth cookie (returning users).
+  // Returns null for new/unauthenticated visitors — GameProvider falls back to client-side init.
+  const initialSession = initialChallenge
+    ? await getPlayerDailySession(initialChallenge.id)
+    : null;
 
   // Preload the LCP image. Next.js image optimizer serves /_next/image?url=...&w=750&q=90
   // for mobile (375px viewport × 2x DPR = 750px). This hint fires before hydration.
@@ -41,6 +49,7 @@ export default async function Home({
       <GameProvider
         initialChallenge={initialChallenge}
         initialImageUrl={initialImageUrl}
+        initialSession={initialSession}
       >
         <div className="flex min-h-[100dvh] w-full flex-col items-center">
           <GameHeader />

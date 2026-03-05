@@ -196,11 +196,17 @@ export function GameInput() {
     return () => clearTimeout(timer);
   }, [noResultsRaw]);
 
+  // Check if daily challenge is actually loaded (not skeleton).
+  // Defined here (before shouldShowList) so autocomplete gating uses real data availability,
+  // not auth loading state — allows autocomplete to work as soon as SSR data is present.
+  const isSkeleton = dailyPerfume.id === "skeleton";
+
   // Animation state — list opens when: results exist, loading, or delayed no-results.
-  // Never during the debounce window.
+  // Never during the debounce window. Uses !isSkeleton (not !gameLoading) so autocomplete
+  // works immediately when SSR clue data is available, even while auth is in progress.
   const shouldShowList =
     showSuggestions &&
-    !gameLoading &&
+    !isSkeleton &&
     (suggestions.length > 0 || isLoading || noResultsDelayed);
   const hasTransitionedIn = useMountTransition(shouldShowList, 200); // 200ms matches duration-200
 
@@ -316,6 +322,8 @@ export function GameInput() {
   }, []);
 
   const handleSelect = async (perfume: PerfumeSuggestion) => {
+    // Auth still in progress — session not ready yet, ignore premature submit.
+    if (!sessionId) return;
     await makeGuess(perfume.name, perfume.brand_masked, perfume.perfume_id);
 
     dispatch({ type: "RESET" });
@@ -410,9 +418,6 @@ export function GameInput() {
     }
   };
 
-  // Check if daily challenge is actually loaded (not skeleton)
-  const isSkeleton = dailyPerfume.id === "skeleton";
-
   // Pre-compute duplicate checks for all suggestions
   // IMPORTANT: This must be at top level before any conditional returns
   const suggestionsWithDuplicates = useMemo(
@@ -428,8 +433,10 @@ export function GameInput() {
     [suggestions, attempts],
   );
 
-  // 1. Loading State - Render nothing or a stable placeholder (prevents "No Puzzle" flash)
-  if (gameLoading) {
+  // 1. Loading State — show spinner only when there is no SSR clue data (skeleton fallback).
+  // When initialChallenge exists (isSkeleton=false), render the real input immediately
+  // and let auth complete in the background — submit/skip stay disabled until sessionId arrives.
+  if (gameLoading && isSkeleton) {
     return (
       <div
         className={cn(
@@ -465,7 +472,7 @@ export function GameInput() {
     );
   }
 
-  const isCurrentlyLoading = isLoading || gameLoading;
+  const isCurrentlyLoading = isLoading || (gameLoading && isSkeleton);
   const isNormallyVisible = !isCurrentlyLoading && !isError;
   const isErrorVisible = !isCurrentlyLoading && isError;
 
@@ -596,7 +603,7 @@ export function GameInput() {
                 <button
                   aria-label={t("skipTooltip")}
                   className="flex h-7 w-7 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-30"
-                  disabled={gameLoading}
+                  disabled={!sessionId}
                   onClick={() => {
                     if (
                       globalThis.matchMedia(

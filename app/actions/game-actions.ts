@@ -56,7 +56,7 @@ type GuessHistoryItem = {
   year?: number;
 };
 
-type StartGameResponse = {
+export type StartGameResponse = {
   answerConcentration?: string;
   answerName?: string;
   graceDeadline: string;
@@ -282,20 +282,20 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     )
     .eq("id", challengePrivate.perfume_id)
     .single()) as {
-    data: {
-      base_notes: string[] | null;
-      brands: { name: string } | null;
-      concentrations: { name: string } | null;
-      gender: string | null;
-      is_linear: boolean | null;
-      middle_notes: string[] | null;
-      name: string;
-      perfumers: string[] | null;
-      release_year: number | null;
-      top_notes: string[] | null;
-      xsolve_score: number | null;
-    } | null;
-  };
+      data: {
+        base_notes: string[] | null;
+        brands: { name: string } | null;
+        concentrations: { name: string } | null;
+        gender: string | null;
+        is_linear: boolean | null;
+        middle_notes: string[] | null;
+        name: string;
+        perfumers: string[] | null;
+        release_year: number | null;
+        top_notes: string[] | null;
+        xsolve_score: number | null;
+      } | null;
+    };
 
   if (!perfume) {
     throw new Error("Perfume not found for challenge");
@@ -307,7 +307,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
   if (perfume.xsolve_score == null) {
     throw new Error(
       `Perfume ${perfume.name} (ID: ${challengePrivate.perfume_id}) has no xsolve_score. ` +
-        "Only perfumes with calculated difficulty scores can be used in challenges.",
+      "Only perfumes with calculated difficulty scores can be used in challenges.",
     );
   }
 
@@ -370,21 +370,21 @@ export async function startGame(
     .order("start_time", { ascending: false })
     .limit(1)
     .maybeSingle()) as {
-    data: {
-      attempts_count: number;
-      guesses:
+      data: {
+        attempts_count: number;
+        guesses:
         | {
-            feedback?: AttemptFeedback;
-            isCorrect: boolean;
-            perfumeId: string;
-            timestamp: string;
-          }[]
+          feedback?: AttemptFeedback;
+          isCorrect: boolean;
+          perfumeId: string;
+          timestamp: string;
+        }[]
         | null;
-      id: string;
-      last_nonce: string | number;
-      status: string;
-    } | null;
-  };
+        id: string;
+        last_nonce: string | number;
+        status: string;
+      } | null;
+    };
 
   if (existingSession) {
     const { data: graceQuery } = (await supabase
@@ -424,18 +424,18 @@ export async function startGame(
             "id, name, brands(name), release_year, concentrations(name), gender, perfumers",
           )
           .in("id", realGuessIds)) as {
-          data:
+            data:
             | {
-                brands: { name: string } | null;
-                concentrations: { name: string } | null;
-                gender: string | null;
-                id: string;
-                name: string;
-                perfumers: string[] | null;
-                release_year: number | null;
-              }[]
+              brands: { name: string } | null;
+              concentrations: { name: string } | null;
+              gender: string | null;
+              id: string;
+              name: string;
+              perfumers: string[] | null;
+              release_year: number | null;
+            }[]
             | null;
-        };
+          };
 
         if (perfumes) {
           perfumeMap = new Map(perfumes.map((p) => [p.id, p]));
@@ -489,11 +489,11 @@ export async function startGame(
           .select("name, concentrations(name)")
           .eq("id", challenge.perfume_id)
           .single()) as {
-          data: {
-            concentrations: { name: string } | null;
-            name: string;
-          } | null;
-        };
+            data: {
+              concentrations: { name: string } | null;
+              name: string;
+            } | null;
+          };
 
         if (p) {
           answerName = p.name;
@@ -536,17 +536,17 @@ export async function startGame(
     )
     .limit(1)
     .single()) as {
-    data: {
-      attempts_count: number;
-      challenge_id: string;
-      id: string;
-      last_nonce: string | number;
-      player_id: string;
-      start_time: string;
-      status: string;
-    } | null;
-    error: Error | null;
-  };
+      data: {
+        attempts_count: number;
+        challenge_id: string;
+        id: string;
+        last_nonce: string | number;
+        player_id: string;
+        start_time: string;
+        status: string;
+      } | null;
+      error: Error | null;
+    };
 
   if (insertError || !session) {
     console.error("Error starting game:", insertError);
@@ -559,8 +559,8 @@ export async function startGame(
     .select("mode, grace_deadline_at_utc")
     .eq("id", challengeId)
     .single()) as {
-    data: { grace_deadline_at_utc: string; mode: string } | null;
-  };
+      data: { grace_deadline_at_utc: string; mode: string } | null;
+    };
 
   await identifyUser(user.id);
   await trackEvent(
@@ -644,14 +644,14 @@ async function getImageUrlForStep(sessionId: string): Promise<string | null> {
     .select("challenge_id, attempts_count, player_id, status")
     .eq("id", sessionId)
     .single()) as {
-    data: {
-      attempts_count: number;
-      challenge_id: string;
-      player_id: string;
-      status: string;
-    } | null;
-    error: Error | null;
-  };
+      data: {
+        attempts_count: number;
+        challenge_id: string;
+        player_id: string;
+        status: string;
+      } | null;
+      error: Error | null;
+    };
 
   if (sessionError || !session) throw new Error("Session not found");
   if (session.player_id !== user.id) throw new Error("Unauthorized");
@@ -734,25 +734,25 @@ export async function submitGuess(
     .eq("id", sessionId)
     .limit(1)
     .single()) as {
-    data: {
-      attempts_count: number;
-      challenge_id: string;
-      guesses:
+      data: {
+        attempts_count: number;
+        challenge_id: string;
+        guesses:
         | {
-            feedback?: AttemptFeedback;
-            isCorrect: boolean;
-            perfumeId: string;
-            timestamp: string;
-          }[]
+          feedback?: AttemptFeedback;
+          isCorrect: boolean;
+          perfumeId: string;
+          timestamp: string;
+        }[]
         | null;
-      id: string;
-      last_nonce: string | number;
-      player_id: string;
-      start_time: string;
-      status: string;
-    } | null;
-    error: Error | null;
-  };
+        id: string;
+        last_nonce: string | number;
+        player_id: string;
+        start_time: string;
+        status: string;
+      } | null;
+      error: Error | null;
+    };
 
   if (sessionError || !session) {
     throw new Error("Session not found");
@@ -825,9 +825,9 @@ export async function submitGuess(
       .limit(1)
       .single(),
   ])) as [
-    { data: PerfumeData | null; error: Error | null },
-    { data: PerfumeData | null; error: Error | null },
-  ];
+      { data: PerfumeData | null; error: Error | null },
+      { data: PerfumeData | null; error: Error | null },
+    ];
 
   const guessedPerfume = guessedPerfumeResult.data;
   const answerPerfume = answerPerfumeResult.data;
@@ -1045,25 +1045,25 @@ export async function skipAttempt(
     .eq("id", sessionId)
     .limit(1)
     .single()) as {
-    data: {
-      attempts_count: number;
-      challenge_id: string;
-      guesses:
+      data: {
+        attempts_count: number;
+        challenge_id: string;
+        guesses:
         | {
-            isCorrect: boolean;
-            isSkip?: boolean;
-            perfumeId: string | null;
-            timestamp: string;
-          }[]
+          isCorrect: boolean;
+          isSkip?: boolean;
+          perfumeId: string | null;
+          timestamp: string;
+        }[]
         | null;
-      id: string;
-      last_nonce: string | number;
-      player_id: string;
-      start_time: string;
-      status: string;
-    } | null;
-    error: Error | null;
-  };
+        id: string;
+        last_nonce: string | number;
+        player_id: string;
+        start_time: string;
+        status: string;
+      } | null;
+      error: Error | null;
+    };
 
   if (sessionError || !session) throw new Error("Session not found");
 
@@ -1251,19 +1251,19 @@ export const getDailyChallengeSSR = unstable_cache(
       )
       .eq("id", challengePrivate.perfume_id)
       .single()) as {
-      data: {
-        base_notes: string[] | null;
-        brands: { name: string } | null;
-        concentrations: { name: string } | null;
-        gender: string | null;
-        is_linear: boolean | null;
-        middle_notes: string[] | null;
-        perfumers: string[] | null;
-        release_year: number | null;
-        top_notes: string[] | null;
-        xsolve_score: number | null;
-      } | null;
-    };
+        data: {
+          base_notes: string[] | null;
+          brands: { name: string } | null;
+          concentrations: { name: string } | null;
+          gender: string | null;
+          is_linear: boolean | null;
+          middle_notes: string[] | null;
+          perfumers: string[] | null;
+          release_year: number | null;
+          top_notes: string[] | null;
+          xsolve_score: number | null;
+        } | null;
+      };
 
     if (perfume?.xsolve_score == null) return null;
 
@@ -1331,3 +1331,40 @@ export const getDailyStep1ImageUrl = unstable_cache(
   ["daily-step1-image"],
   { revalidate: 86_400, tags: ["daily-challenge"] },
 );
+
+/**
+ * Fetches the player's existing game session for today's challenge at SSR time.
+ *
+ * Security model:
+ * - Uses createClient() which reads auth cookies from the incoming request —
+ *   only the authenticated user's own sessions are accessible (Supabase RLS).
+ * - Does NOT expose answer data (name/concentration) unless game is already over.
+ * - Returns null for unauthenticated users — GameProvider falls back to
+ *   client-side anonymous auth + startGame as before.
+ * - On any error returns null — graceful degradation, never crashes SSR.
+ *
+ * Performance:
+ * - Delegates to startGame() which short-circuits on existingSession (no rate-limit,
+ *   no new DB insert). For a returning player this is a single SELECT query.
+ * - Not cached — per-user per-request by design.
+ */
+export async function getPlayerDailySession(
+  challengeId: string,
+): Promise<StartGameResponse | null> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    // Not authenticated — client-side anonymous auth flow will handle this
+    if (!user) return null;
+
+    // Fetch or create session (startGame handles both paths)
+    // For existing sessions it returns immediately without creating a new one
+    return await startGame(challengeId, 0);
+  } catch {
+    // Graceful degradation: if anything fails, GameProvider falls back to client-side init
+    return null;
+  }
+}

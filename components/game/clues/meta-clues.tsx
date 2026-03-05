@@ -5,6 +5,7 @@ import { memo } from "react";
 import { Tag, Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
 import { MASK_CHAR } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,57 @@ export const MetaClues = memo(function MetaClues() {
   const { handlePointerDown: handleIconTap, scaled: iconScaled } =
     useScaleOnTap();
 
+  // Skeleton state — structure mirrors the real layout exactly.
+  // Static translations shown as-is; only badge values use <Skeleton> bars.
+  if (dailyPerfume.id === "skeleton") {
+    return (
+      <div className="flex h-full flex-col p-0">
+        {/* Title row — identical structure to real header */}
+        <div className="mb-4 flex w-fit cursor-default items-center">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex">
+              <Tag className="h-4 w-4 text-muted-foreground" />
+            </span>
+            <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase opacity-40">
+              {t("identity")}
+            </h2>
+          </div>
+        </div>
+        <div className="flex flex-1 flex-col gap-5">
+          {/* Brand row */}
+          <div className="flex flex-col items-start gap-0.5">
+            <span className="text-xs font-semibold tracking-widest text-muted-foreground/40 lowercase">
+              {t("brand")}
+            </span>
+            <Skeleton className="min-h-[22px] w-[8rem] py-1" />
+          </div>
+          {/* Perfumer row */}
+          <div className="flex flex-col items-start gap-0.5">
+            <span className="text-xs font-semibold tracking-widest text-muted-foreground/40 lowercase">
+              {t("perfumer")}
+            </span>
+            <Skeleton className="min-h-[22px] w-[9rem] py-1" />
+          </div>
+          {/* Year + Gender row */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col items-start gap-0.5">
+              <span className="text-xs font-semibold tracking-widest text-muted-foreground/40 lowercase">
+                {t("year")}
+              </span>
+              <Skeleton className="min-h-[22px] w-full py-1" />
+            </div>
+            <div className="flex flex-col items-start gap-0.5">
+              <span className="text-xs font-semibold tracking-widest text-muted-foreground/40 lowercase">
+                {t("gender")}
+              </span>
+              <Skeleton className="min-h-[22px] w-full py-1" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const clues = [
     { key: "brand", value: revealedBrand },
     { key: "perfumer", value: revealedPerfumer },
@@ -42,9 +94,9 @@ export const MetaClues = memo(function MetaClues() {
       key: "gender",
       value:
         revealLevel >= 5 ||
-        isGenderRevealed ||
-        gameState === "won" ||
-        gameState === "lost"
+          isGenderRevealed ||
+          gameState === "won" ||
+          gameState === "lost"
           ? dailyPerfume.gender
           : "?????",
     },
@@ -89,9 +141,9 @@ export const MetaClues = memo(function MetaClues() {
             <div className="flex w-full flex-wrap items-center gap-2">
               {clue.key === "perfumer" && clue.value !== "?????" ? (
                 // Split multi-perfumer values into separate badges
-                clue.value
-                  .split(", ")
-                  .map((perfumer, itemIndex) => (
+                clue.value.split(", ").map((perfumer, itemIndex, array) => {
+                  const isLast = itemIndex === array.length - 1;
+                  const badge = (
                     <MetaBadge
                       clueKey={clue.key}
                       currentAttempt={currentAttempt}
@@ -99,17 +151,36 @@ export const MetaClues = memo(function MetaClues() {
                       t={t}
                       value={perfumer}
                     />
-                  ))
+                  );
+
+                  if (isLast) {
+                    return (
+                      <div
+                        className="flex min-w-0 flex-[1_1_0px] items-center gap-2"
+                        key={`wrapper-${itemIndex}`}
+                      >
+                        {badge}
+                        <DotFiller className="pr-2" />
+                      </div>
+                    );
+                  }
+                  return badge;
+                })
               ) : (
                 // Single badge for other clues
-                <MetaBadge
-                  clueKey={clue.key}
-                  currentAttempt={currentAttempt}
-                  t={t}
-                  value={clue.value}
-                />
+                <div
+                  className="flex min-w-0 flex-[1_1_0px] items-center gap-2"
+                  key="single-wrapper"
+                >
+                  <MetaBadge
+                    clueKey={clue.key}
+                    currentAttempt={currentAttempt}
+                    t={t}
+                    value={clue.value}
+                  />
+                  <DotFiller className="pr-2" />
+                </div>
               )}
-              <DotFiller className="pr-2" />
             </div>
           </div>
         ))}
@@ -125,13 +196,15 @@ export const MetaClues = memo(function MetaClues() {
 
               {/* Value */}
               <div className="flex w-full flex-wrap items-center gap-2">
-                <MetaBadge
-                  clueKey={clue.key}
-                  currentAttempt={currentAttempt}
-                  t={t}
-                  value={clue.value}
-                />
-                <DotFiller className="pr-2" />
+                <div className="flex min-w-0 flex-[1_1_0px] items-center gap-2">
+                  <MetaBadge
+                    clueKey={clue.key}
+                    currentAttempt={currentAttempt}
+                    t={t}
+                    value={clue.value}
+                  />
+                  <DotFiller className="pr-2" />
+                </div>
               </div>
             </div>
           ))}

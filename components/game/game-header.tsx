@@ -22,12 +22,10 @@ import { usePathname, useRouter, routing, localeNames } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-import { useUIPreferences } from "./contexts";
+import { useGame } from "./game-provider";
 import { GameTooltip } from "./game-tooltip";
 import { MobileResetItem } from "./mobile-reset-item";
 import { ResetButton } from "./reset-button";
-
-import type { User } from "@supabase/supabase-js";
 
 const SessionsModal = dynamic(
   async () =>
@@ -58,8 +56,13 @@ const StatsModal = dynamic(
  *
  */
 export function GameHeader() {
-  const { toggleFontScale, toggleLayoutMode, toggleTheme, uiPreferences } =
-    useUIPreferences();
+  const {
+    toggleFontScale,
+    toggleLayoutMode,
+    toggleTheme,
+    uiPreferences,
+    user,
+  } = useGame();
   const isScrollHidden = useScrollDirection();
   const [modals, setModals] = useState({
     authOpen: false,
@@ -85,8 +88,6 @@ export function GameHeader() {
   const pathname = usePathname();
   const locale = useLocale();
   const t = useTranslations("Header");
-  const [user, setUser] = useState<User | null>(null);
-
   useEffect(() => {
     // Show help modal on first visit. We intentionally do NOT write
     // eauxle:hasVisited here — it's written when the modal is closed.
@@ -100,33 +101,6 @@ export function GameHeader() {
       // localStorage may be unavailable in some environments
     }
   }, []);
-
-  useEffect(() => {
-    const supabase = createClient();
-    void supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      return data;
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      // Skip refresh for anonymous sign-in: anonymous sessions are created
-      // automatically on every page load, and router.refresh() would remount
-      // client components, resetting transient UI state (e.g. open modals).
-      const isAnonymousSignIn =
-        _event === "SIGNED_IN" && session?.user.is_anonymous === true;
-      if (
-        (_event === "SIGNED_IN" || _event === "SIGNED_OUT") &&
-        !isAnonymousSignIn
-      ) {
-        router.refresh();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [router]);
 
   const currentLang = locale.toUpperCase();
 
@@ -148,7 +122,7 @@ export function GameHeader() {
       >
         <nav
           className={cn(
-            "relative mx-auto flex w-full max-w-2xl items-center justify-between rounded-b-none border-x-0 border-b panel-border bg-background/70 px-5 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 panel-shadow backdrop-blur-md transition-all duration-300 sm:rounded-b-md sm:border-x wide:max-w-5xl",
+            "relative mx-auto flex w-full max-w-2xl items-center justify-between rounded-b-none border-x-0 border-b panel-border bg-background/70 px-5 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 panel-shadow backdrop-blur-md transition-[max-width] duration-300 sm:rounded-b-md sm:border-x wide:max-w-5xl",
             modals.menuOpen || modals.langOpen ? "z-50" : "z-20",
           )}
           suppressHydrationWarning
@@ -252,10 +226,10 @@ export function GameHeader() {
           {/* Menu Dropdown */}
           <div
             className={cn(
-              "pointer-events-auto absolute top-full left-5 mt-2 w-56 flex-col overflow-hidden rounded-md border panel-border bg-background/70 panel-shadow backdrop-blur-md transition-all duration-300",
+              "pointer-events-auto absolute top-full left-5 mt-2 flex w-56 flex-col overflow-hidden rounded-md border panel-border bg-background/70 panel-shadow backdrop-blur-md transition-all duration-300",
               modals.menuOpen
-                ? "flex translate-y-0 opacity-100"
-                : "hidden -translate-y-2 opacity-0",
+                ? "translate-y-0 opacity-100"
+                : "pointer-events-none -translate-y-2 opacity-0",
             )}
             style={{ zIndex: 60 }}
           >
@@ -458,10 +432,10 @@ export function GameHeader() {
           {/* Language Dropdown */}
           <div
             className={cn(
-              "pointer-events-auto absolute top-full right-16 mt-2 w-36 flex-col overflow-hidden rounded-md border panel-border bg-background/70 panel-shadow backdrop-blur-md transition-all duration-300",
+              "pointer-events-auto absolute top-full right-16 mt-2 flex w-36 flex-col overflow-hidden rounded-md border panel-border bg-background/70 panel-shadow backdrop-blur-md transition-all duration-300",
               modals.langOpen
-                ? "flex translate-y-0 opacity-100"
-                : "hidden -translate-y-2 opacity-0",
+                ? "translate-y-0 opacity-100"
+                : "pointer-events-none -translate-y-2 opacity-0",
             )}
             style={{ zIndex: 60 }}
           >

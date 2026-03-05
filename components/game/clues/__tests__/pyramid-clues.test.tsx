@@ -65,8 +65,8 @@ vi.mock("../../game-tooltip", () => ({
     content,
   }: {
     children:
-      | React.ReactNode
-      | ((props: { isHovered?: boolean }) => React.ReactNode);
+    | React.ReactNode
+    | ((props: { isHovered?: boolean }) => React.ReactNode);
     content: string;
   }) => (
     <div data-tooltip={content}>
@@ -153,6 +153,7 @@ function createTestWrapper({
         loading={false}
         maxAttempts={6}
         sessionId="test-session"
+        user={null}
       >
         {children}
       </GameStateProvider>
@@ -225,6 +226,7 @@ describe("PyramidClues", () => {
           loading={false}
           maxAttempts={6}
           sessionId="test-session"
+          user={null}
         >
           <PyramidClues />
         </GameStateProvider>,
@@ -326,6 +328,7 @@ describe("PyramidClues", () => {
           loading={false}
           maxAttempts={6}
           sessionId="test-session"
+          user={null}
         >
           <PyramidClues />
         </GameStateProvider>,
@@ -355,6 +358,7 @@ describe("PyramidClues", () => {
           loading={false}
           maxAttempts={6}
           sessionId="test-session"
+          user={null}
         >
           <PyramidClues />
         </GameStateProvider>,

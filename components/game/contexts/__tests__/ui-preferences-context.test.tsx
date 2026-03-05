@@ -195,9 +195,13 @@ describe("UIPreferencesContext", () => {
     });
   });
 
-  it("should throw error when used outside provider", () => {
-    expect(() => {
-      renderHook(() => useUIPreferences());
-    }).toThrow("useUIPreferences must be used within UIPreferencesProvider");
+  it("should return SSR defaults when used outside provider", () => {
+    const { result } = renderHook(() => useUIPreferences());
+    expect(result.current.uiPreferences).toEqual({
+      fontScale: "normal",
+      layoutMode: "narrow",
+      theme: "light",
+    });
+    expect(result.current.isInputFocused).toBe(false);
   });
 });

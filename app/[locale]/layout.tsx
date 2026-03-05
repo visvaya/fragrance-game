@@ -138,6 +138,20 @@ export default async function RootLayout({
             __html: `try{var l=localStorage.getItem('fragrance-game-layout');if(l==='wide'||(!l&&window.innerWidth>=1024)){document.documentElement.setAttribute('data-layout','wide')}}catch(e){}`,
           }}
         />
+        {/* Blocking script: applies dark class before first paint to prevent flash of light theme.
+            Reads saved preference from localStorage; falls back to prefers-color-scheme. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('fragrance-game-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}`,
+          }}
+        />
+        {/* Blocking script: applies large-text class before first paint to prevent font-size flash.
+            Reads saved font preference from localStorage. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var f=localStorage.getItem('fragrance-game-font');if(f==='large'){document.documentElement.classList.add('large-text')}}catch(e){}`,
+          }}
+        />
         {process.env.NEXT_PUBLIC_SUPABASE_URL ? (
           <link
             crossOrigin="anonymous"
@@ -158,7 +172,7 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${caveat.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
-        <NextIntlClientProvider messages={messages}>
+        <NextIntlClientProvider locale={locale} messages={messages}>
           <AnalyticsProviders>
             <UIPreferencesProvider>
               <SmoothScrollProvider>

@@ -18,6 +18,20 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+vi.mock("@/i18n/routing", () => ({
+  useRouter: () => ({
+    back: vi.fn(),
+    push: vi.fn(),
+    refresh: vi.fn(),
+    replace: vi.fn(),
+  }),
+  usePathname: () => "/en",
+  useSearchParams: () => new URLSearchParams(),
+  Link: ({ children }: { children: React.ReactNode }) => children,
+  routing: { locales: ["pl", "en"], defaultLocale: "pl" },
+  localeNames: { pl: "Polski", en: "English" },
+}));
+
 // Mock dependencies
 vi.mock("@/app/actions/game-actions", () => ({
   getDailyChallenge: vi.fn(),

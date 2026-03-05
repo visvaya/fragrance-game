@@ -22,9 +22,17 @@ type UIPreferencesContextType = {
   };
 };
 
-const UIPreferencesContext = createContext<
-  UIPreferencesContextType | undefined
->(undefined);
+const SSR_DEFAULTS: UIPreferencesContextType = {
+  isInputFocused: false,
+  setIsInputFocused: () => {},
+  toggleFontScale: () => {},
+  toggleLayoutMode: () => {},
+  toggleTheme: () => {},
+  uiPreferences: { fontScale: "normal", layoutMode: "narrow", theme: "light" },
+};
+
+const UIPreferencesContext =
+  createContext<UIPreferencesContextType>(SSR_DEFAULTS);
 
 /**
  * UIPreferencesProvider - Manages UI-only state (theme, layout, font, input focus)
@@ -166,11 +174,5 @@ export function UIPreferencesProvider({
  */
 // eslint-disable-next-line react-refresh/only-export-components
 export function useUIPreferences() {
-  const context = useContext(UIPreferencesContext);
-  if (!context) {
-    throw new Error(
-      "useUIPreferences must be used within UIPreferencesProvider",
-    );
-  }
-  return context;
+  return useContext(UIPreferencesContext);
 }

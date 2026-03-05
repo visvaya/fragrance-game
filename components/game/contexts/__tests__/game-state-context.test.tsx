@@ -40,6 +40,7 @@ const createWrapper = (
     loading: false,
     maxAttempts: 6,
     sessionId: "test-session",
+    user: null,
     ...overrides,
   };
 

@@ -33,19 +33,13 @@ export function MigrationModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { sessionId } = useGameState();
+  const { sessionId, user } = useGameState();
 
   useEffect(() => {
-    const checkMigration = async () => {
+    const checkMigration = () => {
       // 1. Check if we have an anonymous player ID stored
       const anonId = localStorage.getItem("eauxle_anon_player_id");
       if (!anonId) return;
-
-      // 2. Check if we are currently logged in as a non-anonymous user
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
 
       if (user && !user.is_anonymous && user.id !== anonId) {
         // We have a registered user and a DIFFERENT anonymous ID.
@@ -54,21 +48,8 @@ export function MigrationModal() {
       }
     };
 
-    // Run on mount (handles page load after login)
-    void checkMigration();
-
-    // Also run on SIGNED_IN to handle mid-session login via auth modal
-    const supabase = createClient();
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") {
-        void checkMigration();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+    checkMigration();
+  }, [user]);
 
   // Track if a legitimate choice (Merge or Skip) was made
   const [choiceMade, setChoiceMade] = useState(false);

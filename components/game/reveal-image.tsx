@@ -7,6 +7,7 @@ import Image from "next/image";
 import { ScanEye } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ export function RevealImage() {
     useScaleOnTap();
   const targetSource = dailyPerfume.imageUrl || "/placeholder.svg";
 
+  // Hooks must be declared before any conditional returns (Rules of Hooks)
   const [state, setState] = useState({
     currentSource: targetSource,
     isLoaded: true,
@@ -48,38 +50,52 @@ export function RevealImage() {
   // Effect: Detect change in targetSrc and update with transition AFTER fade out
   useEffect(() => {
     if (targetSource !== state.currentSource) {
-      // After fade out, swap source and fade in
       const timeout = setTimeout(() => {
         setState((previous) => ({
           ...previous,
           currentSource: targetSource,
           isLoaded: true,
         }));
-      }, 350); // Half of 700ms for smoother transition
-
+      }, 350);
       return () => clearTimeout(timeout);
     }
   }, [targetSource, state.currentSource]);
 
+  const imageSize = uiPreferences.fontScale === "large" ? "w-[17.5rem]" : "w-[15rem]";
+  const isSkeleton = dailyPerfume.id === "skeleton";
+
+
   return (
     <div className="flex h-full w-full flex-col">
+      {/* Title row — skeleton shows simplified version (no hover/tooltip) */}
       <div className="mb-4 flex w-fit cursor-default items-center">
-        <GameTooltip content={t("titleTooltip")} sideOffset={6}>
+        {isSkeleton ? (
           <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "inline-flex transition-transform duration-300 hover:scale-[1.15]",
-                iconScaled && "scale-[1.15]",
-              )}
-              onPointerDown={handleIconTap}
-            >
+            <span className="inline-flex">
               <ScanEye className="h-4 w-4 text-muted-foreground" />
             </span>
-            <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase">
+            <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase opacity-40">
               {t("visualEvidence")}
             </h2>
           </div>
-        </GameTooltip>
+        ) : (
+          <GameTooltip content={t("titleTooltip")} sideOffset={6}>
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "inline-flex transition-transform duration-300 hover:scale-[1.15]",
+                  iconScaled && "scale-[1.15]",
+                )}
+                onPointerDown={handleIconTap}
+              >
+                <ScanEye className="h-4 w-4 text-muted-foreground" />
+              </span>
+              <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase">
+                {t("visualEvidence")}
+              </h2>
+            </div>
+          </GameTooltip>
+        )}
       </div>
 
       <div className="flex flex-1 flex-row items-center gap-2">
@@ -91,57 +107,62 @@ export function RevealImage() {
           <span className="h-full border-l border-dotted border-muted-foreground/25" />
         </span>
 
-        {/* Image */}
-        <div
-          className={cn(
-            "relative aspect-square overflow-hidden rounded-md border border-border bg-muted transition-all duration-300 dark:brightness-[0.85]",
-            "focus:outline-none",
-            state.isZoomed ? "cursor-zoom-out" : "cursor-zoom-in",
-            uiPreferences.fontScale === "large" ? "w-[17.5rem]" : "w-[15rem]",
-          )}
-          onClick={() =>
-            setState((previous) => ({
-              ...previous,
-              isZoomed: !previous.isZoomed,
-            }))
-          }
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
+        {/* Image area — skeleton or real */}
+        {isSkeleton ? (
+          <div className={cn("relative aspect-square overflow-hidden rounded-md", imageSize)}>
+            <Skeleton className="h-full w-full rounded-md" />
+            <div className="pointer-events-none absolute top-2 left-2 h-4 w-4 border-t-2 border-l-2 border-foreground/10" />
+            <div className="pointer-events-none absolute top-2 right-2 h-4 w-4 border-t-2 border-r-2 border-foreground/10" />
+            <div className="pointer-events-none absolute bottom-2 left-2 h-4 w-4 border-b-2 border-l-2 border-foreground/10" />
+            <div className="pointer-events-none absolute right-2 bottom-2 h-4 w-4 border-r-2 border-b-2 border-foreground/10" />
+          </div>
+        ) : (
+          <div
+            className={cn(
+              "relative aspect-square overflow-hidden rounded-md border border-border bg-muted transition-all duration-300 dark:brightness-[0.85]",
+              "focus:outline-none",
+              state.isZoomed ? "cursor-zoom-out" : "cursor-zoom-in",
+              imageSize,
+            )}
+            onClick={() =>
               setState((previous) => ({
                 ...previous,
                 isZoomed: !previous.isZoomed,
-              }));
+              }))
             }
-          }}
-          role="button"
-          tabIndex={0}
-        >
-          {/* Single image with CSS transition */}
-          <Image
-            alt={t("altBase")}
-            blurDataURL={BLUR_DATA_URL}
-            className={cn(
-              "object-cover transition-all duration-700 ease-in-out",
-              state.isZoomed ? "scale-110" : "hover:scale-110",
-              state.isLoaded ? "opacity-100" : "opacity-0",
-            )}
-            fill
-            key={state.currentSource}
-            loading="eager"
-            placeholder="blur"
-            priority
-            quality={90}
-            sizes="(max-width: 640px) 100vw, (max-width: 768px) 80vw, 400px"
-            src={state.currentSource}
-          />
-
-          {/* Decorative corner marks (always on top) */}
-          <div className="pointer-events-none absolute top-2 left-2 h-4 w-4 border-t-2 border-l-2 border-foreground/20 dark:border-foreground" />
-          <div className="pointer-events-none absolute top-2 right-2 h-4 w-4 border-t-2 border-r-2 border-foreground/20 dark:border-foreground" />
-          <div className="pointer-events-none absolute bottom-2 left-2 h-4 w-4 border-b-2 border-l-2 border-foreground/20 dark:border-foreground" />
-          <div className="pointer-events-none absolute right-2 bottom-2 h-4 w-4 border-r-2 border-b-2 border-foreground/20 dark:border-foreground" />
-        </div>
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setState((previous) => ({
+                  ...previous,
+                  isZoomed: !previous.isZoomed,
+                }));
+              }
+            }}
+            role="button"
+            tabIndex={0}
+          >
+            <Image
+              alt={t("altBase")}
+              blurDataURL={BLUR_DATA_URL}
+              className={cn(
+                "object-cover transition-all duration-700 ease-in-out",
+                state.isZoomed ? "scale-110" : "hover:scale-110",
+                state.isLoaded ? "opacity-100" : "opacity-0",
+              )}
+              fill
+              key={state.currentSource}
+              placeholder="blur"
+              quality={90}
+              sizes="(max-width: 640px) 100vw, (max-width: 768px) 80vw, 400px"
+              src={state.currentSource}
+            />
+            <div className="pointer-events-none absolute top-2 left-2 h-4 w-4 border-t-2 border-l-2 border-foreground/20 dark:border-foreground" />
+            <div className="pointer-events-none absolute top-2 right-2 h-4 w-4 border-t-2 border-r-2 border-foreground/20 dark:border-foreground" />
+            <div className="pointer-events-none absolute bottom-2 left-2 h-4 w-4 border-b-2 border-l-2 border-foreground/20 dark:border-foreground" />
+            <div className="pointer-events-none absolute right-2 bottom-2 h-4 w-4 border-r-2 border-b-2 border-foreground/20 dark:border-foreground" />
+          </div>
+        )}
 
         {/* Right vertical dot filler */}
         <span

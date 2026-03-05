@@ -5,6 +5,8 @@ import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { MASK_CHAR } from "@/lib/constants";
 import { revealLetters } from "@/lib/game/scoring";
 
+import type { User } from "@supabase/supabase-js";
+
 // Re-export types from game-provider for convenience
 export type AttemptFeedback = {
   brandMatch: boolean;
@@ -78,6 +80,7 @@ type GameStateContextType = {
   revealedYear: string;
   revealLevel: number;
   sessionId: string | null;
+  user: User | null;
   visibleNotes: {
     base: string[] | null;
     heart: string[] | null;
@@ -102,6 +105,7 @@ type GameStateProviderProperties = {
   loading: boolean;
   maxAttempts: number;
   sessionId: string | null;
+  user: User | null;
 };
 
 /**
@@ -119,6 +123,7 @@ export function GameStateProvider({
   loading,
   maxAttempts,
   sessionId,
+  user,
 }: Readonly<GameStateProviderProperties>) {
   const currentAttempt = attempts.length + 1 + baseAttemptCount;
   const revealLevel = Math.min(currentAttempt, maxAttempts);
@@ -362,6 +367,7 @@ export function GameStateProvider({
     revealLevel,
 
     sessionId,
+    user,
     visibleNotes,
     xsolveScore: dailyPerfume.xsolve,
   };
