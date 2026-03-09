@@ -1,13 +1,15 @@
 import type React from "react";
 
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+import { GENERIC_PLACEHOLDER } from "@/lib/constants";
 
 import {
   GameStateProvider,
   type Attempt,
-  type GameState,
   type DailyPerfume,
+  type GameState,
 } from "../../contexts";
 import { PyramidClues } from "../pyramid-clues";
 
@@ -42,9 +44,13 @@ vi.mock("next-intl", () => {
     return typeof value === "string" ? value : key;
   };
 
-  t.rich = (key: string, handlers?: Record<string, RichHandlerFunction>) => {
+  t.rich = (
+    key: string,
+    handlers?: Record<string, RichHandlerFunction>,
+    // eslint-disable-next-line sonarjs/function-return-type
+  ): React.ReactNode => {
     if (key === "noteCountUnknown") {
-      const text = "?";
+      const text = GENERIC_PLACEHOLDER;
       if (handlers?.q) {
         return handlers.q(text);
       }
@@ -250,7 +256,7 @@ describe("PyramidClues", () => {
       render(<PyramidClues />, { wrapper: Wrapper });
 
       // At attempt 1, should show "?" placeholders (one for each level)
-      const placeholders = screen.getAllByText("?");
+      const placeholders = screen.getAllByText(GENERIC_PLACEHOLDER);
       expect(placeholders.length).toBeGreaterThan(0);
     });
   });
@@ -292,7 +298,7 @@ describe("PyramidClues", () => {
       render(<PyramidClues />, { wrapper: Wrapper });
 
       // At attempt 1, should show "?" placeholder
-      expect(screen.getByText("?")).toBeInTheDocument();
+      expect(screen.getByText(GENERIC_PLACEHOLDER)).toBeInTheDocument();
     });
 
     it("progressively reveals linear notes (1/3, 2/3, all)", () => {

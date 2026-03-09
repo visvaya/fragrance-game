@@ -34,6 +34,7 @@ export function calculateBaseScore(attempt: number): number {
   // If somehow out of bounds, clamp
   if (attempt < 1) return 1000;
   if (attempt > MAX_GUESSES) return 0;
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
   return ATTEMPT_SCORES[attempt] || 0;
 }
 
@@ -177,7 +178,7 @@ export function revealLetters(text: string, percentage: number): string {
   if (pct >= 100) return text;
 
   // Separator: ONLY space (always visible, splits words)
-  // Letters: ALL other characters including hyphen, period, ampersand, apostrof (masked as •)
+  // Letters: ALL other characters including hyphen, period, ampersand, apostrof (masked as MASK_CHAR)
   const SEPARATOR_REGEX = /(\s+)/;
 
   // Split into words by space only (capturing separators)

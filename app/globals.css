@@ -209,7 +209,7 @@ html.large-text {
   }
 
   html {
-    background-color: hsl(var(--secondary));
+    background-color: var(--secondary);
     overscroll-behavior: none;
   }
 

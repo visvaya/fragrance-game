@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
  * - Rate limiting E2E tests
  * - Uptime monitoring services
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function GET() {
   await Promise.resolve();
   return NextResponse.json(

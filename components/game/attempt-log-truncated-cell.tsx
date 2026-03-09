@@ -56,6 +56,7 @@ export function TruncatedCell({
 
   const inner = (
     <div className={cn(textClassName, "max-w-full")} ref={ref}>
+      {/* eslint-disable-next-line @typescript-eslint/strict-boolean-expressions */}
       {children || content}
     </div>
   );

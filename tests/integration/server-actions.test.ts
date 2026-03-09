@@ -4,29 +4,32 @@ import { startGame, submitGuess } from "@/app/actions/game-actions";
 
 // --- Mocks ---
 
-const mockSupabase = {
-  _lastTable: "",
-  auth: {
-    getUser: vi.fn(),
-  },
-  eq: vi.fn(() => mockSupabase),
-  from: vi.fn((table) => {
-    mockSupabase._lastTable = table;
-    return mockSupabase;
-  }),
-  in: vi.fn(() => mockSupabase),
-  insert: vi.fn(() => mockSupabase),
-  limit: vi.fn(() => mockSupabase),
-  maybeSingle: vi.fn(),
-  order: vi.fn(() => mockSupabase),
-  select: vi.fn(() => mockSupabase),
-  single: vi.fn(),
-  update: vi.fn(() => mockSupabase),
-};
+const { mockSupabase } = vi.hoisted(() => {
+  const m = {
+    _lastTable: "",
+    auth: {
+      getUser: vi.fn(),
+    },
+    eq: vi.fn(() => m),
+    from: vi.fn((table) => {
+      m._lastTable = table as string;
+      return m;
+    }),
+    in: vi.fn(() => m),
+    insert: vi.fn(() => m),
+    limit: vi.fn(() => m),
+    maybeSingle: vi.fn(),
+    order: vi.fn(() => m),
+    select: vi.fn(() => m),
+    single: vi.fn(),
+    update: vi.fn(() => m),
+  };
+  return { mockSupabase: m };
+});
 
 vi.mock("@/lib/supabase/server", () => ({
   createAdminClient: vi.fn(() => mockSupabase),
-  createClient: vi.fn(() => Promise.resolve(mockSupabase)),
+  createClient: vi.fn().mockReturnValue(Promise.resolve(mockSupabase)),
 }));
 
 vi.mock("@/lib/analytics-server", () => ({
@@ -40,7 +43,7 @@ vi.mock("next/cache", () => ({
 }));
 
 vi.mock("next/headers", () => ({
-  cookies: vi.fn(() =>
+  cookies: vi.fn().mockReturnValue(
     Promise.resolve({
       getAll: vi.fn(),
       set: vi.fn(),
@@ -86,6 +89,7 @@ describe("Game Actions Integration (Mocked)", () => {
       // 3. Chain of single() calls:
       // - After insert to get session
       // - To get challenge
+      // eslint-disable-next-line @typescript-eslint/promise-function-async
       mockSupabase.single.mockImplementation(() => {
         const table = (mockSupabase as any)._lastTable;
         if (table === "game_sessions") {
@@ -149,6 +153,7 @@ describe("Game Actions Integration (Mocked)", () => {
       });
 
       let callCount = 0;
+      // eslint-disable-next-line @typescript-eslint/promise-function-async
       mockSupabase.single.mockImplementation(() => {
         const table = (mockSupabase as any)._lastTable;
         if (table === "game_sessions") {

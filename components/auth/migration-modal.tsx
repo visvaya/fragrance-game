@@ -56,6 +56,7 @@ export function MigrationModal() {
 
   // If modal closes WITHOUT a choice (e.g. X button, Esc, outside click),
   // we warn the user and log them out if they confirm.
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   const handleOpenChange = async (open: boolean) => {
     if (!open && !choiceMade) {
       if (globalThis.confirm(t("exitConfirm"))) {
@@ -152,6 +153,7 @@ export function MigrationModal() {
 
   return (
     <Dialog onOpenChange={handleOpenChange} open={isOpen}>
+      {/* eslint-disable-next-line no-restricted-syntax -- shadcn/ui standard dialog width: 425px is a design system convention */}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>

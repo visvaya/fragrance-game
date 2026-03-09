@@ -14,7 +14,7 @@ import { AuthCaptchaModal } from "@/components/auth/auth-captcha-modal";
 import { MigrationModal } from "@/components/auth/migration-modal";
 import { captureAnalyticsEvent } from "@/components/providers/posthog-provider";
 import { useRouter } from "@/i18n/routing";
-import { MASK_CHAR, MAX_GUESSES } from "@/lib/constants";
+import { GENERIC_PLACEHOLDER, MASK_CHAR, MAX_GUESSES } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 
 import {
@@ -28,20 +28,32 @@ import {
 
 // Skeleton / Default for initialization (prevents null checks everywhere)
 const SKELETON_PERFUME = {
-  brand: "?????" as string,
+  brand: GENERIC_PLACEHOLDER.repeat(5),
   concentration: undefined as string | undefined,
-  gender: "?????",
+  gender: GENERIC_PLACEHOLDER.repeat(5),
   id: "skeleton",
   imageUrl: "/placeholder.svg?height=400&width=400",
-  isLinear: false as boolean,
-  name: "?????" as string,
+  isLinear: false,
+  name: GENERIC_PLACEHOLDER.repeat(5),
   notes: {
     // Realistic note counts to avoid layout shift when real data loads
-    top: ["?????", "?????", "?????"],
-    heart: ["?????", "?????", "?????"],
-    base: ["?????", "?????", "?????"],
+    base: [
+      GENERIC_PLACEHOLDER.repeat(5),
+      GENERIC_PLACEHOLDER.repeat(5),
+      GENERIC_PLACEHOLDER.repeat(5),
+    ],
+    heart: [
+      GENERIC_PLACEHOLDER.repeat(5),
+      GENERIC_PLACEHOLDER.repeat(5),
+      GENERIC_PLACEHOLDER.repeat(5),
+    ],
+    top: [
+      GENERIC_PLACEHOLDER.repeat(5),
+      GENERIC_PLACEHOLDER.repeat(5),
+      GENERIC_PLACEHOLDER.repeat(5),
+    ],
   },
-  perfumer: "?????" as string,
+  perfumer: GENERIC_PLACEHOLDER.repeat(5),
   xsolve: 0 as number,
   year: MASK_CHAR.repeat(4) as string | number,
 };
@@ -57,10 +69,12 @@ function calculateMaskedValues(
   targetYear: number | string,
 ) {
   // Simplified reveal for hydration - actual logic in contexts/game-state-context.tsx
-  const guessMaskedBrand = level === 1 ? "?????" : targetBrand;
+  const guessMaskedBrand =
+    level === 1 ? GENERIC_PLACEHOLDER.repeat(3) : targetBrand;
 
   // Year
   let guessMaskedYear = MASK_CHAR.repeat(4);
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
   if (targetYear) {
     const yearString = targetYear.toString();
     if (level >= 5) guessMaskedYear = yearString;
@@ -138,11 +152,18 @@ function hydrateAttempts(
       g.brandName,
       g.year ?? 0,
     );
-    const { guessMaskedBrand: answerClueBrand, guessMaskedYear: answerClueYear } =
-      calculateMaskedValues(currentLevel, challenge.clues.brand, challenge.clues.year);
+    const {
+      guessMaskedBrand: answerClueBrand,
+      guessMaskedYear: answerClueYear,
+    } = calculateMaskedValues(
+      currentLevel,
+      challenge.clues.brand,
+      challenge.clues.year,
+    );
 
     const brandRevealedByLevel = answerClueBrand === challenge.clues.brand;
-    const yearRevealedByLevel = answerClueYear === challenge.clues.year.toString();
+    const yearRevealedByLevel =
+      answerClueYear === challenge.clues.year.toString();
     const genderMatch =
       g.gender?.toLowerCase() === challenge.clues.gender.toLowerCase();
     const anyGenderMatch =
@@ -185,7 +206,6 @@ function hydrateAttempts(
  * Backward-compatible unified hook
  * Combines all three contexts for components not yet migrated
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useGame() {
   const state = useGameState();
   const actions = useGameActions();
@@ -247,8 +267,8 @@ export function GameProvider({
   });
   const [imageUrl, setImageUrl] = useState<string>(
     initialSession?.imageUrl ??
-    initialImageUrl ??
-    "/placeholder.svg?height=400&width=400",
+      initialImageUrl ??
+      "/placeholder.svg?height=400&width=400",
   );
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
@@ -258,18 +278,18 @@ export function GameProvider({
   const [dailyPerfume, setDailyPerfume] = useState<typeof SKELETON_PERFUME>(
     initialChallenge?.clues
       ? {
-        brand: initialChallenge.clues.brand,
-        concentration: initialChallenge.clues.concentration,
-        gender: initialChallenge.clues.gender,
-        id: "daily",
-        imageUrl: initialImageUrl ?? "/placeholder.svg?height=400&width=400",
-        isLinear: initialChallenge.clues.isLinear,
-        name: "Mystery Perfume",
-        notes: initialChallenge.clues.notes,
-        perfumer: initialChallenge.clues.perfumer,
-        xsolve: initialChallenge.clues.xsolve,
-        year: initialChallenge.clues.year,
-      }
+          brand: initialChallenge.clues.brand,
+          concentration: initialChallenge.clues.concentration,
+          gender: initialChallenge.clues.gender,
+          id: "daily",
+          imageUrl: initialImageUrl ?? "/placeholder.svg?height=400&width=400",
+          isLinear: initialChallenge.clues.isLinear,
+          name: "Mystery Perfume",
+          notes: initialChallenge.clues.notes,
+          perfumer: initialChallenge.clues.perfumer,
+          xsolve: initialChallenge.clues.xsolve,
+          year: initialChallenge.clues.year,
+        }
       : SKELETON_PERFUME,
   );
   const [discoveredPerfumers, setDiscoveredPerfumers] = useState<Set<string>>(
@@ -350,8 +370,9 @@ export function GameProvider({
   }, [router]);
 
   // Initialize Game (with proper auth sequencing)
+  // eslint-disable-next-line sonarjs/max-lines-per-function
   useEffect(() => {
-    // eslint-disable-next-line sonarjs/cognitive-complexity
+    // eslint-disable-next-line sonarjs/cognitive-complexity,sonarjs/max-lines-per-function
     const initGame = async () => {
       const safetyTimeout = setTimeout(() => {
         console.warn("[GameProvider] initGame safety timeout reached!");
@@ -402,8 +423,8 @@ export function GameProvider({
 
           // Verification loop with exponential backoff: Ensure session is set in client state AND cookies
           let verified = false;
-          const maxAttempts = 3;
-          for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          const maxVerificationAttempts = 3;
+          for (let attempt = 0; attempt < maxVerificationAttempts; attempt++) {
             const {
               data: { session: s },
             } = await supabase.auth.getSession();
@@ -429,7 +450,7 @@ export function GameProvider({
           if (!verified) {
             console.warn(
               "[GameProvider] Auth session not verified after",
-              maxAttempts,
+              maxVerificationAttempts,
               "attempts.",
             );
           }
@@ -441,6 +462,7 @@ export function GameProvider({
           "eauxle_declined_anon_attempts",
         );
         const inheritedCount = storedInherited
+          // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
           ? Math.max(0, Math.min(5, Number.parseInt(storedInherited, 10) || 0))
           : 0;
         if (inheritedCount > 0) {
@@ -512,7 +534,8 @@ export function GameProvider({
 
           // Skip redundant setState calls when state was already seeded from initialSession via
           // lazy useState initializers — avoids an unnecessary re-render cycle.
-          const alreadyHydrated = initialSession !== null && initialSession !== undefined;
+          const alreadyHydrated =
+            initialSession !== null && initialSession !== undefined;
 
           if (!alreadyHydrated) {
             setSessionId(session.sessionId);
@@ -539,12 +562,16 @@ export function GameProvider({
           // If initialSession was already used in lazy useState, attempts are pre-populated
           // and we only call setAttempts when coming from the fallback path (no initialSession).
           if (!alreadyHydrated && session.guesses.length > 0) {
-            const enrichedAttempts = hydrateAttempts(session.guesses, challenge);
+            const enrichedAttempts = hydrateAttempts(
+              session.guesses,
+              challenge,
+            );
             setAttempts(enrichedAttempts);
 
             const lastGuess = session.guesses.at(-1);
             if (lastGuess?.isCorrect) setGameState("won");
-            else if (session.guesses.length >= maxAttempts) setGameState("lost");
+            else if (session.guesses.length >= maxAttempts)
+              setGameState("lost");
           }
         }
         clearTimeout(safetyTimeout);
@@ -601,7 +628,7 @@ export function GameProvider({
   const isBrandRevealed =
     attempts.some((a) => a.feedback.brandMatch) ||
     getRevealedBrandHelper(dailyPerfume.brand, revealLevel) ===
-    dailyPerfume.brand;
+      dailyPerfume.brand;
 
   const isYearRevealed = attempts.some(
     (a) => a.feedback.yearMatch === "correct",

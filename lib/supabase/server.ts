@@ -1,6 +1,10 @@
+import "server-only";
+
 import { cookies, headers } from "next/headers";
 
 import { createServerClient } from "@supabase/ssr";
+
+import { env } from "@/lib/env";
 
 /**
  * Tworzy klienta Supabase do użycia w Server Components, Route Handlers i Server Actions.
@@ -22,15 +26,10 @@ import { createServerClient } from "@supabase/ssr";
  * }
  * ```
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function createClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error(
-      "Brakuje zmiennych środowiskowych NEXT_PUBLIC_SUPABASE_URL lub NEXT_PUBLIC_SUPABASE_ANON_KEY",
-    );
-  }
+  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   const cookieStore = await cookies();
   const headersList = await headers();
@@ -68,17 +67,9 @@ export async function createClient() {
  * @returns Klient Supabase z uprawnieniami administracyjnymi
  * @throws {Error} gdy brakuje SUPABASE_SERVICE_ROLE_KEY
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function createAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceKey) {
-    throw new Error(
-      "Brakuje zmiennych środowiskowych NEXT_PUBLIC_SUPABASE_URL lub SUPABASE_SERVICE_ROLE_KEY",
-    );
-  }
-
-  return createServerClient(supabaseUrl, serviceKey, {
+  return createServerClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
     cookies: {
       getAll: () => [],
       setAll: () => {

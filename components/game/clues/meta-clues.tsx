@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
-import { MASK_CHAR } from "@/lib/constants";
+import { MASK_CHAR, GENERIC_PLACEHOLDER } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 import { useGameState } from "../contexts";
@@ -57,14 +57,14 @@ export const MetaClues = memo(function MetaClues() {
             <span className="text-xs font-semibold tracking-widest text-muted-foreground/40 lowercase">
               {t("brand")}
             </span>
-            <Skeleton className="min-h-[22px] w-[8rem] py-1" />
+            <Skeleton className="min-h-[1.375rem] w-[8rem] py-1" />
           </div>
           {/* Perfumer row */}
           <div className="flex flex-col items-start gap-0.5">
             <span className="text-xs font-semibold tracking-widest text-muted-foreground/40 lowercase">
               {t("perfumer")}
             </span>
-            <Skeleton className="min-h-[22px] w-[9rem] py-1" />
+            <Skeleton className="min-h-[1.375rem] w-[9rem] py-1" />
           </div>
           {/* Year + Gender row */}
           <div className="grid grid-cols-2 gap-4">
@@ -72,13 +72,13 @@ export const MetaClues = memo(function MetaClues() {
               <span className="text-xs font-semibold tracking-widest text-muted-foreground/40 lowercase">
                 {t("year")}
               </span>
-              <Skeleton className="min-h-[22px] w-full py-1" />
+              <Skeleton className="min-h-[1.375rem] w-full py-1" />
             </div>
             <div className="flex flex-col items-start gap-0.5">
               <span className="text-xs font-semibold tracking-widest text-muted-foreground/40 lowercase">
                 {t("gender")}
               </span>
-              <Skeleton className="min-h-[22px] w-full py-1" />
+              <Skeleton className="min-h-[1.375rem] w-full py-1" />
             </div>
           </div>
         </div>
@@ -94,11 +94,11 @@ export const MetaClues = memo(function MetaClues() {
       key: "gender",
       value:
         revealLevel >= 5 ||
-          isGenderRevealed ||
-          gameState === "won" ||
-          gameState === "lost"
+        isGenderRevealed ||
+        gameState === "won" ||
+        gameState === "lost"
           ? dailyPerfume.gender
-          : "?????",
+          : GENERIC_PLACEHOLDER.repeat(5),
     },
   ];
 
@@ -139,7 +139,8 @@ export const MetaClues = memo(function MetaClues() {
 
             {/* Value (Slots or Text) */}
             <div className="flex w-full flex-wrap items-center gap-2">
-              {clue.key === "perfumer" && clue.value !== "?????" ? (
+              {clue.key === "perfumer" &&
+              clue.value !== GENERIC_PLACEHOLDER.repeat(5) ? (
                 // Split multi-perfumer values into separate badges
                 clue.value.split(", ").map((perfumer, itemIndex, array) => {
                   const isLast = itemIndex === array.length - 1;
@@ -227,21 +228,24 @@ function MetaBadge({
   // Translate "Unknown" for i18n support
   const translatedValue = value === "Unknown" ? t("unknown") : value;
   const words =
-    translatedValue === "?????" ? ["?????"] : translatedValue.split(" ");
+    translatedValue === GENERIC_PLACEHOLDER.repeat(5)
+      ? [GENERIC_PLACEHOLDER.repeat(5)]
+      : translatedValue.split(" ");
   const isFullyRevealed =
     value !== "Unknown" &&
     !translatedValue.includes(MASK_CHAR) &&
-    translatedValue !== "?????";
+    translatedValue !== GENERIC_PLACEHOLDER.repeat(5);
 
   return (
-    <div className="group inline-flex min-h-[22px] max-w-full cursor-default flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 rounded-md border border-border bg-secondary/50 px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary">
+    <div className="group inline-flex min-h-[1.375rem] max-w-full cursor-default flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 rounded-md border border-border bg-secondary/50 px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary">
       {isFullyRevealed ? (
         <span className="font-sans text-sm text-foreground">
           {translatedValue}
         </span>
       ) : (
+        // eslint-disable-next-line sonarjs/max-lines-per-function
         words.map((word: string, wordIndex: number) => {
-          const isGenericPlaceholder = word === "?????";
+          const isGenericPlaceholder = word === GENERIC_PLACEHOLDER.repeat(5);
 
           if (isGenericPlaceholder) {
             let tooltipContent = t("hiddenAttempt", {
@@ -282,7 +286,7 @@ function MetaBadge({
 
           const isWordMasked = word.includes(MASK_CHAR);
           const isFullHidden =
-            word === "?????" ||
+            word === GENERIC_PLACEHOLDER.repeat(5) ||
             (clueKey === "year" && new RegExp(`^${MASK_CHAR}+$`).test(word));
           let tooltipContent = t("letters", { count: word.length });
 

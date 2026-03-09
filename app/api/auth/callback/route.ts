@@ -14,6 +14,7 @@ function isValidRedirectUrl(url: string): boolean {
 /**
  *
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function GET(request: Request) {
   const { origin, searchParams } = new URL(request.url);
   const code = searchParams.get("code");

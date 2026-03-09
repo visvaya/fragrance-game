@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Waves } from "lucide-react";
+import { Waves, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import {
@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BULLET_CHAR } from "@/lib/constants";
 
 import { MarkerCircle } from "../marker-circle";
 
@@ -62,13 +63,13 @@ export function HelpModal({ onClose, open }: Readonly<HelpModalProperties>) {
 
           <ul className="space-y-3 pl-4">
             <li className="flex gap-2">
-              <span className="text-primary">•</span>
+              <span className="text-primary">{BULLET_CHAR}</span>
               <span>
                 <strong>{t("cluesTitle")}</strong> {t("cluesDesc")}
               </span>
             </li>
             <li className="flex gap-2">
-              <span className="text-primary">•</span>
+              <span className="text-primary">{BULLET_CHAR}</span>
               <span>
                 <strong>{t("feedbackTitle")}</strong> {t("feedbackDesc")}
               </span>
@@ -109,13 +110,13 @@ export function HelpModal({ onClose, open }: Readonly<HelpModalProperties>) {
 
           <ul className="space-y-3 pl-4">
             <li className="flex gap-2">
-              <span className="text-primary">•</span>
+              <span className="text-primary">{BULLET_CHAR}</span>
               <span>
                 <strong>{t("scoreTitle")}</strong> {t("scoreDesc")}
               </span>
             </li>
             <li className="flex gap-2">
-              <span className="text-primary">•</span>
+              <span className="text-primary">{BULLET_CHAR}</span>
               <span>{t("doubleEnter")}</span>
             </li>
           </ul>

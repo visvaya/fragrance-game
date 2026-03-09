@@ -1,3 +1,4 @@
+/* eslint-disable playwright/no-networkidle */
 import { test, expect } from "@playwright/test";
 
 test.describe("Visual Regression - Core Pages @visual", () => {

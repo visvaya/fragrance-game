@@ -4,6 +4,8 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import createMiddleware from "next-intl/middleware";
 
+import { env } from "@/lib/env";
+
 import { routing } from "./i18n/routing";
 
 const redis = Redis.fromEnv();
@@ -74,9 +76,7 @@ export async function proxy(request: NextRequest) {
   const origin = request.headers.get("origin");
   const allowedOrigins = [
     "http://localhost:3000",
-    ...(process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(",")
-      : []),
+    ...(env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(",") : []),
     "https://eauxle.vercel.app",
     "https://eauxle.com",
   ];
@@ -95,8 +95,7 @@ export async function proxy(request: NextRequest) {
 
   // Content Security Policy
   const assetsHost =
-    process.env.NEXT_PUBLIC_ASSETS_HOST ||
-    "pub-2c37ff9f03ea40878492e7f72ef83fe3.r2.dev";
+    env.NEXT_PUBLIC_ASSETS_HOST ?? "pub-2c37ff9f03ea40878492e7f72ef83fe3.r2.dev";
 
   response.headers.set(
     "Content-Security-Policy",
@@ -104,7 +103,7 @@ export async function proxy(request: NextRequest) {
       "default-src 'self'",
       // 'unsafe-eval' is restricted to development only (needed by webpack HMR).
       // 'unsafe-inline' is required by PostHog, Sentry CDN, and Vercel analytics.
-      `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""} va.vercel-scripts.com https://*.posthog.com https://js.sentry-cdn.com https://browser.sentry-cdn.com https://vercel.live https://vercel.com *.ingest.sentry.io https://challenges.cloudflare.com`,
+      `script-src 'self' 'unsafe-inline'${env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""} va.vercel-scripts.com https://*.posthog.com https://js.sentry-cdn.com https://browser.sentry-cdn.com https://vercel.live https://vercel.com *.ingest.sentry.io https://challenges.cloudflare.com`,
       "worker-src 'self' blob:",
       "child-src 'self' blob:",
       "style-src 'self' 'unsafe-inline'",
@@ -115,7 +114,9 @@ export async function proxy(request: NextRequest) {
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
-      ...(process.env.NODE_ENV !== "development" ? ["upgrade-insecure-requests"] : []),
+      ...(env.NODE_ENV === "development"
+        ? []
+        : ["upgrade-insecure-requests"]),
     ].join("; "),
   );
 
@@ -137,7 +138,6 @@ export async function proxy(request: NextRequest) {
 }
 
 // Next.js 16 supports both named export 'proxy' and default export.
-// eslint-disable-next-line import-x/no-default-export
 export default proxy;
 
 export const config = {

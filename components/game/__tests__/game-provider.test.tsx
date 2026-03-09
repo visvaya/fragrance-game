@@ -19,17 +19,19 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/i18n/routing", () => ({
+  Link: function MockLink({ children }: { children: React.ReactNode }) {
+    return <>{children}</>;
+  },
+  localeNames: { en: "English", pl: "Polski" },
+  routing: { defaultLocale: "pl", locales: ["en", "pl"] },
+  usePathname: () => "/en",
   useRouter: () => ({
     back: vi.fn(),
     push: vi.fn(),
     refresh: vi.fn(),
     replace: vi.fn(),
   }),
-  usePathname: () => "/en",
   useSearchParams: () => new URLSearchParams(),
-  Link: ({ children }: { children: React.ReactNode }) => children,
-  routing: { locales: ["pl", "en"], defaultLocale: "pl" },
-  localeNames: { pl: "Polski", en: "English" },
 }));
 
 // Mock dependencies
@@ -191,7 +193,8 @@ describe("GameProvider", () => {
       expect(screen.getByTestId("daily-brand")).toHaveTextContent("Chanel"),
     );
 
-    await act(() => {
+    act(() => {
+      // eslint-disable-next-line testing-library/no-node-access
       screen.getByText("Guess").click();
     });
 
@@ -265,7 +268,8 @@ describe("GameProvider", () => {
       expect(screen.getByTestId("daily-brand")).toHaveTextContent("Chanel"),
     );
 
-    await act(() => {
+    act(() => {
+      // eslint-disable-next-line testing-library/no-node-access
       screen.getByText("Guess").click();
     });
 

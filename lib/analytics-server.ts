@@ -1,12 +1,16 @@
+import "server-only";
+
 import { PostHog } from "posthog-node";
+
+import { env } from "@/lib/env";
 
 // Initialize PostHog client
 // Leveraging singleton pattern by module caching in Node.js
 let posthogClient: PostHog | null = null;
 
 function getPostHogClient() {
-  posthogClient ??= new PostHog(process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "", {
-    host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+  posthogClient ??= new PostHog(env.NEXT_PUBLIC_POSTHOG_KEY, {
+    host: env.NEXT_PUBLIC_POSTHOG_HOST,
   });
   return posthogClient;
 }
@@ -17,6 +21,7 @@ function getPostHogClient() {
  * @param properties
  * @param distinctId
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function trackEvent(
   eventName: string,
   properties?: Record<string, unknown>,
@@ -47,6 +52,7 @@ export async function trackEvent(
  * @param distinctId
  * @param properties
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function identifyUser(
   distinctId: string,
   properties?: Record<string, unknown>,

@@ -3,13 +3,13 @@
 import { memo, useEffect, useRef, useState } from "react";
 
 import {
+  Calendar,
+  Music,
   ScrollText,
   Store,
   User,
   Users,
-  Calendar,
   VenusAndMars,
-  Music,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -215,18 +215,18 @@ export const AttemptLog = memo(function AttemptLog() {
                 key={`empty-attempt-${attempts.length + i}`}
               >
                 <div
-                  className={`flex items-center justify-center py-3 ${borderClass} min-h-[64px]`}
+                  className={`flex items-center justify-center py-3 ${borderClass} min-h-[4rem]`}
                 >
                   <span className="block w-full pr-1 text-center text-[0.8125rem] font-normal text-muted-foreground opacity-30">
                     {attempts.length + i + 1}
                   </span>
                 </div>
-                <div className={`py-3 ${borderClass} min-h-[64px] pr-2 pl-2`}>
+                <div className={`py-3 ${borderClass} min-h-[4rem] pr-2 pl-2`}>
                   <span className="text-sm font-medium text-muted-foreground opacity-30">
                     ...
                   </span>
                 </div>
-                <div className={`py-3 ${borderClass} min-h-[64px]`} />
+                <div className={`py-3 ${borderClass} min-h-[4rem]`} />
               </div>
             );
           },

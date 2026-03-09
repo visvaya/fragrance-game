@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useMountTransition } from "@/hooks/use-mount-transition";
-import { MASK_CHAR } from "@/lib/constants";
+import { MASK_CHAR, BULLET_CHAR } from "@/lib/constants";
 import { cn, normalizeText } from "@/lib/utils";
 
 import { useGameState, useGameActions, useUIPreferences } from "./contexts";
@@ -370,6 +370,7 @@ export function GameInput() {
 
         let perfumeToSelect = null;
 
+        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
         if (selectedIndex >= 0 && suggestions[selectedIndex]) {
           // If something is already selected, use it
           perfumeToSelect = suggestions[selectedIndex];
@@ -670,10 +671,12 @@ export function GameInput() {
                     <span className="flex flex-wrap items-baseline gap-x-1 text-foreground">
                       {/* Brand Revealed */}
                       <span className="text-foreground">
-                        {perfume.brand_masked.replaceAll(MASK_CHAR, "_")}
+                        {perfume.brand_masked}
                       </span>
 
-                      <span className="text-muted-foreground/30">•</span>
+                      <span className="text-muted-foreground/30">
+                        {BULLET_CHAR}
+                      </span>
 
                       {/* Name with highlighting */}
                       <span
@@ -692,7 +695,9 @@ export function GameInput() {
                       {/* Concentration */}
                       {perfume.concentration ? (
                         <>
-                          <span className="text-muted-foreground/30">•</span>
+                          <span className="text-muted-foreground/30">
+                            {BULLET_CHAR}
+                          </span>
                           <span>{perfume.concentration}</span>
                         </>
                       ) : null}
@@ -700,13 +705,21 @@ export function GameInput() {
                       {/* Year Masked */}
                       {!!perfume.year && (
                         <>
-                          <span className="text-muted-foreground/30">•</span>
+                          <span className="text-muted-foreground/30">
+                            {BULLET_CHAR}
+                          </span>
                           <span className="inline-flex items-baseline">
                             {(() => {
                               if (!perfume.year.includes(MASK_CHAR)) {
                                 return <span>{perfume.year}</span>;
                               }
 
+                              {
+                                /*
+                                 * NOTE: We use underscores here instead of MASK_CHAR for the input results list
+                                 * as they are more visually legible and familiar for year placeholders in autocomplete.
+                                 */
+                              }
                               if (perfume.year === MASK_CHAR.repeat(4)) {
                                 return (
                                   <span className="tracking-widest text-muted-foreground opacity-30">

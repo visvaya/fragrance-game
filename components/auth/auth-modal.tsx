@@ -23,7 +23,7 @@ const LoginForm = dynamic<LoginFormProperties>(
   async () => import("@/components/auth/login-form").then((m) => m.LoginForm),
   {
     loading: () => (
-      <div className="flex h-[400px] items-center justify-center">
+      <div className="flex h-[25rem] items-center justify-center">
         Loading...
       </div>
     ),
@@ -35,7 +35,7 @@ const RegisterForm = dynamic<RegisterFormProperties>(
     import("@/components/auth/register-form").then((m) => m.RegisterForm),
   {
     loading: () => (
-      <div className="flex h-[400px] items-center justify-center">
+      <div className="flex h-[25rem] items-center justify-center">
         Loading...
       </div>
     ),
@@ -49,7 +49,7 @@ const ForgotPasswordForm = dynamic<ForgotPasswordFormProperties>(
     ),
   {
     loading: () => (
-      <div className="flex h-[200px] items-center justify-center">
+      <div className="flex h-[12.5rem] items-center justify-center">
         Loading...
       </div>
     ),
@@ -152,12 +152,14 @@ export function AuthModal({
       }}
       open={open}
     >
-      {/* 
+      {/*
         We only render Trigger if children are provided.
-        If controlled, the parent handles the trigger. 
+        If controlled, the parent handles the trigger.
       */}
+      {/* eslint-disable-next-line @typescript-eslint/strict-boolean-expressions */}
       {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
 
+      {/* eslint-disable-next-line no-restricted-syntax -- shadcn/ui standard dialog width: 425px is a design system convention, not a user-scalable size */}
       <DialogContent className="flex flex-col gap-0 overflow-hidden border-0 bg-transparent p-0 shadow-none sm:max-w-[425px] sm:bg-transparent">
         <div className="mx-auto w-full max-w-md overflow-hidden rounded-lg border bg-background shadow-lg">
           <DialogHeader className="sr-only">

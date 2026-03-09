@@ -6,6 +6,7 @@ import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { useTheme } from "next-themes";
 
 import { useUIPreferences } from "@/components/game/contexts";
+import { env } from "@/lib/env";
 
 type CaptchaProperties = Readonly<{
   onError?: () => void;
@@ -31,7 +32,7 @@ export function Captcha({ onError, onExpire, onVerify }: CaptchaProperties) {
   // 1x00000000000000000000AA - Always Pass
   // 2x00000000000000000000AB - Always Block
   // 3x00000000000000000000FF - Force Interactive Challenge
-  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+  const siteKey = env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
   if (!siteKey) {
     console.error("Captcha: Missing NEXT_PUBLIC_TURNSTILE_SITE_KEY");
@@ -43,6 +44,7 @@ export function Captcha({ onError, onExpire, onVerify }: CaptchaProperties) {
   }
 
   return (
+    // eslint-disable-next-line no-restricted-syntax -- Cloudflare Turnstile documented minimum height is 65px (fixed hardware constraint)
     <div className="flex min-h-[65px] w-full justify-center py-2">
       <Turnstile
         onError={onError}

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { useTranslations } from "next-intl";
 
+import { BULLET_CHAR } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 import { AttemptLog } from "./attempt-log";
@@ -53,9 +54,9 @@ export function GameBoard() {
                 <p className="font-[family-name:var(--font-playfair)] text-2xl font-semibold">
                   {dailyPerfume.name}
                   {dailyPerfume.concentration &&
-                    dailyPerfume.concentration !== "Unknown" ? (
+                  dailyPerfume.concentration !== "Unknown" ? (
                     <span className="ml-2 text-lg text-muted-foreground not-italic">
-                      • {dailyPerfume.concentration}
+                      {BULLET_CHAR} {dailyPerfume.concentration}
                     </span>
                   ) : null}
                 </p>
@@ -74,9 +75,9 @@ export function GameBoard() {
                 <p className="font-[family-name:var(--font-playfair)] text-2xl font-semibold">
                   {dailyPerfume.name}
                   {dailyPerfume.concentration &&
-                    dailyPerfume.concentration !== "Unknown" ? (
+                  dailyPerfume.concentration !== "Unknown" ? (
                     <span className="ml-2 text-lg text-muted-foreground not-italic">
-                      • {dailyPerfume.concentration}
+                      {BULLET_CHAR} {dailyPerfume.concentration}
                     </span>
                   ) : null}
                 </p>

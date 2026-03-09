@@ -3,19 +3,19 @@ import { NextRequest } from "next/server";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock Supabase before importing the route
-vi.mock("@/lib/supabase/server", () => ({
-  createAdminClient: vi.fn(() => ({
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          limit: vi.fn(() => ({
-            single: vi.fn(async () => ({ data: { id: "existing-challenge" } })),
-          })),
-        })),
-      })),
-    })),
-  })),
-}));
+vi.mock("@/lib/supabase/server", () => {
+  const mockSingle = vi
+    .fn()
+    .mockResolvedValue({ data: { id: "existing-challenge" } });
+  const mockLimit = vi.fn().mockReturnValue({ single: mockSingle });
+  const mockEq = vi.fn().mockReturnValue({ limit: mockLimit });
+  const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+  const mockFrom = vi.fn().mockReturnValue({ select: mockSelect });
+
+  return {
+    createAdminClient: vi.fn().mockReturnValue({ from: mockFrom }),
+  };
+});
 
 import { GET } from "../route";
 

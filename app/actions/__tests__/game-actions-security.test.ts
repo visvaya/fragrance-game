@@ -12,6 +12,7 @@ import { getDailyChallenge } from "../game-actions";
  */
 
 // Mock Supabase clients
+/* eslint-disable sonarjs/no-nested-functions, @typescript-eslint/require-await */
 vi.mock("@/lib/supabase/server", () => ({
   createAdminClient: vi.fn(() => ({
     from: vi.fn((table: string) => {
@@ -141,6 +142,7 @@ vi.mock("@/lib/supabase/server", () => ({
     }),
   })),
 }));
+/* eslint-enable sonarjs/no-nested-functions, @typescript-eslint/require-await */
 
 describe("Server Actions Security", () => {
   beforeEach(() => {
@@ -288,15 +290,16 @@ describe("Security - Defense in Depth", () => {
     const challenge = await getDailyChallenge();
 
     // Simulate sending to client
-    const clientResponse = JSON.parse(JSON.stringify(challenge));
+    const clientResponse = structuredClone(challenge);
+    expect(clientResponse).not.toBeNull();
 
     // Safe data
-    expect(clientResponse.clues.brand).toBeDefined();
-    expect(clientResponse.clues.notes).toBeDefined();
+    expect(clientResponse!.clues.brand).toBeDefined();
+    expect(clientResponse!.clues.notes).toBeDefined();
 
     // Dangerous data should not exist
-    expect(clientResponse.perfume_id).toBeUndefined();
-    expect(clientResponse.seed_hash).toBeUndefined();
+    expect((clientResponse as any).perfume_id).toBeUndefined();
+    expect((clientResponse as any).seed_hash).toBeUndefined();
 
     // No way to reverse-engineer answer from clues
     // (notes are progressively masked, brand is masked, year is masked)

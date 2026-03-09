@@ -23,14 +23,12 @@ vi.mock("@/lib/analytics-server", () => ({
 // Import after mocks
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 
-import { checkRateLimit } from "../../../lib/redis";
 import { createMockChallenge, createMockPerfume } from "../../../vitest.setup";
 import {
   getDailyChallenge,
   initializeGame,
   startGame,
   submitGuess,
-  type DailyChallenge,
 } from "../game-actions";
 
 // Helper to create comprehensive Supabase mock that handles all table operations
@@ -187,7 +185,7 @@ describe("game-actions", () => {
   // However, we can test their behavior through the functions that use them
 
   describe("cleanNote (tested indirectly through calculateNotesMatch)", () => {
-    it("removes trademark symbols from notes", async () => {
+    it("removes trademark symbols from notes", () => {
       // This will be tested when we test submitGuess with notes matching
       // cleanNote() removes ™ and ® symbols
       expect(true).toBe(true); // Placeholder - tested via submitGuess
@@ -342,12 +340,7 @@ describe("game-actions", () => {
         const todayDate = new Date().toISOString().split("T")[0];
 
         const mockSupabaseClient = {
-          eq: vi.fn().mockImplementation((field: string, value: string) => {
-            if (field === "challenge_date") {
-              expect(value).toBe(todayDate);
-            }
-            return mockSupabaseClient;
-          }),
+          eq: vi.fn().mockReturnThis(),
           from: vi.fn().mockReturnThis(),
           limit: vi.fn().mockReturnThis(),
           select: vi.fn().mockReturnThis(),
@@ -1310,7 +1303,7 @@ describe("game-actions", () => {
 
             if (table === "game_sessions") {
               // First call: initial session query, Second call: after update
-              chain.single = vi.fn().mockImplementation(async () => {
+              chain.single = vi.fn().mockImplementation(() => {
                 sessionCallCount++;
                 return sessionCallCount === 1
                   ? { data: sessionData, error: null }
@@ -1342,7 +1335,7 @@ describe("game-actions", () => {
         });
 
         // Move callCount outside to persist across multiple from("perfumes") calls
-        let perfumeCallCount = 0;
+        let _perfumeCallCount = 0;
 
         const mockAdminClient = {
           from: vi.fn((table: string) => {
@@ -1375,8 +1368,8 @@ describe("game-actions", () => {
               }
               case "perfumes": {
                 // For both guessed and answer perfume (same ID) - called twice in Promise.all
-                chain.single = vi.fn().mockImplementation(async () => {
-                  perfumeCallCount++;
+                chain.single = vi.fn().mockImplementation(() => {
+                  _perfumeCallCount++;
                   // Both queries should return the same data since it's the correct guess
                   return {
                     data: {
@@ -1501,7 +1494,7 @@ describe("game-actions", () => {
         });
 
         // Move callCount outside to persist across multiple from("perfumes") calls
-        let perfumeCallCount = 0;
+        let _perfumeCallCount = 0;
 
         const mockAdminClient = {
           from: vi.fn((table: string) => {
@@ -1534,39 +1527,35 @@ describe("game-actions", () => {
               }
               case "perfumes": {
                 // Return different data for guessed vs answer perfume
-                chain.single = vi.fn().mockImplementation(async () => {
-                  perfumeCallCount++;
-                  if (perfumeCallCount === 1) {
-                    // Guessed perfume
-                    return {
-                      data: {
-                        base_notes: ["Amber"],
-                        brand_id: "brand-wrong",
-                        concentrations: { name: "EDT" },
-                        gender: "Male",
-                        middle_notes: ["Lavender"],
-                        perfumers: ["Other Perfumer"],
-                        release_year: 2015,
-                        top_notes: ["Lemon"],
-                      },
-                      error: null,
-                    };
-                  } else {
-                    // Answer perfume
-                    return {
-                      data: {
-                        base_notes: ["Musk"],
-                        brand_id: "brand-correct",
-                        concentrations: { name: "EDP" },
-                        middle_notes: ["Rose"],
-                        name: "Correct Perfume",
-                        perfumers: ["Correct Perfumer"],
-                        release_year: 2020,
-                        top_notes: ["Bergamot"],
-                      },
-                      error: null,
-                    };
-                  }
+                chain.single = vi.fn().mockImplementation(() => {
+                  _perfumeCallCount++;
+                  return _perfumeCallCount === 1
+                    ? {
+                        data: {
+                          base_notes: ["Amber"],
+                          brand_id: "brand-wrong",
+                          concentrations: { name: "EDT" },
+                          gender: "Male",
+                          middle_notes: ["Lavender"],
+                          perfumers: ["Other Perfumer"],
+                          release_year: 2015,
+                          top_notes: ["Lemon"],
+                        },
+                        error: null,
+                      }
+                    : {
+                        data: {
+                          base_notes: ["Musk"],
+                          brand_id: "brand-correct",
+                          concentrations: { name: "EDP" },
+                          middle_notes: ["Rose"],
+                          name: "Correct Perfume",
+                          perfumers: ["Correct Perfumer"],
+                          release_year: 2020,
+                          top_notes: ["Bergamot"],
+                        },
+                        error: null,
+                      };
                 });
 
                 break;

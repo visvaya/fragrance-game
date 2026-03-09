@@ -61,9 +61,9 @@ export function RevealImage() {
     }
   }, [targetSource, state.currentSource]);
 
-  const imageSize = uiPreferences.fontScale === "large" ? "w-[17.5rem]" : "w-[15rem]";
+  const imageSize =
+    uiPreferences.fontScale === "large" ? "w-[17.5rem]" : "w-[15rem]";
   const isSkeleton = dailyPerfume.id === "skeleton";
-
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -109,7 +109,12 @@ export function RevealImage() {
 
         {/* Image area — skeleton or real */}
         {isSkeleton ? (
-          <div className={cn("relative aspect-square overflow-hidden rounded-md", imageSize)}>
+          <div
+            className={cn(
+              "relative aspect-square overflow-hidden rounded-md",
+              imageSize,
+            )}
+          >
             <Skeleton className="h-full w-full rounded-md" />
             <div className="pointer-events-none absolute top-2 left-2 h-4 w-4 border-t-2 border-l-2 border-foreground/10" />
             <div className="pointer-events-none absolute top-2 right-2 h-4 w-4 border-t-2 border-r-2 border-foreground/10" />

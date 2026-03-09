@@ -15,7 +15,7 @@ import {
   skipAttempt,
   submitGuess,
 } from "@/app/actions/game-actions";
-import { MASK_CHAR } from "@/lib/constants";
+import { GENERIC_PLACEHOLDER, MASK_CHAR } from "@/lib/constants";
 import { revealLetters } from "@/lib/game/scoring";
 
 import type { Attempt } from "./game-state-context";
@@ -93,11 +93,12 @@ function calculateMaskedValues(
   const brandPercentages = [0, 0, 0.15, 0.4, 0.7, 1];
   const guessMaskedBrand =
     level === 1
-      ? "?????"
+      ? GENERIC_PLACEHOLDER.repeat(3)
       : revealLetters(targetBrand, brandPercentages[Math.min(level - 1, 5)]);
 
   // Year
   let guessMaskedYear = MASK_CHAR.repeat(4);
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
   if (targetYear) {
     const yearString = targetYear.toString();
     if (level >= 5) guessMaskedYear = yearString;
@@ -352,19 +353,31 @@ export function GameActionsProvider({
         setNonce("");
         setSessionId(null);
         setDailyPerfume({
-          brand: "?????" as string,
-          concentration: undefined as string | undefined,
-          gender: "?????",
+          brand: GENERIC_PLACEHOLDER.repeat(5),
+          concentration: undefined,
+          gender: GENERIC_PLACEHOLDER.repeat(5),
           id: "skeleton",
           imageUrl: "/placeholder.svg?height=400&width=400",
-          isLinear: false as boolean,
-          name: "?????" as string,
+          isLinear: false,
+          name: GENERIC_PLACEHOLDER.repeat(5),
           notes: {
-            base: ["?????", "?????", "?????"],
-            heart: ["?????", "?????", "?????"],
-            top: ["?????", "?????", "?????"],
+            base: [
+              GENERIC_PLACEHOLDER.repeat(5),
+              GENERIC_PLACEHOLDER.repeat(5),
+              GENERIC_PLACEHOLDER.repeat(5),
+            ],
+            heart: [
+              GENERIC_PLACEHOLDER.repeat(5),
+              GENERIC_PLACEHOLDER.repeat(5),
+              GENERIC_PLACEHOLDER.repeat(5),
+            ],
+            top: [
+              GENERIC_PLACEHOLDER.repeat(5),
+              GENERIC_PLACEHOLDER.repeat(5),
+              GENERIC_PLACEHOLDER.repeat(5),
+            ],
           },
-          perfumer: "?????" as string,
+          perfumer: GENERIC_PLACEHOLDER.repeat(5),
           xsolve: 0 as number,
           year: MASK_CHAR.repeat(4) as string | number,
         });
@@ -396,7 +409,8 @@ export function GameActionsProvider({
           setNonce(session.nonce);
 
           const busterUrl = session.imageUrl
-            ? `${session.imageUrl}?reset=${Date.now()}`
+            ? // eslint-disable-next-line no-restricted-properties
+              `${session.imageUrl}?reset=${Date.now()}`
             : "/placeholder.svg";
           setImageUrl(busterUrl);
         }
@@ -438,7 +452,6 @@ export function GameActionsProvider({
  * useGameActions - Hook to access game actions
  * Use this for components that trigger mutations (input, reset button)
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useGameActions() {
   const context = useContext(GameActionsContext);
   if (!context) {

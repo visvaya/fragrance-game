@@ -2,18 +2,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
-  unstable_cache: vi.fn().mockImplementation((function_) => function_),
+  unstable_cache: vi.fn().mockImplementation(<T>(function_: T) => function_),
 }));
 vi.mock("@/lib/supabase/server", () => ({
   createAdminClient: vi.fn(),
   createClient: vi.fn(),
 }));
 vi.mock("@/lib/redis", () => ({
-  checkRateLimit: vi.fn().mockResolvedValue(undefined),
+  checkRateLimit: vi.fn().mockReturnValue(Promise.resolve(true)),
 }));
 vi.mock("@/lib/analytics-server", () => ({
-  identifyUser: vi.fn().mockResolvedValue(undefined),
-  trackEvent: vi.fn().mockResolvedValue(undefined),
+  identifyUser: vi.fn().mockReturnValue(Promise.resolve()),
+  trackEvent: vi.fn().mockReturnValue(Promise.resolve()),
 }));
 
 import { skipAttempt } from "@/app/actions/game-actions";
@@ -23,6 +23,7 @@ const SESSION_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
 const NONCE = "12345";
 const USER_ID = "u1b2c3d4-e5f6-7890-abcd-ef1234567892";
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 function makeSession(attempts_count = 2) {
   return {
     attempts_count,

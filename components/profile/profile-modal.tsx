@@ -61,6 +61,7 @@ export function ProfileModal({
 
   return (
     <Dialog onOpenChange={onClose} open={open}>
+      {/* eslint-disable-next-line no-restricted-syntax -- shadcn/ui standard dialog width: 425px is a design system convention */}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>

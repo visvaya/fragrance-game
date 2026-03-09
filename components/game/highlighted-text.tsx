@@ -56,6 +56,7 @@ export const HighlightedText = memo(
       if (matches.length === 0) return [text];
 
       // Sort matches
+      // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
       matches.sort((a, b) => a.start - b.start || b.end - a.end);
 
       // Merge matches

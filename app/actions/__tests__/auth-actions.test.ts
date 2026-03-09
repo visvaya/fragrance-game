@@ -1,4 +1,10 @@
+import { revalidatePath } from "next/cache";
+
 import { describe, expect, it, vi, beforeEach } from "vitest";
+
+import { createClient } from "@/lib/supabase/server";
+
+import { revokeAllSessions } from "../auth-actions";
 
 // Mock dependencies
 vi.mock("next/cache", () => ({
@@ -8,13 +14,6 @@ vi.mock("next/cache", () => ({
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(),
 }));
-
-// Import after mocks
-import { revalidatePath } from "next/cache";
-
-import { createClient } from "@/lib/supabase/server";
-
-import { revokeAllSessions } from "../auth-actions";
 
 describe("auth-actions", () => {
   beforeEach(() => {

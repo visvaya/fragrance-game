@@ -67,9 +67,11 @@ test.describe("Locale Switching", () => {
 
     if (currentUrl.includes("/en")) {
       // Redirected to default locale
+
       expect(currentUrl).toContain("/en");
     } else {
       // Or showed 404 - verify response status
+
       expect(response?.status()).toBeGreaterThanOrEqual(400);
     }
   });
@@ -94,6 +96,7 @@ test.describe("Locale Switching", () => {
 
     // Skip if game is closed
     const closedMessage = page.getByText(/Gra zakończona|Come back tomorrow/i);
+
     if (await closedMessage.isVisible()) {
       test.skip(true, "Game is currently closed.");
       return;
@@ -109,6 +112,7 @@ test.describe("Locale Switching", () => {
     const plClosedMessage = page.getByText(
       /Gra zakończona|Come back tomorrow/i,
     );
+
     if (await plClosedMessage.isVisible()) {
       test.skip(true, "Game is currently closed.");
       return;
@@ -167,6 +171,7 @@ test.describe("Locale URL Structure", () => {
 
       if (href && !href.startsWith("http")) {
         // Internal link should maintain locale
+
         expect(href).toMatch(/^\/pl\//);
       }
     }

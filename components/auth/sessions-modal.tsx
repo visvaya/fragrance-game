@@ -328,7 +328,7 @@ export function SessionsModal({
 
   return (
     <Dialog onOpenChange={onClose} open={open}>
-      <DialogContent className="w-[95vw] rounded-lg sm:max-w-[600px]">
+      <DialogContent className="w-[95vw] rounded-lg sm:max-w-[37.5rem]">
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>

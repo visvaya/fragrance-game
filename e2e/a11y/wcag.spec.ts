@@ -1,56 +1,53 @@
-import AxeBuilder from "@axe-core/playwright";
+import { AxeBuilder } from "@axe-core/playwright";
 import { test, expect } from "@playwright/test";
 
 /**
- * Automatyczne testy dostępności (WCAG 2.1) dla kluczowych stron.
- * Wykorzystujemy @axe-core/playwright do audytu renderowanego DOMu.
+ * Automated accessibility tests (WCAG 2.1) for key pages.
+ * We use `@axe-core/playwright` to audit the rendered DOM.
  */
-test.describe("Accessibility Audits (Axe)", () => {
-  test("homepage should have no serious accessibility violations", async ({
-    page,
-  }) => {
-    await page.goto("/");
+test("homepage should have no serious accessibility violations", async ({
+  page,
+}) => {
+  await page.goto("/");
 
-    // Czekamy na stabilizację strony (Fonts, Animations)
-    await page.waitForLoadState("networkidle");
+  // Wait for the main element to load
+  await expect(page.locator("main")).toBeVisible();
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-      .analyze();
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
 
-    expect(results.violations).toEqual([]);
-  });
+  expect(results.violations).toEqual([]);
+});
 
-  test("game page should have no serious accessibility violations", async ({
-    page,
-  }) => {
-    await page.goto("/game");
-    await page.waitForLoadState("networkidle");
+test("game page should have no serious accessibility violations", async ({
+  page,
+}) => {
+  await page.goto("/game");
+  await expect(page.locator("main")).toBeVisible();
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-      .analyze();
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
 
-    expect(results.violations).toEqual([]);
-  });
+  expect(results.violations).toEqual([]);
+});
 
-  test("login modal should be accessible", async ({ page }) => {
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+test("login modal should be accessible", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("main")).toBeVisible();
 
-    // Kliknij przycisk logowania (jeśli istnieje)
-    const loginButton = page.getByRole("button", { name: /Zaloguj|Login/i });
-    if (await loginButton.isVisible()) {
-      await loginButton.click();
-      // Poczekaj na animację modala
-      await page.waitForTimeout(500);
+  // Click the login button
+  const loginButton = page.getByRole("button", { name: /Zaloguj|Login/i });
+  await expect(loginButton).toBeVisible();
+  await loginButton.click();
+  // Wait for the modal to become visible (and its animation)
+  await expect(page.locator('[role="dialog"]')).toBeVisible();
 
-      const results = await new AxeBuilder({ page })
-        .include('[role="dialog"]') // Skup się na modalu
-        .withTags(["wcag2a", "wcag2aa"])
-        .analyze();
+  const results = await new AxeBuilder({ page })
+    .include('[role="dialog"]') // Focus only on the modal
+    .withTags(["wcag2a", "wcag2aa"])
+    .analyze();
 
-      expect(results.violations).toEqual([]);
-    }
-  });
+  expect(results.violations).toEqual([]);
 });

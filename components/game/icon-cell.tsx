@@ -37,7 +37,6 @@ const iconCellVariants = cva("group/icon rounded-sm transition", {
  * Classes for the icon/content element inside IconCell.
  * Applies a brightness filter on hover via the parent's named group.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export const iconInnerVariants = cva(
   "transition-[filter] group-hover/icon:brightness-75",
   {

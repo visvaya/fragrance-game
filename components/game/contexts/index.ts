@@ -6,11 +6,11 @@
  */
 
 export {
-  GameStateProvider,
-  useGameState,
   type Attempt,
   type DailyPerfume,
   type GameState,
+  GameStateProvider,
+  useGameState,
 } from "./game-state-context";
 
 export { GameActionsProvider, useGameActions } from "./game-actions-context";

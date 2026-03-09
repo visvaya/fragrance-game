@@ -1,5 +1,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 
+import { env } from "@/lib/env";
+
 /**
  * Tworzy klienta Supabase do użycia w komponencie po stronie przeglądarki (Client Components).
  * Wykorzystuje \`@supabase/ssr\`, który automatycznie zarządza ciasteczkami sesji.
@@ -16,15 +18,10 @@ import { createBrowserClient } from "@supabase/ssr";
  * }
  * ```
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function createClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error(
-      "Brakuje zmiennych środowiskowych NEXT_PUBLIC_SUPABASE_URL lub NEXT_PUBLIC_SUPABASE_ANON_KEY",
-    );
-  }
+  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   // Use local proxy to bypass uMatrix/AdBlockers
   // Valid URL is required by createBrowserClient

@@ -42,11 +42,15 @@ test.describe("Rate Limiting", () => {
       const headers = response.headers();
 
       // Verify rate limit headers are present
+
       expect(headers["x-ratelimit-limit"]).toBeTruthy();
+
       expect(headers["x-ratelimit-remaining"]).toBeTruthy();
+
       expect(headers["x-ratelimit-reset"]).toBeTruthy();
 
       // Verify limit is set to 100
+
       expect(Number.parseInt(headers["x-ratelimit-limit"])).toBe(100);
     }
   });
@@ -58,6 +62,7 @@ test.describe("Rate Limiting", () => {
     let isRateLimited = false;
     for (let i = 0; i < 105; i++) {
       const response = await request.get("/api/healthcheck");
+
       if (response.status() === 429) {
         isRateLimited = true;
         break;
@@ -71,9 +76,11 @@ test.describe("Rate Limiting", () => {
 
       // Try again - should succeed
       const response = await request.get("/api/healthcheck");
+
       expect(response.status()).not.toBe(429);
     } else {
       // If we couldn't trigger rate limit, skip this test
+
       test.skip();
     }
   });
@@ -124,8 +131,10 @@ test.describe("Rate Limiting - Error Response", () => {
 
     // Send requests until rate-limited
     let rateLimitResponse = null;
+
     for (let i = 0; i < 105; i++) {
       const response = await request.get("/api/healthcheck");
+
       if (response.status() === 429) {
         rateLimitResponse = response;
         break;
@@ -134,7 +143,9 @@ test.describe("Rate Limiting - Error Response", () => {
 
     if (rateLimitResponse) {
       const json = await rateLimitResponse.json();
+
       expect(json.error).toBeTruthy();
+
       expect(json.error).toContain("Rate limit");
     }
   });

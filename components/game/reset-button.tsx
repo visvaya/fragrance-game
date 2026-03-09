@@ -11,6 +11,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { env } from "@/lib/env";
 
 import { useGameActions } from "./contexts";
 
@@ -27,7 +28,7 @@ export function ResetButton({
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const t = useTranslations("ResetButton");
 
-  if (process.env.NEXT_PUBLIC_GAME_RESET_ENABLED !== "true") return null;
+  if (env.NEXT_PUBLIC_GAME_RESET_ENABLED !== "true") return null;
 
   const handleConfirmedReset = async () => {
     setIsResetting(true);

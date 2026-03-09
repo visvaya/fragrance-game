@@ -14,7 +14,7 @@ test.describe("Smoke Tests - Critical Path @smoke", () => {
 
   test("Game Input or No-Puzzle message is visible", async ({ page }) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator("main")).toBeVisible();
 
     // Resilience: check for input OR "no puzzle" message
     const inputField = page.getByTestId("game-input");

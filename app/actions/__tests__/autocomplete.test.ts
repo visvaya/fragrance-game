@@ -10,13 +10,14 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 vi.mock("@/lib/utils/brand-masking", () => ({
-  maskYear: vi.fn((year, attempt) => {
+  maskYear: vi.fn((year: number | null, attempt: number) => {
     if (!year) return null;
-    if (attempt <= 1) return "____";
-    if (attempt === 2) return year.toString()[0] + "___";
-    if (attempt === 3) return year.toString().slice(0, 2) + "__";
-    if (attempt === 4) return year.toString().slice(0, 3) + "_";
-    return year.toString();
+    const stringYear = String(year);
+    if (attempt <= 1) return "⎵⎵⎵⎵";
+    if (attempt === 2) return stringYear[0] + "⎵⎵⎵";
+    if (attempt === 3) return stringYear.slice(0, 2) + "⎵⎵";
+    if (attempt === 4) return stringYear.slice(0, 3) + "⎵";
+    return stringYear;
   }),
 }));
 
@@ -44,12 +45,12 @@ vi.mock("@/lib/validations/game.schema", () => ({
 }));
 
 vi.mock("@/lib/analytics-server", () => ({
-  trackEvent: vi.fn().mockResolvedValue(undefined),
+  trackEvent: vi.fn().mockReturnValue(Promise.resolve()),
 }));
 
 vi.mock("@/lib/cache/autocomplete-cache", () => ({
   getCachedAutocomplete: vi.fn().mockResolvedValue(null),
-  setCachedAutocomplete: vi.fn().mockResolvedValue(undefined),
+  setCachedAutocomplete: vi.fn().mockReturnValue(Promise.resolve()),
 }));
 
 // Import after mocks
@@ -58,7 +59,7 @@ import { checkRateLimit } from "@/lib/redis";
 import { createClient } from "@/lib/supabase/server";
 import { maskYear } from "@/lib/utils/brand-masking";
 
-import { searchPerfumes, type PerfumeSuggestion } from "../autocomplete";
+import { searchPerfumes } from "../autocomplete";
 
 describe("autocomplete", () => {
   beforeEach(() => {
@@ -284,7 +285,7 @@ describe("autocomplete", () => {
         const result = await searchPerfumes("Sauvage", "session-123", 2);
 
         expect(maskYear).toHaveBeenCalledWith(2015, 2);
-        expect(result[0].year).toBe("2___");
+        expect(result[0].year).toBe("2⎵⎵⎵");
       });
 
       it("reveals full year for duplicate perfumes", async () => {

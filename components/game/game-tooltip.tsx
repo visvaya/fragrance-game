@@ -141,7 +141,7 @@ export function GameTooltip({
       </TooltipTrigger>
       <TooltipContent
         // Ensure z-index is correct (Dropdown layer)
-        className="pointer-events-none z-[60] max-w-[200px] text-center select-none"
+        className="pointer-events-none z-[60] max-w-[12.5rem] text-center select-none"
         // Prevent tooltip from closing on tap inside (if user taps it by mistake)
         onPointerDownOutside={(_e) => {
           // Close on tap outside

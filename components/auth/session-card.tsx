@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { BULLET_CHAR } from "@/lib/constants";
 import { getDateLocale } from "@/lib/i18n/date-fns";
 
 export type Session = {
@@ -69,7 +70,7 @@ export function SessionCard({
           </p>
           <div className="flex flex-col text-xs text-muted-foreground sm:flex-row sm:gap-2">
             <span>{session.ip_address}</span>
-            <span className="hidden sm:inline">•</span>
+            <span className="hidden sm:inline">{BULLET_CHAR}</span>
             <span>
               {t("lastActive", {
                 time: formatDistanceToNow(new Date(session.last_active_at), {

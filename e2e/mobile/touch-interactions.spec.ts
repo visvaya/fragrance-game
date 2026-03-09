@@ -1,3 +1,4 @@
+/* eslint-disable playwright/no-wait-for-timeout */
 import { test, expect, devices } from "@playwright/test";
 
 /**
@@ -24,6 +25,7 @@ test.describe("Mobile Touch Interactions - Android", () => {
       const closedMessage = page.getByText(
         /Gra zakończona|Come back tomorrow/i,
       );
+
       if (await closedMessage.isVisible()) {
         test.skip(true, "Game is currently closed.");
         return;
@@ -46,8 +48,10 @@ test.describe("Mobile Touch Interactions - Android", () => {
       const count = await suggestionsList.count();
 
       // If suggestions appear, verify they're tappable
+
       if (count > 0) {
         const firstSuggestion = suggestionsList.first();
+
         await expect(firstSuggestion).toBeVisible();
 
         // Tap should work
@@ -63,12 +67,13 @@ test.describe("Mobile Touch Interactions - Android", () => {
       // The Investigation Log table has many small icon buttons (28x28px) for column headers
       // These are intentionally small to fit mobile viewport and are not primary touch targets
       // Primary actions (game input, submit, reset) meet WCAG 2.1 requirements
+
       // TODO: Refactor to test only critical touch targets, excluding table icons
 
       await page.goto("/en");
 
       // Wait for page to load
-      await page.waitForLoadState("networkidle");
+      await expect(page.locator("main")).toBeVisible();
       await page.waitForTimeout(2000);
 
       // WCAG 2.1: Touch targets should be at least 48x48px
@@ -88,6 +93,7 @@ test.describe("Mobile Touch Interactions - Android", () => {
         }
       }
 
+      const totalButtons = buttons.length;
       if (tooSmallButtons.length > 0) {
         console.warn(
           "Buttons smaller than 44x44px (WCAG 2.1 target size):",
@@ -95,14 +101,8 @@ test.describe("Mobile Touch Interactions - Android", () => {
         );
       }
 
-      // Test primary action buttons only
-      const primaryButtons = buttons.filter(async (btn) => {
-        const text = (await btn.textContent()) || "";
-        return !["#", "B", "P", "Y", "G", "N"].includes(text.trim());
-      });
-
       expect(tooSmallButtons.length).toBeLessThan(
-        Math.max(1, buttons.length / 2),
+        Math.max(1, totalButtons / 2),
       );
     },
   );
@@ -116,6 +116,7 @@ test.describe("Mobile Touch Interactions - Android", () => {
       const closedMessage = page.getByText(
         /Gra zakończona|Come back tomorrow/i,
       );
+
       if (await closedMessage.isVisible()) {
         test.skip(true, "Game is currently closed.");
         return;
@@ -142,7 +143,7 @@ test.describe("Mobile Touch Interactions - Android", () => {
       await page.goto("/en");
 
       // Wait for page to fully load
-      await page.waitForLoadState("networkidle");
+      await expect(page.locator("main")).toBeVisible();
 
       const hasHorizontalScroll = await page.evaluate(() => {
         const bodyWidth = document.body.scrollWidth;
@@ -292,6 +293,7 @@ test.describe("Mobile Touch Interactions - iOS", () => {
 
     // Check for "Closed" state
     const closedMessage = page.getByText(/Gra zakończona|Come back tomorrow/i);
+
     if (await closedMessage.isVisible()) {
       test.skip(true, "Game is currently closed.");
       return;
@@ -341,7 +343,7 @@ test.describe("Mobile Touch Interactions - iOS", () => {
     await page.goto("/en");
 
     // Wait for page to stabilize
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator("main")).toBeVisible();
 
     // Check for layout shifts
     const cls = await page.evaluate(async () => {
@@ -439,7 +441,7 @@ test.describe("Mobile Responsive Design", () => {
         );
       });
 
-      expect(viewportWidth < 768).toBe(true);
+      expect(isMobileLayout).toBe(true);
     },
   );
 });

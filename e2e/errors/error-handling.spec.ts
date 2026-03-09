@@ -1,10 +1,11 @@
-import { test, expect } from "@playwright/test";
+/* eslint-disable playwright/no-wait-for-timeout */
+import { test, expect, type Page } from "@playwright/test";
 
 /**
  * Helper to wait for game input to be ready
  * Accounts for React hydration + game state initialization + Supabase anonymous auth
  */
-async function waitForGameInput(page: any) {
+async function waitForGameInput(page: Page) {
   // Wait for game to initialize
   // - React hydration (~2s)
   // - Supabase anonymous auth with cookie verification (~3-5s)
@@ -31,7 +32,7 @@ test.describe("Error Handling", () => {
     }) => {
       // This test is disabled due to Supabase auth timing issues in E2E environment
       // Navigate to the page while online
-      await page.goto("/", { waitUntil: "networkidle" });
+      await page.goto("/");
 
       // Wait for the input to be ready
       const input = await waitForGameInput(page);
@@ -54,13 +55,9 @@ test.describe("Error Handling", () => {
       // Either show "No results" or just stop loading without crashing
       const noResultsVisible = await page
         .getByText(/No results found|Brak wyników/i)
-        .isVisible()
-        .catch(() => false);
+        .isVisible();
 
-      const isNotLoading = !(await page
-        .getByTestId("loader-icon")
-        .isVisible()
-        .catch(() => false));
+      const isNotLoading = !(await page.getByTestId("loader-icon").isVisible());
 
       // Either show "no results" or stop loading indicator
       expect(noResultsVisible || isNotLoading).toBe(true);
@@ -73,7 +70,7 @@ test.describe("Error Handling", () => {
       context,
       page,
     }) => {
-      await page.goto("/", { waitUntil: "networkidle" });
+      await page.goto("/", { waitUntil: "domcontentloaded" });
 
       const input = await waitForGameInput(page);
 
@@ -112,7 +109,7 @@ test.describe("Error Handling", () => {
     test.fixme("shows 'no results' message for nonsense query", async ({
       page,
     }) => {
-      await page.goto("/", { waitUntil: "networkidle" });
+      await page.goto("/");
 
       const input = await waitForGameInput(page);
 
@@ -129,7 +126,7 @@ test.describe("Error Handling", () => {
     });
 
     test.fixme("shows suggestions for valid query", async ({ page }) => {
-      await page.goto("/", { waitUntil: "networkidle" });
+      await page.goto("/");
 
       const input = await waitForGameInput(page);
 
@@ -157,16 +154,13 @@ test.describe("Error Handling", () => {
     test.fixme("prevents selecting already guessed perfume", async ({
       page,
     }) => {
-      await page.goto("/", { waitUntil: "networkidle" });
+      await page.goto("/");
 
       // Check if game is active
       const closedMessage = page.getByText(
         /Gra zakończona|Come back tomorrow/i,
       );
-      if (await closedMessage.isVisible()) {
-        test.skip(true, "Game is currently closed");
-        return;
-      }
+      await expect(closedMessage).toBeHidden();
 
       const input = await waitForGameInput(page);
 
@@ -228,7 +222,7 @@ test.describe("Error Handling", () => {
     test.fixme("does not trigger search for queries less than 3 characters", async ({
       page,
     }) => {
-      await page.goto("/", { waitUntil: "networkidle" });
+      await page.goto("/");
 
       const input = await waitForGameInput(page);
 
@@ -265,7 +259,7 @@ test.describe("Error Handling", () => {
 
   test.describe("Game State Errors", () => {
     test("shows closed message when game is not active", async ({ page }) => {
-      await page.goto("/", { waitUntil: "networkidle" });
+      await page.goto("/");
 
       // Wait for page to load
       await page.waitForTimeout(2000);
@@ -299,15 +293,12 @@ test.describe("Error Handling", () => {
       // Skip in CI to avoid test data pollution
       test.skip(!!process.env.CI, "Skipping in CI environment");
 
-      await page.goto("/", { waitUntil: "networkidle" });
+      await page.goto("/", { waitUntil: "domcontentloaded" });
 
       const closedMessage = page.getByText(
         /Gra zakończona|Come back tomorrow/i,
       );
-      if (await closedMessage.isVisible()) {
-        test.skip(true, "Game is currently closed");
-        return;
-      }
+      await expect(closedMessage).toBeHidden();
 
       const input = await waitForGameInput(page);
 

@@ -6,8 +6,10 @@ test("Game Flow Interaction Test (Real DB Check)", async ({ page }) => {
 
   // Check for "Closed" state specifically
   const closedMessage = page.getByText(/Gra zakończona|Come back tomorrow/i);
+
   if (await closedMessage.isVisible()) {
     console.log("Game is in CLOSED state.");
+
     test.skip(true, "Game is currently closed.");
     return;
   }
@@ -43,9 +45,11 @@ test("Game Flow Interaction Test (Real DB Check)", async ({ page }) => {
 
       // 5. Verify Attempt Log
       const attemptRow = page.locator("span", { hasText: /^I$/ }).first();
+
       await expect(attemptRow).toBeVisible();
 
       // Verify input is cleared
+
       await expect(input).toHaveValue("");
     } else {
       console.log(

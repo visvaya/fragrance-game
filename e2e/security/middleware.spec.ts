@@ -63,8 +63,9 @@ test.describe("Middleware Security Headers", () => {
     // If no public endpoint exists, this test can be skipped or use authenticated request
     const response = await request.get("/api/healthcheck").catch(() => null);
 
-    if (response && response.ok()) {
+    if (response?.ok()) {
       const cacheControl = response.headers()["cache-control"];
+
       expect(cacheControl).toBe("no-store, max-age=0, must-revalidate");
     }
   });
@@ -78,10 +79,10 @@ test.describe("Middleware Security Headers", () => {
       .catch(() => null);
 
     if (response) {
-      const headers = response.headers();
       // Static assets should NOT have our custom X-Frame-Options
       // (Next.js may add its own headers, but our middleware should skip)
       // This is hard to test definitively, so we just verify the request doesn't fail
+
       expect(response.status()).toBeLessThan(500);
     }
   });
@@ -108,6 +109,7 @@ test.describe("CORS Configuration", () => {
   test("blocks requests from unauthorized origins", async ({ request }) => {
     const response = await request.get("/", {
       headers: {
+        // eslint-disable-next-line sonarjs/no-clear-text-protocols
         origin: "http://evil.com",
       },
     });
@@ -149,7 +151,8 @@ test.describe("CSP Enforcement", () => {
     // CSP should block eval() because 'unsafe-eval' is only for specific whitelisted scripts
     // Note: 'unsafe-eval' is in the CSP for PostHog/Sentry, so this test may not fail
     // We're verifying CSP exists rather than blocking specific inline scripts
-    expect(violations.length >= 0).toBe(true); // CSP is active (may or may not block depending on policy)
+    expect(scriptBlocked).toBe(true); // Should return true or false but we expect true.
+    expect(violations).toBeDefined(); // CSP is active
   });
 
   test("allows whitelisted external scripts", async ({ page }) => {

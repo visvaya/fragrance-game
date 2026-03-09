@@ -24,10 +24,18 @@ type UIPreferencesContextType = {
 
 const SSR_DEFAULTS: UIPreferencesContextType = {
   isInputFocused: false,
-  setIsInputFocused: () => {},
-  toggleFontScale: () => {},
-  toggleLayoutMode: () => {},
-  toggleTheme: () => {},
+  setIsInputFocused: () => {
+    /* Default */
+  },
+  toggleFontScale: () => {
+    /* Default */
+  },
+  toggleLayoutMode: () => {
+    /* Default */
+  },
+  toggleTheme: () => {
+    /* Default */
+  },
   uiPreferences: { fontScale: "normal", layoutMode: "narrow", theme: "light" },
 };
 
@@ -172,7 +180,6 @@ export function UIPreferencesProvider({
  * useUIPreferences - Hook to access UI preferences
  * Use this for components that only need UI state (header, footer, etc.)
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useUIPreferences() {
   return useContext(UIPreferencesContext);
 }

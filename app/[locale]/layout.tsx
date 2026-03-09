@@ -15,6 +15,7 @@ import { SmoothScrollProvider } from "@/components/providers/smooth-scroll-provi
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { routing } from "@/i18n/routing";
+import { env } from "@/lib/env";
 
 import type { Viewport } from "next";
 import "@/app/globals.css";
@@ -51,7 +52,6 @@ const caveat = Caveat({
 /**
  * Generuje metadane dla strony.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export async function generateMetadata({
   params,
 }: {
@@ -87,7 +87,6 @@ export async function generateMetadata({
 /**
  *
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export async function generateViewport({
   params,
 }: {
@@ -152,17 +151,15 @@ export default async function RootLayout({
             __html: `try{var f=localStorage.getItem('fragrance-game-font');if(f==='large'){document.documentElement.classList.add('large-text')}}catch(e){}`,
           }}
         />
-        {process.env.NEXT_PUBLIC_SUPABASE_URL ? (
-          <link
-            crossOrigin="anonymous"
-            href={process.env.NEXT_PUBLIC_SUPABASE_URL}
-            rel="preconnect"
-          />
-        ) : null}
+        <link
+          crossOrigin="anonymous"
+          href={env.NEXT_PUBLIC_SUPABASE_URL}
+          rel="preconnect"
+        />
         {/* R2 CDN assets — krytyczne dla LCP (obrazy butelek perfum) */}
         <link
           crossOrigin=""
-          href={`https://${process.env.NEXT_PUBLIC_ASSETS_HOST ?? "assets.eauxle.com"}`}
+          href={`https://${env.NEXT_PUBLIC_ASSETS_HOST ?? "assets.eauxle.com"}`}
           rel="preconnect"
         />
         {/* Sentry CDN — dns-prefetch wystarczy (SDK ładowany na idle) */}

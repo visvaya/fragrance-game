@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("Game Completion Flows", () => {
-  // Skip these tests in CI environment to avoid flakiness and save resources
   test.skip(!!process.env.CI, "Skipping game completion flows in CI");
 
   // Increase timeout for these tests (default 30s is too short for 6 attempts)
@@ -21,6 +20,7 @@ test.describe("Game Completion Flows", () => {
     }
 
     const { perfume } = await response.json();
+
     if (!perfume) {
       console.log("[SKIP] No puzzle available today, skipping Victory flow");
       return;
@@ -34,6 +34,7 @@ test.describe("Game Completion Flows", () => {
     const isNoPuzzle = await page
       .getByText(/No puzzle today|Brak zagadki na dziś/i)
       .isVisible();
+
     if (isNoPuzzle) {
       console.log("[SKIP] No puzzle available today, skipping Victory flow");
       return;
@@ -42,6 +43,7 @@ test.describe("Game Completion Flows", () => {
     const isGameOver = await page
       .getByText(/Magnifique!|The answer was\.\.\.|Odpowiedź to\.\.\./i)
       .isVisible();
+
     if (isGameOver) {
       console.log("[SKIP] Game already finished for today");
       return;
@@ -56,7 +58,7 @@ test.describe("Game Completion Flows", () => {
     await expect(input).toBeVisible({ timeout: 15_000 });
 
     // Focus and Type brand
-    await input.click({ force: true });
+    await input.click();
     await input.fill(perfume.brand);
 
     // 5. Wait for suggestions and select the CORRECT one
@@ -79,10 +81,10 @@ test.describe("Game Completion Flows", () => {
       console.log(
         `[WARN] Perfect match not found for "${perfume.name}" by "${perfume.brand}". Picking first suggestion.`,
       );
-      await suggestions.first().click({ force: true });
+      await suggestions.first().click();
     } else {
       console.log(`[TEST] Found matching suggestion for "${perfume.name}"`);
-      await targetSuggestion.first().click({ force: true });
+      await targetSuggestion.first().click();
     }
 
     // 6. Verify Win State
@@ -99,6 +101,7 @@ test.describe("Game Completion Flows", () => {
     const isNoPuzzle = await page
       .getByText(/No puzzle today|Brak zagadki na dziś/i)
       .isVisible();
+
     if (isNoPuzzle) {
       console.log("[SKIP] No puzzle available today, cannot test loss flow");
       return;
@@ -107,6 +110,7 @@ test.describe("Game Completion Flows", () => {
     const isGameOver = await page
       .getByText(/Magnifique!|The answer was\.\.\.|Odpowiedź to\.\.\./i)
       .isVisible();
+
     if (isGameOver) {
       console.log("[SKIP] Game already finished, cannot test loss flow");
       return;
@@ -127,7 +131,7 @@ test.describe("Game Completion Flows", () => {
       const brand = brands[i];
 
       // Ensure input is focused
-      await input.click({ force: true });
+      await input.click();
       await input.clear();
 
       // Type the brand name
@@ -144,12 +148,12 @@ test.describe("Game Completion Flows", () => {
 
       if (i < 5) {
         // For first 5 attempts: simple click and verify cleared input
-        await suggestion.click({ force: true });
+        await suggestion.click();
         await expect(input).toHaveValue("", { timeout: 3000 });
       } else {
         // For 6th attempt: use retry logic to handle game over transition
         await expect(async () => {
-          await suggestion.click({ force: true });
+          await suggestion.click();
 
           const isFinished = await page
             .getByText(/Magnifique!|The answer was\.\.\.|Odpowiedź to\.\.\./i)
@@ -159,8 +163,6 @@ test.describe("Game Completion Flows", () => {
           expect(isFinished || !inputVisible).toBeTruthy();
         }).toPass({ timeout: 8000 });
       }
-
-      await page.waitForTimeout(100);
     }
 
     // 6. Verify Loss State

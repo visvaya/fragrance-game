@@ -261,6 +261,7 @@ export function GameStateProvider({
     const isGameOver = gameState === "won" || gameState === "lost";
 
     // If year is missing (0), show "Unknown" instead of masking
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!dailyPerfume.year || dailyPerfume.year === 0) {
       return "Unknown";
     }
@@ -383,7 +384,6 @@ export function GameStateProvider({
  * useGameState - Hook to access game state
  * Use this for components that need game data (clues, attempts, progress)
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useGameState() {
   const context = useContext(GameStateContext);
   if (!context) {

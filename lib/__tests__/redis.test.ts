@@ -13,21 +13,21 @@ vi.mock("@upstash/redis", () => ({
 }));
 
 vi.mock("@upstash/ratelimit", () => {
-  // Create a mock Ratelimit class
-  class MockRatelimit {
-    static slidingWindow = vi.fn(() => ({}));
+  const mockSlidingWindow = vi.fn(() => ({}));
 
-    constructor() {
-      this.limit = vi.fn(async () => ({
+  // Use a factory instead of a class to avoid constructor-related lint issues
+  const MockRatelimit = function (this: any) {
+    this.limit = vi.fn().mockReturnValue(
+      Promise.resolve({
         limit: 10,
         remaining: 5,
         reset: Date.now() + 60_000,
         success: true,
-      }));
-    }
+      }),
+    );
+  };
 
-    limit: ReturnType<typeof vi.fn>;
-  }
+  MockRatelimit.slidingWindow = mockSlidingWindow;
 
   return {
     Ratelimit: MockRatelimit,
@@ -304,22 +304,32 @@ describe("redis rate limiting", () => {
       const userId = "attacker-123";
       const mockLimiter = limiters.submitGuess;
 
-      // Simulate 10 rapid requests (limit is 10/minute)
-      for (let i = 0; i < 10; i++) {
+      // Simulate 9 rapid requests (limit is 10/minute)
+      for (let i = 0; i < 9; i++) {
         vi.mocked(mockLimiter.limit).mockResolvedValueOnce({
           limit: 10,
           pending: Promise.resolve(),
           remaining: 9 - i,
           reset: Date.now() + 60_000,
-          success: i < 9, // First 9 succeed, 10th fails
+          success: true,
         });
 
-        await (i < 9
-          ? expect(checkRateLimit("submitGuess", userId)).resolves.not.toThrow()
-          : expect(checkRateLimit("submitGuess", userId)).rejects.toThrow(
-              "Rate limit exceeded",
-            ));
+        await expect(
+          checkRateLimit("submitGuess", userId),
+        ).resolves.not.toThrow();
       }
+
+      vi.mocked(mockLimiter.limit).mockResolvedValueOnce({
+        limit: 10,
+        pending: Promise.resolve(),
+        remaining: 0,
+        reset: Date.now() + 60_000,
+        success: false,
+      });
+
+      await expect(checkRateLimit("submitGuess", userId)).rejects.toThrow(
+        "Rate limit exceeded",
+      );
     });
 
     it("allows legitimate user behavior (spaced requests)", async () => {

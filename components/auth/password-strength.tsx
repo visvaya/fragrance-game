@@ -9,6 +9,7 @@ type PasswordStrengthProperties = {
 /**
  * Component to display password strength and requirements checklist.
  */
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export function PasswordStrength({
   password = "",
 }: Readonly<PasswordStrengthProperties>) {

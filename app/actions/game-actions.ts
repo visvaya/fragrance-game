@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { trackEvent, identifyUser } from "@/lib/analytics-server";
 import { MAX_GUESSES } from "@/lib/constants";
+import { env } from "@/lib/env";
 import {
   calculateBaseScore,
   calculateFinalScore,
@@ -282,20 +283,20 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     )
     .eq("id", challengePrivate.perfume_id)
     .single()) as {
-      data: {
-        base_notes: string[] | null;
-        brands: { name: string } | null;
-        concentrations: { name: string } | null;
-        gender: string | null;
-        is_linear: boolean | null;
-        middle_notes: string[] | null;
-        name: string;
-        perfumers: string[] | null;
-        release_year: number | null;
-        top_notes: string[] | null;
-        xsolve_score: number | null;
-      } | null;
-    };
+    data: {
+      base_notes: string[] | null;
+      brands: { name: string } | null;
+      concentrations: { name: string } | null;
+      gender: string | null;
+      is_linear: boolean | null;
+      middle_notes: string[] | null;
+      name: string;
+      perfumers: string[] | null;
+      release_year: number | null;
+      top_notes: string[] | null;
+      xsolve_score: number | null;
+    } | null;
+  };
 
   if (!perfume) {
     throw new Error("Perfume not found for challenge");
@@ -307,7 +308,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
   if (perfume.xsolve_score == null) {
     throw new Error(
       `Perfume ${perfume.name} (ID: ${challengePrivate.perfume_id}) has no xsolve_score. ` +
-      "Only perfumes with calculated difficulty scores can be used in challenges.",
+        "Only perfumes with calculated difficulty scores can be used in challenges.",
     );
   }
 
@@ -316,6 +317,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
   const concentrationName =
     (perfume.concentrations as { name: string } | null)?.name ?? "Unknown";
 
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return {
     ...data,
     clues: {
@@ -341,11 +343,13 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
 /**
  * Rozpoczyna nową sesję gry lub wznawia istniejącą.
  */
-// eslint-disable-next-line sonarjs/cognitive-complexity
+// eslint-disable-next-line sonarjs/cognitive-complexity,sonarjs/max-lines-per-function
 export async function startGame(
   challengeId: string,
   inheritedAttemptCount = 0,
 ): Promise<StartGameResponse> {
+  z.uuid().parse(challengeId);
+  z.number().int().min(0).max(5).parse(inheritedAttemptCount);
   // Clamp to a safe range: 0–5 (6 would mean the game is already over)
   const safeInheritedCount = Math.max(0, Math.min(5, inheritedAttemptCount));
   const supabase = await createClient();
@@ -370,21 +374,21 @@ export async function startGame(
     .order("start_time", { ascending: false })
     .limit(1)
     .maybeSingle()) as {
-      data: {
-        attempts_count: number;
-        guesses:
+    data: {
+      attempts_count: number;
+      guesses:
         | {
-          feedback?: AttemptFeedback;
-          isCorrect: boolean;
-          perfumeId: string;
-          timestamp: string;
-        }[]
+            feedback?: AttemptFeedback;
+            isCorrect: boolean;
+            perfumeId: string;
+            timestamp: string;
+          }[]
         | null;
-        id: string;
-        last_nonce: string | number;
-        status: string;
-      } | null;
-    };
+      id: string;
+      last_nonce: string | number;
+      status: string;
+    } | null;
+  };
 
   if (existingSession) {
     const { data: graceQuery } = (await supabase
@@ -401,6 +405,7 @@ export async function startGame(
       const adminSupabase = createAdminClient();
 
       const realGuessIds = rawGuesses
+        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
         .filter((g) => !(g as { isSkip?: boolean }).isSkip && g.perfumeId)
         .map((g) => g.perfumeId);
 
@@ -424,18 +429,18 @@ export async function startGame(
             "id, name, brands(name), release_year, concentrations(name), gender, perfumers",
           )
           .in("id", realGuessIds)) as {
-            data:
+          data:
             | {
-              brands: { name: string } | null;
-              concentrations: { name: string } | null;
-              gender: string | null;
-              id: string;
-              name: string;
-              perfumers: string[] | null;
-              release_year: number | null;
-            }[]
+                brands: { name: string } | null;
+                concentrations: { name: string } | null;
+                gender: string | null;
+                id: string;
+                name: string;
+                perfumers: string[] | null;
+                release_year: number | null;
+              }[]
             | null;
-          };
+        };
 
         if (perfumes) {
           perfumeMap = new Map(perfumes.map((p) => [p.id, p]));
@@ -489,11 +494,11 @@ export async function startGame(
           .select("name, concentrations(name)")
           .eq("id", challenge.perfume_id)
           .single()) as {
-            data: {
-              concentrations: { name: string } | null;
-              name: string;
-            } | null;
-          };
+          data: {
+            concentrations: { name: string } | null;
+            name: string;
+          } | null;
+        };
 
         if (p) {
           answerName = p.name;
@@ -536,17 +541,17 @@ export async function startGame(
     )
     .limit(1)
     .single()) as {
-      data: {
-        attempts_count: number;
-        challenge_id: string;
-        id: string;
-        last_nonce: string | number;
-        player_id: string;
-        start_time: string;
-        status: string;
-      } | null;
-      error: Error | null;
-    };
+    data: {
+      attempts_count: number;
+      challenge_id: string;
+      id: string;
+      last_nonce: string | number;
+      player_id: string;
+      start_time: string;
+      status: string;
+    } | null;
+    error: Error | null;
+  };
 
   if (insertError || !session) {
     console.error("Error starting game:", insertError);
@@ -559,8 +564,8 @@ export async function startGame(
     .select("mode, grace_deadline_at_utc")
     .eq("id", challengeId)
     .single()) as {
-      data: { grace_deadline_at_utc: string; mode: string } | null;
-    };
+    data: { grace_deadline_at_utc: string; mode: string } | null;
+  };
 
   await identifyUser(user.id);
   await trackEvent(
@@ -589,6 +594,7 @@ export async function startGame(
 export async function initializeGame(
   inheritedAttemptCount = 0,
 ): Promise<InitializeGameResponse> {
+  z.number().int().min(0).max(5).parse(inheritedAttemptCount);
   let challenge: DailyChallenge | null = null;
   try {
     challenge = await getDailyChallenge();
@@ -644,14 +650,14 @@ async function getImageUrlForStep(sessionId: string): Promise<string | null> {
     .select("challenge_id, attempts_count, player_id, status")
     .eq("id", sessionId)
     .single()) as {
-      data: {
-        attempts_count: number;
-        challenge_id: string;
-        player_id: string;
-        status: string;
-      } | null;
-      error: Error | null;
-    };
+    data: {
+      attempts_count: number;
+      challenge_id: string;
+      player_id: string;
+      status: string;
+    } | null;
+    error: Error | null;
+  };
 
   if (sessionError || !session) throw new Error("Session not found");
   if (session.player_id !== user.id) throw new Error("Unauthorized");
@@ -684,19 +690,14 @@ async function getImageUrlForStep(sessionId: string): Promise<string | null> {
     : Math.min(session.attempts_count + 1, MAX_GUESSES);
   const key = (assets as Record<string, string>)[`image_key_step_${step}`];
 
-  // Use || to handle both undefined and empty strings from CI secrets
-  const assetsHost = process.env.NEXT_PUBLIC_ASSETS_HOST || "assets.eauxle.com";
-
-  if (!assetsHost && process.env.NODE_ENV === "production" && !process.env.CI) {
-    throw new Error("Missing NEXT_PUBLIC_ASSETS_HOST");
-  }
+  const assetsHost = env.NEXT_PUBLIC_ASSETS_HOST ?? "assets.eauxle.com";
   return `https://${assetsHost}/${key}`;
 }
 
 /**
  * Wysyła zgadnięcie użytkownika i aktualizuje stan gry.
  */
-// eslint-disable-next-line sonarjs/cognitive-complexity
+// eslint-disable-next-line sonarjs/cognitive-complexity,sonarjs/max-lines-per-function
 export async function submitGuess(
   sessionId: string,
   perfumeId: string,
@@ -734,25 +735,25 @@ export async function submitGuess(
     .eq("id", sessionId)
     .limit(1)
     .single()) as {
-      data: {
-        attempts_count: number;
-        challenge_id: string;
-        guesses:
+    data: {
+      attempts_count: number;
+      challenge_id: string;
+      guesses:
         | {
-          feedback?: AttemptFeedback;
-          isCorrect: boolean;
-          perfumeId: string;
-          timestamp: string;
-        }[]
+            feedback?: AttemptFeedback;
+            isCorrect: boolean;
+            perfumeId: string;
+            timestamp: string;
+          }[]
         | null;
-        id: string;
-        last_nonce: string | number;
-        player_id: string;
-        start_time: string;
-        status: string;
-      } | null;
-      error: Error | null;
-    };
+      id: string;
+      last_nonce: string | number;
+      player_id: string;
+      start_time: string;
+      status: string;
+    } | null;
+    error: Error | null;
+  };
 
   if (sessionError || !session) {
     throw new Error("Session not found");
@@ -825,9 +826,9 @@ export async function submitGuess(
       .limit(1)
       .single(),
   ])) as [
-      { data: PerfumeData | null; error: Error | null },
-      { data: PerfumeData | null; error: Error | null },
-    ];
+    { data: PerfumeData | null; error: Error | null },
+    { data: PerfumeData | null; error: Error | null },
+  ];
 
   const guessedPerfume = guessedPerfumeResult.data;
   const answerPerfume = answerPerfumeResult.data;
@@ -1045,25 +1046,25 @@ export async function skipAttempt(
     .eq("id", sessionId)
     .limit(1)
     .single()) as {
-      data: {
-        attempts_count: number;
-        challenge_id: string;
-        guesses:
+    data: {
+      attempts_count: number;
+      challenge_id: string;
+      guesses:
         | {
-          isCorrect: boolean;
-          isSkip?: boolean;
-          perfumeId: string | null;
-          timestamp: string;
-        }[]
+            isCorrect: boolean;
+            isSkip?: boolean;
+            perfumeId: string | null;
+            timestamp: string;
+          }[]
         | null;
-        id: string;
-        last_nonce: string | number;
-        player_id: string;
-        start_time: string;
-        status: string;
-      } | null;
-      error: Error | null;
-    };
+      id: string;
+      last_nonce: string | number;
+      player_id: string;
+      start_time: string;
+      status: string;
+    } | null;
+    error: Error | null;
+  };
 
   if (sessionError || !session) throw new Error("Session not found");
 
@@ -1154,7 +1155,7 @@ export async function resetGame(
   sessionId: string,
 ): Promise<{ error?: string; success: boolean }> {
   // Guard: reset is a dev/debug feature, disabled in production unless explicitly enabled
-  if (process.env.NEXT_PUBLIC_GAME_RESET_ENABLED !== "true") {
+  if (env.NEXT_PUBLIC_GAME_RESET_ENABLED !== "true") {
     return { error: "Reset disabled", success: false };
   }
 
@@ -1251,22 +1252,23 @@ export const getDailyChallengeSSR = unstable_cache(
       )
       .eq("id", challengePrivate.perfume_id)
       .single()) as {
-        data: {
-          base_notes: string[] | null;
-          brands: { name: string } | null;
-          concentrations: { name: string } | null;
-          gender: string | null;
-          is_linear: boolean | null;
-          middle_notes: string[] | null;
-          perfumers: string[] | null;
-          release_year: number | null;
-          top_notes: string[] | null;
-          xsolve_score: number | null;
-        } | null;
-      };
+      data: {
+        base_notes: string[] | null;
+        brands: { name: string } | null;
+        concentrations: { name: string } | null;
+        gender: string | null;
+        is_linear: boolean | null;
+        middle_notes: string[] | null;
+        perfumers: string[] | null;
+        release_year: number | null;
+        top_notes: string[] | null;
+        xsolve_score: number | null;
+      } | null;
+    };
 
     if (perfume?.xsolve_score == null) return null;
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return {
       ...data,
       clues: {
@@ -1321,8 +1323,7 @@ export const getDailyStep1ImageUrl = unstable_cache(
 
       if (!assets?.image_key_step_1) return null;
 
-      const assetsHost =
-        process.env.NEXT_PUBLIC_ASSETS_HOST ?? "assets.eauxle.com";
+      const assetsHost = env.NEXT_PUBLIC_ASSETS_HOST ?? "assets.eauxle.com";
       return `https://${assetsHost}/${assets.image_key_step_1}`;
     } catch {
       return null; // graceful fallback
@@ -1351,6 +1352,7 @@ export const getDailyStep1ImageUrl = unstable_cache(
 export async function getPlayerDailySession(
   challengeId: string,
 ): Promise<StartGameResponse | null> {
+  z.uuid().parse(challengeId);
   try {
     const supabase = await createClient();
     const {

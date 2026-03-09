@@ -8,6 +8,8 @@ import {
   type SetStateAction,
 } from "react";
 
+import { env } from "@/lib/env";
+
 // Module-level ref — set when PostHog initializes, used by captureAnalyticsEvent
 let _posthogInstance: {
   capture: (event: string, props?: Record<string, unknown>) => void;
@@ -17,7 +19,6 @@ let _posthogInstance: {
  * Capture an analytics event without requiring React context.
  * No-op if PostHog hasn't loaded yet — events are dropped silently before initialization.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function captureAnalyticsEvent(
   event: string,
   props?: Record<string, unknown>,
@@ -40,7 +41,7 @@ async function initPostHog(
     const { default: posthog } = await import("posthog-js");
     const { PostHogProvider: Provider } = await import("posthog-js/react");
 
-    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "", {
+    posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
       advanced_disable_feature_flags: true,
       api_host: "/ph-proxy",
       autocapture: false,
@@ -50,15 +51,14 @@ async function initPostHog(
       disable_surveys: true,
       enable_heatmaps: false,
       loaded: (ph) => {
-        if (process.env.NODE_ENV === "development") {
+        if (env.NODE_ENV === "development") {
           // eslint-disable-next-line no-console
           console.debug("PostHog (lazy) loaded", ph);
         }
       },
       opt_in_site_apps: false,
       person_profiles: "identified_only",
-      ui_host:
-        process.env.NEXT_PUBLIC_POSTHOG_UI_HOST || "https://eu.posthog.com",
+      ui_host: env.NEXT_PUBLIC_POSTHOG_UI_HOST ?? "https://eu.posthog.com",
     });
 
     setPhClient(posthog);
@@ -94,6 +94,7 @@ export function PostHogProvider({
     const options: AddEventListenerOptions = { once: true, passive: true };
 
     for (const event of events) {
+      // eslint-disable-next-line react-web-api/no-leaked-event-listener -- cleanup defined below, returned as useEffect cleanup; once:true also auto-removes
       globalThis.addEventListener(event, load, options);
     }
 
@@ -111,6 +112,7 @@ export function PostHogProvider({
   }, []);
 
   // Return children directly until PostHog is loaded to avoid blocking render
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
   if (!phProvider || !phClient) {
     return <>{children}</>;
   }

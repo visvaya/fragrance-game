@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
  * Test endpoint: Returns today's daily challenge answer
  * SECURITY: Requires authenticated user with app_admin role
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function GET() {
   // Authentication check
   const supabase = await createClient();
@@ -38,12 +39,11 @@ export async function GET() {
   }
 
   try {
-    const supabase = createAdminClient();
     const today = new Date().toISOString().split("T")[0];
     console.warn(`[API TEST] Querying daily_challenges for date: ${today}`);
 
     // 1. Get today's challenge ID
-    const queryResult1 = await supabase
+    const queryResult1 = await adminSupabase
       .from("daily_challenges")
       .select("perfume_id, challenge_date")
       .eq("challenge_date", today)
@@ -59,7 +59,7 @@ export async function GET() {
       );
 
       // Fallback: Return ANY perfume from database (for testing purposes)
-      const queryResult2 = await supabase
+      const queryResult2 = await adminSupabase
         .from("perfumes")
         .select("name, brands(name), id")
         .limit(1)
@@ -96,7 +96,7 @@ export async function GET() {
     );
 
     // 2. Get the perfume details
-    const queryResult3 = await supabase
+    const queryResult3 = await adminSupabase
       .from("perfumes")
       .select("name, brands(name), id")
       .eq("id", challenge.perfume_id)

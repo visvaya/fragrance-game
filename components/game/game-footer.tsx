@@ -45,7 +45,7 @@ export function GameFooter() {
         </nav>
 
         {/* Branding & Info */}
-        <div className="flex w-full max-w-[280px] flex-col items-center gap-2 border-t border-border/30 pt-6 text-center">
+        <div className="flex w-full max-w-[17.5rem] flex-col items-center gap-2 border-t border-border/30 pt-6 text-center">
           <p className="text-xs tracking-[0.2em] text-muted-foreground lowercase">
             {t("copyright")}
           </p>

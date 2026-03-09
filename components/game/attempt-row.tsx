@@ -1,6 +1,14 @@
-import { Check, X, ArrowUp, ArrowDown, Waves } from "lucide-react";
+import type {
+  HTMLAttributes,
+  KeyboardEvent,
+  MouseEvent,
+  PointerEvent,
+} from "react";
+
+import { ArrowDown, ArrowUp, Check, Waves, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { GENERIC_PLACEHOLDER, MIDDLE_DOT_CHAR } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 import { TruncatedCell } from "./attempt-log-truncated-cell";
@@ -10,7 +18,7 @@ import { IconCell, iconInnerVariants } from "./icon-cell";
 
 import type { Attempt, DailyPerfume } from "./contexts";
 
-type RowCellProperties = React.HTMLAttributes<HTMLDivElement> & {
+type RowCellProperties = HTMLAttributes<HTMLDivElement> & {
   isActive: boolean;
   isTouch: boolean;
 };
@@ -40,8 +48,8 @@ type AttemptRowProperties = Readonly<{
   activeRowIndex: number | null;
   attempt: Attempt;
   dailyPerfume: DailyPerfume;
-  handleClick: (e: React.MouseEvent) => void;
-  handlePointerDown: (e: React.PointerEvent) => void;
+  handleClick: (e: MouseEvent) => void;
+  handlePointerDown: (e: PointerEvent) => void;
   index: number;
   isTouch: boolean;
   totalAttempts: number;
@@ -65,10 +73,10 @@ export function AttemptRow({
 
   const interactiveProperties = {
     onClick: handleClick,
-    onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
+    onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        handleClick(e as unknown as React.MouseEvent);
+        handleClick(e as unknown as MouseEvent);
       }
     },
     onPointerDown: handlePointerDown,
@@ -182,7 +190,7 @@ export function AttemptRow({
                   className="hidden min-w-0 lg:block"
                   content={
                     concentration && concentration !== "Unknown"
-                      ? `${displayName} · ${concentration}`
+                      ? `${displayName} ${MIDDLE_DOT_CHAR} ${concentration}`
                       : displayName
                   }
                   textClassName="text-sm truncate tracking-normal"
@@ -193,7 +201,7 @@ export function AttemptRow({
                   {concentration && concentration !== "Unknown" ? (
                     <>
                       <span className="mx-1.5 text-xs text-muted-foreground/30">
-                        ·
+                        {MIDDLE_DOT_CHAR}
                       </span>
                       <span className="text-xs font-normal text-muted-foreground/80">
                         {concentration}
@@ -206,10 +214,11 @@ export function AttemptRow({
                 {/* Mobile: stacked (year always fully visible) */}
                 <div className="flex flex-col gap-y-0.5 text-muted-foreground/80 lg:hidden">
                   <TruncatedCell
-                    className="min-w-[30px] shrink"
+                    className="min-w-[1.875rem] shrink"
                     content={attempt.brand}
                     textClassName="text-xs font-medium truncate tracking-normal"
                   />
+                  {/* eslint-disable-next-line @typescript-eslint/strict-boolean-expressions */}
                   {attempt.year ? (
                     <span className="text-xs font-medium whitespace-nowrap">
                       {attempt.year}
@@ -220,8 +229,9 @@ export function AttemptRow({
                 <TruncatedCell
                   className="hidden min-w-0 lg:block"
                   content={
+                    /* eslint-disable-next-line @typescript-eslint/strict-boolean-expressions */
                     attempt.year
-                      ? `${attempt.brand} · ${attempt.year}`
+                      ? `${attempt.brand} ${MIDDLE_DOT_CHAR} ${attempt.year}`
                       : attempt.brand
                   }
                   textClassName="text-xs font-medium truncate tracking-normal text-muted-foreground/80"
@@ -229,10 +239,11 @@ export function AttemptRow({
                   <span className="text-muted-foreground/80">
                     {attempt.brand}
                   </span>
+                  {/* eslint-disable-next-line @typescript-eslint/strict-boolean-expressions */}
                   {attempt.year ? (
                     <>
                       <span className="mx-1.5 font-normal text-muted-foreground/30">
-                        ·
+                        {MIDDLE_DOT_CHAR}
                       </span>
                       <span className="text-muted-foreground/80">
                         {attempt.year}
@@ -278,7 +289,7 @@ export function AttemptRow({
                     <span
                       className={cn(iconInnerVariants(), "-translate-x-0.5")}
                     >
-                      ?
+                      {GENERIC_PLACEHOLDER}
                     </span>
                   </IconCell>
                 </GameTooltip>
@@ -344,7 +355,7 @@ export function AttemptRow({
                     <span
                       className={cn(iconInnerVariants(), "-translate-x-0.5")}
                     >
-                      ?
+                      {GENERIC_PLACEHOLDER}
                     </span>
                   </IconCell>
                 </GameTooltip>
@@ -408,7 +419,9 @@ export function AttemptRow({
         {/* Year */}
         <div className="flex h-full items-center justify-center">
           {(() => {
+            // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
             const targetMissing = !dailyPerfume.year || dailyPerfume.year === 0;
+            // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
             const guessMissing = !attempt.year || attempt.year === 0;
             if (targetMissing || guessMissing) {
               return (
@@ -425,7 +438,7 @@ export function AttemptRow({
                     <span
                       className={cn(iconInnerVariants(), "-translate-x-0.5")}
                     >
-                      ?
+                      {GENERIC_PLACEHOLDER}
                     </span>
                   </IconCell>
                 </GameTooltip>
@@ -519,7 +532,7 @@ export function AttemptRow({
                     <span
                       className={cn(iconInnerVariants(), "-translate-x-0.5")}
                     >
-                      ?
+                      {GENERIC_PLACEHOLDER}
                     </span>
                   </IconCell>
                 </GameTooltip>
@@ -589,7 +602,7 @@ export function AttemptRow({
                     <span
                       className={cn(iconInnerVariants(), "-translate-x-0.5")}
                     >
-                      ?
+                      {GENERIC_PLACEHOLDER}
                     </span>
                   </IconCell>
                 </GameTooltip>

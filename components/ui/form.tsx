@@ -149,6 +149,7 @@ function FormMessage({ className, ...props }: ComponentProps<"p">) {
   const { error, formMessageId } = useFormField();
   const body = error ? error.message : props.children;
 
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
   if (!body) {
     return null;
   }

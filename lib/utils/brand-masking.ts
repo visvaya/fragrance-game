@@ -1,4 +1,4 @@
-import { MASK_CHAR } from "@/lib/constants";
+import { GENERIC_PLACEHOLDER, MASK_CHAR } from "@/lib/constants";
 import { revealLetters } from "@/lib/game/scoring";
 
 /**
@@ -8,7 +8,7 @@ import { revealLetters } from "@/lib/game/scoring";
  * Logic matches GameProvider:
  * | attempts_count | Brand Reveal | Percentage |
  * |----------------|--------------|------------|
- * | 1              | •••          | -          |
+ * | 1              | ???          | -          |
  * | 2              | 0%           | 0.0        |
  * | 3              | 15%          | 0.15       |
  * | 4              | 40%          | 0.40       |
@@ -20,7 +20,7 @@ import { revealLetters } from "@/lib/game/scoring";
 export function maskBrand(brand: string, attemptsCount: number): string {
   // attemptsCount is essentially currentAttempt (1-based)
   // If attemptsCount <= 1, return generic placeholder
-  if (attemptsCount <= 1) return "•••";
+  if (attemptsCount <= 1) return GENERIC_PLACEHOLDER.repeat(3);
 
   const revealPercentages: Record<number, number> = {
     2: 0,
@@ -40,10 +40,10 @@ export function maskBrand(brand: string, attemptsCount: number): string {
  * Logic matches GameProvider:
  * | attempts_count | Year Reveal | Example (1979) |
  * |----------------|-------------|----------------|
- * | 1              | ••••        | ••••           |
- * | 2              | 1st digit   | 1•••           |
- * | 3              | 2 digits    | 19••           |
- * | 4              | 3 digits    | 197•           |
+ * | 1              | ⎵⎵⎵⎵        | ⎵⎵⎵⎵           |
+ * | 2              | 1st digit   | 1⎵⎵⎵           |
+ * | 3              | 2 digits    | 19⎵⎵           |
+ * | 4              | 3 digits    | 197⎵           |
  * | 5+             | Full        | 1979           |
  * @param year
  * @param attemptsCount
@@ -52,13 +52,14 @@ export function maskYear(
   year: number | null,
   attemptsCount: number,
 ): string | null {
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
   if (!year) return null;
 
   // attemptsCount corresponds to revealLevel
-  // Level 1: ••••
-  // Level 2: 1•••
-  // Level 3: 19••
-  // Level 4: 197•
+  // Level 1: ⎵⎵⎵⎵
+  // Level 2: 1⎵⎵⎵
+  // Level 3: 19⎵⎵
+  // Level 4: 197⎵
   // Level 5: 1979
 
   const safeAttempts = Math.min(attemptsCount, 6);

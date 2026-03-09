@@ -8,19 +8,17 @@ test("has title", async ({ page }) => {
 });
 
 test("should not show reset button in production", async ({ page }) => {
-  // Determine if we are in production mode based on some indicator or env
-  // For this test, we assume the default state of the app
-
   await page.goto("/");
 
-  // Check if the "Reset" button exists
-  const resetButton = page.getByRole("button", { name: /reset/i });
+  // Determine if we are in production mode
+  const isProduction = process.env.NODE_ENV === "production";
 
-  // Check visibility
-  // If we are in dev, it might be visible. If in prod, it should not be.
-  // Let's just log its visibility for now as we don't control the env of the running app easily from here without setting it up.
-  // However, the test should at least pass if the app loads.
+  if (isProduction) {
+    // In production, the "Reset" button should NOT be visible to users
+    const resetButton = page.getByRole("button", { name: /reset/i });
+    await expect(resetButton).toBeHidden();
+  }
 
-  // Assertion: The main content should be visible
+  // Assertion: The main content should always be visible
   await expect(page.locator("main")).toBeVisible();
 });

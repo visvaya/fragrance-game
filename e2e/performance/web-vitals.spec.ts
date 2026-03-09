@@ -14,7 +14,8 @@ test.describe("Web Vitals & Performance Audit", () => {
 
       // 2. Navigation
       const navStart = Date.now();
-      await page.goto(url, { waitUntil: "networkidle" });
+      await page.goto(url);
+      await expect(page.locator("main")).toBeVisible();
       const navEnd = Date.now();
 
       // 3. Navigation Timing API
@@ -59,8 +60,12 @@ test.describe("Web Vitals & Performance Audit", () => {
           let clsValue = 0;
           new PerformanceObserver((entryList) => {
             for (const entry of entryList.getEntries()) {
-              if (!(entry as any).hadRecentInput) {
-                clsValue += (entry as any).value ?? 0;
+              const layoutShift = entry as {
+                hadRecentInput?: boolean;
+                value?: number;
+              };
+              if (!layoutShift.hadRecentInput) {
+                clsValue += layoutShift.value ?? 0;
               }
             }
             resolve(clsValue);
@@ -73,8 +78,8 @@ test.describe("Web Vitals & Performance Audit", () => {
 
       console.log(`\n--- Performance Report: ${name} ---`);
       console.log(`URL: ${url}`);
-      console.log(`TTFB: ${navTiming?.ttfb?.toFixed(2)} ms`);
-      console.log(`FCP: ${fcp?.toFixed(2)} ms`);
+      console.log(`TTFB: ${(navTiming?.ttfb ?? 0).toFixed(2)} ms`);
+      console.log(`FCP: ${(fcp ?? 0).toFixed(2)} ms`);
       console.log(`LCP: ${lcp ? Number(lcp).toFixed(2) : "N/A"} ms`);
       console.log(`CLS: ${Number(cls).toFixed(4)}`);
       console.log(`Total Duration (networkidle): ${navEnd - navStart} ms`);
@@ -85,10 +90,16 @@ test.describe("Web Vitals & Performance Audit", () => {
       expect(navTiming?.ttfb).toBeLessThan(800);
 
       // FCP < 1800ms (Good)
-      if (fcp) expect(fcp).toBeLessThan(3000); // 3s budget for local dev
+
+      if (fcp) {
+        expect(fcp).toBeLessThan(3000); // 3s budget for local dev
+      }
 
       // LCP < 2500ms (Good)
-      if (lcp) expect(Number(lcp)).toBeLessThan(4000); // 4s budget for local dev
+
+      if (lcp) {
+        expect(Number(lcp)).toBeLessThan(4000); // 4s budget for local dev
+      }
 
       // CLS < 0.1 (Good)
       expect(Number(cls)).toBeLessThan(0.25); // 0.25 budget

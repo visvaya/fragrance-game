@@ -160,7 +160,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
               .split("T")[0],
           );
 
-        const excludeIds = recentChallenges?.map((c) => c.perfume_id) || [];
+        const excludeIds = recentChallenges?.map((c) => c.perfume_id) ?? [];
         expect(excludeIds).toContain(perfume1.id);
         expect(excludeIds).not.toContain(perfume2.id);
       });
@@ -305,7 +305,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
             shortExclusionDate.toISOString().split("T")[0],
           );
 
-        const excludeIds7 = recent7?.map((c) => c.perfume_id) || [];
+        const excludeIds7 = recent7?.map((c) => c.perfume_id) ?? [];
 
         // perfumeRecent should NOT be in 7-day exclusion (used 10 days ago)
         expect(excludeIds7).not.toContain(perfumeRecent.id);
@@ -370,7 +370,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
           .limit(1)
           .single();
 
-        const nextNumber = (maxChallenge?.challenge_number || 0) + 1;
+        const nextNumber = (maxChallenge?.challenge_number ?? 0) + 1;
         expect(nextNumber).toBe(2);
       });
 
@@ -384,7 +384,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
           .limit(1)
           .maybeSingle();
 
-        const nextNumber = (maxChallenge?.challenge_number || 0) + 1;
+        const nextNumber = (maxChallenge?.challenge_number ?? 0) + 1;
         expect(nextNumber).toBe(1);
       });
     });
@@ -479,7 +479,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
           .not("image_key_step_1", "is", null)
           .eq("perfumes.is_uncertain", false);
 
-        const candidateIds = candidates?.map((c) => c.perfume_id) || [];
+        const candidateIds = candidates?.map((c) => c.perfume_id) ?? [];
 
         expect(candidateIds).toContain(perfumeWithAsset.id);
         expect(candidateIds).not.toContain(perfumeWithoutAsset.id);
@@ -552,7 +552,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
           .not("image_key_step_1", "is", null)
           .eq("perfumes.is_uncertain", false);
 
-        const candidateIds = candidates?.map((c) => c.perfume_id) || [];
+        const candidateIds = candidates?.map((c) => c.perfume_id) ?? [];
 
         expect(candidateIds).toContain(certainPerfume.id);
         expect(candidateIds).not.toContain(uncertainPerfume.id);

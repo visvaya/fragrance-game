@@ -8,7 +8,8 @@ describe("cn", () => {
   });
 
   it("handles conditional classes", () => {
-    expect(cn("foo", false && "bar", "baz")).toBe("foo baz");
+    const isActive = false as boolean;
+    expect(cn("foo", isActive && "bar", "baz")).toBe("foo baz");
   });
 
   it("merges Tailwind classes correctly (deduplicates)", () => {

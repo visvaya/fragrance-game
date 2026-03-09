@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { z } from "zod";
 
+import { env } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/server";
 import { DailyChallengesInsert } from "@/lib/validations/supabase.schema";
 
@@ -18,18 +19,11 @@ import { DailyChallengesInsert } from "@/lib/validations/supabase.schema";
  * 3. Future-Proofing: Check if TOMORROW's challenge exists. If not, generate it.
  * @param request
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function GET(request: NextRequest) {
   // 1. Security Check: Verify CRON_SECRET
   const authHeader = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (!cronSecret) {
-    console.error("[CRON] CRON_SECRET not configured");
-    return NextResponse.json(
-      { error: "Server misconfiguration" },
-      { status: 500 },
-    );
-  }
+  const cronSecret = env.CRON_SECRET;
 
   if (authHeader !== `Bearer ${cronSecret}`) {
     console.error("[CRON] Unauthorized access attempt");
@@ -66,6 +60,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// eslint-disable-next-line sonarjs/max-lines-per-function
 async function ensureChallenge(
   supabase: ReturnType<typeof createAdminClient>,
   dateString: string,

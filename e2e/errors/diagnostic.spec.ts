@@ -1,59 +1,93 @@
+/* eslint-disable playwright/no-wait-for-timeout, playwright/no-networkidle */
 import { test, expect } from "@playwright/test";
 
-test.describe("Diagnostic - Selector Testing", () => {
-  test("check multiple selectors for game input", async ({ page }) => {
-    await page.goto("/", { waitUntil: "networkidle" });
+/**
+ * Diagnostic - Global Selector & State Testing
+ * This test is designed to verify the presence and visibility of key elements
+ * across different game states (Active, Closed, No Puzzle).
+ */
+test.describe("Global Game Diagnostics", () => {
+  test("audit game input and interactive elements", async ({ page }) => {
+    // Navigate to English version for consistent selectors
+    await page.goto("/en", { waitUntil: "networkidle" });
 
-    // Wait for page to fully load
-    await page.waitForTimeout(5000);
+    // Wait a bit for Supabase/Hydration
+    await page.waitForTimeout(3000);
 
-    console.log("=== DIAGNOSTIC TEST ===");
+    console.log("\n=== START DIAGNOSTIC AUDIT ===");
 
-    // Try different selectors
-    const selectors = [
-      { locator: page.getByTestId("game-input"), name: "getByTestId" },
-      { locator: page.getByRole("combobox"), name: "getByRole(combobox)" },
+    // 1. Check for State Messages
+    const bodyTextContent = (await page.textContent("body")) ?? "";
+    const isClosedState =
+      bodyTextContent.includes("Gra zakończona") ||
+      bodyTextContent.includes("Come back tomorrow");
+    const isNoPuzzleState =
+      bodyTextContent.includes("No puzzle today") ||
+      bodyTextContent.includes("Brak zagadki");
+
+    console.log(
+      `Current State: isClosed=${isClosedState}, isNoPuzzle=${isNoPuzzleState}`,
+    );
+
+    // 2. Audit Selectors (even if inactive, to see if they exist in DOM)
+    const selectorsToAudit = [
+      {
+        locator: page.getByPlaceholder(/Guess the fragrance/i),
+        name: "Placeholder (EN)",
+      },
+      {
+        locator: page.getByPlaceholder(/Napisz jakie to perfumy/i),
+        name: "Placeholder (PL)",
+      },
       {
         locator: page.locator('[data-testid="game-input"]'),
-        name: "locator[data-testid]",
+        name: "Test ID: game-input",
       },
-      { locator: page.locator("input").first(), name: "locator(input)" },
       {
-        locator: page.getByPlaceholder(/guess|fragrance/i),
-        name: "getByPlaceholder",
+        locator: page.locator('input[type="text"]').first(),
+        name: "First Text Input",
       },
+      { locator: page.getByRole("combobox"), name: "Role: combobox" },
     ];
 
-    for (const { locator, name } of selectors) {
+    for (const { locator, name } of selectorsToAudit) {
       const count = await locator.count();
-      const isVisible = count > 0 ? await locator.first().isVisible() : false;
-
-      console.log(`${name}: count=${count}, visible=${isVisible}`);
-
-      if (count > 0) {
-        try {
-          const value = await locator.first().inputValue();
-          console.log(`  value="${value}"`);
-        } catch {
-          console.log("  (cannot get value)");
-        }
-      }
+      const isVisibleInDom = count > 0 && (await locator.first().isVisible());
+      console.log(
+        `[Selector] ${name}: count=${count}, visible=${isVisibleInDom}`,
+      );
     }
 
-    // Check page content
-    const bodyText = await page.textContent("body");
-    const hasNoPuzzle =
-      bodyText?.includes("No puzzle") || bodyText?.includes("Brak zagadki");
-    const hasClosed =
-      bodyText?.includes("closed") || bodyText?.includes("zakończona");
+    // 3. Take Diagnostic Screenshot
+    const screenshotFilePath = "reports/diagnostic-audit.png";
+    await page.screenshot({ fullPage: true, path: screenshotFilePath });
+    console.log(`Screenshot saved to: ${screenshotFilePath}`);
 
-    console.log(`Has "No puzzle": ${hasNoPuzzle}`);
-    console.log(`Has "closed": ${hasClosed}`);
+    // 4. Validate core layout presence
+    await expect(page.locator("main")).toBeVisible();
 
-    // Take screenshot for manual inspection
-    await page.screenshot({ path: "diagnostic-screenshot.png" });
+    // If we are NOT in a closed/no-puzzle state, the input SHOULD be visible
+    if (!isClosedState && !isNoPuzzleState) {
+      const inputField = page.getByPlaceholder(
+        /Guess the fragrance|Napisz jakie to perfumy/i,
+      );
+      // Liberal timeout for CI
+      await expect(inputField).toBeVisible({ timeout: 10_000 });
+    }
 
-    // This test always passes - it's just for diagnostics
-    expect(true).toBe(true);
+    console.log("=== END DIAGNOSTIC AUDIT ===\n");
+  });
+
+  test("verify Content Security Policy (CSP) presence", async ({ page }) => {
+    const response = await page.goto("/en");
+    expect(response).not.toBeNull();
+
+    if (response) {
+      const currentCsp = response.headers()["content-security-policy"];
+      console.log(
+        `CSP Header: ${currentCsp ? "PRESENCE DETECTED" : "MISSING!"}`,
+      );
+      expect(currentCsp).toBeTruthy();
+    }
   });
 });

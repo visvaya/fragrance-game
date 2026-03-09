@@ -5,7 +5,6 @@ import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 /**
  *
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export async function generateMetadata({
   params,
 }: {

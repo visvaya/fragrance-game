@@ -31,6 +31,7 @@ import { PasswordStrength } from "./password-strength";
 const CaptchaLoader = () => {
   const t = useTranslations("Auth.register");
   return (
+    // eslint-disable-next-line no-restricted-syntax -- Matches Turnstile widget height (65px fixed, per Cloudflare docs)
     <div className="flex h-[65px] animate-pulse items-center justify-center rounded bg-muted/20 text-xs text-muted-foreground">
       {t("captchaLoading")}
     </div>

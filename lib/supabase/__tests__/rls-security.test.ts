@@ -1,3 +1,4 @@
+/* eslint-disable vitest/no-duplicate-hooks, no-restricted-syntax, @typescript-eslint/no-unused-vars */
 import { describe, it, expect, beforeAll, vi } from "vitest";
 
 /**

@@ -16,6 +16,7 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 /**
  * Revokes all sessions for user.
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function revokeAllSessions() {
   const supabase = await createClient();
   const {
@@ -38,6 +39,7 @@ export async function revokeAllSessions() {
  * Fetches active sessions for the user.
  * Filters out "node" sessions (technical server-side sessions) to show only real devices.
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function getSessions() {
   const supabase = await createClient();
   const {
@@ -63,7 +65,9 @@ export async function getSessions() {
 /**
  * Revokes a specific session by ID.
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function revokeSession(sessionId: string) {
+  z.uuid().parse(sessionId);
   const supabase = await createClient();
   const adminSupabase = createAdminClient();
 
@@ -121,6 +125,7 @@ export async function revokeSession(sessionId: string) {
  * MOVES: game_sessions, game_results
  * MERGES: player_streaks (takes best)
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function migrateAnonymousPlayer(anonPlayerId: string) {
   // Validate anonPlayerId is a valid UUID before any DB operations
   const uuidValidation = z.string().safeParse(anonPlayerId);

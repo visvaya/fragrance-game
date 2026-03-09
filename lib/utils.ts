@@ -5,6 +5,7 @@ import { twMerge } from "tailwind-merge";
  *
  * @param inputs
  */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
