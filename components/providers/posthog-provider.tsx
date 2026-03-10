@@ -62,6 +62,7 @@ async function initPostHog(
     });
 
     setPhClient(posthog);
+    // eslint-disable-next-line fp/no-mutation -- module-level singleton, set once after PostHog initializes
     _posthogInstance = posthog;
     setPhProvider(() => Provider);
   } catch (error) {
@@ -85,6 +86,7 @@ export function PostHogProvider({
 
     const load = () => {
       if (triggered) return;
+      // eslint-disable-next-line fp/no-mutation -- necessary for single-fire pattern
       triggered = true;
       cleanup();
       void initPostHog(setPhClient, setPhProvider);
@@ -112,8 +114,7 @@ export function PostHogProvider({
   }, []);
 
   // Return children directly until PostHog is loaded to avoid blocking render
-  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-  if (!phProvider || !phClient) {
+  if (phProvider === null || phClient === null) {
     return <>{children}</>;
   }
 

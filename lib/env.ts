@@ -24,7 +24,7 @@ export const env = createEnv({
 
   /**
    * Runtime environment — maps process.env to the validated schema.
-   * Required by @t3-oss/env-nextjs for edge/server split validation.
+   * Required by {@link https://github.com/t3-oss/env-nextjs | t3-oss/env-nextjs} for edge/server split validation.
    */
   runtimeEnv: {
     ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,

@@ -18,7 +18,7 @@ const iconCellVariants = cva("group/icon rounded-sm transition", {
     },
     layout: {
       /** Square container for SVG icons */
-      icon: "flex h-6 w-6 items-center justify-center",
+      icon: "flex size-6  items-center justify-center",
       /** Padded container for inline content (?, ×) */
       pad: "inline-flex p-1",
       /** Horizontal container for text content (%) */

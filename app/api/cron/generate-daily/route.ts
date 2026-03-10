@@ -19,8 +19,7 @@ import { DailyChallengesInsert } from "@/lib/validations/supabase.schema";
  * 3. Future-Proofing: Check if TOMORROW's challenge exists. If not, generate it.
  * @param request
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<Response> {
   // 1. Security Check: Verify CRON_SECRET
   const authHeader = request.headers.get("authorization");
   const cronSecret = env.CRON_SECRET;
@@ -32,17 +31,15 @@ export async function GET(request: NextRequest) {
 
   try {
     const adminSupabase = createAdminClient();
-    const results = [];
-
-    // Check TODAY (Self-Healing)
+    // Check TODAY (Self-Healing) + TOMORROW (Standard) sequentially
     const todayString = new Date().toISOString().split("T")[0];
-    results.push(await ensureChallenge(adminSupabase, todayString));
-
-    // Check TOMORROW (Standard)
     const tomorrow = new Date();
     tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
     const tomorrowString = tomorrow.toISOString().split("T")[0];
-    results.push(await ensureChallenge(adminSupabase, tomorrowString));
+    const results = [
+      await ensureChallenge(adminSupabase, todayString),
+      await ensureChallenge(adminSupabase, tomorrowString),
+    ];
 
     return NextResponse.json({
       results,
@@ -103,15 +100,16 @@ async function ensureChallenge(
   );
 
   // 3. Fetch Candidates
-  let query = supabase
+  const baseQuery = supabase
     .from("perfume_assets")
     .select("perfume_id, perfumes!inner(is_uncertain)")
     .not("image_key_step_1", "is", null) // Must have assets
     .eq("perfumes.is_uncertain", false); // Must be verified
 
-  if (excludeIds.length > 0) {
-    query = query.not("perfume_id", "in", `(${excludeIds.join(",")})`);
-  }
+  const query =
+    excludeIds.length > 0
+      ? baseQuery.not("perfume_id", "in", `(${excludeIds.join(",")})`)
+      : baseQuery;
 
   let { data: candidates, error } = (await query) as {
     data: { perfume_id: string }[] | null;
@@ -138,25 +136,25 @@ async function ensureChallenge(
       (id) => typeof id === "string" && uuidRegex.test(id),
     );
 
-    let retryQuery = supabase
+    const baseRetryQuery = supabase
       .from("perfume_assets")
       .select("perfume_id, perfumes!inner(is_uncertain)")
       .not("image_key_step_1", "is", null)
       .eq("perfumes.is_uncertain", false);
 
-    if (excludeIds7.length > 0) {
-      retryQuery = retryQuery.not(
-        "perfume_id",
-        "in",
-        `(${excludeIds7.join(",")})`,
-      );
-    }
-
-    const retryResult = (await retryQuery) as {
+    const retryResult = (await (excludeIds7.length > 0
+      ? baseRetryQuery.not(
+          "perfume_id",
+          "in",
+          `(${excludeIds7.join(",")})`,
+        )
+      : baseRetryQuery)) as {
       data: { perfume_id: string }[] | null;
       error: { message: string } | null;
     };
+    // eslint-disable-next-line fp/no-mutation -- fallback result assignment
     candidates = retryResult.data;
+    // eslint-disable-next-line fp/no-mutation
     error = retryResult.error;
   }
 

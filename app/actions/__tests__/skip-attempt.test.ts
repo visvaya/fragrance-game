@@ -23,10 +23,9 @@ const SESSION_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
 const NONCE = "12345";
 const USER_ID = "u1b2c3d4-e5f6-7890-abcd-ef1234567892";
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-function makeSession(attempts_count = 2) {
+function makeSession(attemptsCount = 2) {
   return {
-    attempts_count,
+    attempts_count: attemptsCount,
     challenge_id: "c1b2c3d4-e5f6-7890-abcd-ef1234567891",
     guesses: [],
     id: SESSION_ID,

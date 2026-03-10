@@ -9,6 +9,7 @@ import { env } from "@/lib/env";
 let posthogClient: PostHog | null = null;
 
 function getPostHogClient() {
+  // eslint-disable-next-line fp/no-mutation -- necessary for singleton pattern
   posthogClient ??= new PostHog(env.NEXT_PUBLIC_POSTHOG_KEY, {
     host: env.NEXT_PUBLIC_POSTHOG_HOST,
   });
@@ -21,12 +22,11 @@ function getPostHogClient() {
  * @param properties
  * @param distinctId
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function trackEvent(
   eventName: string,
   properties?: Record<string, unknown>,
   distinctId = "anon_user", // Fallback if no user ID provided
-) {
+): Promise<void> {
   try {
     const client = getPostHogClient();
     client.capture({
@@ -52,11 +52,10 @@ export async function trackEvent(
  * @param distinctId
  * @param properties
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function identifyUser(
   distinctId: string,
   properties?: Record<string, unknown>,
-) {
+): Promise<void> {
   try {
     const client = getPostHogClient();
     client.identify({

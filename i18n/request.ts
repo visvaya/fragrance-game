@@ -6,11 +6,13 @@ import { routing } from "./routing";
 type Messages = typeof import("../messages/pl.json");
 
 export default getRequestConfig(async ({ requestLocale }) => {
-  let locale = await requestLocale;
+  const requestedLocale = await requestLocale;
   // Ensure that the incoming `locale` is valid
-  if (!locale || !(routing.locales as readonly string[]).includes(locale)) {
-    locale = routing.defaultLocale;
-  }
+  const locale =
+    requestedLocale &&
+    (routing.locales as readonly string[]).includes(requestedLocale)
+      ? requestedLocale
+      : routing.defaultLocale;
 
   const messagesModule = (await import(`../messages/${locale}.json`)) as {
     default: Messages;

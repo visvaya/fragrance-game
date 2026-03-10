@@ -19,6 +19,7 @@ export function useScrollDirection(threshold = 60) {
       // Always show near the top of the page
       if (currentScrollY < threshold) {
         setHidden(false);
+        // eslint-disable-next-line fp/no-mutation -- necessary for scroll tracking
         lastScrollY = currentScrollY;
         return;
       }
@@ -31,6 +32,7 @@ export function useScrollDirection(threshold = 60) {
         setHidden(false);
       }
 
+      // eslint-disable-next-line fp/no-mutation -- necessary for scroll tracking
       lastScrollY = currentScrollY;
     };
 

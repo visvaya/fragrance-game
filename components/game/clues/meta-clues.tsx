@@ -44,7 +44,7 @@ export const MetaClues = memo(function MetaClues() {
         <div className="mb-4 flex w-fit cursor-default items-center">
           <div className="flex items-center gap-2">
             <span className="inline-flex">
-              <Tag className="h-4 w-4 text-muted-foreground" />
+              <Tag className="size-4  text-muted-foreground" />
             </span>
             <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase opacity-40">
               {t("identity")}
@@ -114,7 +114,7 @@ export const MetaClues = memo(function MetaClues() {
               )}
               onPointerDown={handleIconTap}
             >
-              <Tag className="h-4 w-4 text-muted-foreground" />
+              <Tag className="size-4  text-muted-foreground" />
             </span>
             <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase">
               {t("identity")}
@@ -248,14 +248,15 @@ function MetaBadge({
           const isGenericPlaceholder = word === GENERIC_PLACEHOLDER.repeat(5);
 
           if (isGenericPlaceholder) {
-            let tooltipContent = t("hiddenAttempt", {
-              attempt: currentAttempt,
-            });
-            if (clueKey === "year") {
-              tooltipContent = t("fullyHidden", { attempt: currentAttempt });
-            } else if (clueKey === "gender") {
-              tooltipContent = t("genderHiddenUntil");
-            }
+            const tooltipContent = (() => {
+              if (clueKey === "year") {
+                return t("fullyHidden", { attempt: currentAttempt });
+              }
+              if (clueKey === "gender") {
+                return t("genderHiddenUntil");
+              }
+              return t("hiddenAttempt", { attempt: currentAttempt });
+            })();
 
             return (
               <GameTooltip
@@ -263,7 +264,7 @@ function MetaBadge({
                 key={`meta-${clueKey}-placeholder-${wordIndex}`}
               >
                 <div className="group flex h-5 cursor-help items-center justify-center opacity-80 transition-colors duration-300 hover:opacity-100">
-                  <Lock className="h-3 w-3 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
+                  <Lock className="size-3  text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
                 </div>
               </GameTooltip>
             );
@@ -288,13 +289,14 @@ function MetaBadge({
           const isFullHidden =
             word === GENERIC_PLACEHOLDER.repeat(5) ||
             (clueKey === "year" && new RegExp(`^${MASK_CHAR}+$`).test(word));
-          let tooltipContent = t("letters", { count: word.length });
-
-          if (clueKey === "year") {
-            tooltipContent = isFullHidden
-              ? t("fullyHidden", { attempt: currentAttempt })
-              : t("partiallyHidden", { attempt: currentAttempt });
-          }
+          const tooltipContent = (() => {
+            if (clueKey === "year") {
+              return isFullHidden
+                ? t("fullyHidden", { attempt: currentAttempt })
+                : t("partiallyHidden", { attempt: currentAttempt });
+            }
+            return t("letters", { count: word.length });
+          })();
 
           const showTooltip =
             (clueKey === "brand" ||
@@ -302,39 +304,39 @@ function MetaBadge({
               clueKey === "year") &&
             isWordMasked;
 
-          let innerContent: React.ReactNode;
-          if (isFullHidden) {
-            innerContent = (
-              <div className="group flex h-5 items-center justify-center opacity-80 transition-colors duration-300 hover:opacity-100">
-                <Lock className="h-3 w-3 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
-              </div>
-            );
-          } else if (isWordMasked) {
-            // eslint-disable-next-line @typescript-eslint/no-misused-spread
-            innerContent = [...word].map((char, charIndex) => {
-              const isSlot = char === MASK_CHAR;
-              if (isSlot) {
-                return (
-                  <MaskSlot
-                    char={char}
-                    key={`meta-slot-${clueKey}-${wordIndex}-${charIndex}`}
-                  />
-                );
-              }
+          // eslint-disable-next-line sonarjs/function-return-type -- IIFE returns React.ReactNode; multiple branches declared above
+          const innerContent: React.ReactNode = (() => {
+            if (isFullHidden) {
               return (
-                <div
-                  className="mx-px flex h-5 w-2 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
-                  key={`meta-char-${clueKey}-${wordIndex}-${charIndex}`}
-                >
-                  <span className="inline-block translate-y-px">{char}</span>
+                <div className="group flex h-5 items-center justify-center opacity-80 transition-colors duration-300 hover:opacity-100">
+                  <Lock className="size-3  text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
                 </div>
               );
-            });
-          } else {
-            innerContent = (
-              <span className="font-sans text-sm text-foreground">{word}</span>
-            );
-          }
+            }
+            if (isWordMasked) {
+              // eslint-disable-next-line unicorn/prefer-spread -- string character iteration; split("") vs [...str] conflict with no-misused-spread
+              return word.split("").map((char, charIndex) => {
+                const isSlot = char === MASK_CHAR;
+                if (isSlot) {
+                  return (
+                    <MaskSlot
+                      char={char}
+                      key={`meta-slot-${clueKey}-${wordIndex}-${charIndex}`}
+                    />
+                  );
+                }
+                return (
+                  <div
+                    className="mx-px flex h-5 w-2 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
+                    key={`meta-char-${clueKey}-${wordIndex}-${charIndex}`}
+                  >
+                    <span className="inline-block translate-y-px">{char}</span>
+                  </div>
+                );
+              });
+            }
+            return <span className="font-sans text-sm text-foreground">{word}</span>;
+          })();
 
           const content = (
             <div
@@ -357,7 +359,7 @@ function MetaBadge({
                       <div className="flex h-5 items-center justify-center opacity-80 transition-colors duration-300 hover:opacity-100">
                         <Lock
                           className={cn(
-                            "h-3 w-3 transition-colors duration-300",
+                            "size-3  transition-colors duration-300",
                             isHovered
                               ? "text-[oklch(0.75_0.15_60)]"
                               : "text-muted-foreground",
@@ -365,8 +367,8 @@ function MetaBadge({
                         />
                       </div>
                     ) : (
-                      // eslint-disable-next-line @typescript-eslint/no-misused-spread
-                      [...word].map((char, charIndex) => {
+                      // eslint-disable-next-line unicorn/prefer-spread -- string character iteration; split("") vs [...str] conflict with no-misused-spread
+                      word.split("").map((char, charIndex) => {
                         const isSlot = char === MASK_CHAR;
                         if (isSlot) {
                           return (

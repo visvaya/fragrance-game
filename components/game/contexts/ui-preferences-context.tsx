@@ -89,8 +89,10 @@ export function UIPreferencesProvider({
   // stays in sync after React hydrates and when the user manually toggles layout.
   useEffect(() => {
     if (preferences.layoutMode === "wide") {
+      // eslint-disable-next-line fp/no-mutation -- DOM dataset property assignment, no immutable API available
       document.documentElement.dataset.layout = "wide";
     } else {
+      // eslint-disable-next-line fp/no-delete -- DOM API requires delete for attribute removal
       delete document.documentElement.dataset.layout;
     }
   }, [preferences.layoutMode]);

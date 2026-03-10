@@ -55,13 +55,15 @@ function TooltipContent({
   sideOffset = 6,
   ...props
 }: ComponentProps<typeof TooltipPrimitive.Content>) {
+  const tooltipClassName = cn(
+    // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- glass-panel is a custom CSS design token defined in globals.css
+    "glass-panel z-50 overflow-hidden rounded-md px-3 py-1.5 text-xs text-foreground duration-300 animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
+    className,
+  );
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Content
-        className={cn(
-          "glass-panel z-50 overflow-hidden rounded-md px-3 py-1.5 text-xs text-foreground duration-300 animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
-          className,
-        )}
+        className={tooltipClassName}
         data-slot="tooltip-content"
         sideOffset={sideOffset}
         {...props}

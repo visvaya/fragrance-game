@@ -114,9 +114,6 @@ type SkipResult = {
  */
 function cleanNote(note: string | null | undefined): string {
   if (typeof note !== "string") return "";
-  let t = note.trim();
-  t = t.replaceAll(/[™®]/g, "");
-  t = t.replaceAll(/\bLa Réunion\b/gi, "");
   const removeWords = [
     "absolute",
     "scenttrek",
@@ -129,14 +126,19 @@ function cleanNote(note: string | null | undefined): string {
     "resinoid",
     "oxide",
   ];
-  for (const word of removeWords) {
-    const pattern = new RegExp(String.raw`\b${word}\b`, "gi");
-    t = t.replace(pattern, "");
-  }
-  // eslint-disable-next-line sonarjs/slow-regex
-  t = t.replaceAll(/\([^)]*\)/g, "");
-  t = t.replaceAll(/\s+/g, " ").trim();
-  t = t.replace(/[,-]$/, "").trim();
+  // eslint-disable-next-line unicorn/no-array-reduce -- reduce is appropriate here for building a cleaned string immutably
+  const cleanedNote = removeWords.reduce(
+    (cleanedAccumulator, word) =>
+      cleanedAccumulator.replaceAll(new RegExp(String.raw`\b${word}\b`, "gi"), ""),
+    note.trim().replaceAll(/[™®]/g, "").replaceAll(/\bLa Réunion\b/gi, ""),
+  );
+  const t = cleanedNote
+    // eslint-disable-next-line sonarjs/slow-regex
+    .replaceAll(/\([^)]*\)/g, "")
+    .replaceAll(/\s+/g, " ")
+    .trim()
+    .replace(/[,-]$/, "")
+    .trim();
   return t.toLowerCase();
 }
 
@@ -189,10 +191,7 @@ function calculatePerfumerMatch(
 
   if (guessSet.size === 0 || answerSet.size === 0) return "none";
 
-  let matchCount = 0;
-  for (const p of guessSet) {
-    if (answerSet.has(p)) matchCount++;
-  }
+  const matchCount = [...guessSet].filter((p) => answerSet.has(p)).length;
 
   if (matchCount === answerSet.size && guessSet.size === answerSet.size)
     return "full";
@@ -343,7 +342,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
 /**
  * Rozpoczyna nową sesję gry lub wznawia istniejącą.
  */
-// eslint-disable-next-line sonarjs/cognitive-complexity,sonarjs/max-lines-per-function
+// eslint-disable-next-line sonarjs/max-lines-per-function
 export async function startGame(
   challengeId: string,
   inheritedAttemptCount = 0,
@@ -399,70 +398,54 @@ export async function startGame(
 
     const imageUrl = await getImageUrlForStep(existingSession.id);
     const rawGuesses = existingSession.guesses ?? [];
-    const enrichedGuesses: GuessHistoryItem[] = [];
-
-    if (rawGuesses.length > 0) {
+    const enrichedGuesses = await (async (): Promise<GuessHistoryItem[]> => {
+      if (rawGuesses.length === 0) return [];
       const adminSupabase = createAdminClient();
 
       const realGuessIds = rawGuesses
-        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-        .filter((g) => !(g as { isSkip?: boolean }).isSkip && g.perfumeId)
+        .filter((g) => !(g as { isSkip?: boolean }).isSkip)
         .map((g) => g.perfumeId);
 
-      let perfumeMap = new Map<
-        string,
-        {
-          brands: { name: string } | null;
-          concentrations: { name: string } | null;
-          gender: string | null;
-          id: string;
-          name: string;
-          perfumers: string[] | null;
-          release_year: number | null;
-        }
-      >();
+      type PerfumeRow = {
+        brands: { name: string } | null;
+        concentrations: { name: string } | null;
+        gender: string | null;
+        id: string;
+        name: string;
+        perfumers: string[] | null;
+        release_year: number | null;
+      };
 
-      if (realGuessIds.length > 0) {
+      const perfumeMap = await (async () => {
+        if (realGuessIds.length === 0) return new Map<string, PerfumeRow>();
         const { data: perfumes } = (await adminSupabase
           .from("perfumes")
           .select(
             "id, name, brands(name), release_year, concentrations(name), gender, perfumers",
           )
-          .in("id", realGuessIds)) as {
-          data:
-            | {
-                brands: { name: string } | null;
-                concentrations: { name: string } | null;
-                gender: string | null;
-                id: string;
-                name: string;
-                perfumers: string[] | null;
-                release_year: number | null;
-              }[]
-            | null;
-        };
+          .in("id", realGuessIds)) as { data: PerfumeRow[] | null };
+        return perfumes
+          ? new Map(perfumes.map((p) => [p.id, p]))
+          : new Map<string, PerfumeRow>();
+      })();
 
-        if (perfumes) {
-          perfumeMap = new Map(perfumes.map((p) => [p.id, p]));
-        }
-      }
-
-      for (const guess of rawGuesses) {
+      const fetchedGuesses: GuessHistoryItem[] = rawGuesses.flatMap((guess): GuessHistoryItem[] => {
         if ((guess as { isSkip?: boolean }).isSkip) {
-          enrichedGuesses.push({
-            brandName: "",
-            isCorrect: false,
-            isSkip: true,
-            perfumeId: "",
-            perfumeName: "",
-            timestamp: guess.timestamp,
-          });
-          continue;
+          return [
+            {
+              brandName: "",
+              isCorrect: false,
+              isSkip: true,
+              perfumeId: "",
+              perfumeName: "",
+              timestamp: guess.timestamp,
+            },
+          ];
         }
-
         const p = perfumeMap.get(guess.perfumeId);
-        if (p) {
-          enrichedGuesses.push({
+        if (!p) return [];
+        return [
+          {
             brandName: (p.brands as { name: string } | null)?.name ?? "Unknown",
             concentration: (p.concentrations as { name: string } | null)?.name,
             feedback: guess.feedback,
@@ -473,40 +456,39 @@ export async function startGame(
             perfumers: p.perfumers ?? [],
             timestamp: guess.timestamp,
             year: p.release_year ?? undefined,
-          });
-        }
-      }
-    }
+          },
+        ];
+      });
+      return fetchedGuesses;
+    })();
 
-    let answerName: string | undefined;
-    let answerConcentration: string | undefined;
-    if (existingSession.status === "won" || existingSession.status === "lost") {
+    const { answerConcentration, answerName } = await (async () => {
+      if (existingSession.status !== "won" && existingSession.status !== "lost")
+        return { answerConcentration: undefined, answerName: undefined };
       const adminSupabase = createAdminClient();
       const { data: challenge } = await adminSupabase
         .from("daily_challenges")
         .select("perfume_id")
         .eq("id", challengeId)
         .single();
-
-      if (challenge) {
-        const { data: p } = (await adminSupabase
-          .from("perfumes")
-          .select("name, concentrations(name)")
-          .eq("id", challenge.perfume_id)
-          .single()) as {
-          data: {
-            concentrations: { name: string } | null;
-            name: string;
-          } | null;
-        };
-
-        if (p) {
-          answerName = p.name;
-          answerConcentration = (p.concentrations as { name: string } | null)
-            ?.name;
-        }
-      }
-    }
+      if (!challenge)
+        return { answerConcentration: undefined, answerName: undefined };
+      const { data: p } = (await adminSupabase
+        .from("perfumes")
+        .select("name, concentrations(name)")
+        .eq("id", challenge.perfume_id)
+        .single()) as {
+        data: {
+          concentrations: { name: string } | null;
+          name: string;
+        } | null;
+      };
+      return {
+        answerConcentration: (p?.concentrations as { name: string } | null)
+          ?.name,
+        answerName: p?.name,
+      };
+    })();
 
     return {
       answerConcentration,
@@ -597,6 +579,7 @@ export async function initializeGame(
   z.number().int().min(0).max(5).parse(inheritedAttemptCount);
   let challenge: DailyChallenge | null = null;
   try {
+    // eslint-disable-next-line fp/no-mutation -- try-catch requires imperative pattern
     challenge = await getDailyChallenge();
     if (!challenge) return { challenge: null, session: null };
 
@@ -697,7 +680,7 @@ async function getImageUrlForStep(sessionId: string): Promise<string | null> {
 /**
  * Wysyła zgadnięcie użytkownika i aktualizuje stan gry.
  */
-// eslint-disable-next-line sonarjs/cognitive-complexity,sonarjs/max-lines-per-function
+// eslint-disable-next-line sonarjs/max-lines-per-function
 export async function submitGuess(
   sessionId: string,
   perfumeId: string,
@@ -839,13 +822,18 @@ export async function submitGuess(
 
   const yearDiff =
     (guessedPerfume.release_year ?? 0) - (answerPerfume.release_year ?? 0);
-  let yearMatch: "correct" | "close" | "wrong" = "wrong";
-  if (yearDiff === 0) yearMatch = "correct";
-  else if (Math.abs(yearDiff) <= 3) yearMatch = "close";
 
-  let yearDirection: "lower" | "higher" | "equal" = "equal";
-  if (yearDiff > 0) yearDirection = "lower";
-  else if (yearDiff < 0) yearDirection = "higher";
+  const yearMatch: "correct" | "close" | "wrong" = (() => {
+    if (yearDiff === 0) return "correct";
+    if (Math.abs(yearDiff) <= 3) return "close";
+    return "wrong";
+  })();
+
+  const yearDirection: "lower" | "higher" | "equal" = (() => {
+    if (yearDiff > 0) return "lower";
+    if (yearDiff < 0) return "higher";
+    return "equal";
+  })();
 
   const feedback: AttemptFeedback = {
     brandMatch: guessedPerfume.brand_id === answerPerfume.brand_id,
@@ -877,10 +865,10 @@ export async function submitGuess(
     timestamp: new Date().toISOString(),
   };
 
-  let newStatus: GuessResult["gameStatus"] = "active";
-  if (isGameOver) {
-    newStatus = isCorrect ? "won" : "lost";
-  }
+  const newStatus: GuessResult["gameStatus"] = (() => {
+    if (!isGameOver) return "active";
+    return isCorrect ? "won" : "lost";
+  })();
 
   const updatePayload = {
     attempts_count: nextAttempts,
@@ -929,8 +917,8 @@ export async function submitGuess(
     user.id,
   );
 
-  let finalScore = 0;
-  if (isGameOver) {
+  const finalScore = await (async () => {
+    if (!isGameOver) return 0;
     const { data: targetPerfume } = (await adminSupabase
       .from("perfumes")
       .select("xsolve_score")
@@ -939,7 +927,7 @@ export async function submitGuess(
 
     const xScore = targetPerfume?.xsolve_score ?? 0;
     const baseScore = isCorrect ? calculateBaseScore(nextAttempts) : 0;
-    finalScore = isCorrect ? calculateFinalScore(baseScore, xScore) : 0;
+    const score = isCorrect ? calculateFinalScore(baseScore, xScore) : 0;
 
     const now = new Date();
     const isRanked = now <= new Date(String(challenge.grace_deadline_at_utc));
@@ -949,7 +937,7 @@ export async function submitGuess(
       challenge_id: session.challenge_id,
       is_ranked: isRanked,
       player_id: user.id,
-      score: finalScore,
+      score,
       score_raw: baseScore,
       scoring_version: 1,
       session_id: sessionId,
@@ -963,12 +951,13 @@ export async function submitGuess(
       {
         attempts: nextAttempts,
         challenge_id: session.challenge_id,
-        score: finalScore,
+        score,
         status: isCorrect ? "won" : "lost",
       },
       user.id,
     );
-  }
+    return score;
+  })();
 
   const nextImageUrl = await getImageUrlForStep(sessionId);
 

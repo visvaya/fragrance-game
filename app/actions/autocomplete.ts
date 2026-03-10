@@ -283,22 +283,25 @@ function sliceCandidates(
 
   // Intelligent Slicing: if the last item in the default window is part of a same-year group
   // (same brand+name+concentration, different year), expand to include all members.
-  let finalCount = DEFAULT_LIMIT;
   const lastIncluded = candidates[DEFAULT_LIMIT - 1];
   const lastIncludedKey =
     `${lastIncluded.brand_masked}|${lastIncluded.name}|${lastIncluded.concentration ?? ""}`.toLowerCase();
 
-  for (let i = DEFAULT_LIMIT; i < candidates.length; i++) {
-    const nextItem = candidates[i];
-    const nextKey =
-      `${nextItem.brand_masked}|${nextItem.name}|${nextItem.concentration ?? ""}`.toLowerCase();
+  // Find the index where the matching group ends
+  const firstMismatchIndex = candidates
+    .slice(DEFAULT_LIMIT)
+    .findIndex((candidate) => {
+      const candidateKey =
+        `${candidate.brand_masked}|${candidate.name}|${candidate.concentration ?? ""}`.toLowerCase();
+      return candidateKey !== lastIncludedKey;
+    });
 
-    if (nextKey === lastIncludedKey) {
-      finalCount = i + 1;
-    } else {
-      break;
-    }
-  }
+  // If no mismatch found in the rest, return all matching candidates
+  // Otherwise, return up to the mismatch
+  const finalCount =
+    firstMismatchIndex === -1
+      ? candidates.length
+      : DEFAULT_LIMIT + firstMismatchIndex;
 
   return candidates.slice(0, finalCount);
 }

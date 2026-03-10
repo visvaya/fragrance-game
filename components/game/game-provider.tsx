@@ -60,6 +60,15 @@ const SKELETON_PERFUME = {
 
 type GameState = "playing" | "won" | "lost";
 
+/** Returns the masked year string for a given reveal level. */
+function getYearMask(level: number, yearString: string): string {
+  if (level >= 5) return yearString;
+  if (level === 4) return yearString.slice(0, 3) + MASK_CHAR;
+  if (level === 3) return yearString.slice(0, 2) + MASK_CHAR.repeat(2);
+  if (level >= 2) return yearString.slice(0, 1) + MASK_CHAR.repeat(3);
+  return MASK_CHAR.repeat(4);
+}
+
 /**
  * Helper function to calculate masked values for snapshots (used during hydration)
  */
@@ -71,34 +80,24 @@ function calculateMaskedValues(
   // Simplified reveal for hydration - actual logic in contexts/game-state-context.tsx
   const guessMaskedBrand =
     level === 1 ? GENERIC_PLACEHOLDER.repeat(3) : targetBrand;
-
-  // Year
-  let guessMaskedYear = MASK_CHAR.repeat(4);
   // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-  if (targetYear) {
-    const yearString = targetYear.toString();
-    if (level >= 5) guessMaskedYear = yearString;
-    else
-      switch (level) {
-        case 4: {
-          guessMaskedYear = yearString.slice(0, 3) + MASK_CHAR;
-          break;
-        }
-        case 3: {
-          guessMaskedYear = yearString.slice(0, 2) + MASK_CHAR.repeat(2);
-          break;
-        }
-        case 2: {
-          {
-            guessMaskedYear = yearString.slice(0, 1) + MASK_CHAR.repeat(3);
-            // No default
-          }
-          break;
-        }
-      }
-  }
+  const guessMaskedYear = targetYear
+    ? getYearMask(level, targetYear.toString())
+    : MASK_CHAR.repeat(4);
 
   return { guessMaskedBrand, guessMaskedYear };
+}
+
+function getYearMatch(isCorrect: boolean, yearMatchDiff: number): "correct" | "close" | "wrong" {
+  if (isCorrect || yearMatchDiff === 0) return "correct";
+  if (Math.abs(yearMatchDiff) <= 3) return "close";
+  return "wrong";
+}
+
+function getYearDirection(yearMatchDiff: number): "lower" | "higher" | "equal" {
+  if (yearMatchDiff > 0) return "lower";
+  if (yearMatchDiff < 0) return "higher";
+  return "equal";
 }
 
 /**
@@ -116,6 +115,7 @@ function hydrateAttempts(
 
   for (const [index, g] of guesses.entries()) {
     if ((g as { isSkip?: boolean }).isSkip) {
+      // eslint-disable-next-line fp/no-mutating-methods -- accumulator with lookback: each iteration reads enrichedAttempts.some() to check prior results
       enrichedAttempts.push({
         brand: "",
         feedback: {
@@ -137,9 +137,7 @@ function hydrateAttempts(
     const brandMatch =
       g.brandName.toLowerCase() === challenge.clues.brand.toLowerCase();
     const yearMatchDiff = (g.year ?? 0) - challenge.clues.year;
-    let yearMatch: "correct" | "close" | "wrong" = "wrong";
-    if (isCorrect || yearMatchDiff === 0) yearMatch = "correct";
-    else if (Math.abs(yearMatchDiff) <= 3) yearMatch = "close";
+    const yearMatch = getYearMatch(isCorrect, yearMatchDiff);
 
     const anyBrandMatch =
       enrichedAttempts.some((a) => a.feedback.brandMatch) || brandMatch;
@@ -169,10 +167,9 @@ function hydrateAttempts(
     const anyGenderMatch =
       enrichedAttempts.some((a) => a.snapshot?.genderRevealed) || genderMatch;
 
-    let yearDirection: "lower" | "higher" | "equal" = "equal";
-    if (yearMatchDiff > 0) yearDirection = "lower";
-    else if (yearMatchDiff < 0) yearDirection = "higher";
+    const yearDirection = getYearDirection(yearMatchDiff);
 
+    // eslint-disable-next-line fp/no-mutating-methods -- accumulator with lookback: each iteration reads enrichedAttempts.some() to check prior results
     enrichedAttempts.push({
       brand: g.brandName,
       concentration: g.concentration,
@@ -422,9 +419,10 @@ export function GameProvider({
           }
 
           // Verification loop with exponential backoff: Ensure session is set in client state AND cookies
+           
           let verified = false;
           const maxVerificationAttempts = 3;
-          for (let attempt = 0; attempt < maxVerificationAttempts; attempt++) {
+          for (const attempt of Array.from({ length: maxVerificationAttempts }, (_, i) => i)) {
             const {
               data: { session: s },
             } = await supabase.auth.getSession();
@@ -432,6 +430,7 @@ export function GameProvider({
             // getSession() reads from Supabase client state which is populated from
             // cookies by @supabase/ssr — if session exists, the cookie is already set.
             if (s) {
+              // eslint-disable-next-line fp/no-mutation -- loop flag required for break-out verification pattern
               verified = true;
 
               // Track Anonymous Session for future migration
@@ -443,7 +442,9 @@ export function GameProvider({
             }
 
             // Exponential backoff: 50ms, 100ms, 200ms
+             
             await new Promise((resolve) =>
+              // eslint-disable-next-line react-web-api/no-leaked-timeout -- fire-and-forget sleep; Promise resolves after timeout, no cleanup needed
               setTimeout(resolve, 50 * Math.pow(2, attempt)),
             );
           }
@@ -461,27 +462,31 @@ export function GameProvider({
         const storedInherited = sessionStorage.getItem(
           "eauxle_declined_anon_attempts",
         );
-        const inheritedCount = storedInherited
-          // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-          ? Math.max(0, Math.min(5, Number.parseInt(storedInherited, 10) || 0))
-          : 0;
+        const parsedStored = storedInherited === null ? 0 : Number.parseInt(storedInherited, 10);
+        const inheritedCount = Math.max(0, Math.min(5, Number.isNaN(parsedStored) ? 0 : parsedStored));
         if (inheritedCount > 0) {
           sessionStorage.removeItem("eauxle_declined_anon_attempts");
         }
 
+         
         let challenge: DailyChallenge | null;
+         
         let session: Awaited<ReturnType<typeof startGame>> | null;
 
         if (initialChallenge) {
           // Challenge known from SSR — use pre-fetched session if available (0 roundtrips),
           // or call startGame as fallback (1 roundtrip instead of 2).
+          // eslint-disable-next-line fp/no-mutation -- branch assignment in sequential async flow
           challenge = initialChallenge;
           if (initialSession) {
             // Session already fetched server-side — no network call needed
+            // eslint-disable-next-line fp/no-mutation -- branch assignment in sequential async flow
             session = initialSession;
           } else {
+            // eslint-disable-next-line fp/no-mutation -- null init before try/catch reassignment
             session = null;
             try {
+              // eslint-disable-next-line fp/no-mutation -- reassignment on success in try/catch flow
               session = await startGame(initialChallenge.id, inheritedCount);
             } catch (error) {
               console.error(
@@ -493,6 +498,7 @@ export function GameProvider({
           }
         } else {
           // Fallback: SSR didn't provide challenge (no daily challenge, DB error)
+          // eslint-disable-next-line fp/no-mutation -- destructuring assignment from async call
           ({ challenge, session } = await initializeGame(inheritedCount));
         }
 
@@ -502,8 +508,10 @@ export function GameProvider({
           console.warn(
             "[GameProvider] Got challenge but no session. Retrying session creation...",
           );
+          // eslint-disable-next-line react-web-api/no-leaked-timeout -- await-delay helper: resolves immediately, no component cleanup needed
           await new Promise((resolve) => setTimeout(resolve, 200)); // Tiny beat
           try {
+            // eslint-disable-next-line fp/no-mutation -- reassignment on retry success in try/catch flow
             session = await startGame(challenge.id, inheritedCount);
           } catch (error) {
             console.error("[GameProvider] Retry startGame failed:", error);

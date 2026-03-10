@@ -16,8 +16,7 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 /**
  * Revokes all sessions for user.
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export async function revokeAllSessions() {
+export async function revokeAllSessions(): Promise<{ error: string } | { success: true }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -39,8 +38,15 @@ export async function revokeAllSessions() {
  * Fetches active sessions for the user.
  * Filters out "node" sessions (technical server-side sessions) to show only real devices.
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export async function getSessions() {
+export async function getSessions(): Promise<{
+  created_at: string;
+  device_info: unknown;
+  id: string;
+  ip_address: string | null;
+  last_active_at: string | null;
+  revoked_at: string | null;
+  user_id: string;
+}[]> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -65,8 +71,7 @@ export async function getSessions() {
 /**
  * Revokes a specific session by ID.
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export async function revokeSession(sessionId: string) {
+export async function revokeSession(sessionId: string): Promise<{ error: string; success: false } | { success: true }> {
   z.uuid().parse(sessionId);
   const supabase = await createClient();
   const adminSupabase = createAdminClient();
@@ -125,8 +130,7 @@ export async function revokeSession(sessionId: string) {
  * MOVES: game_sessions, game_results
  * MERGES: player_streaks (takes best)
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export async function migrateAnonymousPlayer(anonPlayerId: string) {
+export async function migrateAnonymousPlayer(anonPlayerId: string): Promise<{ error: string } | { success: true }> {
   // Validate anonPlayerId is a valid UUID before any DB operations
   const uuidValidation = z.string().safeParse(anonPlayerId);
   if (!uuidValidation.success) {

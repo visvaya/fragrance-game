@@ -15,7 +15,7 @@ export function GameFooter() {
     <footer className="relative z-10 w-full border-t border-border bg-secondary pb-[env(safe-area-inset-bottom)]">
       <div
         className={cn(
-          "relative mx-auto flex max-w-2xl flex-col items-center px-5 pt-8 pb-8 transition-all duration-300 wide:max-w-5xl",
+          "relative mx-auto flex max-w-2xl flex-col items-center px-5 py-8  transition-all duration-300 wide:max-w-5xl",
         )}
       >
         {/* Helper Text removed - moved to game-input.tsx as sticky tooltip */}

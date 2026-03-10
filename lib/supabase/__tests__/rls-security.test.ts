@@ -18,12 +18,12 @@ import { describe, it, expect, beforeAll, vi } from "vitest";
 // Import after setting env vars
 import { createClient, createAdminClient } from "../server";
 
-// Skip these tests if env vars not set (e.g., in CI without Supabase access)
+// Skip these tests unless explicitly running integration tests against a live database.
+// These tests require a real Supabase connection — they cannot use mocked values.
+// To run: VITEST_INTEGRATION=true pnpm vitest run lib/supabase/__tests__/rls-security.test.ts
 const skipIfNoEnvironment =
-  !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    ? describe.skip
-    : describe;
+  // eslint-disable-next-line no-restricted-properties -- integration test environment check
+  process.env.VITEST_INTEGRATION === "true" ? describe : describe.skip;
 
 skipIfNoEnvironment("RLS Security - perfumes_public VIEW", () => {
   let anonClient: Awaited<ReturnType<typeof createClient>>;

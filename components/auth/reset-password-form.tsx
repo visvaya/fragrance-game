@@ -101,6 +101,7 @@ export function ResetPasswordForm() {
       toast.success(t("success"), {
         description: t("successDescription"),
       });
+      // eslint-disable-next-line fp/no-mutating-methods
       router.push("/");
       router.refresh();
       setIsLoading(false);
@@ -134,6 +135,7 @@ export function ResetPasswordForm() {
             )}
           />
 
+          {/* eslint-disable-next-line fp/no-mutating-methods -- react-hook-form watch() is not a mutating method */}
           <PasswordStrength password={form.watch("password")} />
 
           <FormField
@@ -152,7 +154,7 @@ export function ResetPasswordForm() {
 
           <Button className="w-full" disabled={isLoading} type="submit">
             {isLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 size-4  animate-spin" />
             ) : null}
             {t("submit")}
           </Button>

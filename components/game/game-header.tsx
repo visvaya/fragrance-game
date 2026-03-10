@@ -145,7 +145,7 @@ export function GameHeader() {
                   }))
                 }
               >
-                <Menu className="h-5 w-5" />
+                <Menu className="size-5 " />
               </button>
             </GameTooltip>
 
@@ -162,7 +162,7 @@ export function GameHeader() {
                   setModals((previous) => ({ ...previous, helpOpen: true }))
                 }
               >
-                <HelpCircle className="h-5 w-5" />
+                <HelpCircle className="size-5 " />
               </button>
             </GameTooltip>
           </div>
@@ -195,7 +195,7 @@ export function GameHeader() {
                 }
               >
                 {currentLang}
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className="size-3 " />
               </button>
             </GameTooltip>
 
@@ -212,7 +212,7 @@ export function GameHeader() {
                   setModals((previous) => ({ ...previous, statsOpen: true }))
                 }
               >
-                <BarChart3 className="h-5 w-5" />
+                <BarChart3 className="size-5 " />
               </button>
             </GameTooltip>
           </div>
@@ -335,7 +335,7 @@ export function GameHeader() {
                   onClick={toggleLayoutMode}
                 >
                   <div className="flex items-center gap-2">
-                    <Monitor className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                    <Monitor className="size-4  text-muted-foreground transition-colors group-hover:text-primary" />
                     <span className="font-sans text-xs">{t("wideLayout")}</span>
                   </div>
                   <div
@@ -348,7 +348,7 @@ export function GameHeader() {
                   >
                     <div
                       className={cn(
-                        "absolute top-0.5 h-3 w-3 rounded-full bg-white text-xs transition-all",
+                        "absolute top-0.5 size-3  rounded-full bg-white text-xs transition-all",
                         uiPreferences.layoutMode === "wide"
                           ? "left-4.5"
                           : "left-0.5",
@@ -363,7 +363,7 @@ export function GameHeader() {
                   onClick={toggleFontScale}
                 >
                   <div className="flex items-center gap-2">
-                    <Type className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                    <Type className="size-4  text-muted-foreground transition-colors group-hover:text-primary" />
                     <span className="font-sans text-xs">{t("largeText")}</span>
                   </div>
                   <div
@@ -376,7 +376,7 @@ export function GameHeader() {
                   >
                     <div
                       className={cn(
-                        "absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all",
+                        "absolute top-0.5 size-3  rounded-full bg-white transition-all",
                         uiPreferences.fontScale === "large"
                           ? "left-4.5"
                           : "left-0.5",
@@ -391,7 +391,7 @@ export function GameHeader() {
                   onClick={toggleTheme}
                 >
                   <div className="flex items-center gap-2">
-                    <Moon className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                    <Moon className="size-4  text-muted-foreground transition-colors group-hover:text-primary" />
                     <span className="font-sans text-xs">{t("darkMode")}</span>
                   </div>
                   <div
@@ -404,7 +404,7 @@ export function GameHeader() {
                   >
                     <div
                       className={cn(
-                        "absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all",
+                        "absolute top-0.5 size-3  rounded-full bg-white transition-all",
                         uiPreferences.theme === "dark"
                           ? "left-[18px]"
                           : "left-0.5",

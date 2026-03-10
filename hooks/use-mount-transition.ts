@@ -19,6 +19,7 @@ export function useMountTransition(
     if (isMounted && !hasTransitionedIn) {
       setHasTransitionedIn(true);
     } else if (!isMounted && hasTransitionedIn) {
+      // eslint-disable-next-line fp/no-mutation -- necessary for timeout management
       timeoutId = setTimeout(() => setHasTransitionedIn(false), unmountDelay);
     }
 

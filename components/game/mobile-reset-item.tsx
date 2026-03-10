@@ -63,22 +63,22 @@ export function MobileResetItem() {
       <div className="flex items-center gap-2">
         <button
           aria-label={t("cancel")}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-muted/50 text-muted-foreground transition-colors hover:bg-muted"
+          className="flex size-8  items-center justify-center rounded-full bg-muted/50 text-muted-foreground transition-colors hover:bg-muted"
           disabled={isResetting}
           onClick={handleCancel}
         >
-          <X className="h-4 w-4" />
+          <X className="size-4 " />
         </button>
         <button
           aria-label={t("confirm")}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+          className="flex size-8  items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
           disabled={isResetting}
           onClick={handleConfirmedReset}
         >
           {isResetting ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+            <div className="size-4  animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
           ) : (
-            <Check className="h-4 w-4" />
+            <Check className="size-4 " />
           )}
         </button>
       </div>

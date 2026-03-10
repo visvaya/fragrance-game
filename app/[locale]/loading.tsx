@@ -9,13 +9,13 @@ export default function Loading() {
       <div className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/70 px-5 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 backdrop-blur-md">
         <div className="mx-auto flex max-w-2xl items-center justify-between">
           <div className="flex gap-2">
-            <div className="h-9 w-9 animate-pulse rounded bg-muted" />
-            <div className="h-9 w-9 animate-pulse rounded bg-muted" />
+            <div className="size-9 animate-pulse rounded bg-muted" />
+            <div className="size-9 animate-pulse rounded bg-muted" />
           </div>
           <div className="h-7 w-20 animate-pulse rounded bg-muted" />
           <div className="flex gap-2">
-            <div className="h-9 w-9 animate-pulse rounded bg-muted" />
-            <div className="h-9 w-9 animate-pulse rounded bg-muted" />
+            <div className="size-9 animate-pulse rounded bg-muted" />
+            <div className="size-9 animate-pulse rounded bg-muted" />
           </div>
         </div>
       </div>
@@ -44,7 +44,7 @@ export default function Loading() {
 
       {/* Input bar */}
       <div className="sticky bottom-0 w-full max-w-2xl border-t border-border/50 bg-background/70 px-5 py-8 backdrop-blur-md">
-        <div className="mx-auto h-6 w-6 animate-pulse rounded-full bg-muted" />
+        <div className="mx-auto size-6 animate-pulse rounded-full bg-muted" />
       </div>
     </div>
   );

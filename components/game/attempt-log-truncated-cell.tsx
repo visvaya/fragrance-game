@@ -42,6 +42,7 @@ export function TruncatedCell({
     let resizeTimeoutId: NodeJS.Timeout | null = null;
     const handleResize = () => {
       if (resizeTimeoutId) clearTimeout(resizeTimeoutId);
+      // eslint-disable-next-line fp/no-mutation -- necessary for timeout management
       resizeTimeoutId = globalThis.setTimeout(checkTruncation, 150);
     };
 

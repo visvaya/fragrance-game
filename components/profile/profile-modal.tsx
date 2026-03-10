@@ -69,7 +69,7 @@ export function ProfileModal({
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-4 py-4">
-          <Avatar className="h-24 w-24">
+          <Avatar className="size-24 ">
             <AvatarImage
               src={user.user_metadata.avatar_url as string | undefined}
             />
@@ -83,11 +83,11 @@ export function ProfileModal({
                 t("anonymous")}
             </h2>
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Mail className="h-3 w-3" />
+              <Mail className="size-3 " />
               <span>{user.email}</span>
             </div>
             <div className="mt-1 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-              <Calendar className="h-3 w-3" />
+              <Calendar className="size-3 " />
               <span>
                 {t("joined")}: {joinDate}
               </span>
@@ -96,7 +96,7 @@ export function ProfileModal({
 
           <div className="mt-2 flex gap-2">
             <Badge className="gap-1" variant="outline">
-              <Shield className="h-3 w-3" />
+              <Shield className="size-3 " />
               {user.app_metadata.provider === "email" ? "Email" : "OAuth"}
             </Badge>
           </div>
@@ -110,7 +110,7 @@ export function ProfileModal({
               className="flex flex-col items-center justify-center rounded-lg bg-muted/30 p-2 text-center"
               key={stat.label}
             >
-              <stat.icon className="mb-1 h-5 w-5 text-primary" />
+              <stat.icon className="mb-1 size-5  text-primary" />
               <div className="text-lg font-bold">{stat.value}</div>
               <div className="text-xs text-muted-foreground">{stat.label}</div>
             </div>

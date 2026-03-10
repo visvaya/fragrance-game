@@ -89,11 +89,10 @@ describe("Game Actions Integration (Mocked)", () => {
       // 3. Chain of single() calls:
       // - After insert to get session
       // - To get challenge
-      // eslint-disable-next-line @typescript-eslint/promise-function-async
       mockSupabase.single.mockImplementation(() => {
         const table = (mockSupabase as any)._lastTable;
         if (table === "game_sessions") {
-          return Promise.resolve({
+          return {
             data: {
               attempts_count: 0,
               challenge_id: "550e8400-e29b-41d4-a716-446655440001",
@@ -105,27 +104,27 @@ describe("Game Actions Integration (Mocked)", () => {
               status: "active",
             },
             error: null,
-          });
+          };
         }
         if (
           table === "daily_challenges_public" ||
           table === "daily_challenges"
         ) {
-          return Promise.resolve({
+          return {
             data: {
               grace_deadline_at_utc: "2026-01-01T00:00:00Z",
               perfume_id: "f47a-58cc-4372-a567-0e02b2c3d470",
             },
             error: null,
-          });
+          };
         }
         if (table === "perfume_assets") {
-          return Promise.resolve({
+          return {
             data: { image_key_step_1: "test-bg.jpg" },
             error: null,
-          });
+          };
         }
-        return Promise.resolve({ data: null, error: null });
+        return { data: null, error: null };
       });
 
       const result = await startGame("550e8400-e29b-41d4-a716-446655440001");
@@ -153,13 +152,12 @@ describe("Game Actions Integration (Mocked)", () => {
       });
 
       let callCount = 0;
-      // eslint-disable-next-line @typescript-eslint/promise-function-async
       mockSupabase.single.mockImplementation(() => {
         const table = (mockSupabase as any)._lastTable;
         if (table === "game_sessions") {
           const status = callCount > 0 ? "won" : "active";
           callCount++;
-          return Promise.resolve({
+          return {
             data: {
               attempts_count: 0,
               challenge_id: "550e8400-e29b-41d4-a716-446655440002",
@@ -171,16 +169,16 @@ describe("Game Actions Integration (Mocked)", () => {
               status: status,
             },
             error: null,
-          });
+          };
         }
         if (table === "daily_challenges") {
-          return Promise.resolve({
+          return {
             data: { perfume_id: perfumeId },
             error: null,
-          });
+          };
         }
         if (table === "perfumes") {
-          return Promise.resolve({
+          return {
             data: {
               base_notes: [],
               brand_id: "b1",
@@ -192,15 +190,15 @@ describe("Game Actions Integration (Mocked)", () => {
               top_notes: [],
             },
             error: null,
-          });
+          };
         }
         if (table === "perfume_assets") {
-          return Promise.resolve({
+          return {
             data: { image_key_step_1: "test.jpg" },
             error: null,
-          });
+          };
         }
-        return Promise.resolve({ data: null, error: null });
+        return { data: null, error: null };
       });
 
       // For update

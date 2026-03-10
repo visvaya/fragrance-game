@@ -68,3 +68,4 @@ e2e/mobile/MOBILE_TESTING_SUMMARY.md
 e2e/security/XSS_SECURITY_AUDIT.md
 e2e/i18n/I18N_TESTING_SUMMARY.md
 app/api/cron/generate-daily/__tests__/TEST_DATABASE_SETUP.md
+lint-results.txt

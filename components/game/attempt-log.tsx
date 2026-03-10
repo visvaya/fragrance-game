@@ -43,9 +43,10 @@ export const AttemptLog = memo(function AttemptLog() {
       const lastIndex = attempts.length - 1;
       const element = document.querySelector(`#attempt-${lastIndex}`);
       if (element) {
-        setTimeout(() => {
+        const scrollTimer = setTimeout(() => {
           element.scrollIntoView({ behavior: "smooth", block: "center" });
         }, 100);
+        return () => clearTimeout(scrollTimer);
       }
     }
     previousAttemptsLength.current = attempts.length;
@@ -55,9 +56,10 @@ export const AttemptLog = memo(function AttemptLog() {
   useEffect(() => {
     if (gameState === "won" || gameState === "lost") {
       // Small delay to ensure any end-game UI updates have triggered
-      setTimeout(() => {
+      const endTimer = setTimeout(() => {
         window.scrollTo({ behavior: "smooth", top: 0 });
       }, 300);
+      return () => clearTimeout(endTimer);
     }
   }, [gameState]);
 
@@ -92,7 +94,7 @@ export const AttemptLog = memo(function AttemptLog() {
               )}
               onPointerDown={handleIconTap}
             >
-              <ScrollText className="h-4 w-4 text-muted-foreground" />
+              <ScrollText className="size-4  text-muted-foreground" />
             </span>
             <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase">
               {t("title")}
@@ -105,7 +107,7 @@ export const AttemptLog = memo(function AttemptLog() {
         {/* Header Row - spread into grid columns */}
         <div className="flex items-center justify-center border-b-2 border-muted/50 pb-2 text-sm font-semibold tracking-widest text-muted-foreground/70 lowercase transition-colors">
           <GameTooltip
-            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+            className="size-8  items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
             content={t("columns.attemptTooltip")}
           >
             <span className="w-full cursor-help text-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
@@ -120,16 +122,16 @@ export const AttemptLog = memo(function AttemptLog() {
 
         <div className="grid w-full grid-cols-5 justify-items-center border-b-2 border-muted/50 px-1 pb-2 text-center text-sm font-semibold tracking-widest text-muted-foreground/70 lowercase">
           <GameTooltip
-            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+            className="size-8  items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
             content={t("columns.brandTooltip")}
           >
             <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-              <Store className="h-4 w-4" />
+              <Store className="size-4 " />
             </span>
           </GameTooltip>
 
           <GameTooltip
-            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+            className="size-8  items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
             content={
               attempts.length > 0 && dailyPerfume.perfumer.includes(",")
                 ? t("columns.perfumersTooltip")
@@ -138,37 +140,37 @@ export const AttemptLog = memo(function AttemptLog() {
           >
             <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
               {attempts.length > 0 && dailyPerfume.perfumer.includes(",") ? (
-                <Users className="h-4 w-4" />
+                <Users className="size-4 " />
               ) : (
-                <User className="h-4 w-4" />
+                <User className="size-4 " />
               )}
             </span>
           </GameTooltip>
 
           <GameTooltip
-            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+            className="size-8  items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
             content={t("columns.yearTooltip")}
           >
             <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-              <Calendar className="h-4 w-4" />
+              <Calendar className="size-4 " />
             </span>
           </GameTooltip>
 
           <GameTooltip
-            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+            className="size-8  items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
             content={t("columns.genderTooltip")}
           >
             <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-              <VenusAndMars className="h-4 w-4" />
+              <VenusAndMars className="size-4 " />
             </span>
           </GameTooltip>
 
           <GameTooltip
-            className="h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+            className="size-8  items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
             content={t("columns.notesTooltip")}
           >
             <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-              <Music className="h-4 w-4" />
+              <Music className="size-4 " />
             </span>
           </GameTooltip>
         </div>
@@ -221,7 +223,7 @@ export const AttemptLog = memo(function AttemptLog() {
                     {attempts.length + i + 1}
                   </span>
                 </div>
-                <div className={`py-3 ${borderClass} min-h-[4rem] pr-2 pl-2`}>
+                <div className={`py-3 ${borderClass} min-h-[4rem] px-2 `}>
                   <span className="text-sm font-medium text-muted-foreground opacity-30">
                     ...
                   </span>

@@ -34,8 +34,7 @@ export function calculateBaseScore(attempt: number): number {
   // If somehow out of bounds, clamp
   if (attempt < 1) return 1000;
   if (attempt > MAX_GUESSES) return 0;
-  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-  return ATTEMPT_SCORES[attempt] || 0;
+  return ATTEMPT_SCORES[attempt] ?? 0;
 }
 
 /**
@@ -235,18 +234,29 @@ function generateSmartRevealOrder(length: number): number[] {
     // 5 (70% of 4 = 2.8 -> 3 chars) -> indices 2, 1, and 3('r'). Right was picked.
     // So strategy: Center, Left, Right, Left, Right...
 
-    if (left >= subStart) order.push(left--);
-    if (right < length) order.push(right++);
+    if (left >= subStart) {
+      // eslint-disable-next-line fp/no-mutating-methods -- imperative alternating-expansion algorithm; functional equivalent would be unreadable
+      order.push(left);
+      // eslint-disable-next-line fp/no-mutation -- local loop variable for alternating-expansion algorithm
+      left -= 1;
+    }
+    if (right < length) {
+      // eslint-disable-next-line fp/no-mutating-methods -- imperative alternating-expansion algorithm; functional equivalent would be unreadable
+      order.push(right);
+      // eslint-disable-next-line fp/no-mutation -- local loop variable for alternating-expansion algorithm
+      right += 1;
+    }
   }
 
   // Finally, reveal the first letter (Brand Capital)
-  order.push(0);
+  const finalOrder = [...order, 0];
 
+  // eslint-disable-next-line no-restricted-properties
   if (process.env.NODE_ENV === "development") {
     // eslint-disable-next-line no-console
     console.debug(
-      `SmartReveal(${length}): SubLen=${subLength}, Center=${centerAbsolute}, Order=${JSON.stringify(order)}`,
+      `SmartReveal(${length}): SubLen=${subLength}, Center=${centerAbsolute}, Order=${JSON.stringify(finalOrder)}`,
     );
   }
-  return order;
+  return finalOrder;
 }

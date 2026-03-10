@@ -14,17 +14,13 @@ function isValidRedirectUrl(url: string): boolean {
 /**
  *
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export async function GET(request: Request) {
+export async function GET(request: Request): Promise<Response> {
   const { origin, searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   // if "next" is in param, use it as the redirect URL
-  let next = searchParams.get("next") ?? "/";
-
+  const nextParameter = searchParams.get("next") ?? "/";
   // Security: validate redirect URL to prevent open redirect
-  if (!isValidRedirectUrl(next)) {
-    next = "/";
-  }
+  const next = isValidRedirectUrl(nextParameter) ? nextParameter : "/";
 
   if (code) {
     const supabase = await createClient();

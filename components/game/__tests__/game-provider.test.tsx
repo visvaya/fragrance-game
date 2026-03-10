@@ -1,4 +1,4 @@
-import { render, screen, waitFor, act } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -193,10 +193,8 @@ describe("GameProvider", () => {
       expect(screen.getByTestId("daily-brand")).toHaveTextContent("Chanel"),
     );
 
-    act(() => {
-      // eslint-disable-next-line testing-library/no-node-access
-      screen.getByText("Guess").click();
-    });
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.click(screen.getByText("Guess"));
 
     await waitFor(() => {
       expect(screen.getByTestId("game-state")).toHaveTextContent("won");
@@ -268,10 +266,8 @@ describe("GameProvider", () => {
       expect(screen.getByTestId("daily-brand")).toHaveTextContent("Chanel"),
     );
 
-    act(() => {
-      // eslint-disable-next-line testing-library/no-node-access
-      screen.getByText("Guess").click();
-    });
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.click(screen.getByText("Guess"));
 
     await waitFor(() => {
       expect(screen.getByTestId("attempts-count")).toHaveTextContent("1");

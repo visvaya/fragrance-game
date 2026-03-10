@@ -9,7 +9,6 @@ type PasswordStrengthProperties = {
 /**
  * Component to display password strength and requirements checklist.
  */
-// eslint-disable-next-line sonarjs/cognitive-complexity
 export function PasswordStrength({
   password = "",
 }: Readonly<PasswordStrengthProperties>) {
@@ -22,12 +21,13 @@ export function PasswordStrength({
     uppercase: /[A-Z]/.test(password),
   };
 
-  let strength = 0;
-  if (checks.hasMinLength) strength += 1;
-  if (checks.lowercase) strength += 1;
-  if (checks.uppercase) strength += 1;
-  if (checks.number) strength += 1;
-  if (checks.special) strength += 1;
+  const strength = [
+    checks.hasMinLength,
+    checks.lowercase,
+    checks.uppercase,
+    checks.number,
+    checks.special,
+  ].filter(Boolean).length;
 
   if (!password) return null;
 

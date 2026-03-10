@@ -97,30 +97,26 @@ function calculateMaskedValues(
       : revealLetters(targetBrand, brandPercentages[Math.min(level - 1, 5)]);
 
   // Year
-  let guessMaskedYear = MASK_CHAR.repeat(4);
-  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-  if (targetYear) {
+  const guessMaskedYear = (() => {
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions -- year truthiness: 0 and empty string both mean no year
+    if (!targetYear) return MASK_CHAR.repeat(4);
     const yearString = targetYear.toString();
-    if (level >= 5) guessMaskedYear = yearString;
-    else
-      switch (level) {
-        case 4: {
-          guessMaskedYear = yearString.slice(0, 3) + MASK_CHAR;
-          break;
-        }
-        case 3: {
-          guessMaskedYear = yearString.slice(0, 2) + MASK_CHAR.repeat(2);
-          break;
-        }
-        case 2: {
-          {
-            guessMaskedYear = yearString.slice(0, 1) + MASK_CHAR.repeat(3);
-            // No default
-          }
-          break;
-        }
+    if (level >= 5) return yearString;
+    switch (level) {
+      case 4: {
+        return yearString.slice(0, 3) + MASK_CHAR;
       }
-  }
+      case 3: {
+        return yearString.slice(0, 2) + MASK_CHAR.repeat(2);
+      }
+      case 2: {
+        return yearString.slice(0, 1) + MASK_CHAR.repeat(3);
+      }
+      default: {
+        return MASK_CHAR.repeat(4);
+      }
+    }
+  })();
 
   return { guessMaskedBrand, guessMaskedYear };
 }

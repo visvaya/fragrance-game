@@ -274,6 +274,7 @@ export function GameInput() {
     }, 300);
 
     return () => {
+      // eslint-disable-next-line fp/no-mutation -- necessary for async cleanup
       ignore = true;
       clearTimeout(timer);
     };
@@ -368,15 +369,23 @@ export function GameInput() {
       case "Enter": {
         e.preventDefault();
 
-        let perfumeToSelect = null;
+        const perfumeToSelect =
+          (selectedIndex >= 0 ? suggestions[selectedIndex] : undefined) ??
+          (suggestions.length === 1 ? suggestions[0] : null);
 
-        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-        if (selectedIndex >= 0 && suggestions[selectedIndex]) {
-          // If something is already selected, use it
-          perfumeToSelect = suggestions[selectedIndex];
-        } else if (suggestions.length === 1) {
-          // If only one suggestion, use it immediately
-          perfumeToSelect = suggestions[0];
+        // eslint-disable-next-line unicorn/no-negated-condition -- guard clause; null means no selection, positive action only when selected
+        if (perfumeToSelect !== null) {
+          // Check for duplicates before selecting (standard protection)
+          const isDuplicate = attempts.some(
+            (a) =>
+              (a.perfumeId && a.perfumeId === perfumeToSelect.perfume_id) ||
+              (!a.perfumeId &&
+                a.guess.toLowerCase() === perfumeToSelect.name.toLowerCase()),
+          );
+
+          if (!isDuplicate) {
+            void handleSelect(perfumeToSelect);
+          }
         } else {
           // Nothing selected and multiple suggestions: highlight first available
           const firstAvailableIndex = suggestions.findIndex(
@@ -394,22 +403,6 @@ export function GameInput() {
               payload: firstAvailableIndex,
               type: "SET_SELECTED_INDEX",
             });
-            // We return early here as we only wanted to highlight
-            return;
-          }
-        }
-
-        if (perfumeToSelect) {
-          // Check for duplicates before selecting (standard protection)
-          const isDuplicate = attempts.some(
-            (a) =>
-              (a.perfumeId && a.perfumeId === perfumeToSelect.perfume_id) ||
-              (!a.perfumeId &&
-                a.guess.toLowerCase() === perfumeToSelect.name.toLowerCase()),
-          );
-
-          if (!isDuplicate) {
-            void handleSelect(perfumeToSelect);
           }
         }
 
@@ -446,7 +439,7 @@ export function GameInput() {
       >
         <div className="relative border-x-0 border-t panel-border bg-background/70 px-5 py-8 panel-shadow backdrop-blur-md sm:rounded-t-md sm:border-x">
           <div className="flex justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <Loader2 className="size-6  animate-spin text-muted-foreground" />
           </div>
         </div>
       </div>
@@ -477,12 +470,17 @@ export function GameInput() {
   const isNormallyVisible = !isCurrentlyLoading && !isError;
   const isErrorVisible = !isCurrentlyLoading && isError;
 
-  let surfaceClasses = "rounded-t-none bg-background/70 sm:rounded-t-md";
-  if (shouldShowList || hasTransitionedIn) {
-    surfaceClasses = "rounded-t-none bg-background text-foreground";
-  } else if (showSuggestions) {
-    surfaceClasses = "rounded-t-none bg-background sm:rounded-t-md";
-  }
+  const getSurfaceClasses = (): string => {
+    if (shouldShowList || hasTransitionedIn) {
+      return "rounded-t-none bg-background text-foreground";
+    }
+    if (showSuggestions) {
+      return "rounded-t-none bg-background sm:rounded-t-md";
+    }
+    return "rounded-t-none bg-background/70 sm:rounded-t-md";
+  };
+
+  const surfaceClasses = getSurfaceClasses();
 
   return (
     <div
@@ -506,7 +504,7 @@ export function GameInput() {
               {tFooter("selectHelper")}
             </p>
           </div>
-          <ChevronDown className="h-3 w-3 text-primary/60" strokeWidth={2} />
+          <ChevronDown className="size-3  text-primary/60" strokeWidth={2} />
         </div>
       </div>
 
@@ -514,7 +512,7 @@ export function GameInput() {
         {/* Input Surface (Visual Layer) */}
         <div
           className={cn(
-            "relative z-20 border-x-0 border-t panel-border px-5 pt-1.5 pb-1.5 panel-shadow backdrop-blur-md transition-colors duration-200 ease-in-out sm:border-x",
+            "relative z-20 border-x-0 border-t panel-border px-5 py-1.5  panel-shadow backdrop-blur-md transition-colors duration-200 ease-in-out sm:border-x",
             surfaceClasses,
           )}
         >
@@ -556,7 +554,7 @@ export function GameInput() {
               type="text"
               value={query}
             />
-            <div className="pointer-events-none absolute top-[calc(50%+1px)] right-0.5 flex h-8 w-8 -translate-y-1/2 items-center justify-center">
+            <div className="pointer-events-none absolute top-[calc(50%+1px)] right-0.5 flex size-8  -translate-y-1/2 items-center justify-center">
               {/* Search Icon */}
               <div
                 className={cn(
@@ -566,13 +564,13 @@ export function GameInput() {
                     : "scale-50 -rotate-90 opacity-0",
                 )}
               >
-                <Search className="h-5 w-5 text-muted-foreground" />
+                <Search className="size-5  text-muted-foreground" />
               </div>
 
               {/* Loader Icon */}
               {isCurrentlyLoading ? (
                 <div className="absolute scale-100 opacity-100 transition-all duration-300 ease-out">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  <Loader2 className="size-5  animate-spin text-muted-foreground" />
                 </div>
               ) : null}
 
@@ -585,7 +583,7 @@ export function GameInput() {
                     : "scale-50 rotate-90 opacity-0",
                 )}
               >
-                <X className="h-5 w-5 text-destructive" />
+                <X className="size-5  text-destructive" />
               </div>
             </div>
           </div>
@@ -603,7 +601,7 @@ export function GameInput() {
               >
                 <button
                   aria-label={t("skipTooltip")}
-                  className="flex h-7 w-7 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex size-7  items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-30"
                   disabled={!sessionId}
                   onClick={() => {
                     if (
@@ -618,7 +616,7 @@ export function GameInput() {
                   }}
                   type="button"
                 >
-                  <SkipForward className="h-3.5 w-3.5" />
+                  <SkipForward className="size-3.5 " />
                 </button>
               </GameTooltip>
             </div>
@@ -723,8 +721,8 @@ export function GameInput() {
                               if (perfume.year === MASK_CHAR.repeat(4)) {
                                 return (
                                   <span className="tracking-widest text-muted-foreground opacity-30">
-                                    {/* eslint-disable-next-line @typescript-eslint/no-misused-spread */}
-                                    {[..."____"].map((char, i) => (
+                                    {/* eslint-disable-next-line unicorn/prefer-spread -- string character iteration; split("") vs [...str] conflict with no-misused-spread */}
+                                    {"____".split("").map((char, i) => (
                                       <span className="inline-block" key={i}>
                                         {char}
                                       </span>
@@ -735,8 +733,8 @@ export function GameInput() {
 
                               return (
                                 <span className="tracking-widest">
-                                  {/* eslint-disable-next-line @typescript-eslint/no-misused-spread */}
-                                  {[...perfume.year].map((char, i) => (
+                                  {/* eslint-disable-next-line unicorn/prefer-spread -- string character iteration; split("") vs [...str] conflict with no-misused-spread */}
+                                  {perfume.year.split("").map((char, i) => (
                                     <span
                                       className={
                                         char === MASK_CHAR

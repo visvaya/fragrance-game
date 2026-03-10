@@ -703,6 +703,8 @@ export default tseslint.config(
       "@typescript-eslint/strict-boolean-expressions": "off",
       "sonarjs/max-lines-per-function": "off",
       "no-restricted-globals": "off",
+      // Playwright can't use @/lib/env — allow direct process.env access
+      "no-restricted-properties": "off",
     },
     languageOptions: {
       globals: {

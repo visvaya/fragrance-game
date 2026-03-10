@@ -99,7 +99,7 @@ export function MigrationModal() {
     setIsLoading(true);
     try {
       const result = await migrateAnonymousPlayer(anonId);
-      if (result.error) {
+      if ("error" in result && result.error) {
         toast.error(t("error"));
         console.error(result.error);
         setChoiceMade(false); // Enable exit guard again on error?
@@ -184,7 +184,7 @@ export function MigrationModal() {
           </Button>
           <Button disabled={isLoading} onClick={handleMerge}>
             {isLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 size-4  animate-spin" />
             ) : null}
             {t("confirm")}
           </Button>

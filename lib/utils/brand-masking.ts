@@ -52,8 +52,7 @@ export function maskYear(
   year: number | null,
   attemptsCount: number,
 ): string | null {
-  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-  if (!year) return null;
+  if (year === null || year === 0) return null;
 
   // attemptsCount corresponds to revealLevel
   // Level 1: ⎵⎵⎵⎵

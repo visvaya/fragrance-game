@@ -83,19 +83,9 @@ export function SessionsModal({
       }
 
       setState((previous) => ({ ...previous, isLoading: true }));
-      let data: unknown = null;
       try {
-        data = await getSessions();
-      } catch (error) {
-        console.error("Failed to fetch sessions", error);
-        toast.error(t("fetchError"));
-        setState((previous) => ({ ...previous, isLoading: false }));
-        return;
-      }
-
-      if (data) {
+        const data = await getSessions();
         const newSessions = data as Session[];
-        let newSessionId: string | null = null;
 
         if (newSessions.length > 0) {
           const sorted = newSessions.toSorted(
@@ -114,21 +104,22 @@ export function SessionsModal({
                 : "";
             return storedUA === currentUA;
           });
-          if (match) {
-            newSessionId = match.id;
-          } else if (sorted.length > 0) {
-            newSessionId = sorted[0].id;
-          }
-        }
+          const newSessionId: string | null = match?.id ?? sorted[0].id;
 
-        setState((previous) => ({
-          ...previous,
-          currentSessionId: newSessionId,
-          isLoading: false,
-          sessions: newSessions,
-        }));
-      } else {
+          setState((previous) => ({
+            ...previous,
+            currentSessionId: newSessionId,
+            isLoading: false,
+            sessions: newSessions,
+          }));
+        } else {
+          setState((previous) => ({ ...previous, isLoading: false, sessions: newSessions }));
+        }
+      } catch (error) {
+        console.error("Failed to fetch sessions", error);
+        toast.error(t("fetchError"));
         setState((previous) => ({ ...previous, isLoading: false }));
+        return;
       }
     };
 
@@ -181,14 +172,14 @@ export function SessionsModal({
       userAgent === "node" ||
       userAgent.toLowerCase().includes("node-fetch")
     ) {
-      return <Laptop className="h-4 w-4" />;
+      return <Laptop className="size-4" />;
     }
     const ua = new UAParser(userAgent);
     const device = ua.getDevice();
     if (device.type === "mobile" || device.type === "tablet") {
-      return <Phone className="h-4 w-4" />;
+      return <Phone className="size-4" />;
     }
-    return <Laptop className="h-4 w-4" />;
+    return <Laptop className="size-4" />;
   };
 
   const formatDeviceInfo = (deviceInfo: Json | null) => {
@@ -233,7 +224,7 @@ export function SessionsModal({
     if (state.isLoading) {
       return (
         <div className="flex justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
       );
     }
@@ -284,7 +275,7 @@ export function SessionsModal({
                   </p>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                     <span className="flex shrink-0 items-center gap-1">
-                      <Globe className="h-3 w-3" />
+                      <Globe className="size-3 " />
                       {String(session.ip_address)}
                       {session.id === state.currentSessionId && (
                         <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
@@ -314,7 +305,7 @@ export function SessionsModal({
                 variant="destructive"
               >
                 {revokingId === session.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="size-4 animate-spin" />
                 ) : (
                   t("revoke")
                 )}

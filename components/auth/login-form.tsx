@@ -83,6 +83,7 @@ export function LoginForm({
       if (onSuccess) {
         onSuccess();
       } else {
+        // eslint-disable-next-line fp/no-mutating-methods
         router.push("/");
       }
       setIsLoading(false);
@@ -149,7 +150,10 @@ export function LoginForm({
                     className="text-sm text-primary hover:underline"
                     onClick={
                       onForgotPasswordClick ??
-                      (() => router.push("/auth/forgot-password"))
+                      (() => {
+                        // eslint-disable-next-line fp/no-mutating-methods -- router.push() Next.js navigation, false positive
+                        router.push("/auth/forgot-password");
+                      })
                     }
                     type="button"
                   >
@@ -166,7 +170,7 @@ export function LoginForm({
 
           <Button className="w-full" disabled={isLoading} type="submit">
             {isLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 size-4  animate-spin" />
             ) : null}
             {t("submit")}
           </Button>
@@ -177,6 +181,7 @@ export function LoginForm({
         {t("noAccount")}{" "}
         <button
           className="underline hover:text-primary"
+          // eslint-disable-next-line fp/no-mutating-methods
           onClick={onRegisterClick ?? (() => router.push("/auth/register"))}
           type="button"
         >

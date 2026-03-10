@@ -10,6 +10,13 @@ export default defineConfig({
     globals: true,
     setupFiles: "./vitest.setup.ts",
     exclude: ["**/node_modules/**", "**/e2e/**"],
+    env: {
+      CRON_SECRET: "test-cron-secret",
+      NEXT_PUBLIC_POSTHOG_KEY: "phc_test_key",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "test-anon-key",
+      NEXT_PUBLIC_SUPABASE_URL: "https://test.supabase.co",
+      SUPABASE_SERVICE_ROLE_KEY: "test-service-role-key",
+    },
     alias: {
       "@": path.resolve(__dirname, "./"),
     },

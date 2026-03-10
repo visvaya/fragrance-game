@@ -106,7 +106,7 @@ export function ForgotPasswordForm({
 
           <Button className="w-full" disabled={isLoading} type="submit">
             {isLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 size-4  animate-spin" />
             ) : null}
             {t("submit")}
           </Button>
@@ -116,6 +116,7 @@ export function ForgotPasswordForm({
       <div className="text-center text-sm">
         <button
           className="underline hover:text-primary"
+          // eslint-disable-next-line fp/no-mutating-methods
           onClick={onLoginClick ?? (() => router.push("/auth/login"))}
           type="button"
         >

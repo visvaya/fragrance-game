@@ -42,7 +42,7 @@ export const PyramidClues = memo(function PyramidClues() {
         <div className="mb-4 flex w-fit cursor-default items-center">
           <div className="flex items-center gap-2">
             <span className="inline-flex">
-              <Layers className="h-4 w-4 text-muted-foreground" />
+              <Layers className="size-4  text-muted-foreground" />
             </span>
             <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase opacity-40">
               {t("pyramid")}
@@ -57,7 +57,7 @@ export const PyramidClues = memo(function PyramidClues() {
             >
               <div className="flex items-center gap-2">
                 <span
-                  className={`h-2 w-2 shrink-0 rounded-full ${level.dotClass} opacity-40`}
+                  className={`size-2  shrink-0 rounded-full ${level.dotClass} opacity-40`}
                 />
                 <span className="text-xs font-semibold tracking-widest text-muted-foreground/40 lowercase">
                   {level.label}
@@ -93,56 +93,42 @@ export const PyramidClues = memo(function PyramidClues() {
     // Level 4: 2/3 notes revealed (from end)
     // Level 5+: All notes revealed
 
-    let displayNotes: string[] = [];
-
     const isGameOver = gameState === "won" || gameState === "lost";
 
-    if (isGameOver || revealLevel >= 5) {
-      // Level 5+ or Game Over -> All
-      displayNotes = mergedNotes;
-    } else
+    const displayNotes = (() => {
+      if (isGameOver || revealLevel >= 5) return mergedNotes;
       switch (revealLevel) {
         case 1: {
-          // 3 generic dots -> now 3 generic scores/slots
-          displayNotes = [
+          return [
             GENERIC_PLACEHOLDER.repeat(5),
             GENERIC_PLACEHOLDER.repeat(5),
             GENERIC_PLACEHOLDER.repeat(5),
           ];
-
-          break;
         }
         case 2: {
-          // All notes masked (0% reveal)
-          displayNotes = mergedNotes.map((n) =>
-            n.replaceAll(/[a-z0-9]/gi, MASK_CHAR),
-          );
-
-          break;
+          return mergedNotes.map((n) => n.replaceAll(/[a-z0-9]/gi, MASK_CHAR));
         }
         case 3: {
-          // 1/3 revealed from end, rest masked
           const count = Math.ceil(mergedNotes.length * (1 / 3));
-          displayNotes = mergedNotes.map((n, i) => {
-            // if index is in the last 'count', show it. Else mask it.
-            if (i >= mergedNotes.length - count) return n;
-            return n.replaceAll(/[a-z0-9]/gi, MASK_CHAR);
-          });
-
-          break;
+          return mergedNotes.map((n, i) =>
+            i >= mergedNotes.length - count
+              ? n
+              : n.replaceAll(/[a-z0-9]/gi, MASK_CHAR),
+          );
         }
         case 4: {
-          // 2/3 revealed from end
           const count = Math.ceil(mergedNotes.length * (2 / 3));
-          displayNotes = mergedNotes.map((n, i) => {
-            if (i >= mergedNotes.length - count) return n;
-            return n.replaceAll(/[a-z0-9]/gi, MASK_CHAR);
-          });
-
-          break;
+          return mergedNotes.map((n, i) =>
+            i >= mergedNotes.length - count
+              ? n
+              : n.replaceAll(/[a-z0-9]/gi, MASK_CHAR),
+          );
         }
-        // No default
+        default: {
+          return [];
+        }
       }
+    })();
 
     return (
       <div className="panel-standard">
@@ -156,7 +142,7 @@ export const PyramidClues = memo(function PyramidClues() {
                 )}
                 onPointerDown={handleIconTap}
               >
-                <Layers className="h-4 w-4 text-muted-foreground" />
+                <Layers className="size-4  text-muted-foreground" />
               </span>
               <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase">
                 {t("olfactoryProfile")}
@@ -168,7 +154,7 @@ export const PyramidClues = memo(function PyramidClues() {
         <ul className="flex flex-col">
           <li className="flex flex-col gap-2 border-b border-border/60 py-4 first:pt-0 last:border-b-0 last:pb-0">
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
+              <span className="size-2  shrink-0 rounded-full bg-primary" />
               <span className="text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
                 <GameTooltip content={t("linearMeaning")}>
                   <span className="cursor-help underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
@@ -216,7 +202,7 @@ export const PyramidClues = memo(function PyramidClues() {
                           content={t("hiddenNote", { attempt: currentAttempt })}
                         >
                           <div className="group flex h-5 cursor-help items-center justify-center opacity-80 transition-colors duration-300 hover:opacity-100">
-                            <Lock className="h-3 w-3 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
+                            <Lock className="size-3  text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
                           </div>
                         </GameTooltip>
                       </span>
@@ -238,43 +224,45 @@ export const PyramidClues = memo(function PyramidClues() {
                               word === GENERIC_PLACEHOLDER.repeat(5);
                             const showTooltip = hasMasking;
 
-                            let innerContent: React.ReactNode;
-                            if (isFullHidden) {
-                              innerContent = (
-                                <div className="group flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
-                                  <Lock className="h-2.5 w-2.5 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
-                                </div>
-                              );
-                            } else if (hasMasking) {
-                              // eslint-disable-next-line @typescript-eslint/no-misused-spread
-                              innerContent = [...word].map((char, index) => {
-                                const isSlot = char === MASK_CHAR;
-                                if (isSlot) {
-                                  return (
-                                    <MaskSlot
-                                      char={char}
-                                      key={`linear-slot-${char}-${index}`}
-                                    />
-                                  );
-                                }
+                            // eslint-disable-next-line sonarjs/function-return-type -- IIFE returns React.ReactNode; multiple branches declared above
+                            const innerContent: React.ReactNode = (() => {
+                              if (isFullHidden) {
                                 return (
-                                  <div
-                                    className="mx-px flex h-5 w-2 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
-                                    key={`linear-char-${char}-${index}`}
-                                  >
-                                    <span className="inline-block translate-y-px">
-                                      {char}
-                                    </span>
+                                  <div className="group flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
+                                    <Lock className="size-2.5  text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
                                   </div>
                                 );
-                              });
-                            } else {
-                              innerContent = (
+                              }
+                              if (hasMasking) {
+                                // eslint-disable-next-line unicorn/prefer-spread, sonarjs/no-nested-functions -- string character iteration; deeply nested in JSX render context
+                                return word.split("").map((char, index) => {
+                                  const isSlot = char === MASK_CHAR;
+                                  if (isSlot) {
+                                    return (
+                                      <MaskSlot
+                                        char={char}
+                                        key={`linear-slot-${char}-${index}`}
+                                      />
+                                    );
+                                  }
+                                  return (
+                                    <div
+                                      className="mx-px flex h-5 w-2 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
+                                      key={`linear-char-${char}-${index}`}
+                                    >
+                                      <span className="inline-block translate-y-px">
+                                        {char}
+                                      </span>
+                                    </div>
+                                  );
+                                });
+                              }
+                              return (
                                 <span className="font-sans text-sm text-foreground">
                                   {word}
                                 </span>
                               );
-                            }
+                            })();
 
                             const content = (
                               <div
@@ -297,7 +285,7 @@ export const PyramidClues = memo(function PyramidClues() {
                                         <div className="flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
                                           <Lock
                                             className={cn(
-                                              "h-2.5 w-2.5 transition-colors duration-300",
+                                              "size-2.5  transition-colors duration-300",
                                               isHovered
                                                 ? "text-[oklch(0.75_0.15_60)]"
                                                 : "text-muted-foreground",
@@ -305,8 +293,8 @@ export const PyramidClues = memo(function PyramidClues() {
                                           />
                                         </div>
                                       ) : (
-                                        // eslint-disable-next-line @typescript-eslint/no-misused-spread, sonarjs/no-nested-functions
-                                        [...word].map((char, index) => {
+                                        // eslint-disable-next-line sonarjs/no-nested-functions, unicorn/prefer-spread -- string character iteration; split("") vs [...str] conflict with no-misused-spread
+                                        word.split("").map((char, index) => {
                                           const isSlot = char === MASK_CHAR;
                                           if (isSlot) {
                                             return (
@@ -383,7 +371,7 @@ export const PyramidClues = memo(function PyramidClues() {
               // eslint-disable-next-line @typescript-eslint/no-empty-function
               onTouchStart={() => { }}
             >
-              <Layers className="h-4 w-4 text-muted-foreground" />
+              <Layers className="size-4  text-muted-foreground" />
             </span>
             <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase">
               {t("pyramid")}
@@ -401,7 +389,7 @@ export const PyramidClues = memo(function PyramidClues() {
           >
             <div className="flex items-center gap-2">
               <span
-                className={`h-2 w-2 shrink-0 rounded-full ${level.dotClass}`}
+                className={`size-2  shrink-0 rounded-full ${level.dotClass}`}
               />
               <span className="text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
                 {t(level.name.toLowerCase())}{" "}
@@ -435,30 +423,9 @@ export const PyramidClues = memo(function PyramidClues() {
                     const words = note.split(" ");
                     const isLast = noteIndex === array.length - 1;
 
-                    // Check if it's the generic placeholder "??????" passed from GameProvider?
-                    let badgeNode: React.ReactNode;
-                    if (note === GENERIC_PLACEHOLDER.repeat(5)) {
-                      badgeNode = (
-                        <span
-                          className="inline-flex min-h-[1.375rem] max-w-full cursor-default flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 rounded-md border border-border bg-secondary/50 bg-striped-pattern px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary"
-                          key={`${level.name}-note-${noteIndex}-${note.charAt(0)}`}
-                        >
-                          <GameTooltip
-                            content={t("hiddenNote", {
-                              attempt: currentAttempt,
-                            })}
-                          >
-                            <div className="group flex h-5 cursor-help items-center justify-center opacity-80 transition-colors duration-300 hover:opacity-100">
-                              <Lock className="h-3 w-3 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
-                            </div>
-                          </GameTooltip>
-                        </span>
-                      );
-                    } else {
-                      // if reveal level is not 1.
-                      // GameProvider usually returns real notes. If masked, they contain MASK_CHAR.
-                      // Let's assume standard logic: characters are masked.
-
+                    // if reveal level is not 1, return revealed/masked note badge.
+                    // GameProvider usually returns real notes. If masked, they contain MASK_CHAR.
+                    if (note !== GENERIC_PLACEHOLDER.repeat(5)) {
                       return (
                         <span
                           className="group inline-flex min-h-[1.375rem] max-w-full cursor-default flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 rounded-md border border-border bg-secondary/50 px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary"
@@ -476,43 +443,45 @@ export const PyramidClues = memo(function PyramidClues() {
                                 word === GENERIC_PLACEHOLDER.repeat(5);
                               const showTooltip = hasMasking;
 
-                              let innerContent: React.ReactNode;
-                              if (isFullHidden) {
-                                innerContent = (
-                                  <div className="group flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
-                                    <Lock className="h-2.5 w-2.5 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
-                                  </div>
-                                );
-                              } else if (hasMasking) {
-                                // eslint-disable-next-line @typescript-eslint/no-misused-spread, sonarjs/no-nested-functions
-                                innerContent = [...word].map((char, index) => {
-                                  const isSlot = char === MASK_CHAR;
-                                  if (isSlot) {
-                                    return (
-                                      <MaskSlot
-                                        char={char}
-                                        key={`${level.name}-note-${noteIndex}-slot-${index}`}
-                                      />
-                                    );
-                                  }
+                              // eslint-disable-next-line sonarjs/no-nested-functions, sonarjs/function-return-type -- IIFE deeply nested in JSX render context; extracting would scatter related logic
+                              const innerContent: React.ReactNode = (() => {
+                                if (isFullHidden) {
                                   return (
-                                    <div
-                                      className="mx-px flex h-5 w-2 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
-                                      key={`${level.name}-note-${noteIndex}-char-${index}`}
-                                    >
-                                      <span className="inline-block translate-y-px">
-                                        {char}
-                                      </span>
+                                    <div className="group flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
+                                      <Lock className="size-2.5  text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
                                     </div>
                                   );
-                                });
-                              } else {
-                                innerContent = (
+                                }
+                                if (hasMasking) {
+                                  // eslint-disable-next-line unicorn/prefer-spread -- string character iteration; split("") vs [...str] conflict with no-misused-spread
+                                  return word.split("").map((char, index) => {
+                                    const isSlot = char === MASK_CHAR;
+                                    if (isSlot) {
+                                      return (
+                                        <MaskSlot
+                                          char={char}
+                                          key={`${level.name}-note-${noteIndex}-slot-${index}`}
+                                        />
+                                      );
+                                    }
+                                    return (
+                                      <div
+                                        className="mx-px flex h-5 w-2 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
+                                        key={`${level.name}-note-${noteIndex}-char-${index}`}
+                                      >
+                                        <span className="inline-block translate-y-px">
+                                          {char}
+                                        </span>
+                                      </div>
+                                    );
+                                  });
+                                }
+                                return (
                                   <span className="font-sans text-sm text-foreground">
                                     {word}
                                   </span>
                                 );
-                              }
+                              })();
 
                               const content = (
                                 <div className="flex flex-nowrap">
@@ -539,7 +508,7 @@ export const PyramidClues = memo(function PyramidClues() {
                                           <div className="flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
                                             <Lock
                                               className={cn(
-                                                "h-2.5 w-2.5 transition-colors duration-300",
+                                                "size-2.5  transition-colors duration-300",
                                                 isHovered
                                                   ? "text-[oklch(0.75_0.15_60)]"
                                                   : "text-muted-foreground",
@@ -547,8 +516,8 @@ export const PyramidClues = memo(function PyramidClues() {
                                             />
                                           </div>
                                         ) : (
-                                          // eslint-disable-next-line @typescript-eslint/no-misused-spread
-                                          [...word].map((char, index) => {
+                                          // eslint-disable-next-line unicorn/prefer-spread -- string character iteration; split("") vs [...str] conflict with no-misused-spread
+                                          word.split("").map((char, index) => {
                                             const isSlot = char === MASK_CHAR;
                                             if (isSlot) {
                                               return (
@@ -583,6 +552,24 @@ export const PyramidClues = memo(function PyramidClues() {
                       );
                     }
 
+                    // Generic placeholder badge (level 1 = "??????")
+                    const badgeNode = (
+                      <span
+                        className="inline-flex min-h-[1.375rem] max-w-full cursor-default flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 rounded-md border border-border bg-secondary/50 bg-striped-pattern px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary"
+                        key={`${level.name}-note-${noteIndex}-${note.charAt(0)}`}
+                      >
+                        <GameTooltip
+                          content={t("hiddenNote", {
+                            attempt: currentAttempt,
+                          })}
+                        >
+                          <div className="group flex h-5 cursor-help items-center justify-center opacity-80 transition-colors duration-300 hover:opacity-100">
+                            <Lock className="size-3  text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
+                          </div>
+                        </GameTooltip>
+                      </span>
+                    );
+
                     if (isLast) {
                       return (
                         <div
@@ -605,7 +592,7 @@ export const PyramidClues = memo(function PyramidClues() {
                       content={t("hiddenNotes", { attempt: currentAttempt })}
                     >
                       <div className="group flex h-5 cursor-help items-center justify-center opacity-80 transition-colors duration-300 hover:opacity-100">
-                        <Lock className="h-3 w-3 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
+                        <Lock className="size-3  text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
                       </div>
                     </GameTooltip>
                   </span>

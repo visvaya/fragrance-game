@@ -148,6 +148,7 @@ export function RegisterForm({
       if (onSuccess) {
         onSuccess();
       } else {
+        // eslint-disable-next-line fp/no-mutating-methods
         router.push("/auth/login");
       }
       setIsLoading(false);
@@ -231,6 +232,7 @@ export function RegisterForm({
             )}
           />
 
+          {/* eslint-disable-next-line fp/no-mutating-methods -- react-hook-form watch() is not a mutating method */}
           <PasswordStrength password={form.watch("password")} />
 
           <Captcha
@@ -241,7 +243,7 @@ export function RegisterForm({
 
           <Button className="w-full" disabled={isLoading} type="submit">
             {isLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 size-4  animate-spin" />
             ) : null}
             {t("submit")}
           </Button>
@@ -252,6 +254,7 @@ export function RegisterForm({
         {t("hasAccount")}{" "}
         <button
           className="underline hover:text-primary"
+          // eslint-disable-next-line fp/no-mutating-methods
           onClick={onLoginClick ?? (() => router.push("/auth/login"))}
           type="button"
         >

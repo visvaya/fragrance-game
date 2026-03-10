@@ -11,13 +11,15 @@ type MaskSlotProperties = Readonly<{
  * Used in both pyramid-clues and meta-clues wherever MASK_CHAR is rendered.
  */
 export function MaskSlot({ char, isHovered }: MaskSlotProperties) {
-  let innerClass = "text-muted-foreground/40";
-  if (isHovered === undefined) {
-    innerClass =
-      "text-muted-foreground/40 group-hover:bg-slot-mask-amber group-hover:text-[oklch(0.75_0.15_60)]";
-  } else if (isHovered) {
-    innerClass = "bg-slot-mask-amber text-[oklch(0.75_0.15_60)]";
-  }
+  const innerClass = (() => {
+    if (isHovered === undefined) {
+      return "text-muted-foreground/40 group-hover:bg-slot-mask-amber group-hover:text-[oklch(0.75_0.15_60)]";
+    }
+    if (isHovered) {
+      return "bg-slot-mask-amber text-[oklch(0.75_0.15_60)]";
+    }
+    return "text-muted-foreground/40";
+  })();
 
   return (
     <div

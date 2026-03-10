@@ -93,17 +93,18 @@ export function AuthModal({
   // Sync view with defaultView prop when modal opens
   // This fixes the issue where 'Create Account' might open 'Login' if previously viewed
   const [previousOpen, setPreviousOpen] = useState(open);
-  let view = internalView;
-
-  if (open && !previousOpen) {
-    // Just opened, reset the view
-    view = defaultView;
+  
+  // If just opened, sync to defaultView
+  const hasJustOpened = open && !previousOpen;
+  if (hasJustOpened) {
     setInternalView(defaultView);
   }
 
   if (open !== previousOpen) {
     setPreviousOpen(open);
   }
+
+  const view = hasJustOpened ? defaultView : internalView;
 
   const setView = (newView: AuthView) => {
     setInternalView(newView);

@@ -1,3 +1,4 @@
+/* eslint-disable better-tailwindcss/no-unknown-classes -- test data values (foo, bar, baz) */
 import { describe, expect, it } from "vitest";
 
 import { cn, normalizeText } from "../utils";

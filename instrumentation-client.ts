@@ -15,41 +15,56 @@ function sanitizePII(data: unknown): unknown {
   if (typeof data !== "object") return data;
 
   const sensitive = ["email", "password", "token", "secret", "key"];
-  const sanitized = Array.isArray(data)
-    ? [...(data as unknown[])]
-    : { ...(data as Record<string, unknown>) };
+  const isArray = Array.isArray(data);
+  const entries: [string, unknown][] = isArray
+    ? (data as unknown[]).map((item, idx): [string, unknown] => [idx.toString(), item])
+    : Object.entries(data as Record<string, unknown>);
 
-  for (const key of Object.keys(sanitized)) {
-    const value = (sanitized as Record<string, unknown>)[key];
-    if (sensitive.some((s) => key.toLowerCase().includes(s))) {
-      (sanitized as Record<string, unknown>)[key] = "[REDACTED]";
-    } else if (typeof value === "object") {
-      (sanitized as Record<string, unknown>)[key] = sanitizePII(value);
-    }
-  }
+  const sanitized: Record<string, unknown> = Object.fromEntries(
+    entries.map(([key, value]): [string, unknown] => {
+      const isSensitive = sensitive.some((s) =>
+        key.toLowerCase().includes(s),
+      );
+      if (isSensitive) {
+        return [key, "[REDACTED]"];
+      }
+      if (value !== null && typeof value === "object") {
+        return [key, sanitizePII(value)];
+      }
+      return [key, value];
+    }),
+  );
 
-  return sanitized;
+  return isArray ? Object.values(sanitized) : sanitized;
 }
 
 Sentry.init({
   beforeSend(event) {
-    if (event.breadcrumbs) {
-      event.breadcrumbs = event.breadcrumbs.map((crumb) => ({
-        ...crumb,
-        data: crumb.data
-          ? (sanitizePII(crumb.data) as Record<string, unknown>)
-          : undefined,
-      }));
-    }
+    const breadcrumbs = event.breadcrumbs
+      ? event.breadcrumbs.map((crumb) => ({
+          ...crumb,
+          data: crumb.data
+            ? (sanitizePII(crumb.data) as Record<string, unknown>)
+            : undefined,
+        }))
+      : undefined;
 
-    if (event.user) {
-      delete event.user.email;
-      delete event.user.ip_address;
-    }
+    const user = event.user
+      ? {
+          ...event.user,
+          email: undefined,
+          ip_address: undefined,
+        }
+      : undefined;
 
-    return event;
+    return {
+      ...event,
+      breadcrumbs,
+      user,
+    };
   },
   debug: false,
+  // eslint-disable-next-line no-restricted-properties -- Sentry initialization requires process.env
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   integrations: [],
   tracesSampleRate: 0,

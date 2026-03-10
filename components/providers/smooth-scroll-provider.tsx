@@ -6,7 +6,7 @@ import type Lenis from "lenis";
 
 let lenis: Lenis | null = null;
 async function initLenis() {
-  // eslint-disable-next-line unicorn/prefer-global-this
+  // eslint-disable-next-line unicorn/prefer-global-this -- typeof window required for SSR safety (ReferenceError-safe)
   if (typeof window === "undefined" || globalThis.window.innerWidth < 1024) {
     return;
   }
@@ -15,6 +15,7 @@ async function initLenis() {
 
   if (lenis) return;
 
+  // eslint-disable-next-line fp/no-mutation -- necessary for global Lenis instance management
   lenis = new LenisLibrary({
     gestureOrientation: "vertical",
     lerp: 0.08,
@@ -42,7 +43,7 @@ export function SmoothScrollProvider({
 }: Readonly<{ children: ReactNode }>) {
   useEffect(() => {
     // Skip Lenis entirely on mobile — no init, no RAF loop, no MutationObserver
-    // eslint-disable-next-line unicorn/prefer-global-this
+    // eslint-disable-next-line unicorn/prefer-global-this -- typeof window required for SSR safety (ReferenceError-safe)
     if (typeof window !== "undefined" && globalThis.window.innerWidth < 1024) {
       return;
     }
@@ -71,6 +72,7 @@ export function SmoothScrollProvider({
     return () => {
       observer.disconnect();
       lenis?.destroy();
+      // eslint-disable-next-line fp/no-mutation -- necessary for cleanup
       lenis = null;
     };
   }, []);

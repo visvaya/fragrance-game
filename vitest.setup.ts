@@ -3,15 +3,32 @@ import { webcrypto } from "node:crypto";
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
 
+// Allow server-only modules to be imported in the jsdom test environment
+vi.mock("server-only", () => ({}));
+
+// Mock Next.js server APIs not available in jsdom
+vi.mock("next/headers", () => ({
+  cookies: vi.fn().mockReturnValue({
+    delete: vi.fn(),
+    get: vi.fn().mockReturnValue(undefined),
+    getAll: vi.fn().mockReturnValue([]),
+    has: vi.fn().mockReturnValue(false),
+    set: vi.fn(),
+  }),
+  headers: vi.fn().mockReturnValue(new Headers()),
+}));
+
 // ==================== Browser API Mocks ====================
 
 // Mock crypto for nonce generation and Next.js / Supabase internals
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- globalThis.crypto may be undefined in jsdom environment
 if (!globalThis.crypto) {
   // @ts-expect-error - webcrypto is a compatible subset of Crypto
+  // eslint-disable-next-line fp/no-mutation -- required to mock browser API
   globalThis.crypto = webcrypto;
 }
 
+// eslint-disable-next-line fp/no-mutating-methods -- Object.defineProperty required for browser API mocking
 Object.defineProperty(globalThis, "matchMedia", {
   value: (query: string) => ({
     addEventListener: vi.fn(),

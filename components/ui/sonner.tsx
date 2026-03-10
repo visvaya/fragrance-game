@@ -8,6 +8,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
 
   return (
     <Sonner
+      // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- toaster is a Sonner library class name, not a Tailwind class
       className="toaster group"
       style={
         {

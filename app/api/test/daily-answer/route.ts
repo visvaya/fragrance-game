@@ -8,8 +8,7 @@ export const dynamic = "force-dynamic";
  * Test endpoint: Returns today's daily challenge answer
  * SECURITY: Requires authenticated user with app_admin role
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export async function GET() {
+export async function GET(): Promise<Response> {
   // Authentication check
   const supabase = await createClient();
   const {
