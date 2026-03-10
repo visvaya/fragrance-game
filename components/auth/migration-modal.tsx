@@ -184,7 +184,7 @@ export function MigrationModal() {
           </Button>
           <Button disabled={isLoading} onClick={handleMerge}>
             {isLoading ? (
-              <Loader2 className="mr-2 size-4  animate-spin" />
+              <Loader2 className="mr-2 size-4 animate-spin" />
             ) : null}
             {t("confirm")}
           </Button>

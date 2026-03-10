@@ -17,14 +17,15 @@ function sanitizePII(data: unknown): unknown {
   const sensitive = ["email", "password", "token", "secret", "key"];
   const isArray = Array.isArray(data);
   const entries: [string, unknown][] = isArray
-    ? (data as unknown[]).map((item, idx): [string, unknown] => [idx.toString(), item])
+    ? (data as unknown[]).map((item, idx): [string, unknown] => [
+        idx.toString(),
+        item,
+      ])
     : Object.entries(data as Record<string, unknown>);
 
   const sanitized: Record<string, unknown> = Object.fromEntries(
     entries.map(([key, value]): [string, unknown] => {
-      const isSensitive = sensitive.some((s) =>
-        key.toLowerCase().includes(s),
-      );
+      const isSensitive = sensitive.some((s) => key.toLowerCase().includes(s));
       if (isSensitive) {
         return [key, "[REDACTED]"];
       }

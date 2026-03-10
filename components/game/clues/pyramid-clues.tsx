@@ -42,7 +42,7 @@ export const PyramidClues = memo(function PyramidClues() {
         <div className="mb-4 flex w-fit cursor-default items-center">
           <div className="flex items-center gap-2">
             <span className="inline-flex">
-              <Layers className="size-4  text-muted-foreground" />
+              <Layers className="size-4 text-muted-foreground" />
             </span>
             <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase opacity-40">
               {t("pyramid")}
@@ -57,7 +57,7 @@ export const PyramidClues = memo(function PyramidClues() {
             >
               <div className="flex items-center gap-2">
                 <span
-                  className={`size-2  shrink-0 rounded-full ${level.dotClass} opacity-40`}
+                  className={`size-2 shrink-0 rounded-full ${level.dotClass} opacity-40`}
                 />
                 <span className="text-xs font-semibold tracking-widest text-muted-foreground/40 lowercase">
                   {level.label}
@@ -142,7 +142,7 @@ export const PyramidClues = memo(function PyramidClues() {
                 )}
                 onPointerDown={handleIconTap}
               >
-                <Layers className="size-4  text-muted-foreground" />
+                <Layers className="size-4 text-muted-foreground" />
               </span>
               <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase">
                 {t("olfactoryProfile")}
@@ -154,7 +154,7 @@ export const PyramidClues = memo(function PyramidClues() {
         <ul className="flex flex-col">
           <li className="flex flex-col gap-2 border-b border-border/60 py-4 first:pt-0 last:border-b-0 last:pb-0">
             <div className="flex items-center gap-2">
-              <span className="size-2  shrink-0 rounded-full bg-primary" />
+              <span className="size-2 shrink-0 rounded-full bg-primary" />
               <span className="text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
                 <GameTooltip content={t("linearMeaning")}>
                   <span className="cursor-help underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
@@ -193,7 +193,7 @@ export const PyramidClues = memo(function PyramidClues() {
                   // If it's a generic placeholder for "hidden note"
                   const badgeNode: React.ReactNode =
                     revealLevel === 1 &&
-                      note === GENERIC_PLACEHOLDER.repeat(5) ? (
+                    note === GENERIC_PLACEHOLDER.repeat(5) ? (
                       <span
                         className="inline-flex min-h-[1.375rem] max-w-full cursor-default flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 rounded-md border border-border bg-secondary/50 bg-striped-pattern px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary"
                         key={`linear-note-${i}-${note.charAt(0)}`}
@@ -202,7 +202,7 @@ export const PyramidClues = memo(function PyramidClues() {
                           content={t("hiddenNote", { attempt: currentAttempt })}
                         >
                           <div className="group flex h-5 cursor-help items-center justify-center opacity-80 transition-colors duration-300 hover:opacity-100">
-                            <Lock className="size-3  text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
+                            <Lock className="size-3 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
                           </div>
                         </GameTooltip>
                       </span>
@@ -212,7 +212,7 @@ export const PyramidClues = memo(function PyramidClues() {
                         key={`linear-note-${note}-${i}`}
                       >
                         {!note.includes(MASK_CHAR) &&
-                          note !== GENERIC_PLACEHOLDER.repeat(5) ? (
+                        note !== GENERIC_PLACEHOLDER.repeat(5) ? (
                           <span className="font-sans text-sm text-foreground">
                             {note}
                           </span>
@@ -229,7 +229,7 @@ export const PyramidClues = memo(function PyramidClues() {
                               if (isFullHidden) {
                                 return (
                                   <div className="group flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
-                                    <Lock className="size-2.5  text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
+                                    <Lock className="size-2.5 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
                                   </div>
                                 );
                               }
@@ -285,7 +285,7 @@ export const PyramidClues = memo(function PyramidClues() {
                                         <div className="flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
                                           <Lock
                                             className={cn(
-                                              "size-2.5  transition-colors duration-300",
+                                              "size-2.5 transition-colors duration-300",
                                               isHovered
                                                 ? "text-[oklch(0.75_0.15_60)]"
                                                 : "text-muted-foreground",
@@ -369,9 +369,9 @@ export const PyramidClues = memo(function PyramidClues() {
             <span
               className="inline-flex transition-transform duration-300 hover:scale-[1.15] active:scale-[1.15]"
               // eslint-disable-next-line @typescript-eslint/no-empty-function
-              onTouchStart={() => { }}
+              onTouchStart={() => {}}
             >
-              <Layers className="size-4  text-muted-foreground" />
+              <Layers className="size-4 text-muted-foreground" />
             </span>
             <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase">
               {t("pyramid")}
@@ -389,7 +389,7 @@ export const PyramidClues = memo(function PyramidClues() {
           >
             <div className="flex items-center gap-2">
               <span
-                className={`size-2  shrink-0 rounded-full ${level.dotClass}`}
+                className={`size-2 shrink-0 rounded-full ${level.dotClass}`}
               />
               <span className="text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
                 {t(level.name.toLowerCase())}{" "}
@@ -432,7 +432,7 @@ export const PyramidClues = memo(function PyramidClues() {
                           key={`${level.name}-note-${noteIndex}-${note.charAt(0)}`}
                         >
                           {!note.includes(MASK_CHAR) &&
-                            note !== GENERIC_PLACEHOLDER.repeat(5) ? (
+                          note !== GENERIC_PLACEHOLDER.repeat(5) ? (
                             <span className="font-sans text-sm text-foreground">
                               {note}
                             </span>
@@ -448,7 +448,7 @@ export const PyramidClues = memo(function PyramidClues() {
                                 if (isFullHidden) {
                                   return (
                                     <div className="group flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
-                                      <Lock className="size-2.5  text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
+                                      <Lock className="size-2.5 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
                                     </div>
                                   );
                                 }
@@ -508,7 +508,7 @@ export const PyramidClues = memo(function PyramidClues() {
                                           <div className="flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
                                             <Lock
                                               className={cn(
-                                                "size-2.5  transition-colors duration-300",
+                                                "size-2.5 transition-colors duration-300",
                                                 isHovered
                                                   ? "text-[oklch(0.75_0.15_60)]"
                                                   : "text-muted-foreground",
@@ -564,7 +564,7 @@ export const PyramidClues = memo(function PyramidClues() {
                           })}
                         >
                           <div className="group flex h-5 cursor-help items-center justify-center opacity-80 transition-colors duration-300 hover:opacity-100">
-                            <Lock className="size-3  text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
+                            <Lock className="size-3 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
                           </div>
                         </GameTooltip>
                       </span>
@@ -592,7 +592,7 @@ export const PyramidClues = memo(function PyramidClues() {
                       content={t("hiddenNotes", { attempt: currentAttempt })}
                     >
                       <div className="group flex h-5 cursor-help items-center justify-center opacity-80 transition-colors duration-300 hover:opacity-100">
-                        <Lock className="size-3  text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
+                        <Lock className="size-3 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
                       </div>
                     </GameTooltip>
                   </span>

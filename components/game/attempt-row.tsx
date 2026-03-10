@@ -281,7 +281,7 @@ export function AttemptRow({
             if (targetMissing || guessMissing) {
               return (
                 <GameTooltip
-                  className="size-7  items-center justify-center sm:size-8 "
+                  className="size-7 items-center justify-center sm:size-8"
                   content={t("tooltips.brandMissing")}
                 >
                   <IconCell
@@ -303,15 +303,12 @@ export function AttemptRow({
             if (attempt.feedback.brandMatch) {
               return (
                 <GameTooltip
-                  className="size-7  items-center justify-center sm:size-8 "
+                  className="size-7 items-center justify-center sm:size-8"
                   content={t("tooltips.brandCorrect")}
                 >
                   <IconCell cursor="default" variant="success">
                     <Check
-                      className={cn(
-                        "size-4  text-success",
-                        iconInnerVariants(),
-                      )}
+                      className={cn("size-4 text-success", iconInnerVariants())}
                     />
                   </IconCell>
                 </GameTooltip>
@@ -320,13 +317,13 @@ export function AttemptRow({
 
             return (
               <GameTooltip
-                className="size-7  items-center justify-center sm:size-8 "
+                className="size-7 items-center justify-center sm:size-8"
                 content={t("tooltips.brandIncorrect")}
               >
                 <IconCell as="span" layout="pad" variant="muted">
                   <X
                     className={cn(
-                      "size-4  text-muted-foreground",
+                      "size-4 text-muted-foreground",
                       iconInnerVariants({ skewed: true }),
                     )}
                     strokeWidth={1.5}
@@ -347,7 +344,7 @@ export function AttemptRow({
             if (targetMissing || guessMissing) {
               return (
                 <GameTooltip
-                  className="size-7  items-center justify-center sm:size-8 "
+                  className="size-7 items-center justify-center sm:size-8"
                   content={t("tooltips.perfumerMissing")}
                 >
                   <IconCell
@@ -369,15 +366,12 @@ export function AttemptRow({
             if (attempt.feedback.perfumerMatch === "full") {
               return (
                 <GameTooltip
-                  className="size-7  items-center justify-center sm:size-8 "
+                  className="size-7 items-center justify-center sm:size-8"
                   content={t("tooltips.perfumerFull")}
                 >
                   <IconCell cursor="default" variant="success">
                     <Check
-                      className={cn(
-                        "size-4  text-success",
-                        iconInnerVariants(),
-                      )}
+                      className={cn("size-4 text-success", iconInnerVariants())}
                     />
                   </IconCell>
                 </GameTooltip>
@@ -385,13 +379,13 @@ export function AttemptRow({
             } else if (attempt.feedback.perfumerMatch === "partial") {
               return (
                 <GameTooltip
-                  className="size-7  items-center justify-center sm:size-8 "
+                  className="size-7 items-center justify-center sm:size-8"
                   content={t("tooltips.perfumerPartial")}
                 >
                   <IconCell as="span" layout="pad" variant="warning">
                     <Waves
                       className={cn(
-                        "size-4  text-warning",
+                        "size-4 text-warning",
                         iconInnerVariants({ skewed: true }),
                       )}
                       strokeWidth={1.5}
@@ -402,13 +396,13 @@ export function AttemptRow({
             } else {
               return (
                 <GameTooltip
-                  className="size-7  items-center justify-center sm:size-8 "
+                  className="size-7 items-center justify-center sm:size-8"
                   content={t("tooltips.perfumerIncorrect")}
                 >
                   <IconCell as="span" layout="pad" variant="muted">
                     <X
                       className={cn(
-                        "size-4  text-muted-foreground",
+                        "size-4 text-muted-foreground",
                         iconInnerVariants({ skewed: true }),
                       )}
                       strokeWidth={1.5}
@@ -430,7 +424,7 @@ export function AttemptRow({
             if (targetMissing || guessMissing) {
               return (
                 <GameTooltip
-                  className="size-7  items-center justify-center sm:size-8 "
+                  className="size-7 items-center justify-center sm:size-8"
                   content={t("tooltips.yearMissing")}
                 >
                   <IconCell
@@ -451,19 +445,19 @@ export function AttemptRow({
 
             return attempt.feedback.yearMatch === "correct" ? (
               <GameTooltip
-                className="size-7  items-center justify-center sm:size-8 "
+                className="size-7 items-center justify-center sm:size-8"
                 content={t("tooltips.yearCorrect")}
               >
                 <IconCell cursor="default" variant="success">
                   <Check
-                    className={cn("size-4  text-success", iconInnerVariants())}
+                    className={cn("size-4 text-success", iconInnerVariants())}
                   />
                 </IconCell>
               </GameTooltip>
             ) : (
-              <div className="flex size-full  flex-col items-center justify-center">
+              <div className="flex size-full flex-col items-center justify-center">
                 <GameTooltip
-                  className="size-7  items-center justify-center sm:size-8 "
+                  className="size-7 items-center justify-center sm:size-8"
                   content={(() => {
                     if (attempt.feedback.yearMatch === "close") {
                       return attempt.feedback.yearDirection === "higher"
@@ -491,7 +485,7 @@ export function AttemptRow({
                     {attempt.feedback.yearDirection === "higher" ? (
                       <ArrowUp
                         className={cn(
-                          "size-4 ",
+                          "size-4",
                           iconInnerVariants({ skewed: true }),
                         )}
                         strokeWidth={1.5}
@@ -499,7 +493,7 @@ export function AttemptRow({
                     ) : (
                       <ArrowDown
                         className={cn(
-                          "size-4 ",
+                          "size-4",
                           iconInnerVariants({ skewed: true }),
                         )}
                         strokeWidth={1.5}
@@ -524,7 +518,7 @@ export function AttemptRow({
             if (targetMissing || guessMissing) {
               return (
                 <GameTooltip
-                  className="size-7  items-center justify-center sm:size-8 "
+                  className="size-7 items-center justify-center sm:size-8"
                   content={t("tooltips.genderMissing")}
                 >
                   <IconCell
@@ -546,15 +540,12 @@ export function AttemptRow({
             if (guessGender === targetGender) {
               return (
                 <GameTooltip
-                  className="size-7  items-center justify-center sm:size-8 "
+                  className="size-7 items-center justify-center sm:size-8"
                   content={t("tooltips.genderCorrect")}
                 >
                   <IconCell cursor="default" variant="success">
                     <Check
-                      className={cn(
-                        "size-4  text-success",
-                        iconInnerVariants(),
-                      )}
+                      className={cn("size-4 text-success", iconInnerVariants())}
                     />
                   </IconCell>
                 </GameTooltip>
@@ -563,13 +554,13 @@ export function AttemptRow({
 
             return (
               <GameTooltip
-                className="size-7  items-center justify-center sm:size-8 "
+                className="size-7 items-center justify-center sm:size-8"
                 content={t("tooltips.genderIncorrect")}
               >
                 <IconCell as="span" layout="pad" variant="muted">
                   <X
                     className={cn(
-                      "size-4  text-muted-foreground",
+                      "size-4 text-muted-foreground",
                       iconInnerVariants({ skewed: true }),
                     )}
                     strokeWidth={1.5}
@@ -594,7 +585,7 @@ export function AttemptRow({
             if (isMissing) {
               return (
                 <GameTooltip
-                  className="size-7  items-center justify-center sm:size-8 "
+                  className="size-7 items-center justify-center sm:size-8"
                   content={t("tooltips.notesMissing")}
                 >
                   <IconCell
@@ -615,18 +606,18 @@ export function AttemptRow({
 
             return attempt.feedback.notesMatch >= 1 ? (
               <GameTooltip
-                className="size-7  items-center justify-center sm:size-8 "
+                className="size-7 items-center justify-center sm:size-8"
                 content={t("tooltips.notesCorrect")}
               >
                 <IconCell cursor="default" variant="success">
                   <Check
-                    className={cn("size-5  text-success", iconInnerVariants())}
+                    className={cn("size-5 text-success", iconInnerVariants())}
                   />
                 </IconCell>
               </GameTooltip>
             ) : (
               <GameTooltip
-                className="size-7  items-center justify-center sm:size-8 "
+                className="size-7 items-center justify-center sm:size-8"
                 content={t("tooltips.notesPercentage", {
                   percent: Math.round(attempt.feedback.notesMatch * 100),
                 })}

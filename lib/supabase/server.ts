@@ -69,12 +69,16 @@ export async function createClient() {
  */
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function createAdminClient() {
-  return createServerClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
-    cookies: {
-      getAll: () => [],
-      setAll: () => {
-        // Admin client doesn't need to persist cookies
+  return createServerClient(
+    env.NEXT_PUBLIC_SUPABASE_URL,
+    env.SUPABASE_SERVICE_ROLE_KEY,
+    {
+      cookies: {
+        getAll: () => [],
+        setAll: () => {
+          // Admin client doesn't need to persist cookies
+        },
       },
     },
-  });
+  );
 }

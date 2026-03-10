@@ -170,7 +170,7 @@ export function LoginForm({
 
           <Button className="w-full" disabled={isLoading} type="submit">
             {isLoading ? (
-              <Loader2 className="mr-2 size-4  animate-spin" />
+              <Loader2 className="mr-2 size-4 animate-spin" />
             ) : null}
             {t("submit")}
           </Button>

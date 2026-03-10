@@ -53,8 +53,8 @@ export function SessionCard({
   const getIcon = () => {
     // Simple heuristic based on UA string if not parsed
     const ua = session.device_info.userAgent || "";
-    if (ua.includes("Mobile")) return <Smartphone className="size-5 " />;
-    return <Monitor className="size-5 " />;
+    if (ua.includes("Mobile")) return <Smartphone className="size-5" />;
+    return <Monitor className="size-5" />;
   };
 
   return (
@@ -96,9 +96,9 @@ export function SessionCard({
             variant="ghost"
           >
             {loading ? (
-              <Loader2 className="size-4  animate-spin" />
+              <Loader2 className="size-4 animate-spin" />
             ) : (
-              <Trash2 className="size-4  text-muted-foreground hover:text-destructive" />
+              <Trash2 className="size-4 text-muted-foreground hover:text-destructive" />
             )}
           </Button>
         )}

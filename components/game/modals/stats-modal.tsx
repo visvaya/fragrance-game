@@ -54,7 +54,7 @@ export function StatsModal({ onClose, open }: Readonly<StatsModalProperties>) {
             className="text-muted-foreground transition-colors hover:text-primary"
             onClick={onClose}
           >
-            <X className="size-5 " />
+            <X className="size-5" />
           </button>
         </DialogHeader>
 

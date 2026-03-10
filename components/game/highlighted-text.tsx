@@ -8,7 +8,10 @@ type Match = { end: number; start: number };
 function findExactMatches(text: string, term: string, offset = 0): Match[] {
   const pos = text.indexOf(term, offset);
   if (pos === -1) return [];
-  return [{ end: pos + term.length, start: pos }, ...findExactMatches(text, term, pos + 1)];
+  return [
+    { end: pos + term.length, start: pos },
+    ...findExactMatches(text, term, pos + 1),
+  ];
 }
 
 /** Merges overlapping/adjacent intervals. Input must be sorted by start ascending. */
@@ -20,14 +23,17 @@ function mergeIntervals(
   if (rest.length === 0) return [...accumulator, current];
   const [next, ...remaining] = rest;
   if (next.start <= current.end) {
-    return mergeIntervals({ end: Math.max(current.end, next.end), start: current.start }, remaining, accumulator);
+    return mergeIntervals(
+      { end: Math.max(current.end, next.end), start: current.start },
+      remaining,
+      accumulator,
+    );
   }
   return mergeIntervals(next, remaining, [...accumulator, current]);
 }
 
 export const HighlightedText = memo(
   ({ query, text }: Readonly<{ query: string; text: string }>) => {
-     
     const tokens = useMemo(() => {
       if (!query || query.trim().length < 2) return [text];
 
@@ -49,7 +55,8 @@ export const HighlightedText = memo(
         const words = normalizedText.split(/\s+/);
         return words.flatMap((word, i) => {
           // Calculate word start position using prefix lengths
-          const wordStart = words.slice(0, i).join(" ").length + (i > 0 ? 1 : 0);
+          const wordStart =
+            words.slice(0, i).join(" ").length + (i > 0 ? 1 : 0);
           const minPrefixLength = Math.min(term.length - 1, word.length);
           if (
             minPrefixLength >= 4 &&
@@ -68,18 +75,31 @@ export const HighlightedText = memo(
         a.start === b.start ? b.end - a.end : a.start - b.start,
       );
 
-      const mergedMatches = mergeIntervals(sortedMatches[0], sortedMatches.slice(1), []);
+      const mergedMatches = mergeIntervals(
+        sortedMatches[0],
+        sortedMatches.slice(1),
+        [],
+      );
 
       // Build result nodes: for each match, output [text-before?, <b>highlighted</b>]
       // Sentinel at end handles trailing text after last match
-      const withSentinel = [...mergedMatches, { end: text.length, start: text.length }];
+      const withSentinel = [
+        ...mergedMatches,
+        { end: text.length, start: text.length },
+      ];
       return withSentinel.flatMap((match, i) => {
         const previousEnd = i === 0 ? 0 : (mergedMatches[i - 1]?.end ?? 0);
-        const before: React.ReactNode[] = previousEnd < match.start ? [text.slice(previousEnd, match.start)] : [];
+        const before: React.ReactNode[] =
+          previousEnd < match.start
+            ? [text.slice(previousEnd, match.start)]
+            : [];
         const highlighted: React.ReactNode[] =
           match.start < text.length
             ? [
-                <b className="font-bold" key={`match-${match.start}-${match.end}`}>
+                <b
+                  className="font-bold"
+                  key={`match-${match.start}-${match.end}`}
+                >
                   {text.slice(match.start, match.end)}
                 </b>,
               ]

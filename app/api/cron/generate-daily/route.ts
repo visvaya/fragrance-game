@@ -143,11 +143,7 @@ async function ensureChallenge(
       .eq("perfumes.is_uncertain", false);
 
     const retryResult = (await (excludeIds7.length > 0
-      ? baseRetryQuery.not(
-          "perfume_id",
-          "in",
-          `(${excludeIds7.join(",")})`,
-        )
+      ? baseRetryQuery.not("perfume_id", "in", `(${excludeIds7.join(",")})`)
       : baseRetryQuery)) as {
       data: { perfume_id: string }[] | null;
       error: { message: string } | null;

@@ -44,7 +44,7 @@ export const MetaClues = memo(function MetaClues() {
         <div className="mb-4 flex w-fit cursor-default items-center">
           <div className="flex items-center gap-2">
             <span className="inline-flex">
-              <Tag className="size-4  text-muted-foreground" />
+              <Tag className="size-4 text-muted-foreground" />
             </span>
             <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase opacity-40">
               {t("identity")}
@@ -114,7 +114,7 @@ export const MetaClues = memo(function MetaClues() {
               )}
               onPointerDown={handleIconTap}
             >
-              <Tag className="size-4  text-muted-foreground" />
+              <Tag className="size-4 text-muted-foreground" />
             </span>
             <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase">
               {t("identity")}
@@ -264,7 +264,7 @@ function MetaBadge({
                 key={`meta-${clueKey}-placeholder-${wordIndex}`}
               >
                 <div className="group flex h-5 cursor-help items-center justify-center opacity-80 transition-colors duration-300 hover:opacity-100">
-                  <Lock className="size-3  text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
+                  <Lock className="size-3 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
                 </div>
               </GameTooltip>
             );
@@ -309,7 +309,7 @@ function MetaBadge({
             if (isFullHidden) {
               return (
                 <div className="group flex h-5 items-center justify-center opacity-80 transition-colors duration-300 hover:opacity-100">
-                  <Lock className="size-3  text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
+                  <Lock className="size-3 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
                 </div>
               );
             }
@@ -335,7 +335,9 @@ function MetaBadge({
                 );
               });
             }
-            return <span className="font-sans text-sm text-foreground">{word}</span>;
+            return (
+              <span className="font-sans text-sm text-foreground">{word}</span>
+            );
           })();
 
           const content = (
@@ -359,7 +361,7 @@ function MetaBadge({
                       <div className="flex h-5 items-center justify-center opacity-80 transition-colors duration-300 hover:opacity-100">
                         <Lock
                           className={cn(
-                            "size-3  transition-colors duration-300",
+                            "size-3 transition-colors duration-300",
                             isHovered
                               ? "text-[oklch(0.75_0.15_60)]"
                               : "text-muted-foreground",

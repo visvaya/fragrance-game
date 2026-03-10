@@ -95,7 +95,8 @@ export async function proxy(request: NextRequest) {
 
   // Content Security Policy
   const assetsHost =
-    env.NEXT_PUBLIC_ASSETS_HOST ?? "pub-2c37ff9f03ea40878492e7f72ef83fe3.r2.dev";
+    env.NEXT_PUBLIC_ASSETS_HOST ??
+    "pub-2c37ff9f03ea40878492e7f72ef83fe3.r2.dev";
 
   response.headers.set(
     "Content-Security-Policy",
@@ -114,9 +115,7 @@ export async function proxy(request: NextRequest) {
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
-      ...(env.NODE_ENV === "development"
-        ? []
-        : ["upgrade-insecure-requests"]),
+      ...(env.NODE_ENV === "development" ? [] : ["upgrade-insecure-requests"]),
     ].join("; "),
   );
 

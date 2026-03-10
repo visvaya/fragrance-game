@@ -10,7 +10,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("next/headers", () => ({
   cookies: vi.fn().mockReturnValue({
     delete: vi.fn(),
-    get: vi.fn().mockReturnValue(undefined),
+    get: vi.fn(),
     getAll: vi.fn().mockReturnValue([]),
     has: vi.fn().mockReturnValue(false),
     set: vi.fn(),

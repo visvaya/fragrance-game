@@ -66,13 +66,13 @@ export function RevealImage() {
   const isSkeleton = dailyPerfume.id === "skeleton";
 
   return (
-    <div className="flex size-full  flex-col">
+    <div className="flex size-full flex-col">
       {/* Title row — skeleton shows simplified version (no hover/tooltip) */}
       <div className="mb-4 flex w-fit cursor-default items-center">
         {isSkeleton ? (
           <div className="flex items-center gap-2">
             <span className="inline-flex">
-              <ScanEye className="size-4  text-muted-foreground" />
+              <ScanEye className="size-4 text-muted-foreground" />
             </span>
             <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase opacity-40">
               {t("visualEvidence")}
@@ -88,7 +88,7 @@ export function RevealImage() {
                 )}
                 onPointerDown={handleIconTap}
               >
-                <ScanEye className="size-4  text-muted-foreground" />
+                <ScanEye className="size-4 text-muted-foreground" />
               </span>
               <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase">
                 {t("visualEvidence")}
@@ -115,11 +115,11 @@ export function RevealImage() {
               imageSize,
             )}
           >
-            <Skeleton className="size-full  rounded-md" />
-            <div className="pointer-events-none absolute top-2 left-2 size-4  border-t-2 border-l-2 border-foreground/10" />
-            <div className="pointer-events-none absolute top-2 right-2 size-4  border-t-2 border-r-2 border-foreground/10" />
-            <div className="pointer-events-none absolute bottom-2 left-2 size-4  border-b-2 border-l-2 border-foreground/10" />
-            <div className="pointer-events-none absolute right-2 bottom-2 size-4  border-r-2 border-b-2 border-foreground/10" />
+            <Skeleton className="size-full rounded-md" />
+            <div className="pointer-events-none absolute top-2 left-2 size-4 border-t-2 border-l-2 border-foreground/10" />
+            <div className="pointer-events-none absolute top-2 right-2 size-4 border-t-2 border-r-2 border-foreground/10" />
+            <div className="pointer-events-none absolute bottom-2 left-2 size-4 border-b-2 border-l-2 border-foreground/10" />
+            <div className="pointer-events-none absolute right-2 bottom-2 size-4 border-r-2 border-b-2 border-foreground/10" />
           </div>
         ) : (
           <div
@@ -162,10 +162,10 @@ export function RevealImage() {
               sizes="(max-width: 640px) 100vw, (max-width: 768px) 80vw, 400px"
               src={state.currentSource}
             />
-            <div className="pointer-events-none absolute top-2 left-2 size-4  border-t-2 border-l-2 border-foreground/20 dark:border-foreground" />
-            <div className="pointer-events-none absolute top-2 right-2 size-4  border-t-2 border-r-2 border-foreground/20 dark:border-foreground" />
-            <div className="pointer-events-none absolute bottom-2 left-2 size-4  border-b-2 border-l-2 border-foreground/20 dark:border-foreground" />
-            <div className="pointer-events-none absolute right-2 bottom-2 size-4  border-r-2 border-b-2 border-foreground/20 dark:border-foreground" />
+            <div className="pointer-events-none absolute top-2 left-2 size-4 border-t-2 border-l-2 border-foreground/20 dark:border-foreground" />
+            <div className="pointer-events-none absolute top-2 right-2 size-4 border-t-2 border-r-2 border-foreground/20 dark:border-foreground" />
+            <div className="pointer-events-none absolute bottom-2 left-2 size-4 border-b-2 border-l-2 border-foreground/20 dark:border-foreground" />
+            <div className="pointer-events-none absolute right-2 bottom-2 size-4 border-r-2 border-b-2 border-foreground/20 dark:border-foreground" />
           </div>
         )}
 

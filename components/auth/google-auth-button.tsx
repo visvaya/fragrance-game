@@ -34,7 +34,7 @@ export function GoogleAuthButton() {
     >
       <svg
         aria-hidden="true"
-        className="mr-2 size-4 "
+        className="mr-2 size-4"
         data-icon="google"
         data-prefix="fab"
         focusable="false"

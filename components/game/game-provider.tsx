@@ -88,7 +88,10 @@ function calculateMaskedValues(
   return { guessMaskedBrand, guessMaskedYear };
 }
 
-function getYearMatch(isCorrect: boolean, yearMatchDiff: number): "correct" | "close" | "wrong" {
+function getYearMatch(
+  isCorrect: boolean,
+  yearMatchDiff: number,
+): "correct" | "close" | "wrong" {
   if (isCorrect || yearMatchDiff === 0) return "correct";
   if (Math.abs(yearMatchDiff) <= 3) return "close";
   return "wrong";
@@ -419,10 +422,13 @@ export function GameProvider({
           }
 
           // Verification loop with exponential backoff: Ensure session is set in client state AND cookies
-           
+
           let verified = false;
           const maxVerificationAttempts = 3;
-          for (const attempt of Array.from({ length: maxVerificationAttempts }, (_, i) => i)) {
+          for (const attempt of Array.from(
+            { length: maxVerificationAttempts },
+            (_, i) => i,
+          )) {
             const {
               data: { session: s },
             } = await supabase.auth.getSession();
@@ -442,7 +448,7 @@ export function GameProvider({
             }
 
             // Exponential backoff: 50ms, 100ms, 200ms
-             
+
             await new Promise((resolve) =>
               // eslint-disable-next-line react-web-api/no-leaked-timeout -- fire-and-forget sleep; Promise resolves after timeout, no cleanup needed
               setTimeout(resolve, 50 * Math.pow(2, attempt)),
@@ -462,15 +468,18 @@ export function GameProvider({
         const storedInherited = sessionStorage.getItem(
           "eauxle_declined_anon_attempts",
         );
-        const parsedStored = storedInherited === null ? 0 : Number.parseInt(storedInherited, 10);
-        const inheritedCount = Math.max(0, Math.min(5, Number.isNaN(parsedStored) ? 0 : parsedStored));
+        const parsedStored =
+          storedInherited === null ? 0 : Number.parseInt(storedInherited, 10);
+        const inheritedCount = Math.max(
+          0,
+          Math.min(5, Number.isNaN(parsedStored) ? 0 : parsedStored),
+        );
         if (inheritedCount > 0) {
           sessionStorage.removeItem("eauxle_declined_anon_attempts");
         }
 
-         
         let challenge: DailyChallenge | null;
-         
+
         let session: Awaited<ReturnType<typeof startGame>> | null;
 
         if (initialChallenge) {

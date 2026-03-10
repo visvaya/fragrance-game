@@ -28,14 +28,14 @@ export function MarkerCircle({
   const content = (
     <span
       className={cn(
-        "relative inline-flex size-6  items-center justify-center focus:outline-none",
+        "relative inline-flex size-6 items-center justify-center focus:outline-none",
         className,
       )}
     >
       {/* SVG hand-drawn circle */}
       <svg
         // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- marker-circle is a custom CSS animation class defined in globals.css
-        className="marker-circle absolute inset-0 size-full "
+        className="marker-circle absolute inset-0 size-full"
         fill="none"
         viewBox="0 0 24 24"
       >

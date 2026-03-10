@@ -71,8 +71,8 @@ vi.mock("../../game-tooltip", () => ({
     content,
   }: {
     children:
-    | React.ReactNode
-    | ((props: { isHovered?: boolean }) => React.ReactNode);
+      | React.ReactNode
+      | ((props: { isHovered?: boolean }) => React.ReactNode);
     content: string;
   }) => (
     <div data-tooltip={content}>

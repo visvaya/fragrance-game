@@ -346,7 +346,11 @@ export default tseslint.config(
         { selector: "enumMember", format: ["UPPER_CASE", "PascalCase"] },
         // Variables: camelCase, UPPER_CASE (constants), PascalCase (React components)
         // leadingUnderscore: "allow" — konwencja _unused dla nieużywanych zmiennych
-        { selector: "variable", format: ["camelCase", "UPPER_CASE", "PascalCase"], leadingUnderscore: "allow" },
+        {
+          selector: "variable",
+          format: ["camelCase", "UPPER_CASE", "PascalCase"],
+          leadingUnderscore: "allow",
+        },
         // Destructured variables: any format (Supabase snake_case columns, external APIs)
         { selector: "variable", modifiers: ["destructured"], format: null },
         // Functions: camelCase or PascalCase (for React components)
@@ -385,14 +389,14 @@ export default tseslint.config(
       "@typescript-eslint/strict-boolean-expressions": [
         "error",
         {
-          allowNullableObject: true,   // if (obj) — ok dla nullable obiektów
-          allowNullableBoolean: true,  // if (flag) — ok dla boolean | null
-          allowNullableString: true,   // if (str) — ok dla string | null
-          allowString: true,           // if (str) — ok dla string
-          allowNumber: false,          // wymusza if (n > 0) zamiast if (n) — łapie JSX {0 && <X/>}
-          allowNullableNumber: false,  // wymusza jawne sprawdzenie dla number | null
+          allowNullableObject: true, // if (obj) — ok dla nullable obiektów
+          allowNullableBoolean: true, // if (flag) — ok dla boolean | null
+          allowNullableString: true, // if (str) — ok dla string | null
+          allowString: true, // if (str) — ok dla string
+          allowNumber: false, // wymusza if (n > 0) zamiast if (n) — łapie JSX {0 && <X/>}
+          allowNullableNumber: false, // wymusza jawne sprawdzenie dla number | null
           allowNullableEnum: false,
-          allowAny: true,              // any z Supabase/external APIs — pokryte przez no-explicit-any
+          allowAny: true, // any z Supabase/external APIs — pokryte przez no-explicit-any
         },
       ],
 
@@ -502,23 +506,28 @@ export default tseslint.config(
         "error",
         {
           name: "window",
-          message: "window jest niedostępne w Server Components. Przenieś do 'use client' lub useEffect.",
+          message:
+            "window jest niedostępne w Server Components. Przenieś do 'use client' lub useEffect.",
         },
         {
           name: "document",
-          message: "document jest niedostępne w Server Components. Przenieś do 'use client' lub useEffect.",
+          message:
+            "document jest niedostępne w Server Components. Przenieś do 'use client' lub useEffect.",
         },
         {
           name: "localStorage",
-          message: "localStorage jest niedostępne w Server Components. Przenieś do 'use client' lub useEffect.",
+          message:
+            "localStorage jest niedostępne w Server Components. Przenieś do 'use client' lub useEffect.",
         },
         {
           name: "sessionStorage",
-          message: "sessionStorage jest niedostępne w Server Components. Przenieś do 'use client' lub useEffect.",
+          message:
+            "sessionStorage jest niedostępne w Server Components. Przenieś do 'use client' lub useEffect.",
         },
         {
           name: "navigator",
-          message: "navigator jest niedostępne w Server Components. Przenieś do 'use client' lub useEffect.",
+          message:
+            "navigator jest niedostępne w Server Components. Przenieś do 'use client' lub useEffect.",
         },
         {
           name: "fetch",
@@ -654,10 +663,7 @@ export default tseslint.config(
   // ║  16. TESTING-LIBRARY — React Testing Library best practices ║
   // ╚═══════════════════════════════════════════════════════════╝
   {
-    files: [
-      "**/*.test.{ts,tsx}",
-      "**/__tests__/**/*.{ts,tsx}",
-    ],
+    files: ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
     ignores: ["e2e/**", "tests/e2e/**"],
     plugins: { "testing-library": testingLibraryPlugin },
     rules: {
@@ -955,8 +961,7 @@ export default tseslint.config(
         {
           selector:
             "JSXAttribute[name.name='className'] TemplateLiteral > TemplateElement[value.raw=/\\[\\d+(?:\\.\\d+)?px\\]/]",
-          message:
-            "❌ Użyj rem zamiast px w Tailwind arbitrary values.",
+          message: "❌ Użyj rem zamiast px w Tailwind arbitrary values.",
         },
         // Łapie inline style={{ fontSize: '14px' }}
         {
@@ -1045,7 +1050,8 @@ export default tseslint.config(
             {
               from: "lib",
               disallow: ["components", "hooks"],
-              message: "lib/ to pure utilities — nie może importować warstwy UI.",
+              message:
+                "lib/ to pure utilities — nie może importować warstwy UI.",
             },
             {
               from: "types",
@@ -1069,11 +1075,7 @@ export default tseslint.config(
   // ║  30. EXPLICIT RETURN TYPES — lib/, app/actions/, app/api/ ║
   // ╚═══════════════════════════════════════════════════════════╝
   {
-    files: [
-      "lib/**/*.ts",
-      "app/actions/**/*.ts",
-      "app/api/**/route.ts",
-    ],
+    files: ["lib/**/*.ts", "app/actions/**/*.ts", "app/api/**/route.ts"],
     rules: {
       // Istniejące naruszenia są suppresowane komentarzami — nowe funkcje muszą mieć jawne typy.
       "@typescript-eslint/explicit-module-boundary-types": [

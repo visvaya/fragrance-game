@@ -47,7 +47,7 @@ export function HelpModal({ onClose, open }: Readonly<HelpModalProperties>) {
             className="text-muted-foreground transition-colors hover:text-primary"
             onClick={onClose}
           >
-            <X className="size-5 " />
+            <X className="size-5" />
           </button>
         </DialogHeader>
 
@@ -79,15 +79,15 @@ export function HelpModal({ onClose, open }: Readonly<HelpModalProperties>) {
           {/* Feedback legend */}
           <div className="mt-4 space-y-2 bg-muted/50 p-4">
             <div className="flex items-center gap-3">
-              <MarkerCircle className="size-5 " letter="✓" />
+              <MarkerCircle className="size-5" letter="✓" />
               <span className="text-muted-foreground">
                 {t("feedbackCorrect")}
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="flex size-5  items-center justify-center">
+              <span className="flex size-5 items-center justify-center">
                 <Waves
-                  className="size-4  -skew-x-12 transform text-muted-foreground opacity-50"
+                  className="size-4 -skew-x-12 transform text-muted-foreground opacity-50"
                   strokeWidth={1.5}
                 />
               </span>
@@ -96,9 +96,9 @@ export function HelpModal({ onClose, open }: Readonly<HelpModalProperties>) {
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="flex size-5  items-center justify-center opacity-50">
+              <span className="flex size-5 items-center justify-center opacity-50">
                 <X
-                  className="size-4  -skew-x-12 transform text-muted-foreground"
+                  className="size-4 -skew-x-12 transform text-muted-foreground"
                   strokeWidth={1.5}
                 />
               </span>

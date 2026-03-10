@@ -439,7 +439,7 @@ export function GameInput() {
       >
         <div className="relative border-x-0 border-t panel-border bg-background/70 px-5 py-8 panel-shadow backdrop-blur-md sm:rounded-t-md sm:border-x">
           <div className="flex justify-center">
-            <Loader2 className="size-6  animate-spin text-muted-foreground" />
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
           </div>
         </div>
       </div>
@@ -504,7 +504,7 @@ export function GameInput() {
               {tFooter("selectHelper")}
             </p>
           </div>
-          <ChevronDown className="size-3  text-primary/60" strokeWidth={2} />
+          <ChevronDown className="size-3 text-primary/60" strokeWidth={2} />
         </div>
       </div>
 
@@ -512,7 +512,7 @@ export function GameInput() {
         {/* Input Surface (Visual Layer) */}
         <div
           className={cn(
-            "relative z-20 border-x-0 border-t panel-border px-5 py-1.5  panel-shadow backdrop-blur-md transition-colors duration-200 ease-in-out sm:border-x",
+            "relative z-20 border-x-0 border-t panel-border px-5 py-1.5 panel-shadow backdrop-blur-md transition-colors duration-200 ease-in-out sm:border-x",
             surfaceClasses,
           )}
         >
@@ -554,7 +554,7 @@ export function GameInput() {
               type="text"
               value={query}
             />
-            <div className="pointer-events-none absolute top-[calc(50%+1px)] right-0.5 flex size-8  -translate-y-1/2 items-center justify-center">
+            <div className="pointer-events-none absolute top-[calc(50%+1px)] right-0.5 flex size-8 -translate-y-1/2 items-center justify-center">
               {/* Search Icon */}
               <div
                 className={cn(
@@ -564,13 +564,13 @@ export function GameInput() {
                     : "scale-50 -rotate-90 opacity-0",
                 )}
               >
-                <Search className="size-5  text-muted-foreground" />
+                <Search className="size-5 text-muted-foreground" />
               </div>
 
               {/* Loader Icon */}
               {isCurrentlyLoading ? (
                 <div className="absolute scale-100 opacity-100 transition-all duration-300 ease-out">
-                  <Loader2 className="size-5  animate-spin text-muted-foreground" />
+                  <Loader2 className="size-5 animate-spin text-muted-foreground" />
                 </div>
               ) : null}
 
@@ -583,7 +583,7 @@ export function GameInput() {
                     : "scale-50 rotate-90 opacity-0",
                 )}
               >
-                <X className="size-5  text-destructive" />
+                <X className="size-5 text-destructive" />
               </div>
             </div>
           </div>
@@ -601,7 +601,7 @@ export function GameInput() {
               >
                 <button
                   aria-label={t("skipTooltip")}
-                  className="flex size-7  items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-30"
                   disabled={!sessionId}
                   onClick={() => {
                     if (
@@ -616,7 +616,7 @@ export function GameInput() {
                   }}
                   type="button"
                 >
-                  <SkipForward className="size-3.5 " />
+                  <SkipForward className="size-3.5" />
                 </button>
               </GameTooltip>
             </div>

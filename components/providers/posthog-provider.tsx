@@ -51,7 +51,7 @@ async function initPostHog(
       disable_surveys: true,
       enable_heatmaps: false,
       loaded: (ph) => {
-        if (env.NODE_ENV === "development") {
+        if (process.env.NODE_ENV === "development") {
           // eslint-disable-next-line no-console
           console.debug("PostHog (lazy) loaded", ph);
         }

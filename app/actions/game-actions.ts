@@ -129,8 +129,14 @@ function cleanNote(note: string | null | undefined): string {
   // eslint-disable-next-line unicorn/no-array-reduce -- reduce is appropriate here for building a cleaned string immutably
   const cleanedNote = removeWords.reduce(
     (cleanedAccumulator, word) =>
-      cleanedAccumulator.replaceAll(new RegExp(String.raw`\b${word}\b`, "gi"), ""),
-    note.trim().replaceAll(/[™®]/g, "").replaceAll(/\bLa Réunion\b/gi, ""),
+      cleanedAccumulator.replaceAll(
+        new RegExp(String.raw`\b${word}\b`, "gi"),
+        "",
+      ),
+    note
+      .trim()
+      .replaceAll(/[™®]/g, "")
+      .replaceAll(/\bLa Réunion\b/gi, ""),
   );
   const t = cleanedNote
     // eslint-disable-next-line sonarjs/slow-regex
@@ -429,36 +435,40 @@ export async function startGame(
           : new Map<string, PerfumeRow>();
       })();
 
-      const fetchedGuesses: GuessHistoryItem[] = rawGuesses.flatMap((guess): GuessHistoryItem[] => {
-        if ((guess as { isSkip?: boolean }).isSkip) {
+      const fetchedGuesses: GuessHistoryItem[] = rawGuesses.flatMap(
+        (guess): GuessHistoryItem[] => {
+          if ((guess as { isSkip?: boolean }).isSkip) {
+            return [
+              {
+                brandName: "",
+                isCorrect: false,
+                isSkip: true,
+                perfumeId: "",
+                perfumeName: "",
+                timestamp: guess.timestamp,
+              },
+            ];
+          }
+          const p = perfumeMap.get(guess.perfumeId);
+          if (!p) return [];
           return [
             {
-              brandName: "",
-              isCorrect: false,
-              isSkip: true,
-              perfumeId: "",
-              perfumeName: "",
+              brandName:
+                (p.brands as { name: string } | null)?.name ?? "Unknown",
+              concentration: (p.concentrations as { name: string } | null)
+                ?.name,
+              feedback: guess.feedback,
+              gender: p.gender ?? undefined,
+              isCorrect: guess.isCorrect,
+              perfumeId: guess.perfumeId,
+              perfumeName: p.name,
+              perfumers: p.perfumers ?? [],
               timestamp: guess.timestamp,
+              year: p.release_year ?? undefined,
             },
           ];
-        }
-        const p = perfumeMap.get(guess.perfumeId);
-        if (!p) return [];
-        return [
-          {
-            brandName: (p.brands as { name: string } | null)?.name ?? "Unknown",
-            concentration: (p.concentrations as { name: string } | null)?.name,
-            feedback: guess.feedback,
-            gender: p.gender ?? undefined,
-            isCorrect: guess.isCorrect,
-            perfumeId: guess.perfumeId,
-            perfumeName: p.name,
-            perfumers: p.perfumers ?? [],
-            timestamp: guess.timestamp,
-            year: p.release_year ?? undefined,
-          },
-        ];
-      });
+        },
+      );
       return fetchedGuesses;
     })();
 

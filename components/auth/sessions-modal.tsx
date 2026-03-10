@@ -113,7 +113,11 @@ export function SessionsModal({
             sessions: newSessions,
           }));
         } else {
-          setState((previous) => ({ ...previous, isLoading: false, sessions: newSessions }));
+          setState((previous) => ({
+            ...previous,
+            isLoading: false,
+            sessions: newSessions,
+          }));
         }
       } catch (error) {
         console.error("Failed to fetch sessions", error);
@@ -275,7 +279,7 @@ export function SessionsModal({
                   </p>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                     <span className="flex shrink-0 items-center gap-1">
-                      <Globe className="size-3 " />
+                      <Globe className="size-3" />
                       {String(session.ip_address)}
                       {session.id === state.currentSessionId && (
                         <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
