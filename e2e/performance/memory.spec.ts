@@ -1,4 +1,4 @@
-/* eslint-disable playwright/no-wait-for-timeout */
+/* eslint-disable playwright/no-wait-for-timeout -- memory tests require explicit waits to allow GC and heap stabilization */
 import { test, expect } from "@playwright/test";
 
 /**

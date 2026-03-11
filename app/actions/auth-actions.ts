@@ -42,10 +42,10 @@ export async function revokeAllSessions(): Promise<
  */
 export async function getSessions(): Promise<
   {
-    created_at: string;
+    created_at: string | null;
     device_info: unknown;
     id: string;
-    ip_address: string | null;
+    ip_address: unknown;
     last_active_at: string | null;
     revoked_at: string | null;
     user_id: string;
@@ -321,5 +321,5 @@ export async function getAnonSessionAttemptCount(
     .limit(1)
     .maybeSingle();
 
-  return { attemptCount: Number(data?.attempts_count ?? 0) };
+  return { attemptCount: data?.attempts_count ?? 0 };
 }

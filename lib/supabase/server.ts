@@ -6,6 +6,9 @@ import { createServerClient } from "@supabase/ssr";
 
 import { env } from "@/lib/env";
 
+import type { Database } from "@/types/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 /**
  * Tworzy klienta Supabase do użycia w Server Components, Route Handlers i Server Actions.
  * Wykorzystuje \`@supabase/ssr\` z obsługą ciasteczek Next.js.
@@ -26,8 +29,7 @@ import { env } from "@/lib/env";
  * }
  * ```
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export async function createClient() {
+export async function createClient(): Promise<SupabaseClient<Database>> {
   const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -67,8 +69,7 @@ export async function createClient() {
  * @returns Klient Supabase z uprawnieniami administracyjnymi
  * @throws {Error} gdy brakuje SUPABASE_SERVICE_ROLE_KEY
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function createAdminClient() {
+export function createAdminClient(): SupabaseClient<Database> {
   return createServerClient(
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.SUPABASE_SERVICE_ROLE_KEY,

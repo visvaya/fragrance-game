@@ -139,7 +139,7 @@ function relevanceScore(
 /**
  *
  */
-// eslint-disable-next-line sonarjs/cognitive-complexity
+// eslint-disable-next-line sonarjs/cognitive-complexity -- GameInput handles full input lifecycle: autocomplete debounce, keyboard shortcuts, skip confirmation, submit; decomposition would split tightly coupled state
 export function GameInput() {
   const {
     attempts,
@@ -249,7 +249,7 @@ export function GameInput() {
           const filtered =
             tq.length < 3
               ? results.filter(
-                  // eslint-disable-next-line sonarjs/no-nested-functions
+                  // eslint-disable-next-line sonarjs/no-nested-functions -- single-expression filter predicate; extraction requires hoisting tq from enclosing closure
                   (r) => {
                     return normalizeText(r.name) === normalizeText(tq);
                   },
@@ -259,7 +259,7 @@ export function GameInput() {
           // Re-rank: brand/name matches first, perfumer-only matches last.
           // Stable sort preserves the DB relevance order within each tier.
           const nq = normalizeText(tq);
-          // eslint-disable-next-line sonarjs/no-nested-functions
+          // eslint-disable-next-line sonarjs/no-nested-functions -- single-expression sort comparator; extraction requires hoisting nq from enclosing closure
           const ranked = filtered.toSorted((a, b) => {
             return relevanceScore(b, nq) - relevanceScore(a, nq);
           });

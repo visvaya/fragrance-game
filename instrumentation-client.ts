@@ -7,7 +7,7 @@ import * as Sentry from "@sentry/nextjs";
 /**
  *
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-function
+// eslint-disable-next-line @typescript-eslint/no-empty-function -- intentional empty export; must not reference Sentry API to avoid pulling tracing code into the bundle
 export function onRouterTransitionStart() {}
 
 function sanitizePII(data: unknown): unknown {

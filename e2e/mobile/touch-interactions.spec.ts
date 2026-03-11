@@ -1,4 +1,4 @@
-/* eslint-disable playwright/no-wait-for-timeout */
+/* eslint-disable playwright/no-wait-for-timeout -- touch interaction tests require explicit waits for animation and gesture completion */
 import { test, expect, devices } from "@playwright/test";
 
 /**

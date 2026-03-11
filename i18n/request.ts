@@ -2,8 +2,9 @@ import { getRequestConfig } from "next-intl/server";
 
 import { routing } from "./routing";
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
-type Messages = typeof import("../messages/pl.json");
+import type messagesSchema from "../messages/pl.json";
+
+type Messages = typeof messagesSchema;
 
 export default getRequestConfig(async ({ requestLocale }) => {
   const requestedLocale = await requestLocale;

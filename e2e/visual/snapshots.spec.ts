@@ -1,4 +1,4 @@
-/* eslint-disable playwright/no-networkidle */
+/* eslint-disable playwright/no-networkidle -- snapshot tests require networkidle to ensure all assets are loaded before capture */
 import { test, expect } from "@playwright/test";
 
 test.describe("Visual Regression - Core Pages @visual", () => {

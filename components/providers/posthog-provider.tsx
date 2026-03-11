@@ -51,8 +51,9 @@ async function initPostHog(
       disable_surveys: true,
       enable_heatmaps: false,
       loaded: (ph) => {
+        // eslint-disable-next-line no-restricted-properties -- process.env.NODE_ENV enables bundler dead-code elimination; env.NODE_ENV indirection prevents tree-shaking of this debug log
         if (process.env.NODE_ENV === "development") {
-          // eslint-disable-next-line no-console
+          // eslint-disable-next-line no-console -- debug-only log, gated by NODE_ENV
           console.debug("PostHog (lazy) loaded", ph);
         }
       },
@@ -120,7 +121,7 @@ export function PostHogProvider({
 
   const ProviderComponent = phProvider;
   return (
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any -- PostHog provider is dynamically imported; client prop type not exported by posthog-js; any cast unavoidable
     <ProviderComponent client={phClient as any}>{children}</ProviderComponent>
   );
 }

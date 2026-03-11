@@ -193,7 +193,7 @@ describe("GameProvider", () => {
       expect(screen.getByTestId("daily-brand")).toHaveTextContent("Chanel"),
     );
 
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- direct fireEvent used for low-level mock interaction; userEvent overhead unnecessary here
     fireEvent.click(screen.getByText("Guess"));
 
     await waitFor(() => {
@@ -266,7 +266,7 @@ describe("GameProvider", () => {
       expect(screen.getByTestId("daily-brand")).toHaveTextContent("Chanel"),
     );
 
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- direct fireEvent used for low-level mock interaction; userEvent overhead unnecessary here
     fireEvent.click(screen.getByText("Guess"));
 
     await waitFor(() => {

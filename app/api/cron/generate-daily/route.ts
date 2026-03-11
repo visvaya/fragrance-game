@@ -57,7 +57,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 }
 
-// eslint-disable-next-line sonarjs/max-lines-per-function
+// eslint-disable-next-line sonarjs/max-lines-per-function -- orchestrates sequential DB ops (check existing, pick perfume, insert challenge, upload image); steps share state and must remain sequential
 async function ensureChallenge(
   supabase: ReturnType<typeof createAdminClient>,
   dateString: string,
@@ -111,13 +111,19 @@ async function ensureChallenge(
       ? baseQuery.not("perfume_id", "in", `(${excludeIds.join(",")})`)
       : baseQuery;
 
-  let { data: candidates, error } = (await query) as {
+  type CandidateResult = {
     data: { perfume_id: string }[] | null;
     error: { message: string } | null;
   };
 
+  const primaryResult = (await query) as CandidateResult;
+
   // Fallback: If pool exhausted (unlikely), try excluding only last 7 days
-  if (error || !candidates || candidates.length === 0) {
+  const { data: candidates, error } = await (async (): Promise<CandidateResult> => {
+    if (!primaryResult.error && primaryResult.data && primaryResult.data.length > 0) {
+      return primaryResult;
+    }
+
     console.warn(
       `[CRON] Pool exhausted for ${dateString}. Retrying with 7-day exclusion.`,
     );
@@ -142,17 +148,10 @@ async function ensureChallenge(
       .not("image_key_step_1", "is", null)
       .eq("perfumes.is_uncertain", false);
 
-    const retryResult = (await (excludeIds7.length > 0
+    return (await (excludeIds7.length > 0
       ? baseRetryQuery.not("perfume_id", "in", `(${excludeIds7.join(",")})`)
-      : baseRetryQuery)) as {
-      data: { perfume_id: string }[] | null;
-      error: { message: string } | null;
-    };
-    // eslint-disable-next-line fp/no-mutation -- fallback result assignment
-    candidates = retryResult.data;
-    // eslint-disable-next-line fp/no-mutation
-    error = retryResult.error;
-  }
+      : baseRetryQuery)) as CandidateResult;
+  })();
 
   if (error || !candidates || candidates.length === 0) {
     throw new Error(

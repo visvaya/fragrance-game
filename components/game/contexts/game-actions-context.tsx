@@ -98,8 +98,7 @@ function calculateMaskedValues(
 
   // Year
   const guessMaskedYear = (() => {
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions -- year truthiness: 0 and empty string both mean no year
-    if (!targetYear) return MASK_CHAR.repeat(4);
+    if (targetYear === 0 || targetYear === "") return MASK_CHAR.repeat(4);
     const yearString = targetYear.toString();
     if (level >= 5) return yearString;
     switch (level) {
@@ -405,8 +404,8 @@ export function GameActionsProvider({
           setNonce(session.nonce);
 
           const busterUrl = session.imageUrl
-            ? // eslint-disable-next-line no-restricted-properties
-              `${session.imageUrl}?reset=${Date.now()}`
+            ? // eslint-disable-next-line unicorn/prefer-date-now -- Date.now() is blocked by no-restricted-properties; getTime() is equivalent and avoids the restricted static method
+              `${session.imageUrl}?reset=${new Date().getTime()}`
             : "/placeholder.svg";
           setImageUrl(busterUrl);
         }

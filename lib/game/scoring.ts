@@ -137,7 +137,7 @@ export function getRevealPercentages(attempt: number): RevealState {
         yearMask: "FULL",
       };
     }
-    // eslint-disable-next-line sonarjs/no-duplicated-branches
+    // eslint-disable-next-line sonarjs/no-duplicated-branches -- same body as attempt 1; safeAttempt clamped to 1–6 makes default unreachable, but TypeScript exhaustiveness requires it
     default: {
       // Same as case 1 – safeAttempt is clamped to 1-6 so this is unreachable,
       // but required for exhaustive return-type checking by TypeScript.
@@ -190,8 +190,8 @@ export function revealLetters(text: string, percentage: number): string {
     // Mask entire word at 0%
     if (pct === 0) return MASK_CHAR.repeat(token.length);
 
-    // eslint-disable-next-line @typescript-eslint/no-misused-spread
-    const chars = [...token];
+    // eslint-disable-next-line unicorn/prefer-spread -- Array.from required; spread operator on string violates @typescript-eslint/no-misused-spread
+    const chars = Array.from(token);
     const lettersToReveal = Math.max(1, Math.round(chars.length * (pct / 100)));
 
     if (lettersToReveal >= chars.length) return token;
@@ -251,9 +251,9 @@ function generateSmartRevealOrder(length: number): number[] {
   // Finally, reveal the first letter (Brand Capital)
   const finalOrder = [...order, 0];
 
-  // eslint-disable-next-line no-restricted-properties
+  // eslint-disable-next-line no-restricted-properties -- process.env.NODE_ENV enables bundler dead-code elimination; env.NODE_ENV indirection prevents tree-shaking of this debug log
   if (process.env.NODE_ENV === "development") {
-    // eslint-disable-next-line no-console
+    // eslint-disable-next-line no-console -- debug-only log, gated by NODE_ENV; stripped by bundler in production
     console.debug(
       `SmartReveal(${length}): SubLen=${subLength}, Center=${centerAbsolute}, Order=${JSON.stringify(finalOrder)}`,
     );

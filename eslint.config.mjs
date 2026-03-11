@@ -1256,7 +1256,24 @@ export default tseslint.config(
   },
 
   // ╔═══════════════════════════════════════════════════════════╗
-  // ║  39. PRETTIER — disable conflicting formatting rules     ║
+  // ║  39a. AUTH COMPONENTS — fp/no-mutating-methods overrides ║
+  // ║  router.push() and form.watch() are false positives:     ║
+  // ║  the rule flags any .push()/.watch() regardless of the  ║
+  // ║  object type (array vs Next.js router / react-hook-form) ║
+  // ╚═══════════════════════════════════════════════════════════╝
+  {
+    files: ["components/auth/**/*.{ts,tsx}"],
+    plugins: { fp: fpPlugin },
+    rules: {
+      // router.push() is Next.js navigation — not an array mutation.
+      // form.watch() is react-hook-form subscription — not an array mutation.
+      // fp/no-mutating-methods cannot distinguish object types, so false positives.
+      "fp/no-mutating-methods": "off",
+    },
+  },
+
+  // ╔═══════════════════════════════════════════════════════════╗
+  // ║  40. PRETTIER — disable conflicting formatting rules     ║
   // ║  (MUST BE LAST!)                                         ║
   // ╚═══════════════════════════════════════════════════════════╝
   // eslint-config-prettier wyłącza reguły ESLint, które mogą kolidować

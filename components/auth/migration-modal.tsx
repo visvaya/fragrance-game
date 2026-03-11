@@ -24,6 +24,26 @@ import {
 } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
 
+async function inheritAnonAttempts(
+  anonId: string,
+  sessionId: string,
+): Promise<void> {
+  try {
+    const { attemptCount } = await getAnonSessionAttemptCount(
+      anonId,
+      sessionId,
+    );
+    if (attemptCount > 0) {
+      sessionStorage.setItem(
+        "eauxle_declined_anon_attempts",
+        String(attemptCount),
+      );
+    }
+  } catch {
+    // Non-critical: if this fails, the player gets a normal fresh start
+  }
+}
+
 /**
  * Modal shown to users who have just registered/logged in but have
  * an anonymous session history stored in localStorage.
@@ -56,39 +76,27 @@ export function MigrationModal() {
 
   // If modal closes WITHOUT a choice (e.g. X button, Esc, outside click),
   // we warn the user and log them out if they confirm.
-  // eslint-disable-next-line sonarjs/cognitive-complexity
   const handleOpenChange = async (open: boolean) => {
-    if (!open && !choiceMade) {
-      if (globalThis.confirm(t("exitConfirm"))) {
-        setIsLoading(true);
-        // Inherit attempt count before signing out — same logic as handleCancel.
-        // Without this, the player could dismiss via X/Esc to get a fresh anonymous
-        // session and bypass the anti-cheat inherited-attempt mechanism.
-        const anonId = localStorage.getItem("eauxle_anon_player_id");
-        if (anonId && sessionId) {
-          try {
-            const { attemptCount } = await getAnonSessionAttemptCount(
-              anonId,
-              sessionId,
-            );
-            if (attemptCount > 0) {
-              sessionStorage.setItem(
-                "eauxle_declined_anon_attempts",
-                String(attemptCount),
-              );
-            }
-          } catch {
-            // Non-critical: if this fails, the player gets a normal fresh start
-          }
-        }
-        const supabase = createClient();
-        await supabase.auth.signOut();
-        globalThis.location.reload();
-      } else {
-        return;
-      }
+    if (open || choiceMade) {
+      setIsOpen(open);
+      return;
     }
-    setIsOpen(open);
+
+    if (!globalThis.confirm(t("exitConfirm"))) {
+      return;
+    }
+
+    // Inherit attempt count before signing out — same logic as handleCancel.
+    // Without this, the player could dismiss via X/Esc to get a fresh anonymous
+    // session and bypass the anti-cheat inherited-attempt mechanism.
+    setIsLoading(true);
+    const anonId = localStorage.getItem("eauxle_anon_player_id");
+    if (anonId != null && sessionId != null) {
+      await inheritAnonAttempts(anonId, sessionId);
+    }
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    globalThis.location.reload();
   };
 
   const handleMerge = async () => {
@@ -126,21 +134,8 @@ export function MigrationModal() {
     // so the new authenticated session inherits it and cannot start fresh
     // with an informational advantage from clues already seen.
     const anonId = localStorage.getItem("eauxle_anon_player_id");
-    if (anonId && sessionId) {
-      try {
-        const { attemptCount } = await getAnonSessionAttemptCount(
-          anonId,
-          sessionId,
-        );
-        if (attemptCount > 0) {
-          sessionStorage.setItem(
-            "eauxle_declined_anon_attempts",
-            String(attemptCount),
-          );
-        }
-      } catch {
-        // Non-critical: if this fails, the player gets a normal fresh start
-      }
+    if (anonId != null && sessionId != null) {
+      await inheritAnonAttempts(anonId, sessionId);
     }
 
     setChoiceMade(true);

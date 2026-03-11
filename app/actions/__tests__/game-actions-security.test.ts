@@ -12,7 +12,7 @@ import { getDailyChallenge } from "../game-actions";
  */
 
 // Mock Supabase clients
-/* eslint-disable sonarjs/no-nested-functions, @typescript-eslint/require-await */
+/* eslint-disable sonarjs/no-nested-functions, @typescript-eslint/require-await -- security tests use nested describe/it structure; mock server actions don't need await */
 vi.mock("@/lib/supabase/server", () => ({
   createAdminClient: vi.fn(() => ({
     from: vi.fn((table: string) => {

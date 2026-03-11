@@ -1,4 +1,4 @@
-/* eslint-disable playwright/no-wait-for-timeout, playwright/no-networkidle */
+/* eslint-disable playwright/no-wait-for-timeout, playwright/no-networkidle -- diagnostic tests require explicit waits and networkidle for full error state capture */
 import { test, expect } from "@playwright/test";
 
 /**

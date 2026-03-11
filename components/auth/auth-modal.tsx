@@ -157,8 +157,9 @@ export function AuthModal({
         We only render Trigger if children are provided.
         If controlled, the parent handles the trigger.
       */}
-      {/* eslint-disable-next-line @typescript-eslint/strict-boolean-expressions */}
-      {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
+      {children == null ? null : (
+        <DialogTrigger asChild>{children}</DialogTrigger>
+      )}
 
       {/* eslint-disable-next-line no-restricted-syntax -- shadcn/ui standard dialog width: 425px is a design system convention, not a user-scalable size */}
       <DialogContent className="flex flex-col gap-0 overflow-hidden border-0 bg-transparent p-0 shadow-none sm:max-w-[425px] sm:bg-transparent">

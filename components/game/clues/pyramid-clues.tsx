@@ -8,13 +8,73 @@ import { useTranslations } from "next-intl";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
 import { GENERIC_PLACEHOLDER, MASK_CHAR } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { cn, noop } from "@/lib/utils";
 
 import { useGameState } from "../contexts";
 import { DotFiller } from "../dot-filler";
 import { GameTooltip } from "../game-tooltip";
 
-import { MaskSlot } from "./mask-slot";
+import { MaskedWord } from "./masked-word";
+
+function renderPyramidNoteWord({
+  hasMasking,
+  isFullHidden,
+  levelName,
+  noteIndex,
+  t,
+  wIndex,
+  word,
+}: Readonly<{
+  hasMasking: boolean;
+  isFullHidden: boolean;
+  levelName: string;
+  noteIndex: number;
+  t: (key: string, values?: Record<string, string | number>) => string;
+  wIndex: number;
+  word: string;
+}>) {
+  return hasMasking ? (
+    <GameTooltip
+      content={t("letters", { count: word.length })}
+      key={`${levelName}-note-${noteIndex}-word-${wIndex}`}
+    >
+      {({ isHovered }: { isHovered?: boolean }) => (
+        <div className="flex flex-nowrap">
+          {isFullHidden ? (
+            <div className="flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
+              <Lock
+                className={cn(
+                  "size-2.5 transition-colors duration-300",
+                  isHovered
+                    ? "text-[oklch(0.75_0.15_60)]"
+                    : "text-muted-foreground",
+                )}
+              />
+            </div>
+          ) : (
+            <MaskedWord
+              isHovered={isHovered}
+              keyPrefix={`${levelName}-note-${noteIndex}-tt-${wIndex}`}
+              word={word}
+            />
+          )}
+        </div>
+      )}
+    </GameTooltip>
+  ) : (
+    <span key={wIndex}>
+      <div className="flex flex-nowrap">
+        {isFullHidden ? (
+          <div className="group flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
+            <Lock className="size-2.5 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
+          </div>
+        ) : (
+          <span className="font-sans text-sm text-foreground">{word}</span>
+        )}
+      </div>
+    </span>
+  );
+}
 
 /**
  *
@@ -183,7 +243,6 @@ export const PyramidClues = memo(function PyramidClues() {
 
             <div>
               <div className="flex flex-wrap items-center justify-start gap-2 text-sm">
-                {/* eslint-disable-next-line sonarjs/max-lines-per-function */}
                 {displayNotes.map((note, i, array) => {
                   const words = note.split(" ");
                   const isLast = i === array.length - 1;
@@ -224,7 +283,6 @@ export const PyramidClues = memo(function PyramidClues() {
                               word === GENERIC_PLACEHOLDER.repeat(5);
                             const showTooltip = hasMasking;
 
-                            // eslint-disable-next-line sonarjs/function-return-type -- IIFE returns React.ReactNode; multiple branches declared above
                             const innerContent: React.ReactNode = (() => {
                               if (isFullHidden) {
                                 return (
@@ -234,28 +292,7 @@ export const PyramidClues = memo(function PyramidClues() {
                                 );
                               }
                               if (hasMasking) {
-                                // eslint-disable-next-line unicorn/prefer-spread, sonarjs/no-nested-functions -- string character iteration; deeply nested in JSX render context
-                                return word.split("").map((char, index) => {
-                                  const isSlot = char === MASK_CHAR;
-                                  if (isSlot) {
-                                    return (
-                                      <MaskSlot
-                                        char={char}
-                                        key={`linear-slot-${char}-${index}`}
-                                      />
-                                    );
-                                  }
-                                  return (
-                                    <div
-                                      className="mx-px flex h-5 w-2 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
-                                      key={`linear-char-${char}-${index}`}
-                                    >
-                                      <span className="inline-block translate-y-px">
-                                        {char}
-                                      </span>
-                                    </div>
-                                  );
-                                });
+                                return <MaskedWord keyPrefix={`linear-${i}-${wIndex}`} word={word} />;
                               }
                               return (
                                 <span className="font-sans text-sm text-foreground">
@@ -293,29 +330,7 @@ export const PyramidClues = memo(function PyramidClues() {
                                           />
                                         </div>
                                       ) : (
-                                        // eslint-disable-next-line sonarjs/no-nested-functions, unicorn/prefer-spread -- string character iteration; split("") vs [...str] conflict with no-misused-spread
-                                        word.split("").map((char, index) => {
-                                          const isSlot = char === MASK_CHAR;
-                                          if (isSlot) {
-                                            return (
-                                              <MaskSlot
-                                                char={char}
-                                                isHovered={isHovered}
-                                                key={`linear-slot-tt-${char}-${index}`}
-                                              />
-                                            );
-                                          }
-                                          return (
-                                            <div
-                                              className="mx-px flex h-5 w-2 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
-                                              key={`linear-char-tt-${char}-${index}`}
-                                            >
-                                              <span className="inline-block translate-y-px">
-                                                {char}
-                                              </span>
-                                            </div>
-                                          );
-                                        })
+                                        <MaskedWord isHovered={isHovered} keyPrefix={`linear-tt-${i}-${wIndex}`} word={word} />
                                       )}
                                     </div>
                                   )}
@@ -368,8 +383,7 @@ export const PyramidClues = memo(function PyramidClues() {
           <div className="flex items-center gap-2">
             <span
               className="inline-flex transition-transform duration-300 hover:scale-[1.15] active:scale-[1.15]"
-              // eslint-disable-next-line @typescript-eslint/no-empty-function
-              onTouchStart={() => {}}
+              onTouchStart={noop}
             >
               <Layers className="size-4 text-muted-foreground" />
             </span>
@@ -381,7 +395,6 @@ export const PyramidClues = memo(function PyramidClues() {
       </div>
 
       <ul className="flex flex-col">
-        {/* eslint-disable-next-line sonarjs/max-lines-per-function */}
         {levels.map((level) => (
           <li
             className="flex flex-col gap-2 border-b border-border/60 py-4 first:pt-0 last:border-b-0 last:pb-0"
@@ -418,7 +431,6 @@ export const PyramidClues = memo(function PyramidClues() {
             <div>
               {level.notes && level.notes.length > 0 ? (
                 <div className="flex flex-wrap items-center gap-1.5">
-                  {/* eslint-disable-next-line sonarjs/max-lines-per-function */}
                   {level.notes.map((note, noteIndex, array) => {
                     const words = note.split(" ");
                     const isLast = noteIndex === array.length - 1;
@@ -441,111 +453,15 @@ export const PyramidClues = memo(function PyramidClues() {
                               const hasMasking = word.includes(MASK_CHAR);
                               const isFullHidden =
                                 word === GENERIC_PLACEHOLDER.repeat(5);
-                              const showTooltip = hasMasking;
-
-                              // eslint-disable-next-line sonarjs/no-nested-functions, sonarjs/function-return-type -- IIFE deeply nested in JSX render context; extracting would scatter related logic
-                              const innerContent: React.ReactNode = (() => {
-                                if (isFullHidden) {
-                                  return (
-                                    <div className="group flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
-                                      <Lock className="size-2.5 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
-                                    </div>
-                                  );
-                                }
-                                if (hasMasking) {
-                                  // eslint-disable-next-line unicorn/prefer-spread -- string character iteration; split("") vs [...str] conflict with no-misused-spread
-                                  return word.split("").map((char, index) => {
-                                    const isSlot = char === MASK_CHAR;
-                                    if (isSlot) {
-                                      return (
-                                        <MaskSlot
-                                          char={char}
-                                          key={`${level.name}-note-${noteIndex}-slot-${index}`}
-                                        />
-                                      );
-                                    }
-                                    return (
-                                      <div
-                                        className="mx-px flex h-5 w-2 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
-                                        key={`${level.name}-note-${noteIndex}-char-${index}`}
-                                      >
-                                        <span className="inline-block translate-y-px">
-                                          {char}
-                                        </span>
-                                      </div>
-                                    );
-                                  });
-                                }
-                                return (
-                                  <span className="font-sans text-sm text-foreground">
-                                    {word}
-                                  </span>
-                                );
-                              })();
-
-                              const content = (
-                                <div className="flex flex-nowrap">
-                                  {innerContent}
-                                </div>
-                              );
-
-                              if (showTooltip) {
-                                return (
-                                  <GameTooltip
-                                    content={t("letters", {
-                                      count: word.length,
-                                    })}
-                                    key={`${level.name}-note-${noteIndex}-word-${wIndex}`}
-                                  >
-                                    {({
-                                      isHovered,
-                                    }: {
-                                      isHovered?: boolean;
-                                      // eslint-disable-next-line sonarjs/no-nested-functions
-                                    }) => (
-                                      <div className="flex flex-nowrap">
-                                        {isFullHidden ? (
-                                          <div className="flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
-                                            <Lock
-                                              className={cn(
-                                                "size-2.5 transition-colors duration-300",
-                                                isHovered
-                                                  ? "text-[oklch(0.75_0.15_60)]"
-                                                  : "text-muted-foreground",
-                                              )}
-                                            />
-                                          </div>
-                                        ) : (
-                                          // eslint-disable-next-line unicorn/prefer-spread -- string character iteration; split("") vs [...str] conflict with no-misused-spread
-                                          word.split("").map((char, index) => {
-                                            const isSlot = char === MASK_CHAR;
-                                            if (isSlot) {
-                                              return (
-                                                <MaskSlot
-                                                  char={char}
-                                                  isHovered={isHovered}
-                                                  key={`linear-slot-tt-${char}-${index}`}
-                                                />
-                                              );
-                                            }
-                                            return (
-                                              <div
-                                                className="mx-px flex h-5 w-2 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
-                                                key={`linear-char-tt-${char}-${index}`}
-                                              >
-                                                <span className="inline-block translate-y-px">
-                                                  {char}
-                                                </span>
-                                              </div>
-                                            );
-                                          })
-                                        )}
-                                      </div>
-                                    )}
-                                  </GameTooltip>
-                                );
-                              }
-                              return <span key={wIndex}>{content}</span>;
+                              return renderPyramidNoteWord({
+                                hasMasking,
+                                isFullHidden,
+                                levelName: level.name,
+                                noteIndex,
+                                t,
+                                wIndex,
+                                word,
+                              });
                             })
                           )}
                         </span>

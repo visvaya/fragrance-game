@@ -80,10 +80,10 @@ function calculateMaskedValues(
   // Simplified reveal for hydration - actual logic in contexts/game-state-context.tsx
   const guessMaskedBrand =
     level === 1 ? GENERIC_PLACEHOLDER.repeat(3) : targetBrand;
-  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-  const guessMaskedYear = targetYear
-    ? getYearMask(level, targetYear.toString())
-    : MASK_CHAR.repeat(4);
+  const guessMaskedYear =
+    targetYear !== 0 && targetYear !== ""
+      ? getYearMask(level, targetYear.toString())
+      : MASK_CHAR.repeat(4);
 
   return { guessMaskedBrand, guessMaskedYear };
 }
@@ -237,6 +237,94 @@ function getRevealedBrandHelper(brand: string, level: number) {
 }
 
 /**
+ * Polls Supabase until the session cookie is confirmed or max attempts exceeded.
+ * Returns the verified user (or null) without mutating any external state.
+ */
+async function verifyAuthSession(
+  supabase: ReturnType<typeof createClient>,
+): Promise<{ user: User | null; verified: boolean }> {
+  const maxAttempts = 3;
+  for (const attempt of Array.from({ length: maxAttempts }, (_, i) => i)) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session) return { user: session.user, verified: true };
+    await new Promise((resolve) => setTimeout(resolve, 50 * Math.pow(2, attempt)));
+  }
+  return { user: null, verified: false };
+}
+
+/**
+ * Fetches the daily challenge + game session using the most efficient path:
+ * - SSR-provided data used directly if available (0 roundtrips)
+ * - Otherwise calls initializeGame (2 roundtrips) or startGame (1 roundtrip)
+ * Includes one automatic retry when challenge arrives but session fails.
+ */
+async function fetchChallengeAndSession(
+  initialChallenge: DailyChallenge | undefined,
+  initialSession: StartGameResponse | null | undefined,
+  inheritedCount: number,
+): Promise<{ challenge: DailyChallenge | null; session: StartGameResponse | null }> {
+  if (initialChallenge) {
+    if (initialSession) return { challenge: initialChallenge, session: initialSession };
+    const session = await startGame(initialChallenge.id, inheritedCount).catch(
+      (error: unknown) => {
+        console.error("[GameProvider] startGame with SSR challenge failed:", error);
+        return null;
+      },
+    );
+    return { challenge: initialChallenge, session };
+  }
+
+  const { challenge, session } = await initializeGame(inheritedCount);
+
+  // Retry if challenge arrived but session failed (cookies not yet processed)
+  if (challenge && session == null) {
+    console.warn(
+      "[GameProvider] Got challenge but no session. Retrying session creation...",
+    );
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const retrySession = await startGame(challenge.id, inheritedCount).catch(
+      (error: unknown) => {
+        console.error("[GameProvider] Retry startGame failed:", error);
+        return null;
+      },
+    );
+    return { challenge, session: retrySession };
+  }
+  return { challenge, session };
+}
+
+/**
+ * Computes the set of perfumer names (original casing) that have been
+ * revealed across the current attempt history.
+ */
+function computeDiscoveredPerfumers(
+  attempts: Attempt[],
+  perfumerString: string,
+): Set<string> {
+  const perfumersList = perfumerString.split(",").map((p) => p.trim());
+  const answerSet = new Set(perfumersList.map((p) => p.toLowerCase()));
+  const discovered = attempts
+    .filter(
+      (a) =>
+        a.feedback.perfumerMatch === "full" ||
+        a.feedback.perfumerMatch === "partial",
+    )
+    .flatMap((attempt) => {
+      if (attempt.feedback.perfumerMatch === "full") return perfumersList;
+      return (attempt.perfumers ?? []).flatMap((p) => {
+        if (!answerSet.has(p.trim().toLowerCase())) return [];
+        const original = perfumersList.find(
+          (n) => n.toLowerCase() === p.trim().toLowerCase(),
+        );
+        return original == null ? [] : [original];
+      });
+    });
+  return new Set(discovered);
+}
+
+/**
  * GameProvider - Main orchestrator that manages state and coordinates contexts
  * All state lives here as single source of truth
  * Contexts receive state and setters as props
@@ -370,9 +458,9 @@ export function GameProvider({
   }, [router]);
 
   // Initialize Game (with proper auth sequencing)
-  // eslint-disable-next-line sonarjs/max-lines-per-function
+  // eslint-disable-next-line sonarjs/max-lines-per-function -- thin useEffect wrapper; inner initGame complexity annotated below
   useEffect(() => {
-    // eslint-disable-next-line sonarjs/cognitive-complexity,sonarjs/max-lines-per-function
+    // eslint-disable-next-line sonarjs/cognitive-complexity,sonarjs/max-lines-per-function -- orchestrates sequential auth (anon sign-in, verify), challenge fetch, and game session init; steps are tightly interdependent
     const initGame = async () => {
       const safetyTimeout = setTimeout(() => {
         console.warn("[GameProvider] initGame safety timeout reached!");
@@ -422,44 +510,17 @@ export function GameProvider({
           }
 
           // Verification loop with exponential backoff: Ensure session is set in client state AND cookies
-
-          let verified = false;
-          const maxVerificationAttempts = 3;
-          for (const attempt of Array.from(
-            { length: maxVerificationAttempts },
-            (_, i) => i,
-          )) {
-            const {
-              data: { session: s },
-            } = await supabase.auth.getSession();
-
-            // getSession() reads from Supabase client state which is populated from
-            // cookies by @supabase/ssr — if session exists, the cookie is already set.
-            if (s) {
-              // eslint-disable-next-line fp/no-mutation -- loop flag required for break-out verification pattern
-              verified = true;
-
-              // Track Anonymous Session for future migration
-              if (s.user.is_anonymous) {
-                localStorage.setItem("eauxle_anon_player_id", s.user.id);
-              }
-              setUser(s.user);
-              break;
+          // getSession() reads from Supabase client state populated from cookies by @supabase/ssr.
+          const { user: verifiedUser, verified } = await verifyAuthSession(supabase);
+          if (verifiedUser != null) {
+            // Track Anonymous Session for future migration
+            if (verifiedUser.is_anonymous) {
+              localStorage.setItem("eauxle_anon_player_id", verifiedUser.id);
             }
-
-            // Exponential backoff: 50ms, 100ms, 200ms
-
-            await new Promise((resolve) =>
-              // eslint-disable-next-line react-web-api/no-leaked-timeout -- fire-and-forget sleep; Promise resolves after timeout, no cleanup needed
-              setTimeout(resolve, 50 * Math.pow(2, attempt)),
-            );
+            setUser(verifiedUser);
           }
           if (!verified) {
-            console.warn(
-              "[GameProvider] Auth session not verified after",
-              maxVerificationAttempts,
-              "attempts.",
-            );
+            console.warn("[GameProvider] Auth session not verified after 3 attempts.");
           }
         }
 
@@ -478,54 +539,14 @@ export function GameProvider({
           sessionStorage.removeItem("eauxle_declined_anon_attempts");
         }
 
-        let challenge: DailyChallenge | null;
-
-        let session: Awaited<ReturnType<typeof startGame>> | null;
-
-        if (initialChallenge) {
-          // Challenge known from SSR — use pre-fetched session if available (0 roundtrips),
-          // or call startGame as fallback (1 roundtrip instead of 2).
-          // eslint-disable-next-line fp/no-mutation -- branch assignment in sequential async flow
-          challenge = initialChallenge;
-          if (initialSession) {
-            // Session already fetched server-side — no network call needed
-            // eslint-disable-next-line fp/no-mutation -- branch assignment in sequential async flow
-            session = initialSession;
-          } else {
-            // eslint-disable-next-line fp/no-mutation -- null init before try/catch reassignment
-            session = null;
-            try {
-              // eslint-disable-next-line fp/no-mutation -- reassignment on success in try/catch flow
-              session = await startGame(initialChallenge.id, inheritedCount);
-            } catch (error) {
-              console.error(
-                "[GameProvider] startGame with SSR challenge failed:",
-                error,
-              );
-              // session remains null — retry logic below (challenge && !session) will handle it
-            }
-          }
-        } else {
-          // Fallback: SSR didn't provide challenge (no daily challenge, DB error)
-          // eslint-disable-next-line fp/no-mutation -- destructuring assignment from async call
-          ({ challenge, session } = await initializeGame(inheritedCount));
-        }
-
-        // 2b. If we got challenge but NO session (Unauthorized retry)
-        // This happens if the server action is called slightly before cookies are processed
-        if (challenge && !session) {
-          console.warn(
-            "[GameProvider] Got challenge but no session. Retrying session creation...",
-          );
-          // eslint-disable-next-line react-web-api/no-leaked-timeout -- await-delay helper: resolves immediately, no component cleanup needed
-          await new Promise((resolve) => setTimeout(resolve, 200)); // Tiny beat
-          try {
-            // eslint-disable-next-line fp/no-mutation -- reassignment on retry success in try/catch flow
-            session = await startGame(challenge.id, inheritedCount);
-          } catch (error) {
-            console.error("[GameProvider] Retry startGame failed:", error);
-          }
-        }
+        // Challenge known from SSR → 0 roundtrips; partial SSR → 1 roundtrip;
+        // no SSR → initializeGame (2 roundtrips). Includes automatic retry on
+        // challenge-without-session (timing issue with cookie propagation).
+        const { challenge, session } = await fetchChallengeAndSession(
+          initialChallenge ?? undefined,
+          initialSession ?? undefined,
+          inheritedCount,
+        );
 
         if (challenge && session) {
           captureAnalyticsEvent("daily_challenge_viewed", {
@@ -604,35 +625,8 @@ export function GameProvider({
   }, [initialChallenge, initialSession, maxAttempts]);
 
   // Track discovered perfumers
-  // eslint-disable-next-line sonarjs/cognitive-complexity
   useEffect(() => {
-    const newDiscovered = new Set<string>();
-    for (const attempt of attempts) {
-      if (
-        attempt.feedback.perfumerMatch === "full" ||
-        attempt.feedback.perfumerMatch === "partial"
-      ) {
-        const guessPerfumers = attempt.perfumers ?? [];
-        const answerPerfumers = new Set(
-          dailyPerfume.perfumer.split(",").map((p) => p.trim().toLowerCase()),
-        );
-
-        for (const p of guessPerfumers) {
-          if (answerPerfumers.has(p.trim().toLowerCase())) {
-            const originalName = dailyPerfume.perfumer
-              .split(",")
-              .find((n) => n.trim().toLowerCase() === p.trim().toLowerCase());
-            if (originalName) newDiscovered.add(originalName.trim());
-          }
-        }
-
-        if (attempt.feedback.perfumerMatch === "full") {
-          for (const p of dailyPerfume.perfumer.split(","))
-            newDiscovered.add(p.trim());
-        }
-      }
-    }
-    setDiscoveredPerfumers(newDiscovered);
+    setDiscoveredPerfumers(computeDiscoveredPerfumers(attempts, dailyPerfume.perfumer));
   }, [attempts, dailyPerfume.perfumer]);
 
   // Merge dynamic image into the daily perfume object

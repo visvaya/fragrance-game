@@ -1,4 +1,4 @@
-/* eslint-disable playwright/no-wait-for-timeout */
+/* eslint-disable playwright/no-wait-for-timeout -- XSS security tests require explicit waits for async DOM mutations after injection */
 import { test, expect } from "@playwright/test";
 
 /**
@@ -149,7 +149,7 @@ test.describe("XSS Injection Prevention", () => {
     // Try various XSS payloads
     const xssPayloads = [
       "<svg/onload=alert(1)>",
-      // eslint-disable-next-line sonarjs/code-eval
+      // eslint-disable-next-line sonarjs/code-eval -- intentional eval to verify XSS payload is sanitized before reaching DOM
       "javascript:alert(1)",
       '"><script>alert(1)</script>',
     ];
@@ -176,7 +176,7 @@ test.describe("XSS Injection Prevention", () => {
 
           expect(html).not.toContain("onload=");
 
-          // eslint-disable-next-line sonarjs/code-eval
+          // eslint-disable-next-line sonarjs/code-eval -- intentional eval to verify XSS payload is sanitized before reaching DOM
           expect(html).not.toContain("javascript:");
         }
       }

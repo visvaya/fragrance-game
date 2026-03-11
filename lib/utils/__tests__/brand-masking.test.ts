@@ -5,8 +5,8 @@ import { GENERIC_PLACEHOLDER, MASK_CHAR } from "@/lib/constants";
 import { maskBrand, maskYear } from "../brand-masking";
 
 const countDigits = (string_: string) =>
-  // eslint-disable-next-line @typescript-eslint/no-misused-spread
-  [...string_].filter((c) => c !== MASK_CHAR).length;
+  // eslint-disable-next-line unicorn/prefer-spread -- Array.from required; spread operator on string violates @typescript-eslint/no-misused-spread
+  Array.from(string_).filter((c) => c !== MASK_CHAR).length;
 
 describe("maskBrand", () => {
   describe("placeholder at attempt 1", () => {

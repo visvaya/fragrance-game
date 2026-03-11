@@ -139,7 +139,7 @@ function cleanNote(note: string | null | undefined): string {
       .replaceAll(/\bLa Réunion\b/gi, ""),
   );
   const t = cleanedNote
-    // eslint-disable-next-line sonarjs/slow-regex
+    // eslint-disable-next-line sonarjs/slow-regex -- /\([^)]*\)/ uses nested quantifier flagged by Sonar; bounded by explicit parentheses, no catastrophic backtracking risk
     .replaceAll(/\([^)]*\)/g, "")
     .replaceAll(/\s+/g, " ")
     .trim()
@@ -258,6 +258,10 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     throw new Error("Failed to fetch daily challenge");
   }
 
+  if (data.id == null) {
+    throw new Error("Challenge id is missing from public view");
+  }
+
   const adminSupabase = createAdminClient();
   const { data: challengePrivate } = await adminSupabase
     .from("daily_challenges")
@@ -322,7 +326,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
   const concentrationName =
     (perfume.concentrations as { name: string } | null)?.name ?? "Unknown";
 
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- daily_challenges_public view returns nullable fields; critical ones validated above; brands/concentrations need narrowing from Supabase join type
   return {
     ...data,
     clues: {
@@ -345,10 +349,156 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
   } as DailyChallenge;
 }
 
+type RawGuess = {
+  feedback?: AttemptFeedback;
+  isCorrect: boolean;
+  isSkip?: boolean;
+  perfumeId: string;
+  timestamp: string;
+};
+
+async function enrichGuessesWithPerfumeDetails(
+  rawGuesses: RawGuess[],
+): Promise<GuessHistoryItem[]> {
+  if (rawGuesses.length === 0) return [];
+
+  type PerfumeRow = {
+    brands: { name: string } | null;
+    concentrations: { name: string } | null;
+    gender: string | null;
+    id: string;
+    name: string;
+    perfumers: string[] | null;
+    release_year: number | null;
+  };
+
+  const adminSupabase = createAdminClient();
+  const realGuessIds = rawGuesses
+    .filter((g) => !g.isSkip)
+    .map((g) => g.perfumeId);
+
+  const perfumeMap = await (async () => {
+    if (realGuessIds.length === 0) return new Map<string, PerfumeRow>();
+    const { data: perfumes } = (await adminSupabase
+      .from("perfumes")
+      .select(
+        "id, name, brands(name), release_year, concentrations(name), gender, perfumers",
+      )
+      .in("id", realGuessIds)) as { data: PerfumeRow[] | null };
+    return perfumes
+      ? new Map(perfumes.map((p) => [p.id, p]))
+      : new Map<string, PerfumeRow>();
+  })();
+
+  return rawGuesses.flatMap((guess): GuessHistoryItem[] => {
+    if (guess.isSkip) {
+      return [
+        {
+          brandName: "",
+          isCorrect: false,
+          isSkip: true,
+          perfumeId: "",
+          perfumeName: "",
+          timestamp: guess.timestamp,
+        },
+      ];
+    }
+    const p = perfumeMap.get(guess.perfumeId);
+    if (!p) return [];
+    return [
+      {
+        brandName:
+          (p.brands as { name: string } | null)?.name ?? "Unknown",
+        concentration: (p.concentrations as { name: string } | null)?.name,
+        feedback: guess.feedback,
+        gender: p.gender ?? undefined,
+        isCorrect: guess.isCorrect,
+        perfumeId: guess.perfumeId,
+        perfumeName: p.name,
+        perfumers: p.perfumers ?? [],
+        timestamp: guess.timestamp,
+        year: p.release_year ?? undefined,
+      },
+    ];
+  });
+}
+
+async function createNewGameSession(
+  challengeId: string,
+  safeInheritedCount: number,
+  userId: string,
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<StartGameResponse> {
+  await checkRateLimit("startGame", userId);
+
+  const nonce = generateNonce();
+  const { data: session, error: insertError } = (await supabase
+    .from("game_sessions")
+    .insert({
+      attempts_count: safeInheritedCount,
+      challenge_id: challengeId,
+      guesses: [],
+      last_guess: null,
+      last_nonce: nonce,
+      player_id: userId,
+      start_time: new Date().toISOString(),
+      status: "active",
+    })
+    .select(
+      "attempts_count, challenge_id, id, last_nonce, player_id, start_time, status",
+    )
+    .limit(1)
+    .single()) as {
+    data: {
+      attempts_count: number;
+      challenge_id: string;
+      id: string;
+      last_nonce: string | number;
+      player_id: string;
+      start_time: string;
+      status: string;
+    } | null;
+    error: Error | null;
+  };
+
+  if (insertError || !session) {
+    console.error("Error starting game:", insertError);
+    throw new Error("Failed to create session");
+  }
+
+  const imageUrl = await getImageUrlForStep(session.id);
+  const { data: challengeData } = (await supabase
+    .from("daily_challenges_public")
+    .select("mode, grace_deadline_at_utc")
+    .eq("id", challengeId)
+    .single()) as {
+    data: { grace_deadline_at_utc: string; mode: string } | null;
+  };
+
+  await identifyUser(userId);
+  await trackEvent(
+    "game_started",
+    {
+      challenge_id: challengeId,
+      mode: challengeData?.mode ?? "daily",
+      session_id: session.id,
+    },
+    userId,
+  );
+
+  return {
+    graceDeadline: challengeData?.grace_deadline_at_utc ?? "",
+    guesses: [],
+    imageUrl: imageUrl,
+    nonce: nonce,
+    revealState: getRevealPercentages(safeInheritedCount + 1),
+    sessionId: session.id,
+  };
+}
+
 /**
  * Rozpoczyna nową sesję gry lub wznawia istniejącą.
  */
-// eslint-disable-next-line sonarjs/max-lines-per-function
 export async function startGame(
   challengeId: string,
   inheritedAttemptCount = 0,
@@ -404,73 +554,7 @@ export async function startGame(
 
     const imageUrl = await getImageUrlForStep(existingSession.id);
     const rawGuesses = existingSession.guesses ?? [];
-    const enrichedGuesses = await (async (): Promise<GuessHistoryItem[]> => {
-      if (rawGuesses.length === 0) return [];
-      const adminSupabase = createAdminClient();
-
-      const realGuessIds = rawGuesses
-        .filter((g) => !(g as { isSkip?: boolean }).isSkip)
-        .map((g) => g.perfumeId);
-
-      type PerfumeRow = {
-        brands: { name: string } | null;
-        concentrations: { name: string } | null;
-        gender: string | null;
-        id: string;
-        name: string;
-        perfumers: string[] | null;
-        release_year: number | null;
-      };
-
-      const perfumeMap = await (async () => {
-        if (realGuessIds.length === 0) return new Map<string, PerfumeRow>();
-        const { data: perfumes } = (await adminSupabase
-          .from("perfumes")
-          .select(
-            "id, name, brands(name), release_year, concentrations(name), gender, perfumers",
-          )
-          .in("id", realGuessIds)) as { data: PerfumeRow[] | null };
-        return perfumes
-          ? new Map(perfumes.map((p) => [p.id, p]))
-          : new Map<string, PerfumeRow>();
-      })();
-
-      const fetchedGuesses: GuessHistoryItem[] = rawGuesses.flatMap(
-        (guess): GuessHistoryItem[] => {
-          if ((guess as { isSkip?: boolean }).isSkip) {
-            return [
-              {
-                brandName: "",
-                isCorrect: false,
-                isSkip: true,
-                perfumeId: "",
-                perfumeName: "",
-                timestamp: guess.timestamp,
-              },
-            ];
-          }
-          const p = perfumeMap.get(guess.perfumeId);
-          if (!p) return [];
-          return [
-            {
-              brandName:
-                (p.brands as { name: string } | null)?.name ?? "Unknown",
-              concentration: (p.concentrations as { name: string } | null)
-                ?.name,
-              feedback: guess.feedback,
-              gender: p.gender ?? undefined,
-              isCorrect: guess.isCorrect,
-              perfumeId: guess.perfumeId,
-              perfumeName: p.name,
-              perfumers: p.perfumers ?? [],
-              timestamp: guess.timestamp,
-              year: p.release_year ?? undefined,
-            },
-          ];
-        },
-      );
-      return fetchedGuesses;
-    })();
+    const enrichedGuesses = await enrichGuessesWithPerfumeDetails(rawGuesses);
 
     const { answerConcentration, answerName } = await (async () => {
       if (existingSession.status !== "won" && existingSession.status !== "lost")
@@ -513,71 +597,7 @@ export async function startGame(
   }
 
   // Rate limiting: only applies to creating NEW sessions, not resuming existing ones
-  await checkRateLimit("startGame", user.id);
-
-  const nonce = generateNonce();
-  const { data: session, error: insertError } = (await supabase
-    .from("game_sessions")
-    .insert({
-      attempts_count: safeInheritedCount,
-      challenge_id: challengeId,
-      guesses: [],
-      last_guess: null,
-      last_nonce: nonce,
-      player_id: user.id,
-      start_time: new Date().toISOString(),
-      status: "active",
-    })
-    .select(
-      "attempts_count, challenge_id, id, last_nonce, player_id, start_time, status",
-    )
-    .limit(1)
-    .single()) as {
-    data: {
-      attempts_count: number;
-      challenge_id: string;
-      id: string;
-      last_nonce: string | number;
-      player_id: string;
-      start_time: string;
-      status: string;
-    } | null;
-    error: Error | null;
-  };
-
-  if (insertError || !session) {
-    console.error("Error starting game:", insertError);
-    throw new Error("Failed to create session");
-  }
-
-  const imageUrl = await getImageUrlForStep(session.id);
-  const { data: challengeData } = (await supabase
-    .from("daily_challenges_public")
-    .select("mode, grace_deadline_at_utc")
-    .eq("id", challengeId)
-    .single()) as {
-    data: { grace_deadline_at_utc: string; mode: string } | null;
-  };
-
-  await identifyUser(user.id);
-  await trackEvent(
-    "game_started",
-    {
-      challenge_id: challengeId,
-      mode: (challengeData as { mode: string } | null)?.mode ?? "daily",
-      session_id: session.id,
-    },
-    user.id,
-  );
-
-  return {
-    graceDeadline: challengeData?.grace_deadline_at_utc ?? "",
-    guesses: [],
-    imageUrl: imageUrl,
-    nonce: nonce,
-    revealState: getRevealPercentages(safeInheritedCount + 1),
-    sessionId: session.id,
-  };
+  return createNewGameSession(challengeId, safeInheritedCount, user.id, supabase);
 }
 
 /**
@@ -587,20 +607,15 @@ export async function initializeGame(
   inheritedAttemptCount = 0,
 ): Promise<InitializeGameResponse> {
   z.number().int().min(0).max(5).parse(inheritedAttemptCount);
-  let challenge: DailyChallenge | null = null;
-  try {
-    // eslint-disable-next-line fp/no-mutation -- try-catch requires imperative pattern
-    challenge = await getDailyChallenge();
-    if (!challenge) return { challenge: null, session: null };
 
+  const challenge = await getDailyChallenge().catch(() => null);
+  if (!challenge) return { challenge: null, session: null };
+
+  try {
     const session = await startGame(challenge.id, inheritedAttemptCount);
     return { challenge, session };
   } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message === "Unauthorized" &&
-      challenge
-    ) {
+    if (error instanceof Error && error.message === "Unauthorized") {
       console.warn("initializeGame: Unauthorized, returning challenge only.");
       return { challenge, session: null };
     }
@@ -687,10 +702,63 @@ async function getImageUrlForStep(sessionId: string): Promise<string | null> {
   return `https://${assetsHost}/${key}`;
 }
 
+type PerfumeForFeedback = {
+  base_notes: string[] | null;
+  brand_id: string;
+  middle_notes: string[] | null;
+  perfumers: string[] | null;
+  release_year: number | null;
+  top_notes: string[] | null;
+};
+
+function getYearMatch(yearDiff: number): "correct" | "close" | "wrong" {
+  if (yearDiff === 0) return "correct";
+  if (Math.abs(yearDiff) <= 3) return "close";
+  return "wrong";
+}
+
+function getYearDirection(yearDiff: number): "lower" | "higher" | "equal" {
+  if (yearDiff > 0) return "lower";
+  if (yearDiff < 0) return "higher";
+  return "equal";
+}
+
+function calculateFeedback(
+  guessedPerfume: PerfumeForFeedback,
+  answerPerfume: PerfumeForFeedback,
+): AttemptFeedback {
+  const yearDiff =
+    (guessedPerfume.release_year ?? 0) - (answerPerfume.release_year ?? 0);
+
+  return {
+    brandMatch: guessedPerfume.brand_id === answerPerfume.brand_id,
+    notesMatch: calculateNotesMatch(
+      {
+        base: guessedPerfume.base_notes ?? [],
+        heart: guessedPerfume.middle_notes ?? [],
+        top: guessedPerfume.top_notes ?? [],
+      },
+      {
+        base: answerPerfume.base_notes ?? [],
+        heart: answerPerfume.middle_notes ?? [],
+        top: answerPerfume.top_notes ?? [],
+      },
+    ),
+    perfumerMatch: calculatePerfumerMatch(
+      guessedPerfume.perfumers ?? null,
+      answerPerfume.perfumers ?? null,
+    ),
+    yearDirection: getYearDirection(yearDiff),
+    yearMatch: getYearMatch(yearDiff),
+  };
+}
+
 /**
  * Wysyła zgadnięcie użytkownika i aktualizuje stan gry.
+ * The function orchestrates multiple async operations (auth, DB reads/writes, analytics)
+ * that form a single atomic business transaction; extraction would scatter this logic.
  */
-// eslint-disable-next-line sonarjs/max-lines-per-function
+// eslint-disable-next-line sonarjs/max-lines-per-function -- orchestrates multi-step game transaction: auth, DB ops, scoring, analytics; each step is cohesive with shared state
 export async function submitGuess(
   sessionId: string,
   perfumeId: string,
@@ -830,42 +898,7 @@ export async function submitGuess(
     throw new Error("Perfume data missing");
   }
 
-  const yearDiff =
-    (guessedPerfume.release_year ?? 0) - (answerPerfume.release_year ?? 0);
-
-  const yearMatch: "correct" | "close" | "wrong" = (() => {
-    if (yearDiff === 0) return "correct";
-    if (Math.abs(yearDiff) <= 3) return "close";
-    return "wrong";
-  })();
-
-  const yearDirection: "lower" | "higher" | "equal" = (() => {
-    if (yearDiff > 0) return "lower";
-    if (yearDiff < 0) return "higher";
-    return "equal";
-  })();
-
-  const feedback: AttemptFeedback = {
-    brandMatch: guessedPerfume.brand_id === answerPerfume.brand_id,
-    notesMatch: calculateNotesMatch(
-      {
-        base: guessedPerfume.base_notes ?? [],
-        heart: guessedPerfume.middle_notes ?? [],
-        top: guessedPerfume.top_notes ?? [],
-      },
-      {
-        base: answerPerfume.base_notes ?? [],
-        heart: answerPerfume.middle_notes ?? [],
-        top: answerPerfume.top_notes ?? [],
-      },
-    ),
-    perfumerMatch: calculatePerfumerMatch(
-      guessedPerfume.perfumers ?? null,
-      answerPerfume.perfumers ?? null,
-    ),
-    yearDirection,
-    yearMatch: yearMatch,
-  };
+  const feedback = calculateFeedback(guessedPerfume, answerPerfume);
 
   const newNonce = generateNonce();
   const guessEntry = {
@@ -940,7 +973,7 @@ export async function submitGuess(
     const score = isCorrect ? calculateFinalScore(baseScore, xScore) : 0;
 
     const now = new Date();
-    const isRanked = now <= new Date(String(challenge.grace_deadline_at_utc));
+    const isRanked = now <= new Date(challenge.grace_deadline_at_utc);
 
     await supabase.from("game_results").insert({
       attempts: nextAttempts,
@@ -1124,7 +1157,7 @@ export async function skipAttempt(
 
     if (challenge) {
       const now = new Date();
-      const isRanked = now <= new Date(String(challenge.grace_deadline_at_utc));
+      const isRanked = now <= new Date(challenge.grace_deadline_at_utc);
       await supabase.from("game_results").insert({
         attempts: nextAttempts,
         challenge_id: session.challenge_id,
@@ -1232,6 +1265,8 @@ export const getDailyChallengeSSR = unstable_cache(
       return null;
     }
 
+    if (data.id == null) return null;
+
     const { data: challengePrivate } = await adminSupabase
       .from("daily_challenges")
       .select("perfume_id")
@@ -1267,7 +1302,7 @@ export const getDailyChallengeSSR = unstable_cache(
 
     if (perfume?.xsolve_score == null) return null;
 
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- same pattern as getDailyChallenge: view returns nullable fields validated above
     return {
       ...data,
       clues: {

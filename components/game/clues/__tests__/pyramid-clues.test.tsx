@@ -47,7 +47,7 @@ vi.mock("next-intl", () => {
   t.rich = (
     key: string,
     handlers?: Record<string, RichHandlerFunction>,
-    // eslint-disable-next-line sonarjs/function-return-type
+    // eslint-disable-next-line sonarjs/function-return-type -- React component return type inferred correctly by compiler; explicit annotation adds no value
   ): React.ReactNode => {
     if (key === "noteCountUnknown") {
       const text = GENERIC_PLACEHOLDER;

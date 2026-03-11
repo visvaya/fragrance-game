@@ -14,7 +14,7 @@ import { useGameState } from "../contexts";
 import { DotFiller } from "../dot-filler";
 import { GameTooltip } from "../game-tooltip";
 
-import { MaskSlot } from "./mask-slot";
+import { MaskedWord } from "./masked-word";
 
 /**
  *
@@ -243,7 +243,6 @@ function MetaBadge({
           {translatedValue}
         </span>
       ) : (
-        // eslint-disable-next-line sonarjs/max-lines-per-function
         words.map((word: string, wordIndex: number) => {
           const isGenericPlaceholder = word === GENERIC_PLACEHOLDER.repeat(5);
 
@@ -304,7 +303,6 @@ function MetaBadge({
               clueKey === "year") &&
             isWordMasked;
 
-          // eslint-disable-next-line sonarjs/function-return-type -- IIFE returns React.ReactNode; multiple branches declared above
           const innerContent: React.ReactNode = (() => {
             if (isFullHidden) {
               return (
@@ -314,26 +312,7 @@ function MetaBadge({
               );
             }
             if (isWordMasked) {
-              // eslint-disable-next-line unicorn/prefer-spread -- string character iteration; split("") vs [...str] conflict with no-misused-spread
-              return word.split("").map((char, charIndex) => {
-                const isSlot = char === MASK_CHAR;
-                if (isSlot) {
-                  return (
-                    <MaskSlot
-                      char={char}
-                      key={`meta-slot-${clueKey}-${wordIndex}-${charIndex}`}
-                    />
-                  );
-                }
-                return (
-                  <div
-                    className="mx-px flex h-5 w-2 items-center justify-center border-b border-transparent font-mono text-sm leading-none text-foreground"
-                    key={`meta-char-${clueKey}-${wordIndex}-${charIndex}`}
-                  >
-                    <span className="inline-block translate-y-px">{char}</span>
-                  </div>
-                );
-              });
+              return <MaskedWord keyPrefix={`meta-${clueKey}-${wordIndex}`} word={word} />;
             }
             return (
               <span className="font-sans text-sm text-foreground">{word}</span>
@@ -369,34 +348,7 @@ function MetaBadge({
                         />
                       </div>
                     ) : (
-                      // eslint-disable-next-line unicorn/prefer-spread -- string character iteration; split("") vs [...str] conflict with no-misused-spread
-                      word.split("").map((char, charIndex) => {
-                        const isSlot = char === MASK_CHAR;
-                        if (isSlot) {
-                          return (
-                            <MaskSlot
-                              char={char}
-                              isHovered={isHovered}
-                              key={`meta-tt-slot-${clueKey}-${wordIndex}-${charIndex}`}
-                            />
-                          );
-                        }
-                        return (
-                          <div
-                            className={cn(
-                              "mx-px flex h-5 w-2 items-center justify-center border-b border-transparent font-mono text-sm leading-none transition-colors duration-300",
-                              isHovered
-                                ? "text-[oklch(0.75_0.15_60)]"
-                                : "text-foreground",
-                            )}
-                            key={`meta-tt-char-${clueKey}-${wordIndex}-${charIndex}`}
-                          >
-                            <span className="inline-block translate-y-px">
-                              {char}
-                            </span>
-                          </div>
-                        );
-                      })
+                      <MaskedWord hoverColorChars isHovered={isHovered} keyPrefix={`meta-tt-${clueKey}-${wordIndex}`} word={word} />
                     )}
                   </div>
                 )}

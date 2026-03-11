@@ -143,9 +143,9 @@ describe("Translation Keys Parity", () => {
     const placeholderPatterns = [
       /TODO/i,
       /FIXME/i,
-      // eslint-disable-next-line sonarjs/slow-regex
+      // eslint-disable-next-line sonarjs/slow-regex -- complex regex used once at test runtime; performance not a concern
       /\[[^\]]*\]/,
-      // eslint-disable-next-line sonarjs/slow-regex
+      // eslint-disable-next-line sonarjs/slow-regex -- complex regex used once at test runtime; performance not a concern
       /\{[^}]*\}/,
       /xxx/i,
     ];

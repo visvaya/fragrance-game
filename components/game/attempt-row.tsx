@@ -139,7 +139,7 @@ export function AttemptRow({
         {...interactiveProperties}
       >
         {index === totalAttempts - 1 && !attempt.isCorrect && (
-          // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- custom CSS animation
+          // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- animate-flash-error is a custom CSS animation class defined in globals.css
           <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
         )}
         <span className="block w-full pr-1 text-center text-[0.8125rem] font-normal text-muted-foreground">
@@ -154,7 +154,7 @@ export function AttemptRow({
         {...interactiveProperties}
       >
         {index === totalAttempts - 1 && !attempt.isCorrect && (
-          // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- custom CSS animation
+          // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- animate-flash-error is a custom CSS animation class defined in globals.css
           <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
         )}
         {(() => {
@@ -221,8 +221,7 @@ export function AttemptRow({
                     content={attempt.brand}
                     textClassName="text-xs font-medium truncate tracking-normal"
                   />
-                  {/* eslint-disable-next-line @typescript-eslint/strict-boolean-expressions */}
-                  {attempt.year ? (
+                  {attempt.year != null && attempt.year !== 0 ? (
                     <span className="text-xs font-medium whitespace-nowrap">
                       {attempt.year}
                     </span>
@@ -232,8 +231,7 @@ export function AttemptRow({
                 <TruncatedCell
                   className="hidden min-w-0 lg:block"
                   content={
-                    /* eslint-disable-next-line @typescript-eslint/strict-boolean-expressions */
-                    attempt.year
+                    attempt.year != null && attempt.year !== 0
                       ? `${attempt.brand} ${MIDDLE_DOT_CHAR} ${attempt.year}`
                       : attempt.brand
                   }
@@ -242,8 +240,7 @@ export function AttemptRow({
                   <span className="text-muted-foreground/80">
                     {attempt.brand}
                   </span>
-                  {/* eslint-disable-next-line @typescript-eslint/strict-boolean-expressions */}
-                  {attempt.year ? (
+                  {attempt.year != null && attempt.year !== 0 ? (
                     <>
                       <span className="mx-1.5 font-normal text-muted-foreground/30">
                         {MIDDLE_DOT_CHAR}
@@ -268,7 +265,7 @@ export function AttemptRow({
         {...interactiveProperties}
       >
         {index === totalAttempts - 1 && !attempt.isCorrect && (
-          // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- custom CSS animation
+          // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- animate-flash-error is a custom CSS animation class defined in globals.css
           <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
         )}
         {/* Brand */}
@@ -417,10 +414,8 @@ export function AttemptRow({
         {/* Year */}
         <div className="flex h-full items-center justify-center">
           {(() => {
-            // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-            const targetMissing = !dailyPerfume.year || dailyPerfume.year === 0;
-            // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-            const guessMissing = !attempt.year || attempt.year === 0;
+            const targetMissing = dailyPerfume.year === 0;
+            const guessMissing = attempt.year === 0;
             if (targetMissing || guessMissing) {
               return (
                 <GameTooltip

@@ -1,4 +1,4 @@
-/* eslint-disable vitest/no-duplicate-hooks, no-restricted-syntax, @typescript-eslint/no-unused-vars */
+/* eslint-disable vitest/no-duplicate-hooks, no-restricted-syntax, @typescript-eslint/no-unused-vars -- RLS integration tests use duplicate beforeEach per role; px constraints in Supabase helpers; unused vars in destructured auth results */
 import { describe, it, expect, beforeAll, vi } from "vitest";
 
 /**

@@ -31,7 +31,7 @@ import { PasswordStrength } from "./password-strength";
 const CaptchaLoader = () => {
   const t = useTranslations("Auth.register");
   return (
-    // eslint-disable-next-line no-restricted-syntax -- Matches Turnstile widget height (65px fixed, per Cloudflare docs)
+    // eslint-disable-next-line no-restricted-syntax -- Cloudflare Turnstile documented minimum height is 65px (fixed hardware constraint)
     <div className="flex h-[65px] animate-pulse items-center justify-center rounded bg-muted/20 text-xs text-muted-foreground">
       {t("captchaLoading")}
     </div>
@@ -148,7 +148,6 @@ export function RegisterForm({
       if (onSuccess) {
         onSuccess();
       } else {
-        // eslint-disable-next-line fp/no-mutating-methods
         router.push("/auth/login");
       }
       setIsLoading(false);
@@ -232,7 +231,6 @@ export function RegisterForm({
             )}
           />
 
-          {/* eslint-disable-next-line fp/no-mutating-methods -- react-hook-form watch() is not a mutating method */}
           <PasswordStrength password={form.watch("password")} />
 
           <Captcha
@@ -254,7 +252,6 @@ export function RegisterForm({
         {t("hasAccount")}{" "}
         <button
           className="underline hover:text-primary"
-          // eslint-disable-next-line fp/no-mutating-methods
           onClick={onLoginClick ?? (() => router.push("/auth/login"))}
           type="button"
         >

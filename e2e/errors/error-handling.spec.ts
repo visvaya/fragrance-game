@@ -1,4 +1,4 @@
-/* eslint-disable playwright/no-wait-for-timeout */
+/* eslint-disable playwright/no-wait-for-timeout -- error handling tests require explicit waits for async error boundaries to render */
 import { test, expect, type Page } from "@playwright/test";
 
 /**

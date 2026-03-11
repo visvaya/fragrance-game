@@ -116,7 +116,6 @@ export function ForgotPasswordForm({
       <div className="text-center text-sm">
         <button
           className="underline hover:text-primary"
-          // eslint-disable-next-line fp/no-mutating-methods
           onClick={onLoginClick ?? (() => router.push("/auth/login"))}
           type="button"
         >

@@ -261,8 +261,7 @@ export function GameStateProvider({
     const isGameOver = gameState === "won" || gameState === "lost";
 
     // If year is missing (0), show "Unknown" instead of masking
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-    if (!dailyPerfume.year || dailyPerfume.year === 0) {
+    if (dailyPerfume.year === 0) {
       return "Unknown";
     }
 

@@ -1,2 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
-declare type IntlMessages = typeof import("../messages/pl.json");
+import type messagesSchema from "../messages/pl.json";
+
+declare type IntlMessages = typeof messagesSchema;

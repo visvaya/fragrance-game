@@ -109,7 +109,7 @@ test.describe("CORS Configuration", () => {
   test("blocks requests from unauthorized origins", async ({ request }) => {
     const response = await request.get("/", {
       headers: {
-        // eslint-disable-next-line sonarjs/no-clear-text-protocols
+        // eslint-disable-next-line sonarjs/no-clear-text-protocols -- intentional HTTP URL to verify middleware redirects to HTTPS
         origin: "http://evil.com",
       },
     });
