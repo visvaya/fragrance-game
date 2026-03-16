@@ -5,7 +5,7 @@ import { memo } from "react";
 import { Tag, Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { Skeleton } from "@/components/ui/skeleton";
+import { MetaCluesSkeleton } from "@/components/game/skeletons";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
 import { MASK_CHAR, GENERIC_PLACEHOLDER } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -16,9 +16,6 @@ import { GameTooltip } from "../game-tooltip";
 
 import { MaskedWord } from "./masked-word";
 
-/**
- *
- */
 export const MetaClues = memo(function MetaClues() {
   const {
     currentAttempt,
@@ -36,54 +33,8 @@ export const MetaClues = memo(function MetaClues() {
     useScaleOnTap();
 
   // Skeleton state — structure mirrors the real layout exactly.
-  // Static translations shown as-is; only badge values use <Skeleton> bars.
   if (dailyPerfume.id === "skeleton") {
-    return (
-      <div className="flex h-full flex-col p-0">
-        {/* Title row — identical structure to real header */}
-        <div className="mb-4 flex w-fit cursor-default items-center">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex">
-              <Tag className="size-4 text-muted-foreground" />
-            </span>
-            <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase opacity-40">
-              {t("identity")}
-            </h2>
-          </div>
-        </div>
-        <div className="flex flex-1 flex-col gap-5">
-          {/* Brand row */}
-          <div className="flex flex-col items-start gap-0.5">
-            <span className="text-xs font-semibold tracking-widest text-muted-foreground/40 lowercase">
-              {t("brand")}
-            </span>
-            <Skeleton className="min-h-[1.375rem] w-[8rem] py-1" />
-          </div>
-          {/* Perfumer row */}
-          <div className="flex flex-col items-start gap-0.5">
-            <span className="text-xs font-semibold tracking-widest text-muted-foreground/40 lowercase">
-              {t("perfumer")}
-            </span>
-            <Skeleton className="min-h-[1.375rem] w-[9rem] py-1" />
-          </div>
-          {/* Year + Gender row */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col items-start gap-0.5">
-              <span className="text-xs font-semibold tracking-widest text-muted-foreground/40 lowercase">
-                {t("year")}
-              </span>
-              <Skeleton className="min-h-[1.375rem] w-full py-1" />
-            </div>
-            <div className="flex flex-col items-start gap-0.5">
-              <span className="text-xs font-semibold tracking-widest text-muted-foreground/40 lowercase">
-                {t("gender")}
-              </span>
-              <Skeleton className="min-h-[1.375rem] w-full py-1" />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <MetaCluesSkeleton t={t} />;
   }
 
   const clues = [
@@ -312,7 +263,12 @@ function MetaBadge({
               );
             }
             if (isWordMasked) {
-              return <MaskedWord keyPrefix={`meta-${clueKey}-${wordIndex}`} word={word} />;
+              return (
+                <MaskedWord
+                  keyPrefix={`meta-${clueKey}-${wordIndex}`}
+                  word={word}
+                />
+              );
             }
             return (
               <span className="font-sans text-sm text-foreground">{word}</span>
@@ -348,7 +304,12 @@ function MetaBadge({
                         />
                       </div>
                     ) : (
-                      <MaskedWord hoverColorChars isHovered={isHovered} keyPrefix={`meta-tt-${clueKey}-${wordIndex}`} word={word} />
+                      <MaskedWord
+                        hoverColorChars
+                        isHovered={isHovered}
+                        keyPrefix={`meta-tt-${clueKey}-${wordIndex}`}
+                        word={word}
+                      />
                     )}
                   </div>
                 )}

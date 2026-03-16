@@ -26,6 +26,7 @@ import { cn, normalizeText } from "@/lib/utils";
 import { useGameState, useGameActions, useUIPreferences } from "./contexts";
 import { GameTooltip } from "./game-tooltip";
 import { HighlightedText } from "./highlighted-text";
+import { GameInputSkeleton } from "./skeletons";
 type GameInputState = {
   hasSearched: boolean;
   isError: boolean;
@@ -137,7 +138,7 @@ function relevanceScore(
 }
 
 /**
- *
+ * Game input component handling perfume guessing, autocomplete, and skipping attempts.
  */
 // eslint-disable-next-line sonarjs/cognitive-complexity -- GameInput handles full input lifecycle: autocomplete debounce, keyboard shortcuts, skip confirmation, submit; decomposition would split tightly coupled state
 export function GameInput() {
@@ -427,23 +428,10 @@ export function GameInput() {
     [suggestions, attempts],
   );
 
-  // 1. Loading State — show spinner only when there is no SSR clue data (skeleton fallback).
-  // When initialChallenge exists (isSkeleton=false), render the real input immediately
-  // and let auth complete in the background — submit/skip stay disabled until sessionId arrives.
+  // 1. Loading State — show skeleton until SSR clue data or reset is complete.
+  // This ensures consistency with loading.tsx and avoids jarring spinner replacements.
   if (gameLoading && isSkeleton) {
-    return (
-      <div
-        className={cn(
-          "sticky bottom-0 z-30 mx-auto w-full max-w-2xl wide:max-w-xl",
-        )}
-      >
-        <div className="relative border-x-0 border-t panel-border bg-background/70 px-5 py-8 panel-shadow backdrop-blur-md sm:rounded-t-md sm:border-x">
-          <div className="flex justify-center">
-            <Loader2 className="size-6 animate-spin text-muted-foreground" />
-          </div>
-        </div>
-      </div>
-    );
+    return <GameInputSkeleton />;
   }
 
   // 2. Closed / No Puzzle State (Only if loaded and invalid)
@@ -451,7 +439,7 @@ export function GameInput() {
     return (
       <div
         className={cn(
-          "sticky bottom-0 z-30 mx-auto w-full max-w-2xl wide:max-w-xl",
+          "sticky bottom-0 z-30 mx-auto w-full max-w-2xl will-change-transform wide:max-w-xl",
         )}
       >
         <div className="relative border-x-0 border-t panel-border bg-background/70 px-5 py-4 panel-shadow backdrop-blur-md transition-colors duration-500 ease-in-out sm:rounded-t-md sm:border-x">
@@ -485,7 +473,7 @@ export function GameInput() {
   return (
     <div
       className={cn(
-        "sticky bottom-0 z-30 mx-auto w-full max-w-2xl wide:max-w-xl",
+        "sticky bottom-0 z-30 mx-auto w-full max-w-2xl will-change-transform wide:max-w-xl",
       )}
     >
       {/* Onboarding Tooltip — fixed above the sticky input bar */}
@@ -602,7 +590,7 @@ export function GameInput() {
                 <button
                   aria-label={t("skipTooltip")}
                   className="flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-30"
-                  disabled={!sessionId}
+                  disabled={!sessionId || gameLoading}
                   onClick={() => {
                     if (
                       globalThis.matchMedia(

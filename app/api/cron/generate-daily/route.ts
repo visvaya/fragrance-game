@@ -119,39 +119,44 @@ async function ensureChallenge(
   const primaryResult = (await query) as CandidateResult;
 
   // Fallback: If pool exhausted (unlikely), try excluding only last 7 days
-  const { data: candidates, error } = await (async (): Promise<CandidateResult> => {
-    if (!primaryResult.error && primaryResult.data && primaryResult.data.length > 0) {
-      return primaryResult;
-    }
+  const { data: candidates, error } =
+    await (async (): Promise<CandidateResult> => {
+      if (
+        !primaryResult.error &&
+        primaryResult.data &&
+        primaryResult.data.length > 0
+      ) {
+        return primaryResult;
+      }
 
-    console.warn(
-      `[CRON] Pool exhausted for ${dateString}. Retrying with 7-day exclusion.`,
-    );
+      console.warn(
+        `[CRON] Pool exhausted for ${dateString}. Retrying with 7-day exclusion.`,
+      );
 
-    const shortExclusionDate = new Date();
-    shortExclusionDate.setUTCDate(shortExclusionDate.getUTCDate() - 7);
-    const queryResult3 = await supabase
-      .from("daily_challenges")
-      .select("perfume_id")
-      .gte("challenge_date", shortExclusionDate.toISOString().split("T")[0]);
-    const { data: recent7 } = queryResult3 as {
-      data: { perfume_id: string }[] | null;
-    };
+      const shortExclusionDate = new Date();
+      shortExclusionDate.setUTCDate(shortExclusionDate.getUTCDate() - 7);
+      const queryResult3 = await supabase
+        .from("daily_challenges")
+        .select("perfume_id")
+        .gte("challenge_date", shortExclusionDate.toISOString().split("T")[0]);
+      const { data: recent7 } = queryResult3 as {
+        data: { perfume_id: string }[] | null;
+      };
 
-    const excludeIds7 = (recent7?.map((c) => c.perfume_id) ?? []).filter(
-      (id) => typeof id === "string" && uuidRegex.test(id),
-    );
+      const excludeIds7 = (recent7?.map((c) => c.perfume_id) ?? []).filter(
+        (id) => typeof id === "string" && uuidRegex.test(id),
+      );
 
-    const baseRetryQuery = supabase
-      .from("perfume_assets")
-      .select("perfume_id, perfumes!inner(is_uncertain)")
-      .not("image_key_step_1", "is", null)
-      .eq("perfumes.is_uncertain", false);
+      const baseRetryQuery = supabase
+        .from("perfume_assets")
+        .select("perfume_id, perfumes!inner(is_uncertain)")
+        .not("image_key_step_1", "is", null)
+        .eq("perfumes.is_uncertain", false);
 
-    return (await (excludeIds7.length > 0
-      ? baseRetryQuery.not("perfume_id", "in", `(${excludeIds7.join(",")})`)
-      : baseRetryQuery)) as CandidateResult;
-  })();
+      return (await (excludeIds7.length > 0
+        ? baseRetryQuery.not("perfume_id", "in", `(${excludeIds7.join(",")})`)
+        : baseRetryQuery)) as CandidateResult;
+    })();
 
   if (error || !candidates || candidates.length === 0) {
     throw new Error(

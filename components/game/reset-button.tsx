@@ -17,7 +17,9 @@ import { useGameActions } from "./contexts";
 
 // Debug component: enabled only when NEXT_PUBLIC_GAME_RESET_ENABLED=true
 /**
- *
+ * Button to reset the game state (available only in development/test mode).
+ * @param props - Component properties.
+ * @param props.tooltipDisabled - Whether the tooltip should be disabled.
  */
 export function ResetButton({
   tooltipDisabled = false,

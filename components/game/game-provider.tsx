@@ -249,7 +249,9 @@ async function verifyAuthSession(
       data: { session },
     } = await supabase.auth.getSession();
     if (session) return { user: session.user, verified: true };
-    await new Promise((resolve) => setTimeout(resolve, 50 * Math.pow(2, attempt)));
+    await new Promise((resolve) =>
+      setTimeout(resolve, 50 * Math.pow(2, attempt)),
+    );
   }
   return { user: null, verified: false };
 }
@@ -264,12 +266,19 @@ async function fetchChallengeAndSession(
   initialChallenge: DailyChallenge | undefined,
   initialSession: StartGameResponse | null | undefined,
   inheritedCount: number,
-): Promise<{ challenge: DailyChallenge | null; session: StartGameResponse | null }> {
+): Promise<{
+  challenge: DailyChallenge | null;
+  session: StartGameResponse | null;
+}> {
   if (initialChallenge) {
-    if (initialSession) return { challenge: initialChallenge, session: initialSession };
+    if (initialSession)
+      return { challenge: initialChallenge, session: initialSession };
     const session = await startGame(initialChallenge.id, inheritedCount).catch(
       (error: unknown) => {
-        console.error("[GameProvider] startGame with SSR challenge failed:", error);
+        console.error(
+          "[GameProvider] startGame with SSR challenge failed:",
+          error,
+        );
         return null;
       },
     );
@@ -364,7 +373,11 @@ export function GameProvider({
     initialSession?.sessionId ?? null,
   );
   const [dailyPerfume, setDailyPerfume] = useState<typeof SKELETON_PERFUME>(
-    initialChallenge?.clues
+    // Use real data only when BOTH initialChallenge AND initialSession are present
+    // (i.e. fully pre-fetched SSR state — no async work needed before render).
+    // When initialSession is missing we still need to call startGame(), so show
+    // the skeleton animation during that wait instead of the real-but-all-locked UI.
+    initialChallenge?.clues && initialSession
       ? {
           brand: initialChallenge.clues.brand,
           concentration: initialChallenge.clues.concentration,
@@ -511,7 +524,8 @@ export function GameProvider({
 
           // Verification loop with exponential backoff: Ensure session is set in client state AND cookies
           // getSession() reads from Supabase client state populated from cookies by @supabase/ssr.
-          const { user: verifiedUser, verified } = await verifyAuthSession(supabase);
+          const { user: verifiedUser, verified } =
+            await verifyAuthSession(supabase);
           if (verifiedUser != null) {
             // Track Anonymous Session for future migration
             if (verifiedUser.is_anonymous) {
@@ -520,7 +534,9 @@ export function GameProvider({
             setUser(verifiedUser);
           }
           if (!verified) {
-            console.warn("[GameProvider] Auth session not verified after 3 attempts.");
+            console.warn(
+              "[GameProvider] Auth session not verified after 3 attempts.",
+            );
           }
         }
 
@@ -553,8 +569,9 @@ export function GameProvider({
             challenge_number: challenge.id,
           });
 
-          // Setup Daily Perfume Clues — skip when already initialized from SSR prop
-          if (!initialChallenge) {
+          // Setup Daily Perfume Clues — skip when already initialized from SSR prop.
+          // Also update when initialSession was missing at mount (skeleton was shown instead).
+          if (!initialChallenge || !initialSession) {
             setDailyPerfume({
               brand: challenge.clues.brand,
               concentration: challenge.clues.concentration,
@@ -626,7 +643,9 @@ export function GameProvider({
 
   // Track discovered perfumers
   useEffect(() => {
-    setDiscoveredPerfumers(computeDiscoveredPerfumers(attempts, dailyPerfume.perfumer));
+    setDiscoveredPerfumers(
+      computeDiscoveredPerfumers(attempts, dailyPerfume.perfumer),
+    );
   }, [attempts, dailyPerfume.perfumer]);
 
   // Merge dynamic image into the daily perfume object

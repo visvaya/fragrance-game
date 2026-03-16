@@ -26,7 +26,10 @@ type MaskedWordProperties = Readonly<{
   word: string;
 }>;
 
-function getCharClass(isHovered: boolean | undefined, hoverColorChars: boolean): string {
+function getCharClass(
+  isHovered: boolean | undefined,
+  hoverColorChars: boolean,
+): string {
   if (!hoverColorChars || isHovered == null) return "text-foreground";
   if (isHovered) return "text-[oklch(0.75_0.15_60)]";
   return "text-foreground";

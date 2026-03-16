@@ -53,7 +53,7 @@ const StatsModal = dynamic(
 );
 
 /**
- *
+ * Game header bar, containing logo, settings menu, help, and statistics.
  */
 export function GameHeader() {
   const {
@@ -116,7 +116,7 @@ export function GameHeader() {
     <>
       <header
         className={cn(
-          "sticky top-0 z-50 w-full transition-transform duration-300 ease-in-out",
+          "sticky top-0 z-50 w-full transition-transform duration-300 ease-in-out will-change-transform",
           isScrollHidden && "max-sm:-translate-y-full",
         )}
       >

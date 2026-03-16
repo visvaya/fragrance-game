@@ -54,9 +54,6 @@ function AuthErrorWatcherInner() {
   return null;
 }
 
-/**
- *
- */
 export function AuthErrorWatcher() {
   return (
     <Suspense fallback={null}>

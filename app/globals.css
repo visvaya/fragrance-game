@@ -3,6 +3,7 @@
 
 @custom-variant dark (&:is(.dark *));
 @custom-variant wide (&:is(html[data-layout="wide"] *));
+@custom-variant large-text (&:is(html.large-text *));
 
 html.large-text {
   font-size: 112.5%;
@@ -203,14 +204,16 @@ html.large-text {
     @apply border-border outline-ring/50 ease-in-out;
     transition-property:
       color, background-color, border-color, outline-color,
-      text-decoration-color, fill, stroke, opacity, box-shadow, filter,
-      backdrop-filter;
+      text-decoration-color, fill, stroke, opacity, box-shadow, filter;
     transition-duration: 300ms;
   }
 
   html {
     background-color: var(--secondary);
     overscroll-behavior: none;
+    /* Reserve scrollbar space from the start — prevents 15-17px viewport
+       narrowing when content grows past viewport height on Windows. */
+    scrollbar-gutter: stable;
   }
 
   body {
@@ -442,11 +445,16 @@ html.lenis body {
   /* Firefox */
 }
 
-/* Reserve scrollbar gutter at all times so react-remove-scroll-bar calculates
-   gap=0 and never applies margin-right/padding-right to body. This eliminates
-   the layout shift that causes position:sticky to flicker when dialogs open/close. */
+/* Make html the explicit scroll container. Without overflow-y:auto, the browser
+   propagates body's overflow to the viewport. When react-remove-scroll-bar sets
+   overflow:clip on body (dialog open), the viewport scrollbar disappears — and
+   scrollbar-gutter:stable can't prevent the shift because it's the viewport, not
+   html, that loses the scrollbar. With overflow-y:auto, html owns the scrollbar
+   and body's overflow:clip stays local to body — the scrollbar (and its gutter)
+   persists, eliminating the layout shift on dialog open/close. */
 html {
   scrollbar-gutter: stable;
+  overflow-y: auto;
 }
 
 /* Override react-remove-scroll-bar's `overflow: hidden !important` on body.
@@ -457,4 +465,8 @@ html {
    ensures this rule wins over the library's body[data-scroll-locked] rule. */
 html body[data-scroll-locked] {
   overflow: clip !important;
+  /* Neutralize react-remove-scroll-bar's gap compensation — scrollbar-gutter: stable
+     on html already reserves the space, so the library's padding/margin shift is double. */
+  padding-right: 0 !important;
+  margin-right: 0 !important;
 }

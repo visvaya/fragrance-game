@@ -7,7 +7,12 @@ import { cn } from "@/lib/utils";
 import { GameTooltip } from "./game-tooltip";
 
 /**
- *
+ * Component that truncates text with a tooltip if it overflows.
+ * @param props - Component properties.
+ * @param props.children - Optional element content (overrides content prop).
+ * @param props.className - Container class name.
+ * @param props.content - Text content to display and show in tooltip.
+ * @param props.textClassName - Inner text class name.
  */
 export function TruncatedCell({
   children,

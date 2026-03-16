@@ -67,7 +67,12 @@ type AuthModalProperties = Readonly<{
 }>;
 
 /**
- *
+ * Authentication modal handling login, registration, and forgot password.
+ * @param props - Component properties.
+ * @param props.children - Optional trigger element.
+ * @param props.defaultView - The default view to show ("login", "register", or "forgot-password").
+ * @param props.isOpen - Whether the modal is open (controlled).
+ * @param props.onOpenChange - Open state change handler.
  */
 export function AuthModal({
   children,

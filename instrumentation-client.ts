@@ -5,7 +5,8 @@ import * as Sentry from "@sentry/nextjs";
 // tracing code into the bundle despite excludeTracing: true.
 
 /**
- *
+ * Callback triggered when router transition starts.
+ * Intentionally empty to silence Sentry warnings without pulling tracing code.
  */
 // eslint-disable-next-line @typescript-eslint/no-empty-function -- intentional empty export; must not reference Sentry API to avoid pulling tracing code into the bundle
 export function onRouterTransitionStart() {}

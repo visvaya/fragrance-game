@@ -27,9 +27,6 @@ export type ForgotPasswordFormProperties = {
   readonly onLoginClick?: () => void;
 };
 
-/**
- *
- */
 export function ForgotPasswordForm({
   onLoginClick,
 }: ForgotPasswordFormProperties) {

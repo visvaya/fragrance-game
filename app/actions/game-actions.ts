@@ -102,6 +102,8 @@ type GuessResult = {
 };
 
 type SkipResult = {
+  answerConcentration?: string;
+  answerName?: string;
   gameStatus: "active" | "won" | "lost";
   imageUrl?: string | null;
   newNonce: string;
@@ -206,12 +208,19 @@ function calculatePerfumerMatch(
 }
 
 /**
- * Generuje bezpieczny kryptograficznie nonce (BigInt jako string).
+ * Generates a cryptographically secure nonce as a string.
+ * Uses 6 random bytes (48 bits) to stay well within Number.MAX_SAFE_INTEGER
+ * (2^53 - 1), so the value survives JS number round-trips through Supabase
+ * without precision loss.
  */
 function generateNonce(): string {
-  const array = new BigInt64Array(1);
-  crypto.getRandomValues(array);
-  return array[0].toString();
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  const value = bytes.reduce(
+    (accumulator, byte) => accumulator * 256 + byte,
+    0,
+  );
+  return value.toString();
 }
 
 // --- Actions ---
@@ -407,8 +416,7 @@ async function enrichGuessesWithPerfumeDetails(
     if (!p) return [];
     return [
       {
-        brandName:
-          (p.brands as { name: string } | null)?.name ?? "Unknown",
+        brandName: (p.brands as { name: string } | null)?.name ?? "Unknown",
         concentration: (p.concentrations as { name: string } | null)?.name,
         feedback: guess.feedback,
         gender: p.gender ?? undefined,
@@ -597,7 +605,12 @@ export async function startGame(
   }
 
   // Rate limiting: only applies to creating NEW sessions, not resuming existing ones
-  return createNewGameSession(challengeId, safeInheritedCount, user.id, supabase);
+  return createNewGameSession(
+    challengeId,
+    safeInheritedCount,
+    user.id,
+    supabase,
+  );
 }
 
 /**
@@ -1025,16 +1038,25 @@ export async function submitGuess(
   };
 }
 
-function getArrayName(
-  value: { name: string } | { name: string }[] | null,
-): string | undefined {
+/**
+ * Perfume concentration data (e.g., Eau de Parfum).
+ */
+type ConcentrationData = { name: string } | { name: string }[] | null;
+
+/**
+ * Returns the concentration name from the given data.
+ */
+function getArrayName(value: ConcentrationData): string | undefined {
   if (!value) return undefined;
   if (Array.isArray(value)) return value[0]?.name;
   return value.name;
 }
 
+/**
+ * Maps perfume database details to game state format.
+ */
 function mapPerfumeDetails(perfume: {
-  concentrations: { name: string } | { name: string }[] | null;
+  concentrations: ConcentrationData;
   gender?: string | null;
   release_year: number | null;
 }) {
@@ -1042,6 +1064,62 @@ function mapPerfumeDetails(perfume: {
     concentration: getArrayName(perfume.concentrations) ?? "Unknown",
     gender: perfume.gender ?? "Unknown", // Don't default to "Unisex" - Unknown is safer
     year: perfume.release_year ?? 0,
+  };
+}
+
+/**
+ * Records a loss in game_results and fetches the answer perfume name for reveal.
+ */
+async function recordSkipLoss(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  session: { challenge_id: string; start_time: string },
+  sessionId: string,
+  playerId: string,
+  attemptCount: number,
+): Promise<{ answerConcentration?: string; answerName?: string }> {
+  const adminSupabase = createAdminClient();
+  const { data: challenge } = await adminSupabase
+    .from("daily_challenges")
+    .select("perfume_id, grace_deadline_at_utc")
+    .eq("id", session.challenge_id)
+    .single();
+
+  if (!challenge)
+    return { answerConcentration: undefined, answerName: undefined };
+
+  const now = new Date();
+  const isRanked = now <= new Date(challenge.grace_deadline_at_utc);
+  await supabase.from("game_results").insert({
+    attempts: attemptCount,
+    challenge_id: session.challenge_id,
+    is_ranked: isRanked,
+    player_id: playerId,
+    score: 0,
+    score_raw: 0,
+    scoring_version: 1,
+    session_id: sessionId,
+    status: "lost",
+    time_seconds: Math.floor(
+      (now.getTime() - new Date(session.start_time).getTime()) / 1000,
+    ),
+  });
+
+  const { data: answerPerfume } = (await adminSupabase
+    .from("perfumes")
+    .select("name, concentrations(name)")
+    .eq("id", challenge.perfume_id)
+    .single()) as {
+    data: {
+      concentrations: { name: string } | { name: string }[] | null;
+      name: string;
+    } | null;
+  };
+
+  return {
+    answerConcentration: answerPerfume
+      ? getArrayName(answerPerfume.concentrations)
+      : undefined,
+    answerName: answerPerfume?.name,
   };
 }
 
@@ -1147,37 +1225,19 @@ export async function skipAttempt(
     user.id,
   );
 
-  if (isGameOver) {
-    const adminSupabase = createAdminClient();
-    const { data: challenge } = await adminSupabase
-      .from("daily_challenges")
-      .select("perfume_id, grace_deadline_at_utc")
-      .eq("id", session.challenge_id)
-      .single();
-
-    if (challenge) {
-      const now = new Date();
-      const isRanked = now <= new Date(challenge.grace_deadline_at_utc);
-      await supabase.from("game_results").insert({
-        attempts: nextAttempts,
-        challenge_id: session.challenge_id,
-        is_ranked: isRanked,
-        player_id: user.id,
-        score: 0,
-        score_raw: 0,
-        scoring_version: 1,
-        session_id: sessionId,
-        status: "lost",
-        time_seconds: Math.floor(
-          (now.getTime() - new Date(session.start_time).getTime()) / 1000,
-        ),
-      });
-    }
-  }
+  const { answerConcentration, answerName } = isGameOver
+    ? await recordSkipLoss(supabase, session, sessionId, user.id, nextAttempts)
+    : { answerConcentration: undefined, answerName: undefined };
 
   const imageUrl = await getImageUrlForStep(sessionId);
 
-  return { gameStatus: newStatus, imageUrl, newNonce };
+  return {
+    answerConcentration,
+    answerName,
+    gameStatus: newStatus,
+    imageUrl,
+    newNonce,
+  };
 }
 
 /**

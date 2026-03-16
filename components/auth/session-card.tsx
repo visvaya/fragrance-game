@@ -32,9 +32,6 @@ type SessionCardProperties = {
   readonly session: Session;
 };
 
-/**
- *
- */
 export function SessionCard({
   isCurrent,
   onRevoke,

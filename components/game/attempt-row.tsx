@@ -51,12 +51,23 @@ type AttemptRowProperties = Readonly<{
   handleClick: (e: MouseEvent) => void;
   handlePointerDown: (e: PointerEvent) => void;
   index: number;
+  isNew: boolean;
   isTouch: boolean;
   totalAttempts: number;
 }>;
 
 /**
- *
+ * Represents a single row in the player's attempt log.
+ * @param props - Component properties.
+ * @param props.activeRowIndex - Index of the currently active row.
+ * @param props.attempt - The attempt data to display.
+ * @param props.dailyPerfume - The target perfume data.
+ * @param props.handleClick - Mouse click handler.
+ * @param props.handlePointerDown - Pointer down handler.
+ * @param props.index - Index of the row.
+ * @param props.isNew - Whether this is a new attempt.
+ * @param props.isTouch - Whether the device is touch-enabled.
+ * @param props.totalAttempts - Total number of attempts.
  */
 export function AttemptRow({
   activeRowIndex,
@@ -65,6 +76,7 @@ export function AttemptRow({
   handleClick,
   handlePointerDown,
   index,
+  isNew,
   isTouch,
   totalAttempts,
 }: AttemptRowProperties) {
@@ -138,10 +150,10 @@ export function AttemptRow({
         isTouch={isTouch}
         {...interactiveProperties}
       >
-        {index === totalAttempts - 1 && !attempt.isCorrect && (
+        {isNew && index === totalAttempts - 1 && !attempt.isCorrect ? (
           // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- animate-flash-error is a custom CSS animation class defined in globals.css
           <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
-        )}
+        ) : null}
         <span className="block w-full pr-1 text-center text-[0.8125rem] font-normal text-muted-foreground">
           {index + 1}
         </span>
@@ -153,10 +165,10 @@ export function AttemptRow({
         isTouch={isTouch}
         {...interactiveProperties}
       >
-        {index === totalAttempts - 1 && !attempt.isCorrect && (
+        {isNew && index === totalAttempts - 1 && !attempt.isCorrect ? (
           // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- animate-flash-error is a custom CSS animation class defined in globals.css
           <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
-        )}
+        ) : null}
         {(() => {
           const concentration = attempt.concentration || "";
           const displayName =
@@ -264,10 +276,10 @@ export function AttemptRow({
         isTouch={isTouch}
         {...interactiveProperties}
       >
-        {index === totalAttempts - 1 && !attempt.isCorrect && (
+        {isNew && index === totalAttempts - 1 && !attempt.isCorrect ? (
           // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- animate-flash-error is a custom CSS animation class defined in globals.css
           <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
-        )}
+        ) : null}
         {/* Brand */}
         <div className="flex h-full items-center justify-center">
           {(() => {

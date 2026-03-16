@@ -7,11 +7,11 @@ import Image from "next/image";
 import { ScanEye } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { Skeleton } from "@/components/ui/skeleton";
+import { RevealImageSquareSkeleton } from "@/components/game/skeletons";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
 import { cn } from "@/lib/utils";
 
-import { useGameState, useUIPreferences } from "./contexts";
+import { useGameState } from "./contexts";
 import { GameTooltip } from "./game-tooltip";
 
 // Low Quality Image Placeholder (LQIP) - 20x20px blurred perfume bottle
@@ -20,11 +20,10 @@ const BLUR_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFklEQVR42mN8//HLfwYiAOOoQvoqBABbWyZJf74GZgAAAABJRU5ErkJggg==";
 
 /**
- *
+ * Displays the perfume image (visual evidence) with a progressive reveal system.
  */
 export function RevealImage() {
   const { dailyPerfume } = useGameState();
-  const { uiPreferences } = useUIPreferences();
   const t = useTranslations("RevealImage");
   const { handlePointerDown: handleIconTap, scaled: iconScaled } =
     useScaleOnTap();
@@ -61,19 +60,20 @@ export function RevealImage() {
     }
   }, [targetSource, state.currentSource]);
 
-  const imageSize =
-    uiPreferences.fontScale === "large" ? "w-[17.5rem]" : "w-[15rem]";
+  // Image size driven by CSS only (no React state), so it is correct from the very
+  // first paint (blocking script already set html.large-text before hydration).
+  // Using React state caused a one-rAF layout shift: fontScale started as "normal"
+  // then jumped to "large", changing the aspect-square image height by ~45px.
+  const imageSize = "w-[15rem] large-text:w-[17.5rem]";
   const isSkeleton = dailyPerfume.id === "skeleton";
 
   return (
     <div className="flex size-full flex-col">
-      {/* Title row — skeleton shows simplified version (no hover/tooltip) */}
+      {/* Title row — skeleton: przyciemniony/statyczny. Real: z tooltip i hover. */}
       <div className="mb-4 flex w-fit cursor-default items-center">
         {isSkeleton ? (
           <div className="flex items-center gap-2">
-            <span className="inline-flex">
-              <ScanEye className="size-4 text-muted-foreground" />
-            </span>
+            <span className="inline-flex size-4 rounded bg-muted/30" />
             <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase opacity-40">
               {t("visualEvidence")}
             </h2>
@@ -109,18 +109,7 @@ export function RevealImage() {
 
         {/* Image area — skeleton or real */}
         {isSkeleton ? (
-          <div
-            className={cn(
-              "relative aspect-square overflow-hidden rounded-md",
-              imageSize,
-            )}
-          >
-            <Skeleton className="size-full rounded-md" />
-            <div className="pointer-events-none absolute top-2 left-2 size-4 border-t-2 border-l-2 border-foreground/10" />
-            <div className="pointer-events-none absolute top-2 right-2 size-4 border-t-2 border-r-2 border-foreground/10" />
-            <div className="pointer-events-none absolute bottom-2 left-2 size-4 border-b-2 border-l-2 border-foreground/10" />
-            <div className="pointer-events-none absolute right-2 bottom-2 size-4 border-r-2 border-b-2 border-foreground/10" />
-          </div>
+          <RevealImageSquareSkeleton />
         ) : (
           <div
             className={cn(

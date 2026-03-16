@@ -16,20 +16,6 @@ export function cn(...inputs: ClassValue[]): string {
 export const noop = (): undefined => undefined;
 
 /**
- * Wraps an async call, returning null on any error instead of throwing.
- * Eliminates the need for mutable `let result = null; try { result = await fn() }` patterns.
- * @param asyncFunction - Async factory function to execute
- */
-export async function safeCall<T>(asyncFunction: () => Promise<T>): Promise<T | null> {
-  try {
-    return await asyncFunction();
-  } catch (error: unknown) {
-    console.error("[safeCall]", error);
-    return null;
-  }
-}
-
-/**
  *
  * @param text
  */

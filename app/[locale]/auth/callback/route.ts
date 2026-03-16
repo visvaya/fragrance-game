@@ -3,17 +3,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { routing } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/server";
 
-/**
- *
- */
 // Validate redirect URL - must start with "/" but not "//" (protocol-relative redirect)
 function isValidRedirectUrl(url: string): boolean {
   return /^\/(?!\/)/.test(url);
 }
 
-/**
- *
- */
 export async function GET(
   request: NextRequest,
   props: { params: Promise<{ locale: string }> },

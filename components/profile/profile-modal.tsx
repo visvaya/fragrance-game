@@ -32,7 +32,11 @@ type ProfileModalProperties = {
 };
 
 /**
- *
+ * Modal displaying the user's profile and statistics.
+ * @param props - Component properties.
+ * @param props.onClose - Modal close handler.
+ * @param props.open - Whether the modal is open.
+ * @param props.user - The current user data.
  */
 export function ProfileModal({
   onClose,

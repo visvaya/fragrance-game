@@ -84,9 +84,6 @@ export async function generateMetadata({
   };
 }
 
-/**
- *
- */
 export async function generateViewport({
   params,
 }: {

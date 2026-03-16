@@ -44,9 +44,6 @@ type SessionsModalProperties = {
   readonly user: User;
 };
 
-/**
- *
- */
 export function SessionsModal({
   onClose,
   open,

@@ -2,10 +2,11 @@
 
 import {
   createContext,
-  useContext,
-  useState,
   useCallback,
+  useContext,
   useEffect,
+  useRef,
+  useState,
   type ReactNode,
 } from "react";
 
@@ -59,6 +60,14 @@ export function UIPreferencesProvider({
     theme: "light",
   });
 
+  // Gate: the layout sync effect must NOT write to the DOM until localStorage has
+  // been read (in the rAF callback below). Before that point, React state holds the
+  // SSR default ("narrow"), and writing it would delete the data-layout="wide"
+  // attribute that the blocking script in layout.tsx already set — causing a flash.
+  // Using a ref (instead of the old isFirstLayoutSync flag) makes this resilient to
+  // React Strict Mode, which re-fires effects and would defeat a "skip first run" guard.
+  const hasHydratedPreferences = useRef(false);
+
   const [isInputFocused, setIsInputFocused] = useState(false);
 
   const toggleTheme = useCallback(() => {
@@ -85,9 +94,13 @@ export function UIPreferencesProvider({
     });
   }, []);
 
-  // Sync data-layout attribute on <html> so the CSS pre-hydration rule
-  // stays in sync after React hydrates and when the user manually toggles layout.
+  // Sync data-layout attribute on <html> so the CSS custom variant `wide:` stays
+  // in sync when the user manually toggles layout.
+  // Guarded by hasHydratedPreferences — until localStorage is read, the blocking
+  // script's DOM value is authoritative and must not be overwritten.
   useEffect(() => {
+    if (!hasHydratedPreferences.current) return;
+
     if (preferences.layoutMode === "wide") {
       // eslint-disable-next-line fp/no-mutation -- DOM dataset property assignment, no immutable API available
       document.documentElement.dataset.layout = "wide";
@@ -136,6 +149,10 @@ export function UIPreferencesProvider({
         "(prefers-color-scheme: dark)",
       ).matches;
       const defaultTheme = systemDark ? "dark" : "light";
+
+      // Mark hydration complete BEFORE updating state — the layout sync effect
+      // checks this ref and must be allowed to write on the resulting re-render.
+      hasHydratedPreferences.current = true;
 
       setPreferences((previous) => {
         const nextFont = savedFont ?? previous.fontScale;

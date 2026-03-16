@@ -14,9 +14,6 @@ import { GameProvider } from "@/components/game/game-provider";
 // This route is now fully dynamic, but challenge queries are still cached via
 // unstable_cache inside getDailyChallengeSSR / getDailyStep1ImageUrl.
 
-/**
- *
- */
 export default async function Home({
   params: _params,
 }: {

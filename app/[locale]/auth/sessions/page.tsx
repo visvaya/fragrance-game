@@ -26,9 +26,6 @@ async function revokeSession(sessionId: string) {
   revalidatePath("/account/sessions");
 }
 
-/**
- *
- */
 export default async function SessionsPage() {
   const supabase = await createClient();
   const t = await getTranslations("Sessions");

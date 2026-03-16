@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { LoginForm } from "@/components/auth/login-form";
 
 /**
- *
+ * Generates metadata for the login page.
  */
 export async function generateMetadata({
   params,
@@ -20,7 +20,7 @@ export async function generateMetadata({
 }
 
 /**
- *
+ * Login page.
  */
 export default function LoginPage() {
   return (

@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 
 /**
- *
+ * Generates metadata for the reset password page.
  */
 export async function generateMetadata({
   params,
@@ -20,7 +20,7 @@ export async function generateMetadata({
 }
 
 /**
- *
+ * Reset password page.
  */
 export default function ResetPasswordPage() {
   return (

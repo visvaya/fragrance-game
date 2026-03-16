@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -16,16 +16,25 @@ import { DifficultyDisplay } from "./difficulty-display";
 import { RevealImage } from "./reveal-image";
 
 /**
- *
+ * Main game board, integrating all sections (image, clues, log, input).
  */
 export function GameBoard() {
-  const { dailyPerfume, gameState, xsolveScore } = useGameState();
+  const { dailyPerfume, gameState, loading, xsolveScore } = useGameState();
 
   const t = useTranslations("GameBoard");
   const [showConfetti, setShowConfetti] = useState(false);
+  // Counts loading→false transitions. First = page restore, second+ = in-session action.
+  // Same pattern as attempt-log.tsx — confetti only fires when count > 1.
+  const loadingTransitionCount = useRef(0);
 
   useEffect(() => {
-    if (gameState === "won") {
+    if (!loading) {
+      loadingTransitionCount.current += 1;
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    if (gameState === "won" && loadingTransitionCount.current > 1) {
       setShowConfetti(true);
       const timeout = setTimeout(() => setShowConfetti(false), 2800);
       return () => clearTimeout(timeout);

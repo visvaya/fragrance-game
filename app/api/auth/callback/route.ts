@@ -11,9 +11,6 @@ function isValidRedirectUrl(url: string): boolean {
   return /^\/(?!\/)/.test(url);
 }
 
-/**
- *
- */
 export async function GET(request: Request): Promise<Response> {
   const { origin, searchParams } = new URL(request.url);
   const code = searchParams.get("code");

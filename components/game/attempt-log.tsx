@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { AttemptLogSkeleton } from "@/components/game/skeletons";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
 import { cn } from "@/lib/utils";
 
@@ -24,23 +25,52 @@ import { GameTooltip } from "./game-tooltip";
  * Komponent logu prób gracza.
  */
 export const AttemptLog = memo(function AttemptLog() {
-  const { attempts, dailyPerfume, gameState, maxAttempts } = useGameState();
+  const { attempts, dailyPerfume, gameState, loading, maxAttempts } =
+    useGameState();
   const t = useTranslations("AttemptLog");
   const { handlePointerDown: handleIconTap, scaled: iconScaled } =
     useScaleOnTap();
   const previousAttemptsLength = useRef(attempts.length);
+  // Becomes true after the FIRST loading→false transition (= initial session restore done).
+  // After that, loading cycles true→false only during guess submissions, which is exactly
+  // when we want the scroll/flash to fire.
+  const hasInitialized = useRef(false);
+  // Counts how many times loading has transitioned to false.
+  // First transition = initial restore (count=1). Second+ = in-session action (guess/skip).
+  // Scroll-to-top on game end fires only when count > 1, preventing spurious scroll on restore.
+  const loadingTransitionCount = useRef(0);
   const [activeRowIndex, setActiveRowIndex] = useState<number | null>(null);
+  // Index of the attempt that was just submitted in this session.
+  // Stays null for attempts restored from session on page load, so
+  // animate-flash-error only fires on freshly submitted rows, not on reload.
+  const [newAttemptIndex, setNewAttemptIndex] = useState<number | null>(null);
   const isTouchReference = useRef(false);
   const [isTouch, setIsTouch] = useState(false);
 
-  // Scroll to new attempt
+  // Scroll to new attempt and mark it as new (enables flash animation).
+  // Only fires when a genuine new attempt is submitted, not on initial session restore.
   useEffect(() => {
+    // Track every loading→false transition. First one = initial restore, subsequent = in-session.
+    if (!loading) {
+      loadingTransitionCount.current += 1;
+    }
+
+    // First loading→false = initial restore complete. Sync attempts count and bail out
+    // so we never scroll/flash for attempts that were restored from the server.
+    if (!loading && !hasInitialized.current) {
+      hasInitialized.current = true;
+      previousAttemptsLength.current = attempts.length;
+      return;
+    }
+
     if (
-      attempts.length > previousAttemptsLength.current && // Only scroll to the new attempt if the game is still playing.
-      // If the game ended (won/lost), the "Game Over" scroll effect (below) takes precedence.
-      gameState === "playing"
+      hasInitialized.current &&
+      attempts.length > previousAttemptsLength.current &&
+      gameState === "playing" &&
+      !loading
     ) {
       const lastIndex = attempts.length - 1;
+      setNewAttemptIndex(lastIndex);
       const element = document.querySelector(`#attempt-${lastIndex}`);
       if (element) {
         const scrollTimer = setTimeout(() => {
@@ -50,11 +80,18 @@ export const AttemptLog = memo(function AttemptLog() {
       }
     }
     previousAttemptsLength.current = attempts.length;
-  }, [attempts.length, gameState]);
+  }, [attempts.length, gameState, loading]);
 
-  // Scroll to top on game end
+  // Scroll to top on game end — only when game JUST ended in this session.
+  // loadingTransitionCount > 1 ensures we skip the first loading cycle (= page restore).
+  // The first loading→false always has count=1 (restore). In-session actions produce count>=2.
+  // This works for both SSR path (gameState="won" from mount, loading cycles separately)
+  // and non-SSR path (gameState + loading both change in the same batched render).
   useEffect(() => {
-    if (gameState === "won" || gameState === "lost") {
+    if (
+      (gameState === "won" || gameState === "lost") &&
+      loadingTransitionCount.current > 1
+    ) {
       // Small delay to ensure any end-game UI updates have triggered
       const endTimer = setTimeout(() => {
         window.scrollTo({ behavior: "smooth", top: 0 });
@@ -81,6 +118,10 @@ export const AttemptLog = memo(function AttemptLog() {
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
+
+  if (dailyPerfume.id === "skeleton") {
+    return <AttemptLogSkeleton t={t} />;
+  }
 
   return (
     <section className="panel-standard">
@@ -199,6 +240,7 @@ export const AttemptLog = memo(function AttemptLog() {
               handleClick={handleClick}
               handlePointerDown={handlePointerDown}
               index={index}
+              isNew={index === newAttemptIndex}
               isTouch={isTouch}
               key={`attempt-${attempt.perfumeId || attempt.guess || index}`}
               totalAttempts={attempts.length}

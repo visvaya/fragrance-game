@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useCallback,
+  useRef,
   type ReactNode,
   type Dispatch,
   type SetStateAction,
@@ -145,15 +146,20 @@ export function GameActionsProvider({
   setNonce,
   setSessionId,
 }: Readonly<GameActionsProviderProperties>) {
+  /** Synchronous guard preventing concurrent server action calls (skip/guess). */
+  const isProcessingReference = useRef(false);
+
   const makeGuess = useCallback(
     async (perfumeName: string, brand: string, perfumeId: string) => {
       if (
+        isProcessingReference.current ||
         gameState !== "playing" ||
         attempts.length + baseAttemptCount >= maxAttempts ||
         !sessionId
       )
         return;
 
+      isProcessingReference.current = true;
       setLoading(true);
       try {
         const result = await submitGuess(sessionId, perfumeId, nonce);
@@ -254,6 +260,7 @@ export function GameActionsProvider({
       } catch (error) {
         console.error("Guess submission failed:", error);
       } finally {
+        isProcessingReference.current = false;
         setLoading(false);
       }
     },
@@ -278,12 +285,14 @@ export function GameActionsProvider({
 
   const handleSkip = useCallback(async () => {
     if (
+      isProcessingReference.current ||
       gameState !== "playing" ||
       attempts.length + baseAttemptCount >= maxAttempts ||
       !sessionId
     )
       return;
 
+    isProcessingReference.current = true;
     setLoading(true);
     try {
       const result = await skipAttempt(sessionId, nonce);
@@ -309,11 +318,19 @@ export function GameActionsProvider({
       ]);
 
       if (result.gameStatus === "lost") {
+        if (result.answerName) {
+          setDailyPerfume((previous) => ({
+            ...previous,
+            concentration: result.answerConcentration,
+            name: result.answerName ?? "",
+          }));
+        }
         setGameState("lost");
       }
     } catch (error) {
       console.error("Skip failed:", error);
     } finally {
+      isProcessingReference.current = false;
       setLoading(false);
     }
   }, [
@@ -324,6 +341,7 @@ export function GameActionsProvider({
     nonce,
     sessionId,
     setAttempts,
+    setDailyPerfume,
     setGameState,
     setImageUrl,
     setLoading,

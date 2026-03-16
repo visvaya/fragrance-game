@@ -17,9 +17,6 @@ type AuthCaptchaModalProperties = {
   readonly onVerify: (token: string) => void;
 };
 
-/**
- *
- */
 export function AuthCaptchaModal({
   isOpen,
   onVerify,

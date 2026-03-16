@@ -5,7 +5,7 @@ import { memo } from "react";
 import { Layers, Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { Skeleton } from "@/components/ui/skeleton";
+import { PyramidCluesSkeleton } from "@/components/game/skeletons";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
 import { GENERIC_PLACEHOLDER, MASK_CHAR } from "@/lib/constants";
 import { cn, noop } from "@/lib/utils";
@@ -76,9 +76,6 @@ function renderPyramidNoteWord({
   );
 }
 
-/**
- *
- */
 export const PyramidClues = memo(function PyramidClues() {
   const t = useTranslations("PyramidClues");
   const { currentAttempt, dailyPerfume, gameState, revealLevel, visibleNotes } =
@@ -89,53 +86,8 @@ export const PyramidClues = memo(function PyramidClues() {
     useScaleOnTap();
 
   // Skeleton state — structure mirrors the real layout exactly.
-  // Static translations are shown as-is; only dynamic content (note names) uses <Skeleton> bars.
   if (dailyPerfume.id === "skeleton") {
-    const skeletonLevels = [
-      { count: 3, dotClass: "bg-note-top", label: t("top") },
-      { count: 3, dotClass: "bg-primary", label: t("heart") },
-      { count: 3, dotClass: "bg-foreground/60", label: t("base") },
-    ];
-    return (
-      <div className="panel-standard">
-        {/* Title row — matches real header exactly */}
-        <div className="mb-4 flex w-fit cursor-default items-center">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex">
-              <Layers className="size-4 text-muted-foreground" />
-            </span>
-            <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase opacity-40">
-              {t("pyramid")}
-            </h2>
-          </div>
-        </div>
-        <ul className="flex flex-col">
-          {skeletonLevels.map((level) => (
-            <li
-              className="flex flex-col gap-2 border-b border-border/60 py-4 first:pt-0 last:border-b-0 last:pb-0"
-              key={level.label}
-            >
-              <div className="flex items-center gap-2">
-                <span
-                  className={`size-2 shrink-0 rounded-full ${level.dotClass} opacity-40`}
-                />
-                <span className="text-xs font-semibold tracking-widest text-muted-foreground/40 lowercase">
-                  {level.label}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {Array.from({ length: level.count }).map((_, i) => (
-                  <Skeleton
-                    className="min-h-[1.375rem] w-[4.5rem] py-1"
-                    key={`skel-${level.label}-${i}`}
-                  />
-                ))}
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
+    return <PyramidCluesSkeleton t={t} />;
   }
 
   // LINEAR PERFUME LOGIC
@@ -292,7 +244,12 @@ export const PyramidClues = memo(function PyramidClues() {
                                 );
                               }
                               if (hasMasking) {
-                                return <MaskedWord keyPrefix={`linear-${i}-${wIndex}`} word={word} />;
+                                return (
+                                  <MaskedWord
+                                    keyPrefix={`linear-${i}-${wIndex}`}
+                                    word={word}
+                                  />
+                                );
                               }
                               return (
                                 <span className="font-sans text-sm text-foreground">
@@ -330,7 +287,11 @@ export const PyramidClues = memo(function PyramidClues() {
                                           />
                                         </div>
                                       ) : (
-                                        <MaskedWord isHovered={isHovered} keyPrefix={`linear-tt-${i}-${wIndex}`} word={word} />
+                                        <MaskedWord
+                                          isHovered={isHovered}
+                                          keyPrefix={`linear-tt-${i}-${wIndex}`}
+                                          word={word}
+                                        />
                                       )}
                                     </div>
                                   )}

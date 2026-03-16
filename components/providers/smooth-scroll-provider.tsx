@@ -2,21 +2,19 @@
 
 import { type ReactNode, useEffect } from "react";
 
-import type Lenis from "lenis";
+import Lenis from "lenis";
 
 let lenis: Lenis | null = null;
-async function initLenis() {
+function initLenis() {
   // eslint-disable-next-line unicorn/prefer-global-this -- typeof window required for SSR safety (ReferenceError-safe)
   if (typeof window === "undefined" || globalThis.window.innerWidth < 1024) {
     return;
   }
 
-  const { default: LenisLibrary } = await import("lenis");
-
   if (lenis) return;
 
   // eslint-disable-next-line fp/no-mutation -- necessary for global Lenis instance management
-  lenis = new LenisLibrary({
+  lenis = new Lenis({
     gestureOrientation: "vertical",
     lerp: 0.08,
     orientation: "vertical",
@@ -48,7 +46,7 @@ export function SmoothScrollProvider({
       return;
     }
 
-    void initLenis();
+    initLenis();
 
     const observer = new MutationObserver(() => {
       // Radix UI adds data-scroll-locked or pointer-events: none

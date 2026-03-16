@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { RegisterForm } from "@/components/auth/register-form";
 
 /**
- *
+ * Generates metadata for the registration page.
  */
 export async function generateMetadata({
   params,
@@ -20,7 +20,7 @@ export async function generateMetadata({
 }
 
 /**
- *
+ * Registration page.
  */
 export default function RegisterPage() {
   return (

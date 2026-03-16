@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 
 /**
- *
+ * Generates metadata for the forgot password page.
  */
 export async function generateMetadata({
   params,
@@ -20,7 +20,7 @@ export async function generateMetadata({
 }
 
 /**
- *
+ * Forgot password page.
  */
 export default function ForgotPasswordPage() {
   return (
