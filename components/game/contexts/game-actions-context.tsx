@@ -4,11 +4,17 @@ import {
   createContext,
   useContext,
   useCallback,
+  useEffect,
   useRef,
+  useState,
   type ReactNode,
   type Dispatch,
   type SetStateAction,
 } from "react";
+
+import { useTranslations } from "next-intl";
+import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import {
   initializeGame,
@@ -42,6 +48,7 @@ type DailyPerfume = {
 };
 
 type GameActionsContextType = {
+  isRateLimited: boolean;
   makeGuess: (
     perfumeName: string,
     brand: string,
@@ -80,6 +87,10 @@ type GameActionsProviderProperties = {
   setNonce: Dispatch<SetStateAction<string>>;
   setSessionId: Dispatch<SetStateAction<string | null>>;
 };
+
+function isRateLimitError(error: unknown): boolean {
+  return error instanceof Error && error.message.startsWith("Rate limit exceeded");
+}
 
 /**
  * Helper function to calculate masked values for snapshots
@@ -148,6 +159,24 @@ export function GameActionsProvider({
 }: Readonly<GameActionsProviderProperties>) {
   /** Synchronous guard preventing concurrent server action calls (skip/guess). */
   const isProcessingReference = useRef(false);
+  const haptic = useWebHaptics();
+  const t = useTranslations("GameActions");
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const rateLimitTimerReference = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (rateLimitTimerReference.current) clearTimeout(rateLimitTimerReference.current);
+    };
+  }, []);
+
+  /** Shows a rate-limit toast and briefly locks the UI (5 s). */
+  const handleRateLimit = useCallback(() => {
+    toast.warning(t("rateLimitError"));
+    setIsRateLimited(true);
+    if (rateLimitTimerReference.current) clearTimeout(rateLimitTimerReference.current);
+    rateLimitTimerReference.current = setTimeout(() => setIsRateLimited(false), 60_000);
+  }, [t]);
 
   const makeGuess = useCallback(
     async (perfumeName: string, brand: string, perfumeId: string) => {
@@ -163,6 +192,14 @@ export function GameActionsProvider({
       setLoading(true);
       try {
         const result = await submitGuess(sessionId, perfumeId, nonce);
+
+        if (result.gameStatus === "won") {
+          void haptic.trigger("success");
+        } else if (result.gameStatus === "lost") {
+          void haptic.trigger("heavy");
+        } else {
+          void haptic.trigger("error");
+        }
 
         if (result.imageUrl) {
           setImageUrl(result.imageUrl);
@@ -258,7 +295,11 @@ export function GameActionsProvider({
           setGameState("lost");
         }
       } catch (error) {
-        console.error("Guess submission failed:", error);
+        if (isRateLimitError(error)) {
+          handleRateLimit();
+        } else {
+          console.error("Guess submission failed:", error);
+        }
       } finally {
         isProcessingReference.current = false;
         setLoading(false);
@@ -268,12 +309,14 @@ export function GameActionsProvider({
       attempts,
       baseAttemptCount,
       gameState,
+      haptic,
       maxAttempts,
       sessionId,
       nonce,
       dailyPerfume,
       isBrandRevealed,
       isYearRevealed,
+      handleRateLimit,
       setAttempts,
       setGameState,
       setImageUrl,
@@ -296,6 +339,8 @@ export function GameActionsProvider({
     setLoading(true);
     try {
       const result = await skipAttempt(sessionId, nonce);
+
+      void haptic.trigger("light");
 
       if (result.newNonce) setNonce(result.newNonce);
       if (result.imageUrl) setImageUrl(result.imageUrl);
@@ -328,7 +373,11 @@ export function GameActionsProvider({
         setGameState("lost");
       }
     } catch (error) {
-      console.error("Skip failed:", error);
+      if (isRateLimitError(error)) {
+        handleRateLimit();
+      } else {
+        console.error("Skip failed:", error);
+      }
     } finally {
       isProcessingReference.current = false;
       setLoading(false);
@@ -337,9 +386,11 @@ export function GameActionsProvider({
     attempts,
     baseAttemptCount,
     gameState,
+    haptic,
     maxAttempts,
     nonce,
     sessionId,
+    handleRateLimit,
     setAttempts,
     setDailyPerfume,
     setGameState,
@@ -449,6 +500,7 @@ export function GameActionsProvider({
   ]);
 
   const value = {
+    isRateLimited,
     makeGuess,
     resetGame: handleReset,
     skipAttempt: handleSkip,

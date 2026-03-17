@@ -14,6 +14,7 @@ import {
 import { useTranslations } from "next-intl";
 
 import { AttemptLogSkeleton } from "@/components/game/skeletons";
+import { lenisScrollTo } from "@/components/providers/smooth-scroll-provider";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
 import { cn } from "@/lib/utils";
 
@@ -94,7 +95,7 @@ export const AttemptLog = memo(function AttemptLog() {
     ) {
       // Small delay to ensure any end-game UI updates have triggered
       const endTimer = setTimeout(() => {
-        window.scrollTo({ behavior: "smooth", top: 0 });
+        lenisScrollTo(0);
       }, 300);
       return () => clearTimeout(endTimer);
     }

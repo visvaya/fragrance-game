@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -20,9 +20,28 @@ import { RevealImage } from "./reveal-image";
  */
 export function GameBoard() {
   const { dailyPerfume, gameState, loading, xsolveScore } = useGameState();
+  const isContentReady = dailyPerfume.id !== "skeleton";
+
+  // Animate skeleton→real transition only for non-SSR users (where skeleton was actually shown).
+  // SSR users have isContentReady=true from first render — animating on page load would cause
+  // compositor-layer/scroll flicker within the first 250ms. No animation needed: no skeleton was shown.
+  const [shouldFadeIn, setShouldFadeIn] = useState(false);
+  const previousIsContentReadyReference = useRef(isContentReady);
+  useLayoutEffect(() => {
+    if (!previousIsContentReadyReference.current && isContentReady) {
+      setShouldFadeIn(true);
+      const id = setTimeout(() => setShouldFadeIn(false), 500);
+      previousIsContentReadyReference.current = true;
+      return () => clearTimeout(id);
+    }
+    previousIsContentReadyReference.current = isContentReady;
+  }, [isContentReady]);
 
   const t = useTranslations("GameBoard");
   const [showConfetti, setShowConfetti] = useState(false);
+  // Fires animate-in only when game ends in-session (playing→won/lost), not on page restore.
+  const [animateGameOver, setAnimateGameOver] = useState(false);
+  const previousGameState = useRef<string | null>(null);
   // Counts loading→false transitions. First = page restore, second+ = in-session action.
   // Same pattern as attempt-log.tsx — confetti only fires when count > 1.
   const loadingTransitionCount = useRef(0);
@@ -32,6 +51,16 @@ export function GameBoard() {
       loadingTransitionCount.current += 1;
     }
   }, [loading]);
+
+  useEffect(() => {
+    if (
+      previousGameState.current === "playing" &&
+      (gameState === "won" || gameState === "lost")
+    ) {
+      setAnimateGameOver(true);
+    }
+    previousGameState.current = gameState;
+  }, [gameState]);
 
   useEffect(() => {
     if (gameState === "won" && loadingTransitionCount.current > 1) {
@@ -53,12 +82,12 @@ export function GameBoard() {
       {/* ... keeping game over logic same, just wrapper width changes ... */}
 
       {gameState !== "playing" && (
-        <div className="panel-standard p-6 text-center transition-all duration-500 animate-in fade-in zoom-in-95">
+        <div className={cn("panel-standard text-center", animateGameOver && "transition-all duration-500 animate-in fade-in zoom-in-95")}>
           {gameState === "won" ? (
-            <div className="duration-500 animate-in fade-in zoom-in">
-              <p className="mb-2 -rotate-2 transform font-hand text-4xl text-success">
+            <div className={cn(animateGameOver && "duration-500 animate-in fade-in zoom-in")}>
+              <h2 className="mb-2 font-[family-name:var(--font-caveat)] text-4xl tracking-tight text-success">
                 {t("magnifique")}
-              </p>
+              </h2>
               <div className="space-y-1">
                 <p className="font-[family-name:var(--font-playfair)] text-2xl font-semibold">
                   {dailyPerfume.name}
@@ -76,10 +105,10 @@ export function GameBoard() {
               </div>
             </div>
           ) : (
-            <div className="duration-500 animate-in fade-in zoom-in">
-              <p className="font-hand text-3xl text-destructive">
+            <div className={cn(animateGameOver && "duration-500 animate-in fade-in zoom-in")}>
+              <h2 className="mb-2 font-[family-name:var(--font-caveat)] text-4xl tracking-tight text-destructive">
                 {t("answerWas")}
-              </p>
+              </h2>
               <div className="space-y-1">
                 <p className="font-[family-name:var(--font-playfair)] text-2xl font-semibold">
                   {dailyPerfume.name}
@@ -104,16 +133,18 @@ export function GameBoard() {
       <div
         className={cn(
           "flex flex-col gap-6 wide:grid wide:grid-cols-1 wide:items-start wide:md:grid-cols-[9fr_11fr]",
+          // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- animate-content-fade-in is a custom CSS animation class defined in globals.css
+          shouldFadeIn && "animate-content-fade-in",
         )}
       >
         {/* Left Column (Wide) / Top (Stack) */}
         <div className="space-y-6">
-          <div className="panel-standard p-4">
-            <RevealImage />
-          </div>
-          <div className="panel-standard p-4">
-            <MetaClues />
-          </div>
+              <div className="panel-standard">
+                <RevealImage />
+              </div>
+              <div className="panel-standard">
+                <MetaClues />
+              </div>
         </div>
 
         {/* Right Column (Wide) / Bottom (Stack) */}

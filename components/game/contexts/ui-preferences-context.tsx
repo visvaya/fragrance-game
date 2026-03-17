@@ -94,13 +94,22 @@ export function UIPreferencesProvider({
     });
   }, []);
 
-  // Sync data-layout attribute on <html> so the CSS custom variant `wide:` stays
-  // in sync when the user manually toggles layout.
-  // Guarded by hasHydratedPreferences — until localStorage is read, the blocking
-  // script's DOM value is authoritative and must not be overwritten.
+  // Sync all DOM attributes/classes with preferences state.
+  // Guarded by hasHydratedPreferences — until localStorage is read in the rAF
+  // callback below, the blocking script's DOM values are authoritative and must
+  // not be overwritten. All three mutations are idempotent (toggle/dataset), so
+  // running them together on any preference change is safe.
   useEffect(() => {
     if (!hasHydratedPreferences.current) return;
 
+    document.documentElement.classList.toggle(
+      "dark",
+      preferences.theme === "dark",
+    );
+    document.documentElement.classList.toggle(
+      "large-text",
+      preferences.fontScale === "large",
+    );
     if (preferences.layoutMode === "wide") {
       // eslint-disable-next-line fp/no-mutation -- DOM dataset property assignment, no immutable API available
       document.documentElement.dataset.layout = "wide";
@@ -108,22 +117,7 @@ export function UIPreferencesProvider({
       // eslint-disable-next-line fp/no-delete -- DOM API requires delete for attribute removal
       delete document.documentElement.dataset.layout;
     }
-  }, [preferences.layoutMode]);
-
-  // Apply Theme & Font Scale Side Effects
-  useEffect(() => {
-    document.documentElement.classList.toggle(
-      "dark",
-      preferences.theme === "dark",
-    );
-  }, [preferences.theme]);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle(
-      "large-text",
-      preferences.fontScale === "large",
-    );
-  }, [preferences.fontScale]);
+  }, [preferences]);
 
   // Load preferences from localStorage on mount.
   // Deferred to useEffect + rAF to avoid blocking the initial paint (TBT reduction).

@@ -5,6 +5,7 @@ import { useState, useRef, useEffect, useId, useMemo, useReducer } from "react";
 
 import { Search, Loader2, SkipForward, X, ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 
 import {
   searchPerfumes,
@@ -152,11 +153,12 @@ export function GameInput() {
     potentialScore,
     sessionId,
   } = useGameState();
-  const { makeGuess, skipAttempt } = useGameActions();
+  const { isRateLimited, makeGuess, skipAttempt } = useGameActions();
   const { isInputFocused: isFocused, setIsInputFocused: setIsFocused } =
     useUIPreferences();
   const t = useTranslations("Game.input");
   const tFooter = useTranslations("Footer");
+  const tActions = useTranslations("GameActions");
 
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
   const [state, dispatch] = useReducer(gameInputReducer, initialState);
@@ -213,13 +215,18 @@ export function GameInput() {
 
   const listId = useId();
 
+  // Clear suggestions immediately when rate-limited so the dropdown closes.
+  useEffect(() => {
+    if (isRateLimited) dispatch({ type: "CLEAR_SUGGESTIONS" });
+  }, [isRateLimited]);
+
   // Debounced search with client-side prefix filtering
   useEffect(() => {
     let ignore = false;
 
     const tq = query.trim();
 
-    if (tq.length === 0) {
+    if (tq.length === 0 || isRateLimited) {
       previousResultsReference.current = null;
       return;
     }
@@ -279,7 +286,7 @@ export function GameInput() {
       ignore = true;
       clearTimeout(timer);
     };
-  }, [query, sessionId, currentAttempt]);
+  }, [query, sessionId, currentAttempt, isRateLimited]);
 
   // Scroll into view logic
   useEffect(() => {
@@ -454,7 +461,7 @@ export function GameInput() {
     );
   }
 
-  const isCurrentlyLoading = isLoading || (gameLoading && isSkeleton);
+  const isCurrentlyLoading = isLoading || gameLoading;
   const isNormallyVisible = !isCurrentlyLoading && !isError;
   const isErrorVisible = !isCurrentlyLoading && isError;
 
@@ -496,7 +503,10 @@ export function GameInput() {
         </div>
       </div>
 
-      <div className="relative" ref={wrapperReference}>
+      <div
+        className="relative"
+        ref={wrapperReference}
+      >
         {/* Input Surface (Visual Layer) */}
         <div
           className={cn(
@@ -515,8 +525,9 @@ export function GameInput() {
               aria-autocomplete="list"
               aria-controls={listId}
               aria-expanded={shouldShowList}
-              className="w-full border-b-2 border-border bg-transparent pt-2 pr-10 pb-1 pl-1 text-lg text-foreground transition-colors duration-300 outline-none placeholder:text-base placeholder:text-muted-foreground placeholder:lowercase focus:border-primary"
+              className="w-full border-b-2 border-border bg-transparent pt-2 pr-10 pb-1 pl-1 text-lg text-foreground transition-all duration-300 outline-none placeholder:text-base placeholder:text-muted-foreground placeholder:lowercase focus:border-primary disabled:cursor-not-allowed disabled:opacity-50"
               data-testid="game-input"
+              disabled={gameLoading || isRateLimited}
               onBlur={() => {
                 dispatch({ payload: false, type: "SET_SHOW_SUGGESTIONS" });
                 setIsFocused(false);
@@ -542,6 +553,12 @@ export function GameInput() {
               type="text"
               value={query}
             />
+            {isRateLimited && (
+              <div
+                className="absolute inset-0 z-10 cursor-not-allowed"
+                onClick={() => toast.warning(tActions("rateLimitError"))}
+              />
+            )}
             <div className="pointer-events-none absolute top-[calc(50%+1px)] right-0.5 flex size-8 -translate-y-1/2 items-center justify-center">
               {/* Search Icon */}
               <div
@@ -584,14 +601,24 @@ export function GameInput() {
             <div className="flex justify-center">
               <GameTooltip
                 content={t("skipTooltip")}
+                disabled={isRateLimited}
                 disableOnMobile
                 sideOffset={8}
               >
                 <button
                   aria-label={t("skipTooltip")}
-                  className="flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-30"
+                  className={cn(
+                    "flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-30",
+                    isRateLimited
+                      ? "cursor-not-allowed opacity-30"
+                      : "hover:bg-muted/50 hover:text-foreground active:bg-muted/50",
+                  )}
                   disabled={!sessionId || gameLoading}
                   onClick={() => {
+                    if (isRateLimited) {
+                      toast.warning(tActions("rateLimitError"));
+                      return;
+                    }
                     if (
                       globalThis.matchMedia(
                         "(hover: none) and (pointer: coarse)",
@@ -642,9 +669,9 @@ export function GameInput() {
                 return (
                   <button
                     aria-selected={selectedIndex === index}
-                    className={`w-full border-b border-muted px-4 py-3 text-left text-sm transition-colors duration-200 last:border-b-0 ${isDuplicate ? "cursor-not-allowed" : ""} ${isDuplicate && selectedIndex !== index ? "bg-muted/20 opacity-50" : ""} ${selectedIndex === index ? "bg-muted text-primary" : ""} ${isDuplicate && selectedIndex === index ? "opacity-70" : ""} ${!isDuplicate && selectedIndex !== index ? "hover:bg-muted/50 hover:text-primary" : ""} `}
+                    className={`w-full border-b border-muted px-4 py-3 text-left text-sm transition-colors duration-200 last:border-b-0 ${isDuplicate || isRateLimited ? "cursor-not-allowed" : ""} ${isDuplicate && selectedIndex !== index ? "bg-muted/20 opacity-50" : ""} ${selectedIndex === index ? "bg-muted text-primary" : ""} ${isDuplicate && selectedIndex === index ? "opacity-70" : ""} ${!isDuplicate && selectedIndex !== index && !isRateLimited ? "hover:bg-muted/50 hover:text-primary" : ""} `}
                     data-perfume-id={perfume.perfume_id}
-                    disabled={isDuplicate}
+                    disabled={isDuplicate || isRateLimited}
                     id={`${listId}-option-${index}`}
                     key={perfume.perfume_id}
                     onClick={async () => handleSelect(perfume)}

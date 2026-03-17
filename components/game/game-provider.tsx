@@ -385,7 +385,7 @@ export function GameProvider({
           id: "daily",
           imageUrl: initialImageUrl ?? "/placeholder.svg?height=400&width=400",
           isLinear: initialChallenge.clues.isLinear,
-          name: "Mystery Perfume",
+          name: initialSession.answerName ?? "Mystery Perfume",
           notes: initialChallenge.clues.notes,
           perfumer: initialChallenge.clues.perfumer,
           xsolve: initialChallenge.clues.xsolve,

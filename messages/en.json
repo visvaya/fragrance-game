@@ -67,6 +67,9 @@
     "slogan": "Train your nose, one day at a time...",
     "selectHelper": "Select from list"
   },
+  "GameActions": {
+    "rateLimitError": "Too many requests — please wait 1 minute before trying again."
+  },
   "GameBoard": {
     "magnifique": "Magnifique!",
     "answerWas": "The answer was...",

@@ -67,6 +67,9 @@
     "slogan": "Trenuj swój nos, dzień po dniu...",
     "selectHelper": "Wybierz z listy"
   },
+  "GameActions": {
+    "rateLimitError": "Zbyt wiele prób — poczekaj 1 minutę przed kolejnym działaniem."
+  },
   "GameBoard": {
     "magnifique": "Magnifique!",
     "answerWas": "Odpowiedź to...",
