@@ -2,6 +2,7 @@
 
 import { useState, useEffect, type ReactNode } from "react";
 
+import * as Sentry from "@sentry/nextjs";
 import { AuthApiError, type User } from "@supabase/supabase-js";
 
 import {
@@ -449,6 +450,7 @@ export function GameProvider({
     } = supabase.auth.onAuthStateChange((_event, session) => {
       const newUser = session?.user ?? null;
       setUser(newUser);
+      Sentry.setUser(newUser ? { id: newUser.id } : null);
 
       // Skip refresh for anonymous sign-in: anonymous sessions are created
       // automatically on every page load, and router.refresh() would remount

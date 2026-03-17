@@ -17,27 +17,20 @@ function getPostHogClient() {
 }
 
 /**
- *
- * @param eventName
- * @param properties
- * @param distinctId
+ * Tracks a server-side analytics event via posthog-node.
+ * Uses captureImmediate() so the singleton client stays alive across multiple
+ * calls within the same serverless invocation — preventing silent event loss
+ * when trackEvent/identifyUser are called sequentially.
  */
 export async function trackEvent(
   eventName: string,
   properties?: Record<string, unknown>,
-  distinctId = "anon_user", // Fallback if no user ID provided
+  distinctId = "anon_user",
 ): Promise<void> {
   try {
     const client = getPostHogClient();
-    client.capture({
-      distinctId,
-      event: eventName,
-      properties,
-    });
-    // Ensure events are flushed immediately for serverless environments
-    await client.shutdown();
+    await client.captureImmediate({ distinctId, event: eventName, properties });
   } catch (error) {
-    // Sanitize error logging
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     console.error(
@@ -48,9 +41,8 @@ export async function trackEvent(
 }
 
 /**
- *
- * @param distinctId
- * @param properties
+ * Identifies a user in PostHog with optional properties.
+ * Uses identifyImmediate() to keep the client alive for subsequent calls.
  */
 export async function identifyUser(
   distinctId: string,
@@ -58,13 +50,8 @@ export async function identifyUser(
 ): Promise<void> {
   try {
     const client = getPostHogClient();
-    client.identify({
-      distinctId,
-      properties: properties ?? {},
-    });
-    await client.shutdown();
+    await client.identifyImmediate({ distinctId, properties: properties ?? {} });
   } catch (error) {
-    // Sanitize error logging to prevent log injection
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     console.error(

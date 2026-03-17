@@ -338,9 +338,8 @@ export function GameActionsProvider({
     isProcessingReference.current = true;
     setLoading(true);
     try {
-      const result = await skipAttempt(sessionId, nonce);
-
       void haptic.trigger("light");
+      const result = await skipAttempt(sessionId, nonce);
 
       if (result.newNonce) setNonce(result.newNonce);
       if (result.imageUrl) setImageUrl(result.imageUrl);

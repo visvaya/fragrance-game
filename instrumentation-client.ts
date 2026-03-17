@@ -42,6 +42,16 @@ function sanitizePII(data: unknown): unknown {
 
 Sentry.init({
   beforeSend(event) {
+    const message = event.exception?.values?.[0]?.value ?? "";
+
+    // Filter expected business-logic errors
+    if (
+      message.startsWith("CONFLICT:") ||
+      message.startsWith("Rate limit exceeded")
+    ) {
+      return null;
+    }
+
     const breadcrumbs = event.breadcrumbs
       ? event.breadcrumbs.map((crumb) => ({
           ...crumb,
@@ -68,6 +78,8 @@ Sentry.init({
   debug: false,
   // eslint-disable-next-line no-restricted-properties -- Sentry initialization requires process.env
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  // eslint-disable-next-line no-restricted-properties -- NODE_ENV is needed for build-time dead-code elimination; env.NODE_ENV indirection prevents tree-shaking
+  enabled: process.env.NODE_ENV !== "development",
   integrations: [],
   tracesSampleRate: 0,
 });

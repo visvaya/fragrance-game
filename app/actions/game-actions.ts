@@ -2,6 +2,7 @@
 
 import { revalidatePath, unstable_cache } from "next/cache";
 
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 
 import { trackEvent, identifyUser } from "@/lib/analytics-server";
@@ -483,6 +484,7 @@ async function createNewGameSession(
     data: { grace_deadline_at_utc: string; mode: string } | null;
   };
 
+  Sentry.setUser({ id: userId });
   await identifyUser(userId);
   await trackEvent(
     "game_started",
@@ -1303,9 +1305,8 @@ export async function resetGame(
  * Wynik jest cachowany przez Next.js na 24h (revalidate: 86_400).
  */
 export const getDailyChallengeSSR = unstable_cache(
-  async (): Promise<DailyChallenge | null> => {
+  async (targetDate: string): Promise<DailyChallenge | null> => {
     const adminSupabase = createAdminClient();
-    const targetDate = new Date().toISOString().split("T")[0];
 
     const { data, error } = await adminSupabase
       .from("daily_challenges_public")
@@ -1395,10 +1396,9 @@ export const getDailyChallengeSSR = unstable_cache(
  * Wynik jest cachowany przez Next.js na 24h (revalidate: 86_400).
  */
 export const getDailyStep1ImageUrl = unstable_cache(
-  async (): Promise<string | null> => {
+  async (targetDate: string): Promise<string | null> => {
     try {
       const adminSupabase = createAdminClient();
-      const targetDate = new Date().toISOString().split("T")[0];
 
       const { data: challenge } = await adminSupabase
         .from("daily_challenges")

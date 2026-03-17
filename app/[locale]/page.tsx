@@ -14,15 +14,19 @@ import { GameProvider } from "@/components/game/game-provider";
 // This route is now fully dynamic, but challenge queries are still cached via
 // unstable_cache inside getDailyChallengeSSR / getDailyStep1ImageUrl.
 
+/** Root page — renders the daily fragrance game. Challenge data is SSR-cached; player session is per-request. */
 export default async function Home({
   params: _params,
 }: {
   readonly params: Promise<{ locale: string }>;
 }) {
   // Fetch challenge data (cached 24h) and player session (per-request) in parallel
+  // Date is passed as an argument so Next.js cache key is scoped to the day,
+  // preventing stale SSR data after midnight.
+  const today = new Date().toISOString().split("T")[0];
   const [initialImageUrl, initialChallenge] = await Promise.all([
-    getDailyStep1ImageUrl(),
-    getDailyChallengeSSR(),
+    getDailyStep1ImageUrl(today),
+    getDailyChallengeSSR(today),
   ]);
 
   // Pre-fetch the player's existing game session server-side.
