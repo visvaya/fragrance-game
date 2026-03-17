@@ -336,6 +336,7 @@ export function GameInput() {
     await makeGuess(perfume.name, perfume.brand_masked, perfume.perfume_id);
 
     dispatch({ type: "RESET" });
+    setTimeout(() => inputReference.current?.focus(), 0);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -553,12 +554,15 @@ export function GameInput() {
               type="text"
               value={query}
             />
-            {isRateLimited && (
+            {isRateLimited ? (
               <div
+                aria-hidden="true"
                 className="absolute inset-0 z-10 cursor-not-allowed"
                 onClick={() => toast.warning(tActions("rateLimitError"))}
+                onKeyDown={() => toast.warning(tActions("rateLimitError"))}
+                role="presentation"
               />
-            )}
+            ) : null}
             <div className="pointer-events-none absolute top-[calc(50%+1px)] right-0.5 flex size-8 -translate-y-1/2 items-center justify-center">
               {/* Search Icon */}
               <div
@@ -601,7 +605,7 @@ export function GameInput() {
             <div className="flex justify-center">
               <GameTooltip
                 content={t("skipTooltip")}
-                disabled={isRateLimited}
+                disabled={isRateLimited || gameLoading}
                 disableOnMobile
                 sideOffset={8}
               >
@@ -609,7 +613,7 @@ export function GameInput() {
                   aria-label={t("skipTooltip")}
                   className={cn(
                     "flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-30",
-                    isRateLimited
+                    isRateLimited || gameLoading
                       ? "cursor-not-allowed opacity-30"
                       : "hover:bg-muted/50 hover:text-foreground active:bg-muted/50",
                   )}

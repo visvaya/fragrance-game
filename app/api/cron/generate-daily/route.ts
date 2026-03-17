@@ -1,3 +1,4 @@
+import { revalidateTag } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
 
 import { z } from "zod";
@@ -40,6 +41,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       await ensureChallenge(adminSupabase, todayString),
       await ensureChallenge(adminSupabase, tomorrowString),
     ];
+
+    revalidateTag("daily-challenge", {});
 
     return NextResponse.json({
       results,
