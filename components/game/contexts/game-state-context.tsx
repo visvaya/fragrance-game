@@ -80,6 +80,7 @@ type GameStateContextType = {
   revealedYear: string;
   revealLevel: number;
   sessionId: string | null;
+  sessionReady: boolean;
   user: User | null;
   visibleNotes: {
     base: string[] | null;
@@ -105,6 +106,7 @@ type GameStateProviderProperties = {
   loading: boolean;
   maxAttempts: number;
   sessionId: string | null;
+  sessionReady: boolean;
   user: User | null;
 };
 
@@ -123,6 +125,7 @@ export function GameStateProvider({
   loading,
   maxAttempts,
   sessionId,
+  sessionReady,
   user,
 }: Readonly<GameStateProviderProperties>) {
   const currentAttempt = attempts.length + 1 + baseAttemptCount;
@@ -367,6 +370,7 @@ export function GameStateProvider({
     revealLevel,
 
     sessionId,
+    sessionReady,
     user,
     visibleNotes,
     xsolveScore: dailyPerfume.xsolve,

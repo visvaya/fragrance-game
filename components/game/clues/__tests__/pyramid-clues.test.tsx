@@ -159,6 +159,7 @@ function createTestWrapper({
         loading={false}
         maxAttempts={6}
         sessionId="test-session"
+        sessionReady={true}
         user={null}
       >
         {children}
@@ -232,6 +233,7 @@ describe("PyramidClues", () => {
           loading={false}
           maxAttempts={6}
           sessionId="test-session"
+          sessionReady={true}
           user={null}
         >
           <PyramidClues />
@@ -334,6 +336,7 @@ describe("PyramidClues", () => {
           loading={false}
           maxAttempts={6}
           sessionId="test-session"
+          sessionReady={true}
           user={null}
         >
           <PyramidClues />
@@ -364,6 +367,7 @@ describe("PyramidClues", () => {
           loading={false}
           maxAttempts={6}
           sessionId="test-session"
+          sessionReady={true}
           user={null}
         >
           <PyramidClues />

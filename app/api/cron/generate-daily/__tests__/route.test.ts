@@ -10,6 +10,11 @@ vi.mock("@/lib/env", () => ({
   },
 }));
 
+// Mock next/cache: revalidateTag is not available in test environment
+vi.mock("next/cache", () => ({
+  revalidateTag: vi.fn(),
+}));
+
 // Mock Supabase before importing the route
 vi.mock("@/lib/supabase/server", () => {
   const mockSingle = vi

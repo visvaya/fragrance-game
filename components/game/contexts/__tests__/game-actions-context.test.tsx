@@ -7,6 +7,11 @@ import { GameActionsProvider, useGameActions } from "../game-actions-context";
 
 import type { Attempt } from "../game-state-context";
 
+// Mock next-intl: GameActionsProvider calls useTranslations internally
+vi.mock("next-intl", () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
 // Mock server actions
 vi.mock("@/app/actions/game-actions", () => ({
   initializeGame: vi.fn(),

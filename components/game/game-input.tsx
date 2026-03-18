@@ -152,6 +152,7 @@ export function GameInput() {
     maxAttempts,
     potentialScore,
     sessionId,
+    sessionReady,
   } = useGameState();
   const { isRateLimited, makeGuess, skipAttempt } = useGameActions();
   const { isInputFocused: isFocused, setIsInputFocused: setIsFocused } =
@@ -528,7 +529,7 @@ export function GameInput() {
               aria-expanded={shouldShowList}
               className="w-full border-b-2 border-border bg-transparent pt-2 pr-10 pb-1 pl-1 text-lg text-foreground transition-all duration-300 outline-none placeholder:text-base placeholder:text-muted-foreground placeholder:lowercase focus:border-primary disabled:cursor-not-allowed disabled:opacity-50"
               data-testid="game-input"
-              disabled={gameLoading || isRateLimited}
+              disabled={gameLoading || !sessionReady || isRateLimited}
               onBlur={() => {
                 dispatch({ payload: false, type: "SET_SHOW_SUGGESTIONS" });
                 setIsFocused(false);
@@ -617,7 +618,7 @@ export function GameInput() {
                       ? "cursor-not-allowed opacity-30"
                       : "hover:bg-muted/50 hover:text-foreground active:bg-muted/50",
                   )}
-                  disabled={!sessionId || gameLoading}
+                  disabled={!sessionReady || gameLoading}
                   onClick={() => {
                     if (isRateLimited) {
                       toast.warning(tActions("rateLimitError"));

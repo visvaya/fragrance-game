@@ -368,17 +368,19 @@ export function GameProvider({
       initialImageUrl ??
       "/placeholder.svg?height=400&width=400",
   );
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialChallenge);
+  const [sessionReady, setSessionReady] = useState(
+    initialSession !== null && initialSession !== undefined,
+  );
   const [user, setUser] = useState<User | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(
     initialSession?.sessionId ?? null,
   );
   const [dailyPerfume, setDailyPerfume] = useState<typeof SKELETON_PERFUME>(
-    // Use real data only when BOTH initialChallenge AND initialSession are present
-    // (i.e. fully pre-fetched SSR state — no async work needed before render).
-    // When initialSession is missing we still need to call startGame(), so show
-    // the skeleton animation during that wait instead of the real-but-all-locked UI.
-    initialChallenge?.clues && initialSession
+    // Use real data when initialChallenge is present (SSR-provided clues).
+    // sessionReady controls interactivity — the game board is shown immediately
+    // from SSR data while auth runs in the background (Gate 5 Optimistic UI).
+    initialChallenge?.clues
       ? {
           brand: initialChallenge.clues.brand,
           concentration: initialChallenge.clues.concentration,
@@ -386,7 +388,7 @@ export function GameProvider({
           id: "daily",
           imageUrl: initialImageUrl ?? "/placeholder.svg?height=400&width=400",
           isLinear: initialChallenge.clues.isLinear,
-          name: initialSession.answerName ?? "Mystery Perfume",
+          name: initialSession?.answerName ?? "Mystery Perfume",
           notes: initialChallenge.clues.notes,
           perfumer: initialChallenge.clues.perfumer,
           xsolve: initialChallenge.clues.xsolve,
@@ -631,6 +633,7 @@ export function GameProvider({
               setGameState("lost");
           }
         }
+        setSessionReady(true);
         clearTimeout(safetyTimeout);
         setLoading(false);
       } catch (error) {
@@ -676,6 +679,7 @@ export function GameProvider({
       loading={loading}
       maxAttempts={maxAttempts}
       sessionId={sessionId}
+      sessionReady={sessionReady}
       user={user}
     >
       <GameActionsProvider
