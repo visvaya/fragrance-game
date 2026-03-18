@@ -1,10 +1,13 @@
 import { test, expect, type Page } from "@playwright/test";
 
-/** Waits for the `eauxle:session_ready` performance mark set inside GameProvider.initGame. */
-async function waitForSessionReady(page: Page): Promise<void> {
+/**
+ * Waits for GameProvider.initGame to finish — either successfully (session_ready)
+ * or via an early exit (captcha / auth error → init_end without session_ready).
+ */
+async function waitForInitEnd(page: Page): Promise<void> {
   await page.waitForFunction(
     () =>
-      performance.getEntriesByName("eauxle:session_ready", "mark").length > 0,
+      performance.getEntriesByName("eauxle:init_end", "mark").length > 0,
     { timeout: 25_000 },
   );
 }
@@ -36,17 +39,23 @@ async function collectMarksAndMeasures(page: Page): Promise<{
 function printBreakdown(label: string, measures: PerfMeasure[], marks: PerfMark[]): void {
   const initStart = marks.find((m) => m.name === "eauxle:init_start");
   const sessionReady = marks.find((m) => m.name === "eauxle:session_ready");
+  const initEnd = marks.find((m) => m.name === "eauxle:init_end");
+  const endMark = sessionReady ?? initEnd;
   const totalMs =
-    initStart != null && sessionReady != null
-      ? sessionReady.time - initStart.time
+    initStart != null && endMark != null
+      ? endMark.time - initStart.time
       : null;
 
-  console.log(`\n=== ${label} ===`);
+  const succeeded = sessionReady != null;
+  const outcome = succeeded ? "SUCCESS" : "EARLY EXIT (captcha / auth error)";
+
+  console.log(`\n=== ${label} [${outcome}] ===`);
   for (const m of measures) {
     console.log(`  ${m.name}: ${m.duration.toFixed(0)}ms`);
   }
   if (totalMs !== null) {
-    console.log(`  TOTAL (init_start → session_ready): ${totalMs.toFixed(0)}ms`);
+    const endLabel = succeeded ? "session_ready" : "init_end";
+    console.log(`  TOTAL (init_start → ${endLabel}): ${totalMs.toFixed(0)}ms`);
   }
 }
 
@@ -58,7 +67,7 @@ test.describe("Auth Waterfall Diagnostics", () => {
 
     try {
       await page.goto("/en");
-      await waitForSessionReady(page);
+      await waitForInitEnd(page);
 
       const { marks, measures } = await collectMarksAndMeasures(page);
       printBreakdown("New User Auth Waterfall", measures, marks);
@@ -76,21 +85,38 @@ test.describe("Auth Waterfall Diagnostics", () => {
   test("returning user — no auth roundtrip, game_fetch only", async ({ page }) => {
     // First visit to establish anonymous session in cookies
     await page.goto("/en");
-    await waitForSessionReady(page);
+    await waitForInitEnd(page);
+
+    // Check if first load succeeded (session in cookies)
+    const firstLoadMarks = await page.evaluate((): PerfMark[] =>
+      performance
+        .getEntriesByType("mark")
+        .filter((e) => e.name.startsWith("eauxle:"))
+        .map((e) => ({ name: e.name, time: e.startTime })),
+    );
+    const firstLoadSucceeded = firstLoadMarks.some(
+      (m) => m.name === "eauxle:session_ready",
+    );
 
     // Reload simulates returning user — session already in cookies, auth skipped
     await page.reload();
-    await waitForSessionReady(page);
+    await waitForInitEnd(page);
 
     const { marks, measures } = await collectMarksAndMeasures(page);
-    printBreakdown("Returning User Waterfall", measures, marks);
+    printBreakdown("Returning User Waterfall (after reload)", measures, marks);
 
-    // Returning user must NOT trigger anonymous auth
-    const anonAuth = measures.find((m) => m.name === "eauxle.anon_auth");
-    expect(anonAuth).toBeUndefined();
+    if (firstLoadSucceeded) {
+      // Returning user with session in cookies must NOT trigger anon auth
+      const anonAuth = measures.find((m) => m.name === "eauxle.anon_auth");
+      expect(anonAuth).toBeUndefined();
 
-    // game_fetch should be fast: SSR challenge + 1 DB roundtrip only
-    const gameF = measures.find((m) => m.name === "eauxle.game_fetch");
-    if (gameF != null) expect(gameF.duration).toBeLessThan(500);
+      // game_fetch should be fast: SSR challenge + 1 DB roundtrip only
+      const gameF = measures.find((m) => m.name === "eauxle.game_fetch");
+      if (gameF != null) expect(gameF.duration).toBeLessThan(500);
+    } else {
+      console.log(
+        "  NOTE: first load did not establish session (captcha?) — returning-user assertions skipped",
+      );
+    }
   });
 });

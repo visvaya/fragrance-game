@@ -545,12 +545,14 @@ export function GameProvider({
                   setIsCaptchaRequired(true);
                   setLoading(false);
                   clearTimeout(safetyTimeout);
+                  performance.mark("eauxle:init_end");
                   return;
                 }
 
                 console.error("Anonymous auth failed:", authError);
                 setLoading(false);
                 clearTimeout(safetyTimeout);
+                performance.mark("eauxle:init_end");
                 return;
               }
 
@@ -694,6 +696,7 @@ export function GameProvider({
             }
             setSessionReady(true);
             performance.mark("eauxle:session_ready");
+            performance.mark("eauxle:init_end");
             clearTimeout(safetyTimeout);
             setLoading(false);
           },
