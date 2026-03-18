@@ -477,165 +477,227 @@ export function GameProvider({
   // Initialize Game (with proper auth sequencing)
   // eslint-disable-next-line sonarjs/max-lines-per-function -- thin useEffect wrapper; inner initGame complexity annotated below
   useEffect(() => {
-    // eslint-disable-next-line sonarjs/cognitive-complexity,sonarjs/max-lines-per-function -- orchestrates sequential auth (anon sign-in, verify), challenge fetch, and game session init; steps are tightly interdependent
+    // eslint-disable-next-line sonarjs/max-lines-per-function -- initGame orchestrates sequential auth + challenge fetch; the steps are tightly interdependent and cannot be split without losing clarity
     const initGame = async () => {
+      performance.mark("eauxle:init_start");
+
       const safetyTimeout = setTimeout(() => {
         console.warn("[GameProvider] initGame safety timeout reached!");
         setLoading(false);
       }, 15_000);
 
       try {
-        // 1. Ensure Auth (Anonymous) - MUST complete before any DB operations
-        const supabase = createClient();
-        const {
-          data: { session: existingSession },
-        } = await supabase.auth.getSession();
+        await Sentry.startSpan(
+          {
+            attributes: { is_optimistic: Boolean(initialChallenge) },
+            name: "eauxle.init_game",
+            op: "game.init",
+          },
+          // eslint-disable-next-line sonarjs/cognitive-complexity,sonarjs/max-lines-per-function -- orchestrates sequential auth (anon sign-in, verify), challenge fetch, and game session init; steps are tightly interdependent
+          async () => {
+            // 1. Ensure Auth (Anonymous) - MUST complete before any DB operations
+            const supabase = createClient();
+            const {
+              data: { session: existingSession },
+            } = await supabase.auth.getSession();
+            performance.mark("eauxle:session_check_end");
+            performance.measure(
+              "eauxle.session_check",
+              "eauxle:init_start",
+              "eauxle:session_check_end",
+            );
 
-        if (existingSession) {
-          setUser(existingSession.user);
-        }
+            if (existingSession) {
+              setUser(existingSession.user);
+            }
 
-        // Track Anonymous Session for future migration (if existing)
-        if (existingSession?.user.is_anonymous) {
-          localStorage.setItem(
-            "eauxle_anon_player_id",
-            existingSession.user.id,
-          );
-        }
-
-        if (!existingSession) {
-          const { error: authError } = await supabase.auth.signInAnonymously();
-          if (authError) {
-            // Check for Captcha requirement first
-            if (
-              authError instanceof AuthApiError &&
-              authError.message.includes("captcha")
-            ) {
-              console.warn(
-                "[GameProvider] Captcha required for anonymous auth - triggering modal",
+            // Track Anonymous Session for future migration (if existing)
+            if (existingSession?.user.is_anonymous) {
+              localStorage.setItem(
+                "eauxle_anon_player_id",
+                existingSession.user.id,
               );
-              setIsCaptchaRequired(true);
-              setLoading(false);
-              clearTimeout(safetyTimeout);
-              return;
             }
 
-            console.error("Anonymous auth failed:", authError);
-            setLoading(false);
+            if (!existingSession) {
+              performance.mark("eauxle:anon_auth_start");
+              const { error: authError } = await Sentry.startSpan(
+                { name: "eauxle.anon_auth", op: "auth.anonymous" },
+                // eslint-disable-next-line sonarjs/no-nested-functions -- thin wrapper forwarding to supabase SDK; no logic inside
+                async () => supabase.auth.signInAnonymously(),
+              );
+              performance.mark("eauxle:anon_auth_end");
+              performance.measure(
+                "eauxle.anon_auth",
+                "eauxle:anon_auth_start",
+                "eauxle:anon_auth_end",
+              );
+
+              if (authError) {
+                // Check for Captcha requirement first
+                if (
+                  authError instanceof AuthApiError &&
+                  authError.message.includes("captcha")
+                ) {
+                  console.warn(
+                    "[GameProvider] Captcha required for anonymous auth - triggering modal",
+                  );
+                  setIsCaptchaRequired(true);
+                  setLoading(false);
+                  clearTimeout(safetyTimeout);
+                  return;
+                }
+
+                console.error("Anonymous auth failed:", authError);
+                setLoading(false);
+                clearTimeout(safetyTimeout);
+                return;
+              }
+
+              // Verification loop with exponential backoff: Ensure session is set in client state AND cookies
+              // getSession() reads from Supabase client state populated from cookies by @supabase/ssr.
+              performance.mark("eauxle:verify_start");
+              const { user: verifiedUser, verified } = await Sentry.startSpan(
+                { name: "eauxle.verify", op: "auth.verify" },
+                // eslint-disable-next-line sonarjs/no-nested-functions -- thin wrapper forwarding to verifyAuthSession; no logic inside
+                async () => verifyAuthSession(supabase),
+              );
+              performance.mark("eauxle:verify_end");
+              performance.measure(
+                "eauxle.verify",
+                "eauxle:verify_start",
+                "eauxle:verify_end",
+              );
+
+              if (verifiedUser != null) {
+                // Track Anonymous Session for future migration
+                if (verifiedUser.is_anonymous) {
+                  localStorage.setItem(
+                    "eauxle_anon_player_id",
+                    verifiedUser.id,
+                  );
+                }
+                setUser(verifiedUser);
+              }
+              if (!verified) {
+                console.warn(
+                  "[GameProvider] Auth session not verified after 3 attempts.",
+                );
+              }
+            }
+
+            // 2. Fetch challenge and start game
+            // Read inherited attempt count stored by MigrationModal.handleCancel
+            const storedInherited = sessionStorage.getItem(
+              "eauxle_declined_anon_attempts",
+            );
+            const parsedStored =
+              storedInherited === null
+                ? 0
+                : Number.parseInt(storedInherited, 10);
+            const inheritedCount = Math.max(
+              0,
+              Math.min(5, Number.isNaN(parsedStored) ? 0 : parsedStored),
+            );
+            if (inheritedCount > 0) {
+              sessionStorage.removeItem("eauxle_declined_anon_attempts");
+            }
+
+            // Challenge known from SSR → 0 roundtrips; partial SSR → 1 roundtrip;
+            // no SSR → initializeGame (2 roundtrips). Includes automatic retry on
+            // challenge-without-session (timing issue with cookie propagation).
+            performance.mark("eauxle:game_fetch_start");
+            const { challenge, session } = await Sentry.startSpan(
+              { name: "eauxle.game_fetch", op: "game.fetch" },
+              // eslint-disable-next-line sonarjs/no-nested-functions -- thin wrapper forwarding to fetchChallengeAndSession; no logic inside
+              async () =>
+                fetchChallengeAndSession(
+                  initialChallenge ?? undefined,
+                  initialSession ?? undefined,
+                  inheritedCount,
+                ),
+            );
+            performance.mark("eauxle:game_fetch_end");
+            performance.measure(
+              "eauxle.game_fetch",
+              "eauxle:game_fetch_start",
+              "eauxle:game_fetch_end",
+            );
+
+            if (challenge && session) {
+              captureAnalyticsEvent("daily_challenge_viewed", {
+                challenge_number: challenge.id,
+              });
+
+              // Setup Daily Perfume Clues — skip when already initialized from SSR prop.
+              // Also update when initialSession was missing at mount (skeleton was shown instead).
+              if (!initialChallenge || !initialSession) {
+                setDailyPerfume({
+                  brand: challenge.clues.brand,
+                  concentration: challenge.clues.concentration,
+                  gender: challenge.clues.gender,
+                  id: "daily",
+                  imageUrl: "/placeholder.svg", // Will be overwritten by session
+                  isLinear: challenge.clues.isLinear,
+                  name: "Mystery Perfume", // Name is secret!
+                  notes: challenge.clues.notes,
+                  perfumer: challenge.clues.perfumer,
+                  xsolve: challenge.clues.xsolve,
+                  year: challenge.clues.year,
+                });
+              }
+
+              // Skip redundant setState calls when state was already seeded from initialSession via
+              // lazy useState initializers — avoids an unnecessary re-render cycle.
+              const alreadyHydrated =
+                initialSession !== null && initialSession !== undefined;
+
+              if (!alreadyHydrated) {
+                setSessionId(session.sessionId);
+                setNonce(session.nonce);
+                if (session.imageUrl) setImageUrl(session.imageUrl);
+              }
+
+              // Restore baseAttemptCount for new sessions with no guess history
+              // (happens when player declined anonymous migration and inherited attempts)
+              if (inheritedCount > 0 && session.guesses.length === 0) {
+                setBaseAttemptCount(inheritedCount);
+              }
+
+              // If session returned answer (game over), update dailyPerfume
+              if (session.answerName) {
+                setDailyPerfume(
+                  // eslint-disable-next-line sonarjs/no-nested-functions -- functional setState updater; pure derivation with no side effects
+                  (previous) => ({
+                    ...previous,
+                    concentration: session.answerConcentration,
+                    name: session.answerName ?? "",
+                  }),
+                );
+              }
+
+              // Hydrate attempts — use the shared helper to reconstruct Attempt[] from raw guesses.
+              // If initialSession was already used in lazy useState, attempts are pre-populated
+              // and we only call setAttempts when coming from the fallback path (no initialSession).
+              if (!alreadyHydrated && session.guesses.length > 0) {
+                const enrichedAttempts = hydrateAttempts(
+                  session.guesses,
+                  challenge,
+                );
+                setAttempts(enrichedAttempts);
+
+                const lastGuess = session.guesses.at(-1);
+                if (lastGuess?.isCorrect) setGameState("won");
+                else if (session.guesses.length >= maxAttempts)
+                  setGameState("lost");
+              }
+            }
+            setSessionReady(true);
+            performance.mark("eauxle:session_ready");
             clearTimeout(safetyTimeout);
-            return;
-          }
-
-          // Verification loop with exponential backoff: Ensure session is set in client state AND cookies
-          // getSession() reads from Supabase client state populated from cookies by @supabase/ssr.
-          const { user: verifiedUser, verified } =
-            await verifyAuthSession(supabase);
-          if (verifiedUser != null) {
-            // Track Anonymous Session for future migration
-            if (verifiedUser.is_anonymous) {
-              localStorage.setItem("eauxle_anon_player_id", verifiedUser.id);
-            }
-            setUser(verifiedUser);
-          }
-          if (!verified) {
-            console.warn(
-              "[GameProvider] Auth session not verified after 3 attempts.",
-            );
-          }
-        }
-
-        // 2. Fetch challenge and start game
-        // Read inherited attempt count stored by MigrationModal.handleCancel
-        const storedInherited = sessionStorage.getItem(
-          "eauxle_declined_anon_attempts",
+            setLoading(false);
+          },
         );
-        const parsedStored =
-          storedInherited === null ? 0 : Number.parseInt(storedInherited, 10);
-        const inheritedCount = Math.max(
-          0,
-          Math.min(5, Number.isNaN(parsedStored) ? 0 : parsedStored),
-        );
-        if (inheritedCount > 0) {
-          sessionStorage.removeItem("eauxle_declined_anon_attempts");
-        }
-
-        // Challenge known from SSR → 0 roundtrips; partial SSR → 1 roundtrip;
-        // no SSR → initializeGame (2 roundtrips). Includes automatic retry on
-        // challenge-without-session (timing issue with cookie propagation).
-        const { challenge, session } = await fetchChallengeAndSession(
-          initialChallenge ?? undefined,
-          initialSession ?? undefined,
-          inheritedCount,
-        );
-
-        if (challenge && session) {
-          captureAnalyticsEvent("daily_challenge_viewed", {
-            challenge_number: challenge.id,
-          });
-
-          // Setup Daily Perfume Clues — skip when already initialized from SSR prop.
-          // Also update when initialSession was missing at mount (skeleton was shown instead).
-          if (!initialChallenge || !initialSession) {
-            setDailyPerfume({
-              brand: challenge.clues.brand,
-              concentration: challenge.clues.concentration,
-              gender: challenge.clues.gender,
-              id: "daily",
-              imageUrl: "/placeholder.svg", // Will be overwritten by session
-              isLinear: challenge.clues.isLinear,
-              name: "Mystery Perfume", // Name is secret!
-              notes: challenge.clues.notes,
-              perfumer: challenge.clues.perfumer,
-              xsolve: challenge.clues.xsolve,
-              year: challenge.clues.year,
-            });
-          }
-
-          // Skip redundant setState calls when state was already seeded from initialSession via
-          // lazy useState initializers — avoids an unnecessary re-render cycle.
-          const alreadyHydrated =
-            initialSession !== null && initialSession !== undefined;
-
-          if (!alreadyHydrated) {
-            setSessionId(session.sessionId);
-            setNonce(session.nonce);
-            if (session.imageUrl) setImageUrl(session.imageUrl);
-          }
-
-          // Restore baseAttemptCount for new sessions with no guess history
-          // (happens when player declined anonymous migration and inherited attempts)
-          if (inheritedCount > 0 && session.guesses.length === 0) {
-            setBaseAttemptCount(inheritedCount);
-          }
-
-          // If session returned answer (game over), update dailyPerfume
-          if (session.answerName) {
-            setDailyPerfume((previous) => ({
-              ...previous,
-              concentration: session.answerConcentration,
-              name: session.answerName ?? "",
-            }));
-          }
-
-          // Hydrate attempts — use the shared helper to reconstruct Attempt[] from raw guesses.
-          // If initialSession was already used in lazy useState, attempts are pre-populated
-          // and we only call setAttempts when coming from the fallback path (no initialSession).
-          if (!alreadyHydrated && session.guesses.length > 0) {
-            const enrichedAttempts = hydrateAttempts(
-              session.guesses,
-              challenge,
-            );
-            setAttempts(enrichedAttempts);
-
-            const lastGuess = session.guesses.at(-1);
-            if (lastGuess?.isCorrect) setGameState("won");
-            else if (session.guesses.length >= maxAttempts)
-              setGameState("lost");
-          }
-        }
-        setSessionReady(true);
-        clearTimeout(safetyTimeout);
-        setLoading(false);
       } catch (error) {
         console.error("Failed to init game", error);
         clearTimeout(safetyTimeout);

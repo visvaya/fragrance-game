@@ -82,6 +82,7 @@ function ImageDisplay({
         )}
         fill
         placeholder="blur"
+        priority
         quality={90}
         sizes="(max-width: 640px) 100vw, (max-width: 768px) 80vw, 400px"
         src={activeSource}
