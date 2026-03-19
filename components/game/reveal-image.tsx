@@ -80,9 +80,14 @@ function ImageDisplay({
           "object-cover transition-transform duration-700 ease-in-out",
           isZoomed ? "scale-110" : "hover:scale-110",
         )}
+        // `priority` is intentionally omitted — it registers a competing preload
+        // (without fetchpriority="high") that deduplicates and wins over the
+        // ReactDOM.preload() call in page.tsx that does have fetchpriority="high".
+        // Instead: loading="eager" prevents lazy-loading, fetchPriority="high" sets
+        // the browser fetch priority. The preload hint lives in page.tsx.
         fetchPriority="high"
         fill
-        priority
+        loading="eager"
         quality={90}
         sizes="(max-width: 640px) 100vw, (max-width: 768px) 80vw, 400px"
         src={activeSource}
