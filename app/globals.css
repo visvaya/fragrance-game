@@ -358,6 +358,21 @@ html.large-text {
   animation: flash-error 1.5s ease-out forwards;
 }
 
+/* Flash Success Animation */
+@keyframes flash-success {
+  0% {
+    background-color: oklch(0.65 0.1 140 / 0.15);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+.animate-flash-success {
+  animation: flash-success 1.5s ease-out forwards;
+}
+
 /* Content fade-in — opacity only, no transform.
    will-change pre-promotes compositor layer on mount so first scroll
    never triggers a surprise layer creation mid-scroll. */

@@ -1,10 +1,10 @@
 "use client";
 
 import type React from "react";
-// eslint-disable-next-line no-restricted-imports -- autocomplete: debounced search, keyboard nav, auto-submit, rate-limit clear, safety cleanup (dep effects)
+// eslint-disable-next-line no-restricted-imports -- autocomplete: debounced search, keyboard nav, auto-submit, rate-limit clear, safety cleanup, guess-outcome feedback (dep effects)
 import { useState, useRef, useEffect, useId, useMemo, useReducer } from "react";
 
-import { Search, Loader2, SkipForward, X, ChevronDown } from "lucide-react";
+import { Search, Loader2, SkipForward, X, ChevronDown, Check } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
@@ -168,6 +168,11 @@ export function GameInput() {
   const [pendingGuess, setPendingGuess] = useState<PerfumeSuggestion | null>(
     null,
   );
+  const [guessOutcome, setGuessOutcome] = useState<"correct" | "wrong" | null>(
+    null,
+  );
+  const hasInputInitialized = useRef(false);
+  const previousAttemptCount = useRef(attempts.length);
   const [state, dispatch] = useReducer(gameInputReducer, initialState);
   const {
     hasSearched,
@@ -348,6 +353,30 @@ export function GameInput() {
       dispatch({ type: "RESET" });
     }
   }, [gameLoading, sessionReady, sessionId, pendingGuess]);
+
+  // Track guess outcomes to show brief icon feedback on the submit button.
+  // Mirrors AttemptLog's hasInitialized pattern — ignores attempts restored on page load.
+  useEffect(() => {
+    if (!gameLoading && !hasInputInitialized.current) {
+      hasInputInitialized.current = true;
+      previousAttemptCount.current = attempts.length;
+      return;
+    }
+
+    if (
+      hasInputInitialized.current &&
+      attempts.length > previousAttemptCount.current &&
+      !gameLoading
+    ) {
+      const lastAttempt = attempts.at(-1);
+      setGuessOutcome(lastAttempt?.isCorrect ? "correct" : "wrong");
+      const timer = setTimeout(() => setGuessOutcome(null), 1500);
+      previousAttemptCount.current = attempts.length;
+      return () => clearTimeout(timer);
+    }
+
+    previousAttemptCount.current = attempts.length;
+  }, [attempts, gameLoading]);
 
   const handleSelect = async (perfume: PerfumeSuggestion) => {
     if (!authReady) {
@@ -588,11 +617,11 @@ export function GameInput() {
               />
             ) : null}
             <div className="pointer-events-none absolute top-[calc(50%+1px)] right-0.5 flex size-8 -translate-y-1/2 items-center justify-center">
-              {/* Search Icon */}
+              {/* Search Icon — hidden during loading, connecting, autocomplete error, or guess feedback */}
               <div
                 className={cn(
                   "absolute transition-all duration-300 ease-out",
-                  isNormallyVisible && !isConnecting
+                  isNormallyVisible && !isConnecting && !guessOutcome
                     ? "scale-100 rotate-0 opacity-100"
                     : "scale-50 -rotate-90 opacity-0",
                 )}
@@ -607,16 +636,40 @@ export function GameInput() {
                 </div>
               ) : null}
 
-              {/* Error Icon */}
+              {/* Autocomplete Error Icon */}
               <div
                 className={cn(
                   "absolute transition-all duration-300 ease-out",
-                  isErrorVisible
+                  isErrorVisible && !guessOutcome
                     ? "scale-100 rotate-0 opacity-100"
                     : "scale-50 rotate-90 opacity-0",
                 )}
               >
                 <X className="size-5 text-destructive" />
+              </div>
+
+              {/* Guess Wrong / Skip Icon — temporary feedback after incorrect submission */}
+              <div
+                className={cn(
+                  "absolute transition-all duration-300 ease-out",
+                  guessOutcome === "wrong"
+                    ? "scale-100 rotate-0 opacity-100"
+                    : "scale-50 rotate-90 opacity-0",
+                )}
+              >
+                <X className="size-5 text-destructive" />
+              </div>
+
+              {/* Guess Correct Icon — temporary feedback after correct submission */}
+              <div
+                className={cn(
+                  "absolute transition-all duration-300 ease-out",
+                  guessOutcome === "correct"
+                    ? "scale-100 rotate-0 opacity-100"
+                    : "scale-50 -rotate-90 opacity-0",
+                )}
+              >
+                <Check className="size-5 text-success" />
               </div>
             </div>
           </div>

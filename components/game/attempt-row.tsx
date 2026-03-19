@@ -156,6 +156,8 @@ export function AttemptRow({
     );
   }
 
+  const flashClass = attempt.isCorrect ? "animate-flash-success" : "animate-flash-error";
+
   return (
     <div className="group contents" data-attempt-row>
       <RowCell
@@ -165,9 +167,13 @@ export function AttemptRow({
         isTouch={isTouch}
         {...interactiveProperties}
       >
-        {isNew && index === totalAttempts - 1 && !attempt.isCorrect ? (
-          // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- animate-flash-error is a custom CSS animation class defined in globals.css
-          <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
+        {isNew && index === totalAttempts - 1 ? (
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-0 rounded-sm",
+              flashClass,
+            )}
+          />
         ) : null}
         <span className="block w-full pr-1 text-center text-[0.8125rem] font-normal text-muted-foreground">
           {index + 1}
@@ -180,9 +186,13 @@ export function AttemptRow({
         isTouch={isTouch}
         {...interactiveProperties}
       >
-        {isNew && index === totalAttempts - 1 && !attempt.isCorrect ? (
-          // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- animate-flash-error is a custom CSS animation class defined in globals.css
-          <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
+        {isNew && index === totalAttempts - 1 ? (
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-0 rounded-sm",
+              flashClass,
+            )}
+          />
         ) : null}
         {(() => {
           const concentration = attempt.concentration || "";
@@ -291,9 +301,13 @@ export function AttemptRow({
         isTouch={isTouch}
         {...interactiveProperties}
       >
-        {isNew && index === totalAttempts - 1 && !attempt.isCorrect ? (
-          // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- animate-flash-error is a custom CSS animation class defined in globals.css
-          <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
+        {isNew && index === totalAttempts - 1 ? (
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-0 rounded-sm",
+              flashClass,
+            )}
+          />
         ) : null}
         {/* Brand */}
         <div className="flex h-full items-center justify-center">
