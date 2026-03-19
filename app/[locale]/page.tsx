@@ -1,3 +1,5 @@
+import { preload } from "react-dom";
+
 import {
   getDailyChallengeSSR,
   getDailyStep1ImageUrl,
@@ -35,6 +37,31 @@ export default async function Home({
   const initialSession = initialChallenge
     ? await getPlayerDailySession(initialChallenge.id)
     : null;
+
+  // Inject a high-priority preload for the LCP image into <head>.
+  // next/image with `priority` auto-generates a preload link but omits fetchpriority="high"
+  // (Next.js 16 bug), causing the browser to fetch at Medium priority instead of High.
+  // Calling ReactDOM.preload() here fixes this — it hoists a <link rel="preload"
+  // fetchpriority="high" imagesrcset="..." imagesizes="..."> into the SSR <head>.
+  // The imageSizes must match the `sizes` prop on the <Image> in reveal-image.tsx.
+  if (initialImageUrl) {
+    const sizes = "(max-width: 640px) 100vw, (max-width: 768px) 80vw, 400px";
+    const imageSourceSet = [640, 750, 828, 1080, 1200]
+      .map(
+        (w) =>
+          `/_next/image?url=${encodeURIComponent(initialImageUrl)}&w=${w}&q=90 ${w}w`,
+      )
+      .join(", ");
+    preload(
+      `/_next/image?url=${encodeURIComponent(initialImageUrl)}&w=828&q=90`,
+      {
+        as: "image",
+        fetchPriority: "high",
+        imageSizes: sizes,
+        imageSrcSet: imageSourceSet,
+      },
+    );
+  }
 
   return (
     <GameProvider

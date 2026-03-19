@@ -80,6 +80,7 @@ function ImageDisplay({
           "object-cover transition-transform duration-700 ease-in-out",
           isZoomed ? "scale-110" : "hover:scale-110",
         )}
+        fetchPriority="high"
         fill
         priority
         quality={90}
