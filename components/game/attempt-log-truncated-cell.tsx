@@ -1,5 +1,6 @@
 "use client";
 
+// eslint-disable-next-line no-restricted-imports -- dom read: checks truncation overflow + debounced resize listener
 import { useRef, useState, useEffect } from "react";
 
 import { cn } from "@/lib/utils";

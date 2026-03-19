@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  // eslint-disable-next-line no-restricted-imports -- dom sync: syncs theme/layout/font to document + loads localStorage prefs on mount
   useEffect,
   useRef,
   useState,

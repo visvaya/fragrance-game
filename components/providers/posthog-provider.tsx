@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useEffect,
   useState,
   type ReactNode,
   type Dispatch,
@@ -9,6 +8,7 @@ import {
 } from "react";
 
 import { env } from "@/lib/env";
+import { useMountEffect } from "@/lib/hooks/use-mount-effect";
 
 // Module-level ref — set when PostHog initializes, used by captureAnalyticsEvent
 let _posthogInstance: {
@@ -82,7 +82,7 @@ export function PostHogProvider({
   const [phProvider, setPhProvider] = useState<React.ElementType | null>(null);
   const [phClient, setPhClient] = useState<unknown>(null);
 
-  useEffect(() => {
+  useMountEffect(() => {
     let triggered = false;
 
     const load = () => {

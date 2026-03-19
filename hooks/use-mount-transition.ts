@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports -- animation: controls mount/unmount transition timing; deps include isMounted, unmountDelay, hasTransitionedIn
 import { useEffect, useState } from "react";
 
 /**

@@ -1,5 +1,6 @@
 "use client";
 
+// eslint-disable-next-line no-restricted-imports -- scroll: auto-scroll to new attempt and on game end (dep effects)
 import { memo, useEffect, useRef, useState } from "react";
 
 import {
@@ -16,6 +17,7 @@ import { useTranslations } from "next-intl";
 import { AttemptLogSkeleton } from "@/components/game/skeletons";
 import { lenisScrollTo } from "@/components/providers/smooth-scroll-provider";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
+import { useMountEffect } from "@/lib/hooks/use-mount-effect";
 import { cn } from "@/lib/utils";
 
 import { AttemptRow } from "./attempt-row";
@@ -96,7 +98,8 @@ export const AttemptLog = memo(function AttemptLog() {
   }, [gameState, uiPreferences.autoScroll]);
 
   // Reset active row when clicking outside
-  useEffect(() => {
+  useMountEffect(() => {
+    // eslint-disable-next-line unicorn/consistent-function-scoping -- closes over isTouchReference and setActiveRowIndex from component scope
     const handleClickOutside = (e: MouseEvent) => {
       // Only handle touch interactions
       if (!isTouchReference.current) return;
@@ -112,7 +115,7 @@ export const AttemptLog = memo(function AttemptLog() {
 
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
-  }, []);
+  });
 
   if (dailyPerfume.id === "skeleton") {
     return <AttemptLogSkeleton t={t} />;

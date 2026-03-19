@@ -539,6 +539,35 @@ export default tseslint.config(
   },
 
   // ╔═══════════════════════════════════════════════════════════╗
+  // ║  11d. NO DIRECT useEffect                                 ║
+  // ║  Use useMountEffect() for empty-dep effects.             ║
+  // ║  For dep effects: extract to named hook or eslint-disable ║
+  // ╚═══════════════════════════════════════════════════════════╝
+  {
+    files: ["**/*.tsx", "**/*.ts"],
+    ignores: ["lib/hooks/use-mount-effect.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            ...DEPRECATED_REACT_IMPORTS,
+            {
+              name: "react",
+              importNames: ["useEffect"],
+              message:
+                "Direct useEffect is banned. " +
+                "Use useMountEffect() for mount-only effects (empty deps), " +
+                "or extract to a named custom hook. " +
+                "If neither applies, add eslint-disable with a category comment.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // ╔═══════════════════════════════════════════════════════════╗
   // ║  12. SERVER COMPONENTS — ban client-side hooks            ║
   // ╚═══════════════════════════════════════════════════════════╝
   {

@@ -1,5 +1,6 @@
 "use client";
 
+// eslint-disable-next-line no-restricted-imports -- subscription: onAuthStateChange listener; orchestration: async auth+challenge+session init; derived state: discoveredPerfumers
 import { useState, useEffect, useMemo, type ReactNode } from "react";
 
 import dynamic from "next/dynamic";

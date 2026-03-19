@@ -1,6 +1,7 @@
 "use client";
 
 import type React from "react";
+// eslint-disable-next-line no-restricted-imports -- autocomplete: debounced search, keyboard nav, auto-submit, rate-limit clear, safety cleanup (dep effects)
 import { useState, useRef, useEffect, useId, useMemo, useReducer } from "react";
 
 import { Search, Loader2, SkipForward, X, ChevronDown } from "lucide-react";
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useMountTransition } from "@/hooks/use-mount-transition";
 import { MASK_CHAR, BULLET_CHAR } from "@/lib/constants";
+import { useMountEffect } from "@/lib/hooks/use-mount-effect";
 import { cn, normalizeText } from "@/lib/utils";
 
 import { useGameState, useGameActions, useUIPreferences } from "./contexts";
@@ -310,7 +312,8 @@ export function GameInput() {
   }, [selectedIndex]);
 
   // Handle click outside
-  useEffect(() => {
+  useMountEffect(() => {
+    // eslint-disable-next-line unicorn/consistent-function-scoping -- closes over wrapperReference and dispatch from component scope
     function handleClickOutside(event: MouseEvent) {
       if (
         wrapperReference.current &&
@@ -321,7 +324,7 @@ export function GameInput() {
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  });
 
   // Auto-submit pending guess once auth JWT is ready (Gate 6: authReady replaces sessionId).
   // makeGuess handles lazy startGame when sessionId is still null.

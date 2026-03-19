@@ -1,5 +1,6 @@
 "use client";
 
+// eslint-disable-next-line no-restricted-imports -- image crossfade: coordinates crossfade transitions on targetSource change + cleanup
 import { useState, useRef, useCallback, useEffect } from "react";
 
 import Image from "next/image";

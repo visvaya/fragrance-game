@@ -1,5 +1,6 @@
 "use client";
 
+// eslint-disable-next-line no-restricted-imports -- dom read: reads localStorage on mount; dismisses help hint on input focus
 import { useState, useEffect } from "react";
 
 import dynamic from "next/dynamic";

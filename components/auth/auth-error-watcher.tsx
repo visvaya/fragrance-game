@@ -1,5 +1,6 @@
 "use client";
 
+// eslint-disable-next-line no-restricted-imports -- url params: watches URL search params and hash for Supabase auth errors
 import { Suspense, useEffect } from "react";
 
 import { useSearchParams } from "next/navigation";

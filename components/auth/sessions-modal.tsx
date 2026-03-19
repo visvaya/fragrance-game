@@ -1,5 +1,6 @@
 "use client";
 
+// eslint-disable-next-line no-restricted-imports -- data fetch: fetches user sessions when modal opens
 import { useEffect, useState } from "react";
 
 import { formatDistanceToNow } from "date-fns";

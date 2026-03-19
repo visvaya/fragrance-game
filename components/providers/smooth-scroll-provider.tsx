@@ -1,8 +1,10 @@
 "use client";
 
-import { type ReactNode, useEffect } from "react";
+import type { ReactNode } from "react";
 
 import Lenis from "lenis";
+
+import { useMountEffect } from "@/lib/hooks/use-mount-effect";
 
 let lenis: Lenis | null = null;
 
@@ -55,7 +57,7 @@ function initLenis() {
 export function SmoothScrollProvider({
   children,
 }: Readonly<{ children: ReactNode }>) {
-  useEffect(() => {
+  useMountEffect(() => {
     // Skip Lenis entirely on mobile — no init, no RAF loop, no MutationObserver
     // eslint-disable-next-line unicorn/prefer-global-this -- typeof window required for SSR safety (ReferenceError-safe)
     if (typeof window !== "undefined" && globalThis.window.innerWidth < 1024) {

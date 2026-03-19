@@ -1,5 +1,6 @@
 "use client";
 
+// eslint-disable-next-line no-restricted-imports -- animation: triggers confetti/animateGameOver on playing→won/lost transition
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { useTranslations } from "next-intl";

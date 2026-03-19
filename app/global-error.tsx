@@ -1,5 +1,6 @@
 "use client";
 
+// eslint-disable-next-line no-restricted-imports -- error boundary: captures error prop changes via Sentry
 import { useEffect } from "react";
 
 import Error from "next/error";

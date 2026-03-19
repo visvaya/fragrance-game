@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useCallback,
+  // eslint-disable-next-line no-restricted-imports -- cleanup: rate-limit timer cleanup on unmount
   useEffect,
   useMemo,
   useRef,

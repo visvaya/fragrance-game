@@ -1,5 +1,6 @@
 "use client";
 
+// eslint-disable-next-line no-restricted-imports -- scroll listener: attaches passive scroll event listener; deps include threshold
 import { useState, useEffect } from "react";
 
 /**

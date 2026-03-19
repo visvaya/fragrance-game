@@ -1,5 +1,6 @@
 "use client";
 
+// eslint-disable-next-line no-restricted-imports -- subscription: listens to localStorage anon player ID to trigger migration modal
 import { useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
