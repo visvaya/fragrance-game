@@ -309,21 +309,6 @@ export function GameInput() {
     }
   }, [selectedIndex]);
 
-  // Scroll input into view on mobile focus
-  useEffect(() => {
-    if (isFocused && globalThis.window.innerWidth < 640) {
-      const timer = setTimeout(() => {
-        // block: "center" is safer as it puts the input
-        // in the middle of the remaining visual viewport
-        wrapperReference.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [isFocused]);
-
   // Handle click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

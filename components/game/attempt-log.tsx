@@ -19,7 +19,7 @@ import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
 import { cn } from "@/lib/utils";
 
 import { AttemptRow } from "./attempt-row";
-import { useGameState } from "./contexts";
+import { useGameState, useUIPreferences } from "./contexts";
 import { GameTooltip } from "./game-tooltip";
 
 /**
@@ -28,6 +28,7 @@ import { GameTooltip } from "./game-tooltip";
 export const AttemptLog = memo(function AttemptLog() {
   const { attempts, dailyPerfume, gameState, loading, maxAttempts } =
     useGameState();
+  const { uiPreferences } = useUIPreferences();
   const t = useTranslations("AttemptLog");
   const { handlePointerDown: handleIconTap, scaled: iconScaled } =
     useScaleOnTap();
@@ -36,10 +37,8 @@ export const AttemptLog = memo(function AttemptLog() {
   // After that, loading cycles true→false only during guess submissions, which is exactly
   // when we want the scroll/flash to fire.
   const hasInitialized = useRef(false);
-  // Counts how many times loading has transitioned to false.
-  // First transition = initial restore (count=1). Second+ = in-session action (guess/skip).
-  // Scroll-to-top on game end fires only when count > 1, preventing spurious scroll on restore.
-  const loadingTransitionCount = useRef(0);
+  // Tracks previous gameState to detect playing→won/lost transition in-session only.
+  const previousGameStateReference = useRef<string | null>(null);
   const [activeRowIndex, setActiveRowIndex] = useState<number | null>(null);
   // Index of the attempt that was just submitted in this session.
   // Stays null for attempts restored from session on page load, so
@@ -51,11 +50,6 @@ export const AttemptLog = memo(function AttemptLog() {
   // Scroll to new attempt and mark it as new (enables flash animation).
   // Only fires when a genuine new attempt is submitted, not on initial session restore.
   useEffect(() => {
-    // Track every loading→false transition. First one = initial restore, subsequent = in-session.
-    if (!loading) {
-      loadingTransitionCount.current += 1;
-    }
-
     // First loading→false = initial restore complete. Sync attempts count and bail out
     // so we never scroll/flash for attempts that were restored from the server.
     if (!loading && !hasInitialized.current) {
@@ -72,34 +66,34 @@ export const AttemptLog = memo(function AttemptLog() {
     ) {
       const lastIndex = attempts.length - 1;
       setNewAttemptIndex(lastIndex);
-      const element = document.querySelector(`#attempt-${lastIndex}`);
-      if (element) {
-        const scrollTimer = setTimeout(() => {
-          element.scrollIntoView({ behavior: "smooth", block: "center" });
-        }, 100);
-        return () => clearTimeout(scrollTimer);
+      if (uiPreferences.autoScroll) {
+        const element = document.querySelector(`#attempt-${lastIndex}`);
+        if (element) {
+          const scrollTimer = setTimeout(() => {
+            element.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 100);
+          return () => clearTimeout(scrollTimer);
+        }
       }
     }
     previousAttemptsLength.current = attempts.length;
-  }, [attempts.length, gameState, loading]);
+  }, [attempts.length, gameState, loading, uiPreferences.autoScroll]);
 
-  // Scroll to top on game end — only when game JUST ended in this session.
-  // loadingTransitionCount > 1 ensures we skip the first loading cycle (= page restore).
-  // The first loading→false always has count=1 (restore). In-session actions produce count>=2.
-  // This works for both SSR path (gameState="won" from mount, loading cycles separately)
-  // and non-SSR path (gameState + loading both change in the same batched render).
+  // Scroll to top on game end — only when game JUST ended in this session (playing→won/lost).
+  // previousGameStateReference guards against spurious scroll on page restore where gameState is
+  // already "won"/"lost" from mount (previousGameStateReference.current stays null).
   useEffect(() => {
-    if (
-      (gameState === "won" || gameState === "lost") &&
-      loadingTransitionCount.current > 1
-    ) {
-      // Small delay to ensure any end-game UI updates have triggered
+    const justEnded =
+      previousGameStateReference.current === "playing" &&
+      (gameState === "won" || gameState === "lost");
+    previousGameStateReference.current = gameState;
+    if (justEnded && uiPreferences.autoScroll) {
       const endTimer = setTimeout(() => {
         lenisScrollTo(0);
       }, 300);
       return () => clearTimeout(endTimer);
     }
-  }, [gameState]);
+  }, [gameState, uiPreferences.autoScroll]);
 
   // Reset active row when clicking outside
   useEffect(() => {

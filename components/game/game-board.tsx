@@ -19,7 +19,7 @@ import { RevealImage } from "./reveal-image";
  * Main game board, integrating all sections (image, clues, log, input).
  */
 export function GameBoard() {
-  const { dailyPerfume, gameState, loading, xsolveScore } = useGameState();
+  const { dailyPerfume, gameState, xsolveScore } = useGameState();
   const isContentReady = dailyPerfume.id !== "skeleton";
 
   // Animate skeleton→real transition only for non-SSR users (where skeleton was actually shown).
@@ -42,28 +42,18 @@ export function GameBoard() {
   // Fires animate-in only when game ends in-session (playing→won/lost), not on page restore.
   const [animateGameOver, setAnimateGameOver] = useState(false);
   const previousGameState = useRef<string | null>(null);
-  // Counts loading→false transitions. First = page restore, second+ = in-session action.
-  // Same pattern as attempt-log.tsx — confetti only fires when count > 1.
-  const loadingTransitionCount = useRef(0);
 
   useEffect(() => {
-    if (!loading) {
-      loadingTransitionCount.current += 1;
-    }
-  }, [loading]);
-
-  useEffect(() => {
-    if (
+    const justEnded =
       previousGameState.current === "playing" &&
-      (gameState === "won" || gameState === "lost")
-    ) {
+      (gameState === "won" || gameState === "lost");
+    const justWon =
+      previousGameState.current === "playing" && gameState === "won";
+    previousGameState.current = gameState;
+    if (justEnded) {
       setAnimateGameOver(true);
     }
-    previousGameState.current = gameState;
-  }, [gameState]);
-
-  useEffect(() => {
-    if (gameState === "won" && loadingTransitionCount.current > 1) {
+    if (justWon) {
       setShowConfetti(true);
       const timeout = setTimeout(() => setShowConfetti(false), 2800);
       return () => clearTimeout(timeout);

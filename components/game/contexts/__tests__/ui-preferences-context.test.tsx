@@ -65,6 +65,7 @@ describe("UIPreferencesContext", () => {
     });
 
     expect(result.current.uiPreferences).toEqual({
+      autoScroll: true,
       fontScale: "normal",
       layoutMode: "narrow",
       theme: "light",
@@ -163,6 +164,7 @@ describe("UIPreferencesContext", () => {
 
     await waitFor(() => {
       expect(result.current.uiPreferences).toEqual({
+        autoScroll: true,
         fontScale: "large",
         layoutMode: "wide",
         theme: "dark",
@@ -198,6 +200,7 @@ describe("UIPreferencesContext", () => {
   it("should return SSR defaults when used outside provider", () => {
     const { result } = renderHook(() => useUIPreferences());
     expect(result.current.uiPreferences).toEqual({
+      autoScroll: true,
       fontScale: "normal",
       layoutMode: "narrow",
       theme: "light",

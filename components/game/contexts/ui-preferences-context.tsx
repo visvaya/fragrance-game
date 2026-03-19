@@ -13,10 +13,12 @@ import {
 type UIPreferencesContextType = {
   isInputFocused: boolean;
   setIsInputFocused: (focused: boolean) => void;
+  toggleAutoScroll: () => void;
   toggleFontScale: () => void;
   toggleLayoutMode: () => void;
   toggleTheme: () => void;
   uiPreferences: {
+    autoScroll: boolean;
     fontScale: "normal" | "large";
     layoutMode: "narrow" | "wide";
     theme: "light" | "dark";
@@ -28,6 +30,9 @@ const SSR_DEFAULTS: UIPreferencesContextType = {
   setIsInputFocused: () => {
     /* Default */
   },
+  toggleAutoScroll: () => {
+    /* Default */
+  },
   toggleFontScale: () => {
     /* Default */
   },
@@ -37,7 +42,12 @@ const SSR_DEFAULTS: UIPreferencesContextType = {
   toggleTheme: () => {
     /* Default */
   },
-  uiPreferences: { fontScale: "normal", layoutMode: "narrow", theme: "light" },
+  uiPreferences: {
+    autoScroll: true,
+    fontScale: "normal",
+    layoutMode: "narrow",
+    theme: "light",
+  },
 };
 
 const UIPreferencesContext =
@@ -51,10 +61,12 @@ export function UIPreferencesProvider({
   children,
 }: Readonly<{ children: ReactNode }>) {
   const [preferences, setPreferences] = useState<{
+    autoScroll: boolean;
     fontScale: "normal" | "large";
     layoutMode: "narrow" | "wide";
     theme: "light" | "dark";
   }>({
+    autoScroll: true,
     fontScale: "normal",
     layoutMode: "narrow",
     theme: "light",
@@ -69,6 +81,14 @@ export function UIPreferencesProvider({
   const hasHydratedPreferences = useRef(false);
 
   const [isInputFocused, setIsInputFocused] = useState(false);
+
+  const toggleAutoScroll = useCallback(() => {
+    setPreferences((previous) => {
+      const next = !previous.autoScroll;
+      localStorage.setItem("fragrance-game-auto-scroll", next ? "1" : "0");
+      return { ...previous, autoScroll: next };
+    });
+  }, []);
 
   const toggleTheme = useCallback(() => {
     setPreferences((previous) => {
@@ -137,6 +157,9 @@ export function UIPreferencesProvider({
         | "light"
         | "dark"
         | null;
+      const savedAutoScroll = localStorage.getItem(
+        "fragrance-game-auto-scroll",
+      );
 
       // Auto-detect system dark mode if no preference is saved
       const systemDark = globalThis.matchMedia(
@@ -154,9 +177,14 @@ export function UIPreferencesProvider({
           savedLayout ??
           (window.innerWidth >= 1024 ? "wide" : previous.layoutMode);
         const nextTheme = savedTheme ?? defaultTheme;
+        const nextAutoScroll =
+          savedAutoScroll === null
+            ? previous.autoScroll
+            : savedAutoScroll === "1";
 
         // Skip update if nothing changed — avoids unnecessary re-render and LCP repaint
         if (
+          nextAutoScroll === previous.autoScroll &&
           nextFont === previous.fontScale &&
           nextLayout === previous.layoutMode &&
           nextTheme === previous.theme
@@ -165,6 +193,7 @@ export function UIPreferencesProvider({
         }
 
         return {
+          autoScroll: nextAutoScroll,
           fontScale: nextFont,
           layoutMode: nextLayout,
           theme: nextTheme,
@@ -176,6 +205,7 @@ export function UIPreferencesProvider({
   const value = {
     isInputFocused,
     setIsInputFocused,
+    toggleAutoScroll,
     toggleFontScale,
     toggleLayoutMode,
     toggleTheme,
