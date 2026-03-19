@@ -53,6 +53,9 @@ export function GameTooltip({
 }: Readonly<GameTooltipProperties>) {
   const [open, setOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  // Mount TooltipContent only after first interaction — avoids Radix Presence
+  // mounting all tooltip contents on page load (134ms forced reflow from getComputedStyle).
+  const [hasOpenedOnce, setHasOpenedOnce] = useState(false);
   const t = useTranslations("GameTooltip");
   // Ref to track if the interaction is touch-based.
   // This prevents the onFocus handler from overriding the onClick toggle on mobile.
@@ -98,10 +101,12 @@ export function GameTooltip({
             // We prevent default to avoid issues with nested buttons if any
             e.preventDefault();
             e.stopPropagation();
+            setHasOpenedOnce(true);
             setOpen((previous) => !previous);
           }}
           onFocus={() => {
             if (isTouchReference.current) return;
+            setHasOpenedOnce(true);
             setOpen(true);
           }}
           onKeyDown={(e) => {
@@ -121,6 +126,7 @@ export function GameTooltip({
             isTouchReference.current = false;
             setIsTouch(false);
             setIsHovered(true);
+            setHasOpenedOnce(true);
             setOpen(true);
           }}
           onPointerLeave={(e) => {
@@ -139,18 +145,20 @@ export function GameTooltip({
             : children}
         </div>
       </TooltipTrigger>
-      <TooltipContent
-        // Ensure z-index is correct (Dropdown layer)
-        className="pointer-events-none z-[60] max-w-[12.5rem] text-center select-none"
-        // Prevent tooltip from closing on tap inside (if user taps it by mistake)
-        onPointerDownOutside={(_e) => {
-          // Close on tap outside
-          setOpen(false);
-        }}
-        sideOffset={sideOffset}
-      >
-        {content}
-      </TooltipContent>
+      {hasOpenedOnce ? (
+        <TooltipContent
+          // Ensure z-index is correct (Dropdown layer)
+          className="pointer-events-none z-[60] max-w-[12.5rem] text-center select-none"
+          // Prevent tooltip from closing on tap inside (if user taps it by mistake)
+          onPointerDownOutside={(_e) => {
+            // Close on tap outside
+            setOpen(false);
+          }}
+          sideOffset={sideOffset}
+        >
+          {content}
+        </TooltipContent>
+      ) : null}
     </Tooltip>
   );
 }

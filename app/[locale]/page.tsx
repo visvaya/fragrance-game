@@ -36,46 +36,22 @@ export default async function Home({
     ? await getPlayerDailySession(initialChallenge.id)
     : null;
 
-  // Responsive preload for the LCP image. Generates srcset matching all breakpoints
-  // that Next.js image optimizer may request (640w for Lighthouse 412px×1x,
-  // 828w for Android 414px×2x, etc.). Prevents double-download from mismatched w= param.
-  const preloadSourceSet = initialImageUrl
-    ? [640, 750, 828, 1080, 1200]
-        .map(
-          (w) =>
-            `/_next/image?url=${encodeURIComponent(initialImageUrl)}&w=${w}&q=90 ${w}w`,
-        )
-        .join(", ")
-    : null;
-
   return (
-    <>
-      {initialImageUrl && preloadSourceSet ? (
-        <link
-          as="image"
-          fetchPriority="high"
-          href={`/_next/image?url=${encodeURIComponent(initialImageUrl)}&w=640&q=90`}
-          imageSizes="(max-width: 640px) 100vw, (max-width: 768px) 80vw, 400px"
-          imageSrcSet={preloadSourceSet}
-          rel="preload"
-        />
-      ) : null}
-      <GameProvider
-        initialChallenge={initialChallenge}
-        initialImageUrl={initialImageUrl}
-        initialSession={initialSession}
-      >
-        <div className="flex min-h-[100dvh] w-full flex-col items-center">
-          <GameHeader />
-          <main className="flex w-full flex-1 flex-col items-center px-0 pt-6 pb-0">
-            <div className="flex w-full flex-1 flex-col items-center px-0 pb-6">
-              <GameBoard />
-            </div>
-            <GameInput />
-          </main>
-          <GameFooter />
-        </div>
-      </GameProvider>
-    </>
+    <GameProvider
+      initialChallenge={initialChallenge}
+      initialImageUrl={initialImageUrl}
+      initialSession={initialSession}
+    >
+      <div className="flex min-h-[100dvh] w-full flex-col items-center">
+        <GameHeader />
+        <main className="flex w-full flex-1 flex-col items-center px-0 pt-6 pb-0">
+          <div className="flex w-full flex-1 flex-col items-center px-0 pb-6">
+            <GameBoard />
+          </div>
+          <GameInput />
+        </main>
+        <GameFooter />
+      </div>
+    </GameProvider>
   );
 }

@@ -9,9 +9,10 @@ import {
   HelpCircle,
   BarChart3,
   ChevronDown,
+  ChevronsUpDown,
   Monitor,
-  Type,
   Moon,
+  Type,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -20,6 +21,7 @@ import { useScrollDirection } from "@/hooks/use-scroll-direction";
 import { usePathname, useRouter, routing, localeNames } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
+import { useUIPreferences } from "./contexts";
 import { useGame } from "./game-provider";
 import { GameTooltip } from "./game-tooltip";
 import { MobileResetItem } from "./mobile-reset-item";
@@ -57,18 +59,40 @@ const AuthModal = dynamic(
   { ssr: false },
 );
 
+/** Reusable toggle pill used in the appearance settings section. */
+function TogglePill({ isOn }: { readonly isOn: boolean }) {
+  return (
+    <div
+      className={cn(
+        "relative h-4 w-8 rounded-full transition-colors",
+        isOn ? "bg-primary" : "bg-muted-foreground/30",
+      )}
+    >
+      <div
+        className={cn(
+          "absolute top-0.5 size-3 rounded-full bg-white transition-all",
+          isOn ? "left-4.5" : "left-0.5",
+        )}
+      />
+    </div>
+  );
+}
+
 /**
  * Game header bar, containing logo, settings menu, help, and statistics.
  */
 export function GameHeader() {
   const {
+    toggleAutoScroll,
     toggleFontScale,
     toggleLayoutMode,
     toggleTheme,
     uiPreferences,
     user,
   } = useGame();
+  const { isInputFocused } = useUIPreferences();
   const isScrollHidden = useScrollDirection();
+  const [showHelpHint, setShowHelpHint] = useState(false);
   const [modals, setModals] = useState({
     authOpen: false,
     authView: "login" as "login" | "register",
@@ -94,18 +118,27 @@ export function GameHeader() {
   const locale = useLocale();
   const t = useTranslations("Header");
   useEffect(() => {
-    // Show help modal on first visit. We intentionally do NOT write
-    // eauxle:hasVisited here — it's written when the modal is closed.
-    // This way React StrictMode's simulated remount (which resets state)
-    // doesn't prevent the modal from reopening after the simulated unmount.
+    // Show help hint badge on first visit instead of auto-opening the modal.
+    // Avoids Radix FocusScope scan (~89ms forced reflow) on page load.
     try {
       if (!localStorage.getItem("eauxle:hasVisited")) {
-        setModals((previous) => ({ ...previous, helpOpen: true }));
+        setShowHelpHint(true);
       }
     } catch {
       // localStorage may be unavailable in some environments
     }
   }, []);
+
+  // Dismiss hint when user focuses the input (they've found the game on their own).
+  useEffect(() => {
+    if (!showHelpHint || !isInputFocused) return;
+    setShowHelpHint(false);
+    try {
+      localStorage.setItem("eauxle:hasVisited", "1");
+    } catch {
+      // localStorage may be unavailable in some environments
+    }
+  }, [showHelpHint, isInputFocused]);
 
   const currentLang = locale.toUpperCase();
 
@@ -163,11 +196,18 @@ export function GameHeader() {
               <button
                 aria-label={t("help")}
                 className="relative rounded-sm p-2 text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
-                onClick={() =>
-                  setModals((previous) => ({ ...previous, helpOpen: true }))
-                }
+                onClick={() => {
+                  setShowHelpHint(false);
+                  setModals((previous) => ({ ...previous, helpOpen: true }));
+                }}
               >
                 <HelpCircle className="size-5" />
+                {showHelpHint ? (
+                  <span aria-hidden="true" className="absolute top-1 right-1">
+                    <span className="absolute inline-flex size-2 animate-ping rounded-full bg-primary opacity-75" />
+                    <span className="relative inline-flex size-2 rounded-full bg-primary" />
+                  </span>
+                ) : null}
               </button>
             </GameTooltip>
           </div>
@@ -346,23 +386,7 @@ export function GameHeader() {
                     <Monitor className="size-4 text-muted-foreground transition-colors group-hover:text-primary" />
                     <span className="font-sans text-xs">{t("wideLayout")}</span>
                   </div>
-                  <div
-                    className={cn(
-                      "relative h-4 w-8 rounded-full transition-colors",
-                      uiPreferences.layoutMode === "wide"
-                        ? "bg-primary"
-                        : "bg-muted-foreground/30",
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "absolute top-0.5 size-3 rounded-full bg-white text-xs transition-all",
-                        uiPreferences.layoutMode === "wide"
-                          ? "left-4.5"
-                          : "left-0.5",
-                      )}
-                    />
-                  </div>
+                  <TogglePill isOn={uiPreferences.layoutMode === "wide"} />
                 </button>
 
                 {/* Large Text Toggle */}
@@ -374,23 +398,7 @@ export function GameHeader() {
                     <Type className="size-4 text-muted-foreground transition-colors group-hover:text-primary" />
                     <span className="font-sans text-xs">{t("largeText")}</span>
                   </div>
-                  <div
-                    className={cn(
-                      "relative h-4 w-8 rounded-full transition-colors",
-                      uiPreferences.fontScale === "large"
-                        ? "bg-primary"
-                        : "bg-muted-foreground/30",
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "absolute top-0.5 size-3 rounded-full bg-white transition-all",
-                        uiPreferences.fontScale === "large"
-                          ? "left-4.5"
-                          : "left-0.5",
-                      )}
-                    />
-                  </div>
+                  <TogglePill isOn={uiPreferences.fontScale === "large"} />
                 </button>
 
                 {/* Dark Mode Toggle */}
@@ -402,23 +410,19 @@ export function GameHeader() {
                     <Moon className="size-4 text-muted-foreground transition-colors group-hover:text-primary" />
                     <span className="font-sans text-xs">{t("darkMode")}</span>
                   </div>
-                  <div
-                    className={cn(
-                      "relative h-4 w-8 rounded-full transition-colors",
-                      uiPreferences.theme === "dark"
-                        ? "bg-primary"
-                        : "bg-muted-foreground/30",
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "absolute top-0.5 size-3 rounded-full bg-white transition-all",
-                        uiPreferences.theme === "dark"
-                          ? "left-[18px]"
-                          : "left-0.5",
-                      )}
-                    />
+                  <TogglePill isOn={uiPreferences.theme === "dark"} />
+                </button>
+
+                {/* Auto Scroll Toggle */}
+                <button
+                  className="group flex w-full items-center justify-between text-foreground transition-colors hover:text-primary"
+                  onClick={toggleAutoScroll}
+                >
+                  <div className="flex items-center gap-2">
+                    <ChevronsUpDown className="size-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                    <span className="font-sans text-xs">{t("autoScroll")}</span>
                   </div>
+                  <TogglePill isOn={uiPreferences.autoScroll} />
                 </button>
               </div>
             </div>
