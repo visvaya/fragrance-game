@@ -1,5 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
+// Mock next/headers (used by autocomplete for IP-based rate limiting)
+vi.mock("next/headers", () => ({
+  headers: vi.fn().mockResolvedValue(new Map()),
+}));
+
 // Mock dependencies
 vi.mock("@/lib/redis", () => ({
   checkRateLimit: vi.fn().mockResolvedValue(true),
@@ -143,7 +148,7 @@ describe("autocomplete", () => {
         expect(checkRateLimit).toHaveBeenCalledWith("autocomplete", "user-123");
       });
 
-      it("skips rate limit check for anonymous user", async () => {
+      it("applies IP-based rate limit for anonymous user on cache miss", async () => {
         const mockSupabaseClient = {
           auth: {
             getUser: vi.fn().mockResolvedValue({
@@ -158,7 +163,8 @@ describe("autocomplete", () => {
 
         await searchPerfumes("Chanel");
 
-        expect(checkRateLimit).not.toHaveBeenCalled();
+        // Gate 6: anonymous users now get IP-based rate limiting on cache miss
+        expect(checkRateLimit).toHaveBeenCalledWith("autocomplete_anon", expect.any(String));
       });
 
       it("throws error when rate limit exceeded", async () => {

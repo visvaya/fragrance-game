@@ -17,6 +17,7 @@ type AuthCaptchaModalProperties = {
   readonly onVerify: (token: string) => void;
 };
 
+/** Modal dialog displaying the Cloudflare Turnstile captcha for anonymous authentication. */
 export function AuthCaptchaModal({
   isOpen,
   onVerify,

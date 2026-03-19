@@ -82,7 +82,7 @@ type AttemptFeedback = {
   yearMatch: "correct" | "close" | "wrong";
 };
 
-type GuessResult = {
+export type SubmitGuessResult = {
   answerConcentration?: string;
   answerName?: string;
   feedback: AttemptFeedback;
@@ -102,7 +102,7 @@ type GuessResult = {
   revealState: RevealState;
 };
 
-type SkipResult = {
+export type SkipAttemptResult = {
   answerConcentration?: string;
   answerName?: string;
   gameStatus: "active" | "won" | "lost";
@@ -778,7 +778,7 @@ export async function submitGuess(
   sessionId: string,
   perfumeId: string,
   clientNonce: string,
-): Promise<GuessResult> {
+): Promise<SubmitGuessResult> {
   if (!uuidSchema.safeParse(sessionId).success) {
     throw new Error("Invalid session ID");
   }
@@ -848,7 +848,7 @@ export async function submitGuess(
         yearDirection: "equal",
         yearMatch: "wrong",
       },
-      gameStatus: session.status as GuessResult["gameStatus"],
+      gameStatus: session.status as SubmitGuessResult["gameStatus"],
       hasGuessedNotes: false,
       newNonce: String(session.last_nonce),
       result: "incorrect",
@@ -923,7 +923,7 @@ export async function submitGuess(
     timestamp: new Date().toISOString(),
   };
 
-  const newStatus: GuessResult["gameStatus"] = (() => {
+  const newStatus: SubmitGuessResult["gameStatus"] = (() => {
     if (!isGameOver) return "active";
     return isCorrect ? "won" : "lost";
   })();
@@ -1132,7 +1132,7 @@ async function recordSkipLoss(
 export async function skipAttempt(
   sessionId: string,
   clientNonce: string,
-): Promise<SkipResult> {
+): Promise<SkipAttemptResult> {
   if (!uuidSchema.safeParse(sessionId).success) {
     throw new Error("Invalid session ID");
   }
@@ -1463,4 +1463,58 @@ export async function getPlayerDailySession(
     // Graceful degradation: if anything fails, GameProvider falls back to client-side init
     return null;
   }
+}
+
+/**
+ * Gate 6 — Lazy init: atomically creates a game session and submits the first guess.
+ * Called when the user makes their first guess before a session exists (deferred startGame).
+ * Combines startGame + submitGuess into a single server roundtrip.
+ */
+export async function initializeAndGuess(
+  challengeId: string,
+  perfumeId: string,
+  inheritedCount: number,
+): Promise<{
+  guessResult: SubmitGuessResult;
+  imageUrl: string | null;
+  nonce: string;
+  sessionId: string;
+}> {
+  const validatedChallengeId = uuidSchema.parse(challengeId);
+  const validatedPerfumeId = uuidSchema.parse(perfumeId);
+  const validatedInheritedCount = z.number().int().min(0).parse(inheritedCount);
+  const session = await startGame(validatedChallengeId, validatedInheritedCount);
+  const guessResult = await submitGuess(session.sessionId, validatedPerfumeId, session.nonce);
+  return {
+    guessResult,
+    imageUrl: guessResult.imageUrl ?? session.imageUrl ?? null,
+    nonce: guessResult.newNonce,
+    sessionId: session.sessionId,
+  };
+}
+
+/**
+ * Gate 6 — Lazy init: atomically creates a game session and skips the first attempt.
+ * Called when the user skips before a session exists (deferred startGame).
+ * Combines startGame + skipAttempt into a single server roundtrip.
+ */
+export async function initializeAndSkip(
+  challengeId: string,
+  inheritedCount: number,
+): Promise<{
+  imageUrl: string | null;
+  nonce: string;
+  sessionId: string;
+  skipResult: SkipAttemptResult;
+}> {
+  const validatedChallengeId = uuidSchema.parse(challengeId);
+  const validatedInheritedCount = z.number().int().min(0).parse(inheritedCount);
+  const session = await startGame(validatedChallengeId, validatedInheritedCount);
+  const skipResult = await skipAttempt(session.sessionId, session.nonce);
+  return {
+    imageUrl: skipResult.imageUrl ?? session.imageUrl ?? null,
+    nonce: skipResult.newNonce,
+    sessionId: session.sessionId,
+    skipResult,
+  };
 }

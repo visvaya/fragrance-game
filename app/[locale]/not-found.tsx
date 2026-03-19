@@ -1,3 +1,4 @@
+/** Renders a localized 404 page for unmatched routes. */
 export default function NotFound() {
   // This page is a catch-all for invalid routes within the localized path.
   // It shouldn't contain much logic as it's just a 404.

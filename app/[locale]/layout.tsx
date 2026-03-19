@@ -11,8 +11,8 @@ import { getTranslations, getMessages } from "next-intl/server";
 import { AuthErrorWatcher } from "@/components/auth/auth-error-watcher";
 import { UIPreferencesProvider } from "@/components/game/contexts/ui-preferences-context";
 import { AnalyticsProviders } from "@/components/providers/analytics-providers";
+import { LazyToaster } from "@/components/providers/lazy-toaster";
 import { SmoothScrollProvider } from "@/components/providers/smooth-scroll-provider";
-import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { routing } from "@/i18n/routing";
 import { env } from "@/lib/env";
@@ -29,7 +29,7 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   display: "swap",
-  preload: true,
+  preload: false, // mono font is not an LCP candidate — skip competing preload
   subsets: ["latin", "latin-ext"],
   variable: "--font-geist-mono",
 });
@@ -43,7 +43,7 @@ const playfair = Playfair_Display({
 
 const caveat = Caveat({
   display: "swap",
-  preload: true,
+  preload: false, // accent font is not an LCP candidate — skip competing preload
   subsets: ["latin", "latin-ext"],
   variable: "--font-caveat",
   weight: ["400"],
@@ -84,6 +84,7 @@ export async function generateMetadata({
   };
 }
 
+/** Generates the viewport configuration. Required for Next.js 16 metadata API. */
 export async function generateViewport({
   params,
 }: {
@@ -174,7 +175,7 @@ export default async function RootLayout({
                   {children}
                 </TooltipProvider>
                 <AuthErrorWatcher />
-                <Toaster />
+                <LazyToaster />
               </SmoothScrollProvider>
             </UIPreferencesProvider>
           </AnalyticsProviders>

@@ -31,7 +31,8 @@
       "skipped": "Skipped",
       "skipConfirmTitle": "Skip this attempt?",
       "skipConfirmCancel": "Cancel",
-      "skipConfirmConfirm": "Skip"
+      "skipConfirmConfirm": "Skip",
+      "connectingHint": "Submitting when ready..."
     }
   },
   "Header": {

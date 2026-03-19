@@ -32,6 +32,7 @@ type SessionCardProperties = {
   readonly session: Session;
 };
 
+/** Displays a single user session with device info, IP, and a revoke button. */
 export function SessionCard({
   isCurrent,
   onRevoke,

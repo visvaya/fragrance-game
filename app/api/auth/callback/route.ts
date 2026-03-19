@@ -11,6 +11,7 @@ function isValidRedirectUrl(url: string): boolean {
   return /^\/(?!\/)/.test(url);
 }
 
+/** Handles the Supabase OAuth callback: exchanges the code for a session and patches session metadata. */
 export async function GET(request: Request): Promise<Response> {
   const { origin, searchParams } = new URL(request.url);
   const code = searchParams.get("code");

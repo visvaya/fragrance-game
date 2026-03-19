@@ -26,6 +26,7 @@ async function revokeSession(sessionId: string) {
   revalidatePath("/account/sessions");
 }
 
+/** Displays all active sessions for the authenticated user with option to revoke each. */
 export default async function SessionsPage() {
   const supabase = await createClient();
   const t = await getTranslations("Sessions");

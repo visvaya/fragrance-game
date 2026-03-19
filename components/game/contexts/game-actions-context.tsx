@@ -5,6 +5,7 @@ import {
   useContext,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -17,10 +18,14 @@ import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
 import {
+  initializeAndGuess,
+  initializeAndSkip,
   initializeGame,
   resetGame,
   skipAttempt,
   submitGuess,
+  type SubmitGuessResult,
+  type SkipAttemptResult,
 } from "@/app/actions/game-actions";
 import { GENERIC_PLACEHOLDER, MASK_CHAR } from "@/lib/constants";
 import { revealLetters } from "@/lib/game/scoring";
@@ -65,8 +70,12 @@ const GameActionsContext = createContext<GameActionsContextType | undefined>(
 type GameActionsProviderProperties = {
   // State from parent
   attempts: Attempt[];
+  /** True once anonymous auth JWT is ready — enables lazy startGame on first action */
+  authReady?: boolean;
   /** Attempt count inherited from an anonymous session (declined migration). */
   baseAttemptCount?: number;
+  /** Challenge ID needed for lazy startGame on first guess/skip */
+  challengeId?: string | null;
   children: ReactNode;
   dailyPerfume: DailyPerfume;
   gameState: GameState;
@@ -86,10 +95,76 @@ type GameActionsProviderProperties = {
   setLoading: Dispatch<SetStateAction<boolean>>;
   setNonce: Dispatch<SetStateAction<string>>;
   setSessionId: Dispatch<SetStateAction<string | null>>;
+  setSessionReady?: Dispatch<SetStateAction<boolean>>;
 };
 
 function isRateLimitError(error: unknown): boolean {
   return error instanceof Error && error.message.startsWith("Rate limit exceeded");
+}
+
+/** Default no-op for the optional setSessionReady prop. */
+function defaultSetSessionReady(_value: SetStateAction<boolean>): void {
+  // intentional no-op: caller did not provide a setter
+}
+
+/**
+ * Reads and clears the inherited attempt count stored in sessionStorage
+ * when a player declined anonymous session migration.
+ */
+function readAndClearInheritedCount(): number {
+  const stored = sessionStorage.getItem("eauxle_declined_anon_attempts");
+  if (stored !== null) sessionStorage.removeItem("eauxle_declined_anon_attempts");
+  const parsed = Number.parseInt(stored ?? "0", 10);
+  return Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
+}
+
+/**
+ * Resolves a guess: submits to an existing session, or lazily creates a session
+ * and submits in one roundtrip (Gate 6 deferred startGame).
+ * On lazy init path also updates sessionId, nonce, imageUrl, and sessionReady.
+ */
+async function resolveGuess(
+  sessionId: string | null,
+  challengeId: string | null,
+  perfumeId: string,
+  nonce: string,
+  setSessionId: Dispatch<SetStateAction<string | null>>,
+  setNonce: Dispatch<SetStateAction<string>>,
+  setImageUrl: Dispatch<SetStateAction<string>>,
+  setSessionReady: Dispatch<SetStateAction<boolean>>,
+): Promise<SubmitGuessResult> {
+  if (sessionId) return submitGuess(sessionId, perfumeId, nonce);
+  if (!challengeId) throw new Error("challengeId missing for lazy game init");
+  const init = await initializeAndGuess(challengeId, perfumeId, readAndClearInheritedCount());
+  setSessionId(init.sessionId);
+  setNonce(init.nonce);
+  if (init.imageUrl) setImageUrl(init.imageUrl);
+  setSessionReady(true);
+  return init.guessResult;
+}
+
+/**
+ * Resolves a skip: skips in an existing session, or lazily creates a session
+ * and skips in one roundtrip (Gate 6 deferred startGame).
+ * On lazy init path also updates sessionId, nonce, imageUrl, and sessionReady.
+ */
+async function resolveSkip(
+  sessionId: string | null,
+  challengeId: string | null,
+  nonce: string,
+  setSessionId: Dispatch<SetStateAction<string | null>>,
+  setNonce: Dispatch<SetStateAction<string>>,
+  setImageUrl: Dispatch<SetStateAction<string>>,
+  setSessionReady: Dispatch<SetStateAction<boolean>>,
+): Promise<SkipAttemptResult> {
+  if (sessionId) return skipAttempt(sessionId, nonce);
+  if (!challengeId) throw new Error("challengeId missing for lazy game init");
+  const init = await initializeAndSkip(challengeId, readAndClearInheritedCount());
+  setSessionId(init.sessionId);
+  setNonce(init.nonce);
+  if (init.imageUrl) setImageUrl(init.imageUrl);
+  setSessionReady(true);
+  return { ...init.skipResult, imageUrl: init.imageUrl, newNonce: init.nonce };
 }
 
 /**
@@ -138,7 +213,9 @@ function calculateMaskedValues(
  */
 export function GameActionsProvider({
   attempts,
+  authReady = false,
   baseAttemptCount = 0,
+  challengeId = null,
   children,
   dailyPerfume,
   gameState,
@@ -156,6 +233,7 @@ export function GameActionsProvider({
   setLoading,
   setNonce,
   setSessionId,
+  setSessionReady = defaultSetSessionReady,
 }: Readonly<GameActionsProviderProperties>) {
   /** Synchronous guard preventing concurrent server action calls (skip/guess). */
   const isProcessingReference = useRef(false);
@@ -184,14 +262,17 @@ export function GameActionsProvider({
         isProcessingReference.current ||
         gameState !== "playing" ||
         attempts.length + baseAttemptCount >= maxAttempts ||
-        !sessionId
+        !authReady
       )
         return;
 
       isProcessingReference.current = true;
       setLoading(true);
       try {
-        const result = await submitGuess(sessionId, perfumeId, nonce);
+        const result = await resolveGuess(
+          sessionId, challengeId, perfumeId, nonce,
+          setSessionId, setNonce, setImageUrl, setSessionReady,
+        );
 
         if (result.gameStatus === "won") {
           void haptic.trigger("success");
@@ -307,7 +388,9 @@ export function GameActionsProvider({
     },
     [
       attempts,
+      authReady,
       baseAttemptCount,
+      challengeId,
       gameState,
       haptic,
       maxAttempts,
@@ -322,6 +405,8 @@ export function GameActionsProvider({
       setImageUrl,
       setLoading,
       setNonce,
+      setSessionId,
+      setSessionReady,
       setDailyPerfume,
     ],
   );
@@ -331,7 +416,7 @@ export function GameActionsProvider({
       isProcessingReference.current ||
       gameState !== "playing" ||
       attempts.length + baseAttemptCount >= maxAttempts ||
-      !sessionId
+      !authReady
     )
       return;
 
@@ -339,8 +424,11 @@ export function GameActionsProvider({
     setLoading(true);
     try {
       void haptic.trigger("light");
-      const result = await skipAttempt(sessionId, nonce);
 
+      const result = await resolveSkip(
+        sessionId, challengeId, nonce,
+        setSessionId, setNonce, setImageUrl, setSessionReady,
+      );
       if (result.newNonce) setNonce(result.newNonce);
       if (result.imageUrl) setImageUrl(result.imageUrl);
 
@@ -383,7 +471,9 @@ export function GameActionsProvider({
     }
   }, [
     attempts,
+    authReady,
     baseAttemptCount,
+    challengeId,
     gameState,
     haptic,
     maxAttempts,
@@ -396,6 +486,8 @@ export function GameActionsProvider({
     setImageUrl,
     setLoading,
     setNonce,
+    setSessionId,
+    setSessionReady,
   ]);
 
   const handleReset = useCallback(async () => {
@@ -498,12 +590,17 @@ export function GameActionsProvider({
     setDiscoveredPerfumers,
   ]);
 
-  const value = {
-    isRateLimited,
-    makeGuess,
-    resetGame: handleReset,
-    skipAttempt: handleSkip,
-  };
+  // useMemo prevents a new context value object on every render —
+  // without it, all useGameActions() consumers re-render even when nothing changed.
+  const value = useMemo(
+    () => ({
+      isRateLimited,
+      makeGuess,
+      resetGame: handleReset,
+      skipAttempt: handleSkip,
+    }),
+    [isRateLimited, makeGuess, handleReset, handleSkip],
+  );
 
   return (
     <GameActionsContext.Provider value={value}>

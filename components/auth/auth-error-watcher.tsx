@@ -54,6 +54,7 @@ function AuthErrorWatcherInner() {
   return null;
 }
 
+/** Listens to Supabase auth state changes and surfaces error toasts for failed sign-ins. */
 export function AuthErrorWatcher() {
   return (
     <Suspense fallback={null}>

@@ -31,7 +31,8 @@
       "skipped": "Pominięto",
       "skipConfirmTitle": "Pominąć tę próbę?",
       "skipConfirmCancel": "Anuluj",
-      "skipConfirmConfirm": "Pomiń"
+      "skipConfirmConfirm": "Pomiń",
+      "connectingHint": "Wyślę gdy sesja będzie gotowa..."
     }
   },
   "Header": {

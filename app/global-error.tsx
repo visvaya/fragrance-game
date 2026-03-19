@@ -6,6 +6,7 @@ import Error from "next/error";
 
 import * as Sentry from "@sentry/nextjs";
 
+/** Global error boundary — captures unhandled errors via Sentry and renders a fallback UI. */
 export default function GlobalError({
   error,
 }: {

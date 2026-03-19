@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import * as gameActions from "@/app/actions/game-actions";
+import * as getClientModule from "@/lib/supabase/get-client";
 
 import { UIPreferencesProvider } from "../contexts/ui-preferences-context";
 import { GameProvider, useGame } from "../game-provider";
@@ -44,21 +45,8 @@ vi.mock("@/app/actions/game-actions", () => ({
   submitGuess: vi.fn(),
 }));
 
-vi.mock("@/lib/supabase/client", () => ({
-  createClient: vi.fn(() => ({
-    auth: {
-      getSession: vi.fn().mockResolvedValue({
-        data: { session: { user: { id: "test-user" } } },
-      }),
-      onAuthStateChange: vi.fn().mockReturnValue({
-        data: { subscription: { unsubscribe: vi.fn() } },
-      }),
-      signInAnonymously: vi.fn().mockResolvedValue({
-        data: { session: { user: { id: "test-user" } } },
-        error: null,
-      }),
-    },
-  })),
+vi.mock("@/lib/supabase/get-client", () => ({
+  getSupabaseClient: vi.fn(),
 }));
 
 const messages = {
@@ -140,6 +128,23 @@ describe("GameProvider", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    const mockSupabaseClient = {
+      auth: {
+        getSession: vi.fn().mockResolvedValue({
+          data: { session: { user: { id: "test-user" } } },
+        }),
+        onAuthStateChange: vi.fn().mockReturnValue({
+          data: { subscription: { unsubscribe: vi.fn() } },
+        }),
+        signInAnonymously: vi.fn().mockResolvedValue({
+          data: { session: { user: { id: "test-user" } } },
+          error: null,
+        }),
+      },
+    };
+    vi.mocked(getClientModule.getSupabaseClient).mockResolvedValue(
+      mockSupabaseClient as any,
+    );
     vi.mocked(gameActions.initializeGame).mockResolvedValue({
       challenge: mockChallenge as any,
       session: mockSession as any,
@@ -227,10 +232,10 @@ describe("GameProvider", () => {
     );
 
     await waitFor(() => {
-      // initializeGame should NOT be called when initialChallenge is provided
+      // Gate 6: neither initializeGame nor startGame called when initialChallenge is provided.
+      // startGame is deferred to the first user action (lazy init).
       expect(gameActions.initializeGame).not.toHaveBeenCalled();
-      // startGame SHOULD be called with the challenge id
-      expect(gameActions.startGame).toHaveBeenCalledWith(VALID_CHALLENGE_ID, 0);
+      expect(gameActions.startGame).not.toHaveBeenCalled();
     });
 
     expect(screen.getByTestId("daily-brand")).toHaveTextContent("Chanel");

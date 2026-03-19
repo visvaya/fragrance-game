@@ -16,10 +16,8 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
-import { AuthModal } from "@/components/auth/auth-modal";
 import { useScrollDirection } from "@/hooks/use-scroll-direction";
 import { usePathname, useRouter, routing, localeNames } from "@/i18n/routing";
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 import { useGame } from "./game-provider";
@@ -49,6 +47,13 @@ const HelpModal = dynamic(
 const StatsModal = dynamic(
   async () =>
     import("./modals/stats-modal").then((module_) => module_.StatsModal),
+  { ssr: false },
+);
+const AuthModal = dynamic(
+  async () =>
+    import("@/components/auth/auth-modal").then(
+      (module_) => module_.AuthModal,
+    ),
   { ssr: false },
 );
 
@@ -272,6 +277,9 @@ export function GameHeader() {
                           ...previous,
                           menuOpen: false,
                         }));
+                        const { createClient } = await import(
+                          "@/lib/supabase/client"
+                        );
                         const supabase = createClient();
                         await supabase.auth.signOut();
                         // Hard reload: reinitializes GameProvider with a new anonymous session,

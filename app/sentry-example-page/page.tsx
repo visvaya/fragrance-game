@@ -4,6 +4,7 @@ const throwError = () => {
   throw new Error("Sentry Test Error: Unhandled Exception");
 };
 
+/** Dev-only page for triggering a Sentry test error. */
 export default function SentryExamplePage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">

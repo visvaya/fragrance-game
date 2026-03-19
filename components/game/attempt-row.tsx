@@ -131,7 +131,7 @@ export function AttemptRow({
         </RowCell>
 
         <RowCell
-          className="grid w-full grid-cols-5 pr-0.5 pl-1 opacity-20"
+          className="grid w-full grid-cols-5 pr-0.5 pl-1"
           isActive={isActive}
           isTouch={isTouch}
         >
@@ -139,16 +139,18 @@ export function AttemptRow({
             // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- animate-flash-error is a custom CSS animation class defined in globals.css
             <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
           ) : null}
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div
-              className={`flex h-full items-center justify-center ${i < 4 ? "border-r border-dotted border-muted/30" : ""}`}
-              key={i}
-            >
-              <span className="font-hand text-base text-muted-foreground">
-                —
-              </span>
-            </div>
-          ))}
+          <div className="col-span-5 grid grid-cols-5 opacity-20">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                className={`flex h-full items-center justify-center ${i < 4 ? "border-r border-dotted border-muted/30" : ""}`}
+                key={i}
+              >
+                <span className="font-hand text-base text-muted-foreground">
+                  —
+                </span>
+              </div>
+            ))}
+          </div>
         </RowCell>
       </div>
     );

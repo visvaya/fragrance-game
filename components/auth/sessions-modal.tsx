@@ -44,6 +44,7 @@ type SessionsModalProperties = {
   readonly user: User;
 };
 
+/** Modal listing all active sessions for the current user, with per-session revoke controls. */
 export function SessionsModal({
   onClose,
   open,

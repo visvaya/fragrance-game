@@ -27,6 +27,7 @@ export type ForgotPasswordFormProperties = {
   readonly onLoginClick?: () => void;
 };
 
+/** Form for requesting a password-reset email via Supabase. */
 export function ForgotPasswordForm({
   onLoginClick,
 }: ForgotPasswordFormProperties) {

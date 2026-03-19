@@ -36,16 +36,29 @@ export default async function Home({
     ? await getPlayerDailySession(initialChallenge.id)
     : null;
 
-  // Preload the LCP image. Next.js image optimizer serves /_next/image?url=...&w=750&q=90
-  // for mobile (375px viewport × 2x DPR = 750px). This hint fires before hydration.
-  const preloadUrl = initialImageUrl
-    ? `/_next/image?url=${encodeURIComponent(initialImageUrl)}&w=750&q=90`
+  // Responsive preload for the LCP image. Generates srcset matching all breakpoints
+  // that Next.js image optimizer may request (640w for Lighthouse 412px×1x,
+  // 828w for Android 414px×2x, etc.). Prevents double-download from mismatched w= param.
+  const preloadSourceSet = initialImageUrl
+    ? [640, 750, 828, 1080, 1200]
+        .map(
+          (w) =>
+            `/_next/image?url=${encodeURIComponent(initialImageUrl)}&w=${w}&q=90 ${w}w`,
+        )
+        .join(", ")
     : null;
 
   return (
     <>
-      {preloadUrl ? (
-        <link as="image" fetchPriority="high" href={preloadUrl} rel="preload" />
+      {initialImageUrl && preloadSourceSet ? (
+        <link
+          as="image"
+          fetchPriority="high"
+          href={`/_next/image?url=${encodeURIComponent(initialImageUrl)}&w=640&q=90`}
+          imageSizes="(max-width: 640px) 100vw, (max-width: 768px) 80vw, 400px"
+          imageSrcSet={preloadSourceSet}
+          rel="preload"
+        />
       ) : null}
       <GameProvider
         initialChallenge={initialChallenge}

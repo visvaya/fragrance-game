@@ -1,5 +1,7 @@
 "use server";
 
+import { headers } from "next/headers";
+
 import { trackEvent } from "@/lib/analytics-server";
 import {
   getCachedAutocomplete,
@@ -91,6 +93,70 @@ function remaskCachedSuggestions(
 }
 
 /**
+ * Applies per-user (authenticated) or per-IP (anonymous) rate limiting for autocomplete.
+ * Anonymous requests are limited more strictly to deter scraping.
+ */
+async function applyRateLimit(user: { id: string } | null): Promise<void> {
+  if (user) {
+    await checkRateLimit("autocomplete", user.id);
+    return;
+  }
+  const requestHeaders = await headers();
+  const forwardedFor = requestHeaders.get("x-forwarded-for");
+  const ip =
+    forwardedFor?.split(",")[0].trim() ??
+    requestHeaders.get("x-real-ip") ??
+    "unknown";
+  await checkRateLimit("autocomplete_anon", ip);
+}
+
+/**
+ * Transforms raw DB rows into PerfumeSuggestion[], re-ranks, caches, and slices the result.
+ */
+function buildSuggestionsFromRows(
+  perfumes: FragranceRow[],
+  attemptsCount: number,
+  nq: string,
+  validatedQuery: string,
+  dbLimit: number,
+  isLastAttempt: boolean,
+): PerfumeSuggestion[] {
+  const grouped = new Map<string, number>();
+  for (const p of perfumes) {
+    const key = `${p.brand_name}|${p.name}|${p.concentration ?? ""}`.toLowerCase();
+    grouped.set(key, (grouped.get(key) ?? 0) + 1);
+  }
+
+  const transformed: PerfumeSuggestion[] = perfumes.map((p) => {
+    const brandName = p.brand_name;
+    const key = `${brandName}|${p.name}|${p.concentration ?? ""}`.toLowerCase();
+    const hasDuplicates = (grouped.get(key) ?? 0) > 1;
+    const maskedYear = hasDuplicates ? (p.year?.toString() ?? null) : maskYear(p.year, attemptsCount);
+    const concentration = p.concentration ?? null;
+    const { name } = p;
+    const yearSuffix = maskedYear ? ` (${maskedYear})` : "";
+    const displayName = `${brandName} - ${name}${concentration ? " " + concentration : ""}${yearSuffix}`;
+    return {
+      brand_masked: brandName,
+      brand_norm: normalizeText(brandName),
+      concentration,
+      display_name: displayName,
+      name,
+      name_norm: normalizeText(name),
+      perfume_id: p.id,
+      raw_year: p.year ?? null,
+      year: maskedYear,
+    };
+  });
+
+  const reranked = transformed.toSorted((a, b) => relevanceScore(b, nq) - relevanceScore(a, nq));
+  if (reranked.length > 0) void setCachedAutocomplete(validatedQuery, dbLimit, reranked);
+  const relevant = reranked.filter((item) => relevanceScore(item, nq) > 0);
+  const candidates = relevant.length > 0 ? relevant : reranked;
+  return sliceCandidates(candidates, validatedQuery, isLastAttempt);
+}
+
+/**
  * Searches for perfumes matching the given query string.
  * @param query - The string query to search for.
  * @param sessionId - Optional session string for tracking anonymous queries.
@@ -148,15 +214,13 @@ export async function searchPerfumes(
     return sliced;
   }
 
-  // 4. Cache miss — now we need auth + rate limit
+  // 4. Cache miss — auth + rate limit
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user) {
-    await checkRateLimit("autocomplete", user.id);
-  }
+  await applyRateLimit(user);
 
   // 5. Database Query
   const startTime = performance.now();
@@ -172,23 +236,16 @@ export async function searchPerfumes(
 
   if (dbError) {
     console.error("Autocomplete DB Error:", dbError);
-
     void trackEvent(
       "autocomplete_error",
-      {
-        attempt: currentAttempt,
-        error: dbError.message,
-        query: validatedQuery,
-      },
+      { attempt: currentAttempt, error: dbError.message, query: validatedQuery },
       user?.id ?? validatedSessionId ?? "anonymous",
     );
-
     return [];
   }
 
   if (!perfumes) return [];
 
-  // Fire-and-forget analytics
   void trackEvent(
     "autocomplete_performance_v2",
     {
@@ -202,57 +259,8 @@ export async function searchPerfumes(
     user?.id ?? validatedSessionId ?? "anonymous",
   );
 
-  // 6. Group by (brand + name + concentration) to detect year-duplicates
-  const grouped = new Map<string, number>();
-  for (const p of perfumes) {
-    const key =
-      `${p.brand_name}|${p.name}|${p.concentration ?? ""}`.toLowerCase();
-    grouped.set(key, (grouped.get(key) ?? 0) + 1);
-  }
-
-  const transformed: PerfumeSuggestion[] = perfumes.map((p) => {
-    const brandName = p.brand_name;
-    const key = `${brandName}|${p.name}|${p.concentration ?? ""}`.toLowerCase();
-    const hasDuplicates = (grouped.get(key) ?? 0) > 1;
-
-    const maskedYear = hasDuplicates
-      ? (p.year?.toString() ?? null)
-      : maskYear(p.year, attemptsCount);
-
-    const concentration = p.concentration ?? null;
-    const { name } = p;
-
-    const yearSuffix = maskedYear ? ` (${maskedYear})` : "";
-    const displayName = `${brandName} - ${name}${concentration ? " " + concentration : ""}${yearSuffix}`;
-
-    return {
-      brand_masked: brandName,
-      brand_norm: normalizeText(brandName),
-      concentration,
-      display_name: displayName,
-      name,
-      name_norm: normalizeText(name),
-      perfume_id: p.id,
-      raw_year: p.year ?? null,
-      year: maskedYear,
-    };
-  });
-
-  // 7. Re-rank
-  const reranked = transformed.toSorted(
-    (a, b) => relevanceScore(b, nq) - relevanceScore(a, nq),
-  );
-
-  // 8. Cache results (fire-and-forget)
-  if (reranked.length > 0) {
-    void setCachedAutocomplete(validatedQuery, dbLimit, reranked);
-  }
-
-  // 9. Filter + Slice
-  const relevant = reranked.filter((item) => relevanceScore(item, nq) > 0);
-  const candidates = relevant.length > 0 ? relevant : reranked;
-
-  return sliceCandidates(candidates, validatedQuery, isLastAttempt);
+  // 6. Transform, rank, cache, slice
+  return buildSuggestionsFromRows(perfumes, attemptsCount, nq, validatedQuery, dbLimit, isLastAttempt);
 }
 
 /**

@@ -72,16 +72,15 @@ function ImageDisplay({
       tabIndex={0}
     >
       {/* Active image — always fully visible. Never fades out (prevents background flash).
-          Only the incoming image fades in on top; once it reaches full opacity we swap. */}
+          Only the incoming image fades in on top; once it reaches full opacity we swap.
+          No placeholder="blur" here: blur requires JS hydration to remove, which blocks LCP. */}
       <Image
         alt={altText}
-        blurDataURL={BLUR_DATA_URL}
         className={cn(
           "object-cover transition-transform duration-700 ease-in-out",
           isZoomed ? "scale-110" : "hover:scale-110",
         )}
         fill
-        placeholder="blur"
         priority
         quality={90}
         sizes="(max-width: 640px) 100vw, (max-width: 768px) 80vw, 400px"

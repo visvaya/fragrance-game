@@ -145,6 +145,7 @@ function relevanceScore(
 export function GameInput() {
   const {
     attempts,
+    authReady,
     currentAttempt,
     dailyPerfume,
     gameState,
@@ -162,6 +163,9 @@ export function GameInput() {
   const tActions = useTranslations("GameActions");
 
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
+  const [pendingGuess, setPendingGuess] = useState<PerfumeSuggestion | null>(
+    null,
+  );
   const [state, dispatch] = useReducer(gameInputReducer, initialState);
   const {
     hasSearched,
@@ -182,6 +186,9 @@ export function GameInput() {
   } | null>(null);
 
   const trimmedQuery = query.trim();
+
+  // True when user selected a perfume but auth JWT is not yet ready.
+  const isConnecting = pendingGuess !== null && !authReady;
 
   // Delay "Brak wyników" by 500ms so it doesn't flash on fast connections.
   // Resets immediately when results arrive, loading starts, or query changes.
@@ -331,9 +338,37 @@ export function GameInput() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Auto-submit pending guess once auth JWT is ready (Gate 6: authReady replaces sessionId).
+  // makeGuess handles lazy startGame when sessionId is still null.
+  useEffect(() => {
+    if (!authReady || !pendingGuess) return;
+    void makeGuess(
+      pendingGuess.name,
+      pendingGuess.brand_masked,
+      pendingGuess.perfume_id,
+    );
+    setPendingGuess(null);
+    dispatch({ type: "RESET" });
+    const focusTimer = setTimeout(() => inputReference.current?.focus(), 0);
+    return () => clearTimeout(focusTimer);
+  }, [authReady, pendingGuess, makeGuess]);
+
+  // Safety cleanup: if auth failed (loading done, no session, pending guess still set).
+  useEffect(() => {
+    if (!gameLoading && !sessionReady && !sessionId && pendingGuess) {
+      setPendingGuess(null);
+      dispatch({ type: "RESET" });
+    }
+  }, [gameLoading, sessionReady, sessionId, pendingGuess]);
+
   const handleSelect = async (perfume: PerfumeSuggestion) => {
-    // Auth still in progress — session not ready yet, ignore premature submit.
-    if (!sessionId) return;
+    if (!authReady) {
+      // Auth still in progress — queue the guess and show connecting state.
+      dispatch({ payload: perfume.name, type: "SET_QUERY" });
+      dispatch({ payload: false, type: "SET_SHOW_SUGGESTIONS" });
+      setPendingGuess(perfume);
+      return;
+    }
     await makeGuess(perfume.name, perfume.brand_masked, perfume.perfume_id);
 
     dispatch({ type: "RESET" });
@@ -529,7 +564,7 @@ export function GameInput() {
               aria-expanded={shouldShowList}
               className="w-full border-b-2 border-border bg-transparent pt-2 pr-10 pb-1 pl-1 text-lg text-foreground transition-all duration-300 outline-none placeholder:text-base placeholder:text-muted-foreground placeholder:lowercase focus:border-primary disabled:cursor-not-allowed disabled:opacity-50"
               data-testid="game-input"
-              disabled={gameLoading || !sessionReady || isRateLimited}
+              disabled={gameLoading || isRateLimited || isConnecting}
               onBlur={() => {
                 dispatch({ payload: false, type: "SET_SHOW_SUGGESTIONS" });
                 setIsFocused(false);
@@ -569,7 +604,7 @@ export function GameInput() {
               <div
                 className={cn(
                   "absolute transition-all duration-300 ease-out",
-                  isNormallyVisible
+                  isNormallyVisible && !isConnecting
                     ? "scale-100 rotate-0 opacity-100"
                     : "scale-50 -rotate-90 opacity-0",
                 )}
@@ -577,8 +612,8 @@ export function GameInput() {
                 <Search className="size-5 text-muted-foreground" />
               </div>
 
-              {/* Loader Icon */}
-              {isCurrentlyLoading ? (
+              {/* Loader Icon — shown during autocomplete search or pending guess (isConnecting) */}
+              {isCurrentlyLoading || isConnecting ? (
                 <div className="absolute scale-100 opacity-100 transition-all duration-300 ease-out">
                   <Loader2 className="size-5 animate-spin text-muted-foreground" />
                 </div>
@@ -597,6 +632,13 @@ export function GameInput() {
               </div>
             </div>
           </div>
+
+          {/* Connecting hint — shown when user selected a perfume but session not ready */}
+          {isConnecting ? (
+            <p className="mt-1 pl-1 text-xs text-muted-foreground">
+              {t("connectingHint")}
+            </p>
+          ) : null}
 
           {/* Status bar */}
           <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center text-xs tracking-wide text-muted-foreground lowercase">

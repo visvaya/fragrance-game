@@ -10,6 +10,12 @@ export const limiters = {
     prefix: "ratelimit:autocomplete",
     redis,
   }),
+  // 20 requests per minute per IP (unauthenticated users on cache miss)
+  autocomplete_anon: new Ratelimit({
+    limiter: Ratelimit.slidingWindow(20, "1 m"),
+    prefix: "ratelimit:autocomplete_anon",
+    redis,
+  }),
   // 30 requests per minute per user (game loading/refreshing)
   getDailyChallenge: new Ratelimit({
     limiter: Ratelimit.slidingWindow(30, "1 m"),

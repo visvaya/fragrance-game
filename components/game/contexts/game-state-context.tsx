@@ -60,6 +60,8 @@ export type DailyPerfume = {
 type GameStateContextType = {
   // Core state
   attempts: Attempt[];
+  /** True once anonymous auth JWT is ready — guards lazy startGame in game-actions-context */
+  authReady: boolean;
   blurLevel: number;
   currentAttempt: number;
   dailyPerfume: DailyPerfume;
@@ -97,6 +99,8 @@ const GameStateContext = createContext<GameStateContextType | undefined>(
 type GameStateProviderProperties = {
   // State from parent orchestrator
   attempts: Attempt[];
+  /** True once anonymous auth JWT is ready — guards lazy startGame in game-actions-context */
+  authReady?: boolean;
   /** Attempt count inherited from an anonymous session (declined migration). */
   baseAttemptCount?: number;
   children: ReactNode;
@@ -117,6 +121,7 @@ type GameStateProviderProperties = {
  */
 export function GameStateProvider({
   attempts,
+  authReady = false,
   baseAttemptCount = 0,
   children,
   dailyPerfume,
@@ -349,32 +354,57 @@ export function GameStateProvider({
     [attempts, dailyPerfume.gender],
   );
 
-  const value: GameStateContextType = {
-    attempts,
-    blurLevel,
-    currentAttempt,
-    dailyPerfume,
-    gameState,
-    isBrandRevealed,
-    isGenderRevealed,
-    isYearRevealed,
-    loading,
-
-    maxAttempts,
-    potentialScore,
-    // Direct values (not functions!)
-    revealedBrand,
-    revealedGender,
-    revealedPerfumer,
-    revealedYear,
-    revealLevel,
-
-    sessionId,
-    sessionReady,
-    user,
-    visibleNotes,
-    xsolveScore: dailyPerfume.xsolve,
-  };
+  // useMemo prevents a new context value object on every render —
+  // without it, all useGameState() consumers re-render even when nothing changed.
+  const value = useMemo<GameStateContextType>(
+    () => ({
+      attempts,
+      authReady,
+      blurLevel,
+      currentAttempt,
+      dailyPerfume,
+      gameState,
+      isBrandRevealed,
+      isGenderRevealed,
+      isYearRevealed,
+      loading,
+      maxAttempts,
+      potentialScore,
+      revealedBrand,
+      revealedGender,
+      revealedPerfumer,
+      revealedYear,
+      revealLevel,
+      sessionId,
+      sessionReady,
+      user,
+      visibleNotes,
+      xsolveScore: dailyPerfume.xsolve,
+    }),
+    [
+      attempts,
+      authReady,
+      blurLevel,
+      currentAttempt,
+      dailyPerfume,
+      gameState,
+      isBrandRevealed,
+      isGenderRevealed,
+      isYearRevealed,
+      loading,
+      maxAttempts,
+      potentialScore,
+      revealedBrand,
+      revealedGender,
+      revealedPerfumer,
+      revealedYear,
+      revealLevel,
+      sessionId,
+      sessionReady,
+      user,
+      visibleNotes,
+    ],
+  );
 
   return (
     <GameStateContext.Provider value={value}>
