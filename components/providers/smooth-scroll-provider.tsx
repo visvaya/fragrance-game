@@ -91,7 +91,7 @@ export function SmoothScrollProvider({
       // eslint-disable-next-line fp/no-mutation -- necessary for cleanup
       lenis = null;
     };
-  }, []);
+  });
 
   return <>{children}</>;
 }

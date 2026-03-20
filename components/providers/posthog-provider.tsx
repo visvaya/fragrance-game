@@ -112,7 +112,7 @@ export function PostHogProvider({
     };
 
     return cleanup;
-  }, []);
+  });
 
   // Return children directly until PostHog is loaded to avoid blocking render
   if (phProvider === null || phClient === null) {

@@ -4,7 +4,7 @@ import type React from "react";
 // eslint-disable-next-line no-restricted-imports -- autocomplete: debounced search, keyboard nav, auto-submit, rate-limit clear, safety cleanup, guess-outcome feedback (dep effects)
 import { useState, useRef, useEffect, useId, useMemo, useReducer } from "react";
 
-import { Search, Loader2, SkipForward, X, ChevronDown, Check } from "lucide-react";
+import { Search, Loader2, SkipForward, X, ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
@@ -168,9 +168,7 @@ export function GameInput() {
   const [pendingGuess, setPendingGuess] = useState<PerfumeSuggestion | null>(
     null,
   );
-  const [guessOutcome, setGuessOutcome] = useState<"correct" | "wrong" | null>(
-    null,
-  );
+  const [showWrongFeedback, setShowWrongFeedback] = useState(false);
   const hasInputInitialized = useRef(false);
   const previousAttemptCount = useRef(attempts.length);
   const [state, dispatch] = useReducer(gameInputReducer, initialState);
@@ -369,8 +367,8 @@ export function GameInput() {
       !gameLoading
     ) {
       const lastAttempt = attempts.at(-1);
-      setGuessOutcome(lastAttempt?.isCorrect ? "correct" : "wrong");
-      const timer = setTimeout(() => setGuessOutcome(null), 1500);
+      if (lastAttempt?.isCorrect !== true) setShowWrongFeedback(true);
+      const timer = setTimeout(() => setShowWrongFeedback(false), 1500);
       previousAttemptCount.current = attempts.length;
       return () => clearTimeout(timer);
     }
@@ -617,11 +615,11 @@ export function GameInput() {
               />
             ) : null}
             <div className="pointer-events-none absolute top-[calc(50%+1px)] right-0.5 flex size-8 -translate-y-1/2 items-center justify-center">
-              {/* Search Icon — hidden during loading, connecting, autocomplete error, or guess feedback */}
+              {/* Search Icon — hidden during loading, connecting, autocomplete error, or wrong-guess feedback */}
               <div
                 className={cn(
                   "absolute transition-all duration-300 ease-out",
-                  isNormallyVisible && !isConnecting && !guessOutcome
+                  isNormallyVisible && !isConnecting && !showWrongFeedback
                     ? "scale-100 rotate-0 opacity-100"
                     : "scale-50 -rotate-90 opacity-0",
                 )}
@@ -640,7 +638,7 @@ export function GameInput() {
               <div
                 className={cn(
                   "absolute transition-all duration-300 ease-out",
-                  isErrorVisible && !guessOutcome
+                  isErrorVisible && !showWrongFeedback
                     ? "scale-100 rotate-0 opacity-100"
                     : "scale-50 rotate-90 opacity-0",
                 )}
@@ -652,24 +650,12 @@ export function GameInput() {
               <div
                 className={cn(
                   "absolute transition-all duration-300 ease-out",
-                  guessOutcome === "wrong"
+                  showWrongFeedback
                     ? "scale-100 rotate-0 opacity-100"
                     : "scale-50 rotate-90 opacity-0",
                 )}
               >
                 <X className="size-5 text-destructive" />
-              </div>
-
-              {/* Guess Correct Icon — temporary feedback after correct submission */}
-              <div
-                className={cn(
-                  "absolute transition-all duration-300 ease-out",
-                  guessOutcome === "correct"
-                    ? "scale-100 rotate-0 opacity-100"
-                    : "scale-50 -rotate-90 opacity-0",
-                )}
-              >
-                <Check className="size-5 text-success" />
               </div>
             </div>
           </div>
