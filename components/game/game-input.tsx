@@ -687,7 +687,7 @@ export function GameInput() {
                       ? "cursor-not-allowed opacity-30"
                       : "hover:bg-muted/50 hover:text-foreground active:bg-muted/50",
                   )}
-                  disabled={!sessionReady || gameLoading}
+                  disabled={!sessionReady || gameLoading || isRateLimited}
                   onClick={() => {
                     if (isRateLimited) {
                       toast.warning(tActions("rateLimitError"));

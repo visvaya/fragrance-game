@@ -204,10 +204,10 @@ export function GameHeader() {
               >
                 <HelpCircle className="size-5" />
                 {showHelpHint ? (
-                  <span aria-hidden="true" className="absolute top-1 right-1">
-                    <span className="absolute inline-flex size-2 animate-ping rounded-full bg-primary opacity-75" />
-                    <span className="relative inline-flex size-2 rounded-full bg-primary" />
-                  </span>
+                  <span
+                    aria-hidden="true"
+                    className="absolute top-0.5 right-0.5 inline-flex size-2 rounded-full bg-amber-500 animate-pulse-slow"
+                  />
                 ) : null}
               </button>
             </GameTooltip>

@@ -358,6 +358,21 @@ html.large-text {
   animation: flash-error 1.5s ease-out forwards;
 }
 
+/* Slow pulse for help hint dot */
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2.5s ease-in-out infinite;
+}
+
 /* Flash Success Animation */
 @keyframes flash-success {
   0% {

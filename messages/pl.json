@@ -70,7 +70,8 @@
     "selectHelper": "Wybierz z listy"
   },
   "GameActions": {
-    "rateLimitError": "Zbyt wiele prób — poczekaj 1 minutę przed kolejnym działaniem."
+    "rateLimitError": "Zbyt wiele prób — poczekaj 1 minutę przed kolejnym działaniem.",
+    "networkError": "Coś poszło nie tak — spróbuj ponownie."
   },
   "GameBoard": {
     "magnifique": "Magnifique!",

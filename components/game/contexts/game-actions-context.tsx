@@ -275,14 +275,6 @@ export function GameActionsProvider({
           setSessionId, setNonce, setImageUrl, setSessionReady,
         );
 
-        if (result.gameStatus === "won") {
-          void haptic.trigger("success");
-        } else if (result.gameStatus === "lost") {
-          void haptic.trigger("heavy");
-        } else {
-          void haptic.trigger("error");
-        }
-
         if (result.imageUrl) {
           setImageUrl(result.imageUrl);
         }
@@ -355,6 +347,17 @@ export function GameActionsProvider({
 
         setAttempts((previous) => [...previous, newAttempt]);
 
+        // Fire haptic synced with row highlight (after setAttempts, not before)
+        if (result.gameStatus === "won") {
+          void haptic.trigger("success");
+          setTimeout(() => void haptic.trigger("success"), 220);
+        } else if (result.gameStatus === "lost") {
+          void haptic.trigger("error");
+          setTimeout(() => void haptic.trigger("heavy"), 180);
+        } else {
+          void haptic.trigger("error");
+        }
+
         if (result.answerName) {
           const answerName = result.answerName;
           const answerConcentration = result.answerConcentration;
@@ -381,6 +384,7 @@ export function GameActionsProvider({
           handleRateLimit();
         } else {
           console.error("Guess submission failed:", error);
+          toast.error(t("networkError"));
         }
       } finally {
         isProcessingReference.current = false;
@@ -409,6 +413,7 @@ export function GameActionsProvider({
       setSessionId,
       setSessionReady,
       setDailyPerfume,
+      t,
     ],
   );
 
@@ -424,8 +429,6 @@ export function GameActionsProvider({
     isProcessingReference.current = true;
     setLoading(true);
     try {
-      void haptic.trigger("light");
-
       const result = await resolveSkip(
         sessionId, challengeId, nonce,
         setSessionId, setNonce, setImageUrl, setSessionReady,
@@ -451,6 +454,9 @@ export function GameActionsProvider({
       ]);
 
       if (result.gameStatus === "lost") {
+        // Game over — stronger double-pulse haptic synced with row highlight + lost state
+        void haptic.trigger("error");
+        setTimeout(() => void haptic.trigger("heavy"), 180);
         if (result.answerName) {
           setDailyPerfume((previous) => ({
             ...previous,
@@ -459,12 +465,16 @@ export function GameActionsProvider({
           }));
         }
         setGameState("lost");
+      } else {
+        // Wrong/skipped attempt — same haptic as wrong guess, synced with row highlight
+        void haptic.trigger("error");
       }
     } catch (error) {
       if (isRateLimitError(error)) {
         handleRateLimit();
       } else {
         console.error("Skip failed:", error);
+        toast.error(t("networkError"));
       }
     } finally {
       isProcessingReference.current = false;
@@ -489,6 +499,7 @@ export function GameActionsProvider({
     setNonce,
     setSessionId,
     setSessionReady,
+    t,
   ]);
 
   const handleReset = useCallback(async () => {

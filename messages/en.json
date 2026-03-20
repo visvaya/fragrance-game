@@ -70,7 +70,8 @@
     "selectHelper": "Select from list"
   },
   "GameActions": {
-    "rateLimitError": "Too many requests — please wait 1 minute before trying again."
+    "rateLimitError": "Too many requests — please wait 1 minute before trying again.",
+    "networkError": "Something went wrong — please try again."
   },
   "GameBoard": {
     "magnifique": "Magnifique!",

@@ -64,7 +64,7 @@ export function GameBoard() {
   return (
     <div
       className={cn(
-        "mx-auto flex w-full max-w-[38rem] flex-col gap-6 px-6 transition-[max-width] duration-300 sm:px-0 wide:max-w-[60rem]",
+        "mx-auto flex w-full max-w-[38rem] flex-col gap-6 px-4 transition-[max-width] duration-300 wide:max-w-[60rem]",
       )}
       suppressHydrationWarning
     >
