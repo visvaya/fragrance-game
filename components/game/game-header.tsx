@@ -1,5 +1,8 @@
 "use client";
 
+/* eslint-disable no-restricted-syntax -- Required for strict breakpoints (max-[280px]) and viewport calculations (calc(100vw - Xpx)) */
+/* eslint-disable better-tailwindcss/no-unknown-classes -- Custom animations defined in globals.css */
+
 // eslint-disable-next-line no-restricted-imports -- dom read: reads localStorage on mount; dismisses help hint on input focus
 import { useState, useEffect } from "react";
 
@@ -54,9 +57,7 @@ const StatsModal = dynamic(
 );
 const AuthModal = dynamic(
   async () =>
-    import("@/components/auth/auth-modal").then(
-      (module_) => module_.AuthModal,
-    ),
+    import("@/components/auth/auth-modal").then((module_) => module_.AuthModal),
   { ssr: false },
 );
 
@@ -161,13 +162,13 @@ export function GameHeader() {
       >
         <nav
           className={cn(
-            "relative mx-auto flex w-full max-w-2xl items-center justify-between rounded-b-none border-x-0 border-b panel-border bg-background/70 px-5 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 panel-shadow backdrop-blur-md transition-[max-width] duration-300 sm:rounded-b-md sm:border-x wide:max-w-5xl",
+            "relative mx-auto flex w-full max-w-2xl items-center justify-between rounded-b-none border-x-0 border-b panel-border bg-background/70 px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 panel-shadow backdrop-blur-md transition-[max-width] duration-300 sm:rounded-b-md sm:border-x sm:px-5 wide:max-w-5xl",
             modals.menuOpen || modals.langOpen ? "z-50" : "z-20",
           )}
           suppressHydrationWarning
         >
           {/* Left controls */}
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex min-w-0 items-center justify-start gap-0.5 sm:gap-2 md:gap-4">
             <GameTooltip
               className="cursor-pointer"
               content={t("menu")}
@@ -176,7 +177,7 @@ export function GameHeader() {
             >
               <button
                 aria-label={t("menu")}
-                className="rounded-sm p-2 text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+                className="rounded-sm p-1.5 text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground min-[350px]:p-2"
                 onClick={() =>
                   setModals((previous) => ({
                     ...previous,
@@ -189,14 +190,14 @@ export function GameHeader() {
             </GameTooltip>
 
             <GameTooltip
-              className="cursor-pointer"
+              className="cursor-pointer max-[280px]:hidden"
               content={t("help")}
               disabled={anyDropdownOpen}
               disableOnMobile
             >
               <button
                 aria-label={t("help")}
-                className="relative rounded-sm p-2 text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+                className="relative rounded-sm p-1.5 text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground max-[280px]:hidden min-[350px]:p-2"
                 onClick={() => {
                   setShowHelpHint(false);
                   setModals((previous) => ({ ...previous, helpOpen: true }));
@@ -206,33 +207,33 @@ export function GameHeader() {
                 {showHelpHint ? (
                   <span
                     aria-hidden="true"
-                    className="absolute top-0.5 right-0.5 inline-flex size-2 rounded-full bg-amber-500 animate-pulse-slow"
+                    className="animate-pulse-slow absolute top-0.5 right-0.5 inline-flex size-2 rounded-full bg-amber-500"
                   />
                 ) : null}
               </button>
             </GameTooltip>
           </div>
 
-          {/* Logo */}
-          <h1 className="absolute left-1/2 -translate-x-1/2 transform font-[family-name:var(--font-playfair)] text-2xl font-semibold tracking-tight text-foreground lowercase">
+          {/* Logo - Perfectly centered regardless of side icons */}
+          <h1 className="absolute top-1/2 left-1/2 -translate-1/2 font-[family-name:var(--font-playfair)] text-2xl font-semibold tracking-tight text-foreground lowercase">
             Eauxle
           </h1>
 
           {/* Right controls */}
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex min-w-0 items-center justify-end gap-0.5 sm:gap-2 md:gap-4">
             {/* Reset Button (Debug) placed before Language */}
             <div className="relative hidden sm:block">
               <ResetButton tooltipDisabled={anyDropdownOpen} />
             </div>
 
             <GameTooltip
-              className="cursor-pointer"
+              className="cursor-pointer max-[280px]:hidden"
               content={t("language")}
               disabled={anyDropdownOpen}
               disableOnMobile
             >
               <button
-                className="flex items-center gap-1 rounded-sm p-2 text-sm font-semibold text-foreground lowercase transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+                className="flex items-center gap-1 rounded-sm p-1.5 text-sm font-semibold text-foreground lowercase transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground max-[280px]:hidden min-[350px]:p-2"
                 onClick={() =>
                   setModals((previous) => ({
                     ...previous,
@@ -246,14 +247,14 @@ export function GameHeader() {
             </GameTooltip>
 
             <GameTooltip
-              className="cursor-pointer"
+              className="cursor-pointer max-[280px]:hidden"
               content={t("stats")}
               disabled={anyDropdownOpen}
               disableOnMobile
             >
               <button
                 aria-label={t("stats")}
-                className="rounded-sm p-2 text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+                className="rounded-sm p-1.5 text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground max-[280px]:hidden min-[350px]:p-2"
                 onClick={() =>
                   setModals((previous) => ({ ...previous, statsOpen: true }))
                 }
@@ -272,17 +273,101 @@ export function GameHeader() {
           {/* Menu Dropdown */}
           <div
             className={cn(
-              "pointer-events-auto absolute top-full left-5 mt-2 flex w-56 flex-col overflow-hidden rounded-md border panel-border bg-background/70 panel-shadow backdrop-blur-md transition-all duration-300",
+              "pointer-events-auto absolute top-full left-2 mt-2 flex max-h-[calc(100dvh-5rem)] w-56 max-w-[calc(100vw-16px)] flex-col overflow-x-hidden overflow-y-auto rounded-md border panel-border bg-background/70 panel-shadow backdrop-blur-md transition-all duration-300 min-[350px]:left-5 min-[350px]:max-w-[calc(100vw-40px)]",
               modals.menuOpen
                 ? "translate-y-0 opacity-100"
                 : "pointer-events-none -translate-y-2 opacity-0",
             )}
             style={{ zIndex: 60 }}
           >
+            {/* Mobile-only menu items for ultra-low resolutions */}
+            <div className="hidden flex-col max-[280px]:flex">
+              <button
+                className="flex w-full items-center justify-start gap-3 border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground min-[350px]:px-5"
+                onClick={() => {
+                  setModals((previous) => ({
+                    ...previous,
+                    helpOpen: true,
+                    menuOpen: false,
+                  }));
+                }}
+              >
+                <HelpCircle className="size-4 shrink-0 text-muted-foreground" />
+                {t("help")}
+              </button>
+              <button
+                className="flex w-full items-center justify-start gap-3 border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground min-[350px]:px-5"
+                onClick={() => {
+                  setModals((previous) => ({
+                    ...previous,
+                    menuOpen: false,
+                    statsOpen: true,
+                  }));
+                }}
+              >
+                <BarChart3 className="size-4 shrink-0 text-muted-foreground" />
+                {t("stats")}
+              </button>
+
+              {/* Language Accordion Toggle */}
+              <button
+                className="flex w-full items-center justify-between border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground min-[350px]:px-5"
+                onClick={() => {
+                  setModals((previous) => ({
+                    ...previous,
+                    langOpen: !previous.langOpen,
+                  }));
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="shrink-0 font-sans text-xs font-semibold text-muted-foreground uppercase">
+                    {currentLang}
+                  </span>
+                  {t("language")}
+                </div>
+                <ChevronDown
+                  className={cn(
+                    "size-4 shrink-0 text-muted-foreground transition-transform duration-300",
+                    modals.langOpen && "rotate-180",
+                  )}
+                />
+              </button>
+
+              {/* Language Accordion Content */}
+              <div
+                className={cn(
+                  "flex flex-col overflow-hidden bg-muted/20 transition-all duration-300",
+                  modals.langOpen
+                    ? "max-h-[500px] border-b border-border"
+                    : "max-h-0",
+                )}
+              >
+                {routing.locales.map((lang) => (
+                  <button
+                    className={cn(
+                      "flex w-full items-center gap-3 p-3 text-left leading-tight transition-colors duration-300 min-[350px]:px-5",
+                      locale === lang
+                        ? "border-l-2 border-primary pl-2 text-foreground min-[350px]:pl-4"
+                        : "text-foreground hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground",
+                    )}
+                    key={lang}
+                    onClick={() => changeLanguage(lang)}
+                  >
+                    <span className="shrink-0 font-sans text-xs text-muted-foreground">
+                      {lang}
+                    </span>
+                    <span className="font-[family-name:var(--font-playfair)] text-sm">
+                      {localeNames[lang] ?? lang}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {user ? (
               <>
                 <button
-                  className="flex w-full items-center justify-between border-b border-border px-5 py-3 font-[family-name:var(--font-playfair)] text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+                  className="flex w-full items-center justify-between border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground min-[350px]:px-5"
                   onClick={() => {
                     setModals((previous) => ({
                       ...previous,
@@ -297,13 +382,13 @@ export function GameHeader() {
                 {user.is_anonymous ? (
                   <>
                     <button
-                      className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+                      className="w-full border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground min-[350px]:px-5"
                       onClick={() => openAuth("login")}
                     >
                       {t("signIn")}
                     </button>
                     <button
-                      className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+                      className="w-full border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground min-[350px]:px-5"
                       onClick={() => openAuth("register")}
                     >
                       {t("createAccount")}
@@ -312,15 +397,14 @@ export function GameHeader() {
                 ) : (
                   <>
                     <button
-                      className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+                      className="w-full border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground min-[350px]:px-5"
                       onClick={async () => {
                         setModals((previous) => ({
                           ...previous,
                           menuOpen: false,
                         }));
-                        const { createClient } = await import(
-                          "@/lib/supabase/client"
-                        );
+                        const { createClient } =
+                          await import("@/lib/supabase/client");
                         const supabase = createClient();
                         await supabase.auth.signOut();
                         // Hard reload: reinitializes GameProvider with a new anonymous session,
@@ -331,7 +415,7 @@ export function GameHeader() {
                       {t("signOut")}
                     </button>
                     <button
-                      className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+                      className="w-full border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground min-[350px]:px-5"
                       onClick={() => {
                         setModals((previous) => ({
                           ...previous,
@@ -348,13 +432,13 @@ export function GameHeader() {
             ) : (
               <>
                 <button
-                  className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+                  className="w-full border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground min-[350px]:px-5"
                   onClick={() => openAuth("login")}
                 >
                   {t("signIn")}
                 </button>
                 <button
-                  className="w-full border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+                  className="w-full border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground min-[350px]:px-5"
                   onClick={() => openAuth("register")}
                 >
                   {t("createAccount")}
@@ -363,7 +447,7 @@ export function GameHeader() {
             )}
 
             <button
-              className="border-b border-border px-5 py-3 text-left font-[family-name:var(--font-playfair)] text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+              className="border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground min-[350px]:px-5"
               onClick={() => {
                 toast.info(t("comingSoon"));
                 setModals((previous) => ({ ...previous, menuOpen: false }));
@@ -373,7 +457,7 @@ export function GameHeader() {
             </button>
 
             {/* Appearance Section */}
-            <div className="border-b border-border bg-muted/20 px-5 py-3">
+            <div className="border-b border-border bg-muted/20 p-3 min-[350px]:px-5">
               <h3 className="mb-3 text-[0.625rem] font-semibold tracking-widest text-muted-foreground uppercase">
                 {t("appearance")}
               </h3>
@@ -384,44 +468,52 @@ export function GameHeader() {
                   onClick={toggleLayoutMode}
                 >
                   <div className="flex items-center gap-2">
-                    <Monitor className="size-4 text-muted-foreground transition-colors group-hover:text-primary" />
-                    <span className="font-sans text-xs">{t("wideLayout")}</span>
+                    <Monitor className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+                    <span className="text-left font-sans text-xs leading-tight">
+                      {t("wideLayout")}
+                    </span>
                   </div>
                   <TogglePill isOn={uiPreferences.layoutMode === "wide"} />
                 </button>
 
                 {/* Large Text Toggle */}
                 <button
-                  className="group flex w-full items-center justify-between text-foreground transition-colors hover:text-primary"
+                  className="group flex w-full items-center justify-between gap-2 text-foreground transition-colors hover:text-primary"
                   onClick={toggleFontScale}
                 >
                   <div className="flex items-center gap-2">
-                    <Type className="size-4 text-muted-foreground transition-colors group-hover:text-primary" />
-                    <span className="font-sans text-xs">{t("largeText")}</span>
+                    <Type className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+                    <span className="text-left font-sans text-xs leading-tight">
+                      {t("largeText")}
+                    </span>
                   </div>
                   <TogglePill isOn={uiPreferences.fontScale === "large"} />
                 </button>
 
                 {/* Dark Mode Toggle */}
                 <button
-                  className="group flex w-full items-center justify-between text-foreground transition-colors hover:text-primary"
+                  className="group flex w-full items-center justify-between gap-2 text-foreground transition-colors hover:text-primary"
                   onClick={toggleTheme}
                 >
                   <div className="flex items-center gap-2">
-                    <Moon className="size-4 text-muted-foreground transition-colors group-hover:text-primary" />
-                    <span className="font-sans text-xs">{t("darkMode")}</span>
+                    <Moon className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+                    <span className="text-left font-sans text-xs leading-tight">
+                      {t("darkMode")}
+                    </span>
                   </div>
                   <TogglePill isOn={uiPreferences.theme === "dark"} />
                 </button>
 
                 {/* Auto Scroll Toggle */}
                 <button
-                  className="group flex w-full items-center justify-between text-foreground transition-colors hover:text-primary"
+                  className="group flex w-full items-center justify-between gap-2 text-foreground transition-colors hover:text-primary"
                   onClick={toggleAutoScroll}
                 >
                   <div className="flex items-center gap-2">
-                    <ChevronsUpDown className="size-4 text-muted-foreground transition-colors group-hover:text-primary" />
-                    <span className="font-sans text-xs">{t("autoScroll")}</span>
+                    <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+                    <span className="text-left font-sans text-xs leading-tight">
+                      {t("autoScroll")}
+                    </span>
                   </div>
                   <TogglePill isOn={uiPreferences.autoScroll} />
                 </button>
@@ -445,7 +537,7 @@ export function GameHeader() {
           {/* Language Dropdown */}
           <div
             className={cn(
-              "pointer-events-auto absolute top-full right-16 mt-2 flex w-36 flex-col overflow-hidden rounded-md border panel-border bg-background/70 panel-shadow backdrop-blur-md transition-all duration-300",
+              "pointer-events-auto absolute top-full right-16 mt-2 flex max-h-[calc(100dvh-5rem)] w-36 max-w-[calc(100vw-84px)] flex-col overflow-x-hidden overflow-y-auto rounded-md border panel-border bg-background/70 panel-shadow backdrop-blur-md transition-all duration-300 max-[280px]:hidden",
               modals.langOpen
                 ? "translate-y-0 opacity-100"
                 : "pointer-events-none -translate-y-2 opacity-0",

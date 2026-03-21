@@ -73,9 +73,19 @@ export function GameBoard() {
       {/* ... keeping game over logic same, just wrapper width changes ... */}
 
       {gameState !== "playing" && (
-        <div className={cn("panel-standard text-center", animateGameOver && "transition-all duration-500 animate-in fade-in zoom-in-95")}>
+        <div
+          className={cn(
+            "panel-standard text-center",
+            animateGameOver &&
+              "transition-all duration-500 animate-in fade-in zoom-in-95",
+          )}
+        >
           {gameState === "won" ? (
-            <div className={cn(animateGameOver && "duration-500 animate-in fade-in zoom-in")}>
+            <div
+              className={cn(
+                animateGameOver && "duration-500 animate-in fade-in zoom-in",
+              )}
+            >
               <h2 className="mb-2 font-[family-name:var(--font-caveat)] text-4xl tracking-tight text-success">
                 {t("magnifique")}
               </h2>
@@ -96,7 +106,11 @@ export function GameBoard() {
               </div>
             </div>
           ) : (
-            <div className={cn(animateGameOver && "duration-500 animate-in fade-in zoom-in")}>
+            <div
+              className={cn(
+                animateGameOver && "duration-500 animate-in fade-in zoom-in",
+              )}
+            >
               <h2 className="mb-2 font-[family-name:var(--font-caveat)] text-4xl tracking-tight text-destructive">
                 {t("answerWas")}
               </h2>
@@ -130,12 +144,12 @@ export function GameBoard() {
       >
         {/* Left Column (Wide) / Top (Stack) */}
         <div className="space-y-6">
-              <div className="panel-standard">
-                <RevealImage />
-              </div>
-              <div className="panel-standard">
-                <MetaClues />
-              </div>
+          <div className="panel-standard">
+            <RevealImage />
+          </div>
+          <div className="panel-standard">
+            <MetaClues />
+          </div>
         </div>
 
         {/* Right Column (Wide) / Bottom (Stack) */}

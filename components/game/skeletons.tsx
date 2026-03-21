@@ -87,11 +87,11 @@ export function MetaCluesSkeleton({
   return (
     <div className="flex h-full flex-col p-0">
       {/* Title row — matches real MetaClues title structure */}
-      <div className="mb-4 flex w-fit cursor-default items-center">
+      <div className="mb-2 flex w-fit cursor-default items-center">
         <div className="flex items-center gap-2">
           <span className="inline-flex size-4 rounded bg-muted/30" />
           {t ? (
-            <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase opacity-40">
+            <h2 className="font-[family-name:var(--font-playfair)] text-base tracking-wide text-foreground lowercase opacity-40">
               {t("identity")}
             </h2>
           ) : (
@@ -111,7 +111,7 @@ export function MetaCluesSkeleton({
             <div className="h-[1.125rem] w-12 rounded bg-muted/30" />
           )}
           <div className="flex w-full flex-wrap items-center gap-2">
-            <div className="flex min-w-0 flex-[1_1_0px] items-center gap-2">
+            <div className="flex min-w-0 flex-[1_1_auto] items-center gap-2">
               <Skeleton className="h-7 w-9 rounded-md" />
               <DotFiller className="pr-2" />
             </div>
@@ -128,7 +128,7 @@ export function MetaCluesSkeleton({
             <div className="h-[1.125rem] w-16 rounded bg-muted/30" />
           )}
           <div className="flex w-full flex-wrap items-center gap-2">
-            <div className="flex min-w-0 flex-[1_1_0px] items-center gap-2">
+            <div className="flex min-w-0 flex-[1_1_auto] items-center gap-2">
               <Skeleton className="h-7 w-9 rounded-md" />
               <DotFiller className="pr-2" />
             </div>
@@ -146,7 +146,7 @@ export function MetaCluesSkeleton({
               <div className="h-[1.125rem] w-8 rounded bg-muted/30" />
             )}
             <div className="flex w-full flex-wrap items-center gap-2">
-              <div className="flex min-w-0 flex-[1_1_0px] items-center gap-2">
+              <div className="flex min-w-0 flex-[1_1_auto] items-center gap-2">
                 <Skeleton className="h-7 w-9 rounded-md" />
                 <DotFiller className="pr-2" />
               </div>
@@ -161,7 +161,7 @@ export function MetaCluesSkeleton({
               <div className="h-[1.125rem] w-12 rounded bg-muted/30" />
             )}
             <div className="flex w-full flex-wrap items-center gap-2">
-              <div className="flex min-w-0 flex-[1_1_0px] items-center gap-2">
+              <div className="flex min-w-0 flex-[1_1_auto] items-center gap-2">
                 <Skeleton className="h-7 w-9 rounded-md" />
                 <DotFiller className="pr-2" />
               </div>
@@ -196,11 +196,11 @@ export function PyramidCluesSkeleton({
   return (
     <div className="panel-standard">
       {/* Title row */}
-      <div className="mb-4 flex w-fit cursor-default items-center">
+      <div className="mb-2 flex w-fit cursor-default items-center">
         <div className="flex items-center gap-2">
           <span className="inline-flex size-4 rounded bg-muted/30" />
           {t ? (
-            <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase opacity-40">
+            <h2 className="font-[family-name:var(--font-playfair)] text-base text-foreground lowercase opacity-40">
               {t("pyramid")}
             </h2>
           ) : (
@@ -239,7 +239,7 @@ export function PyramidCluesSkeleton({
                   key={`skel-${level.label}-${i}`}
                 />
               ))}
-              <div className="flex min-w-0 flex-[1_1_0px] items-center gap-2">
+              <div className="flex min-w-0 flex-[1_1_auto] items-center gap-2">
                 <Skeleton
                   className="h-7 w-9 rounded-md"
                   key={`skel-${level.label}-last`}
@@ -265,11 +265,11 @@ export function AttemptLogSkeleton({
   return (
     <section className="panel-standard">
       {/* Title row — matches real AttemptLog title structure */}
-      <div className="mb-4 flex w-fit cursor-default items-center">
+      <div className="mb-1 flex w-fit cursor-default items-center">
         <div className="flex items-center gap-2">
           <span className="inline-flex size-4 rounded bg-muted/30" />
           {t ? (
-            <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase opacity-40">
+            <h2 className="font-[family-name:var(--font-playfair)] text-base text-foreground lowercase opacity-40">
               {t("title")}
             </h2>
           ) : (
@@ -278,10 +278,10 @@ export function AttemptLogSkeleton({
         </div>
       </div>
 
-      {/* Table — same grid as real: 32px | 1fr | minmax(105px,auto) */}
-      <div className="grid grid-cols-[32px_1fr_minmax(105px,auto)]">
+      {/* Table — same grid as real: 1.5rem/2rem | 1fr | minmax(105px,auto) */}
+      <div className="grid grid-cols-[1.5rem_1fr_minmax(6.5625rem,auto)] sm:grid-cols-[2rem_1fr_minmax(6.5625rem,auto)]">
         {/* Header: "#" column — real has size-8 GameTooltip placeholder, we replicate 32px height */}
-        <div className="flex items-center justify-center border-b-2 border-muted/50 pb-2 text-sm font-semibold tracking-widest text-muted-foreground/70 lowercase">
+        <div className="flex items-center justify-center border-b-2 border-muted/50 pb-[0.1875rem] text-[0.8125rem] font-semibold tracking-widest text-muted-foreground/70 lowercase">
           {t ? (
             <span className="w-full text-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2 opacity-40">
               {t("columns.attempt")}
@@ -292,7 +292,7 @@ export function AttemptLogSkeleton({
         </div>
 
         {/* Header: "perfume" column */}
-        <div className="flex items-center border-b-2 border-muted/50 pb-2 pl-2 text-sm font-semibold tracking-widest text-muted-foreground/70 lowercase opacity-40">
+        <div className="flex items-center border-b-2 border-muted/50 pb-[0.1875rem] pl-1 text-[0.8125rem] font-semibold tracking-widest text-muted-foreground/70 lowercase opacity-40 sm:pl-2">
           {t ? (
             t("columns.perfume")
           ) : (
@@ -301,7 +301,7 @@ export function AttemptLogSkeleton({
         </div>
 
         {/* Header: 5 attribute columns — neutral squares instead of icons */}
-        <div className="grid w-full grid-cols-5 justify-items-center border-b-2 border-muted/50 px-1 pb-2">
+        <div className="grid w-full grid-cols-5 justify-items-center border-b-2 border-muted/50 px-0 pb-2 sm:px-1">
           {Array.from({ length: 5 }).map((_, i) => (
             <div className="flex size-8 items-center justify-center" key={i}>
               <div className="size-4 rounded bg-muted/40 opacity-40" />
@@ -315,12 +315,12 @@ export function AttemptLogSkeleton({
             <div
               className={`flex min-h-[4rem] items-center justify-center py-3 ${index < 5 ? "border-b border-muted/30" : ""}`}
             >
-              <span className="block w-full pr-1 text-center text-[0.8125rem] font-normal text-muted-foreground opacity-30">
+              <span className="block w-full text-center text-[0.8125rem] font-normal text-muted-foreground opacity-30 sm:pr-1">
                 {rowNumber}
               </span>
             </div>
             <div
-              className={`min-h-[4rem] px-2 py-3 ${index < 5 ? "border-b border-muted/30" : ""}`}
+              className={`min-h-[4rem] px-1 py-3 sm:px-2 ${index < 5 ? "border-b border-muted/30" : ""}`}
             >
               <span className="text-sm font-medium text-muted-foreground opacity-30">
                 ...

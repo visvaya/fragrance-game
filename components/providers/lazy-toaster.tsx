@@ -3,7 +3,8 @@
 import dynamic from "next/dynamic";
 
 const Toaster = dynamic(
-  async () => import("@/components/ui/sonner").then((m) => ({ default: m.Toaster })),
+  async () =>
+    import("@/components/ui/sonner").then((m) => ({ default: m.Toaster })),
   { ssr: false },
 );
 

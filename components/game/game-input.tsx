@@ -169,6 +169,12 @@ export function GameInput() {
     null,
   );
   const [showWrongFeedback, setShowWrongFeedback] = useState(false);
+
+  // Status bar dynamic wrapping
+  const [needsStack, setNeedsStack] = useState(false);
+  const statusBarContainerReference = useRef<HTMLDivElement>(null);
+  const statusBarMeasureReference = useRef<HTMLDivElement>(null);
+
   const hasInputInitialized = useRef(false);
   const previousAttemptCount = useRef(attempts.length);
   const [state, dispatch] = useReducer(gameInputReducer, initialState);
@@ -376,6 +382,25 @@ export function GameInput() {
     previousAttemptCount.current = attempts.length;
   }, [attempts, gameLoading]);
 
+  // Dynamic status bar wrapping
+  useEffect(() => {
+    const container = statusBarContainerReference.current;
+    const measure = statusBarMeasureReference.current;
+    if (!container || !measure) return;
+
+    const observer = new ResizeObserver(() => {
+      const containerWidth = container.clientWidth;
+      const requiredWidth = measure.scrollWidth;
+      // Ensure we have a comfortable 8px buffer so elements don't squeeze
+      setNeedsStack(containerWidth < requiredWidth + 8);
+    });
+
+    observer.observe(container);
+    observer.observe(measure);
+
+    return () => observer.disconnect();
+  }, []);
+
   const handleSelect = async (perfume: PerfumeSuggestion) => {
     if (!authReady) {
       // Auth still in progress — queue the guess and show connecting state.
@@ -555,10 +580,7 @@ export function GameInput() {
         </div>
       </div>
 
-      <div
-        className="relative"
-        ref={wrapperReference}
-      >
+      <div className="relative" ref={wrapperReference}>
         {/* Input Surface (Visual Layer) */}
         <div
           className={cn(
@@ -577,7 +599,7 @@ export function GameInput() {
               aria-autocomplete="list"
               aria-controls={listId}
               aria-expanded={shouldShowList}
-              className="w-full border-b-2 border-border bg-transparent pt-2 pr-10 pb-1 pl-1 text-lg text-foreground transition-all duration-300 outline-none placeholder:text-base placeholder:text-muted-foreground placeholder:lowercase focus:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full border-b-2 border-border bg-transparent pt-2 pr-10 pb-1 pl-1 text-[1.0625rem] text-foreground transition-all duration-300 outline-none placeholder:text-[0.9375rem] placeholder:text-muted-foreground placeholder:lowercase focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 sm:text-lg sm:placeholder:text-base"
               data-testid="game-input"
               disabled={gameLoading || isRateLimited || isConnecting}
               onBlur={() => {
@@ -668,50 +690,85 @@ export function GameInput() {
           ) : null}
 
           {/* Status bar */}
-          <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center text-xs tracking-wide text-muted-foreground lowercase">
-            <span className="pl-1 whitespace-nowrap lining-nums tabular-nums">
-              {t("attempt")}: {currentAttempt} / {maxAttempts}
-            </span>
-            <div className="flex justify-center">
-              <GameTooltip
-                content={t("skipTooltip")}
-                disabled={isRateLimited || gameLoading}
-                disableOnMobile
-                sideOffset={8}
-              >
-                <button
-                  aria-label={t("skipTooltip")}
-                  className={cn(
-                    "flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-30",
-                    isRateLimited || gameLoading
-                      ? "cursor-not-allowed opacity-30"
-                      : "hover:bg-muted/50 hover:text-foreground active:bg-muted/50",
-                  )}
-                  disabled={!sessionReady || gameLoading || isRateLimited}
-                  onClick={() => {
-                    if (isRateLimited) {
-                      toast.warning(tActions("rateLimitError"));
-                      return;
-                    }
-                    if (
-                      globalThis.matchMedia(
-                        "(hover: none) and (pointer: coarse)",
-                      ).matches
-                    ) {
-                      setShowSkipConfirm(true);
-                    } else {
-                      void skipAttempt();
-                    }
-                  }}
-                  type="button"
-                >
-                  <SkipForward className="size-3.5" />
-                </button>
-              </GameTooltip>
+          <div className="relative mt-2" ref={statusBarContainerReference}>
+            {/* Invisible measuring clone that dictates the required width */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none invisible absolute flex w-max items-center gap-1 text-xs tracking-wide text-muted-foreground lowercase sm:gap-2"
+              ref={statusBarMeasureReference}
+            >
+              <span className="pl-1 text-left whitespace-nowrap lining-nums tabular-nums">
+                {t("attempt")}: {currentAttempt} / {maxAttempts}
+              </span>
+              <div className="flex size-7 px-2" />
+              <span className="pr-1 text-right whitespace-nowrap">
+                {t("score")}: {potentialScore}
+              </span>
             </div>
-            <span className="pr-1 text-right whitespace-nowrap text-primary">
-              {t("score")}: {potentialScore}
-            </span>
+
+            {/* Actual status bar */}
+            <div
+              className={cn(
+                "flex text-xs tracking-wide text-muted-foreground lowercase transition-all duration-200",
+                needsStack
+                  ? "flex-col items-center justify-center gap-2"
+                  : "flex-row items-center justify-between gap-1 sm:gap-2",
+              )}
+            >
+              <span
+                className={cn(
+                  "whitespace-nowrap lining-nums tabular-nums",
+                  needsStack ? "text-center" : "pl-1 text-left",
+                )}
+              >
+                {t("attempt")}: {currentAttempt} / {maxAttempts}
+              </span>
+              <div className="flex justify-center">
+                <GameTooltip
+                  content={t("skipTooltip")}
+                  disabled={isRateLimited || gameLoading}
+                  disableOnMobile
+                  sideOffset={8}
+                >
+                  <button
+                    aria-label={t("skipTooltip")}
+                    className={cn(
+                      "flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-30",
+                      isRateLimited || gameLoading
+                        ? "cursor-not-allowed opacity-30"
+                        : "hover:bg-muted/50 hover:text-foreground active:bg-muted/50",
+                    )}
+                    disabled={!sessionReady || gameLoading || isRateLimited}
+                    onClick={() => {
+                      if (isRateLimited) {
+                        toast.warning(tActions("rateLimitError"));
+                        return;
+                      }
+                      if (
+                        globalThis.matchMedia(
+                          "(hover: none) and (pointer: coarse)",
+                        ).matches
+                      ) {
+                        setShowSkipConfirm(true);
+                      } else {
+                        void skipAttempt();
+                      }
+                    }}
+                    type="button"
+                  >
+                    <SkipForward className="size-3.5" />
+                  </button>
+                </GameTooltip>
+              </div>
+              <span
+                className={cn(
+                  "whitespace-nowrap text-primary",
+                  needsStack ? "text-center" : "pr-1 text-right",
+                )}
+              >
+                {t("score")}: {potentialScore}
+              </span>
+            </div>
           </div>
         </div>
 

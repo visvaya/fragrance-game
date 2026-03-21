@@ -251,12 +251,5 @@ function generateSmartRevealOrder(length: number): number[] {
   // Finally, reveal the first letter (Brand Capital)
   const finalOrder = [...order, 0];
 
-  // eslint-disable-next-line no-restricted-properties -- process.env.NODE_ENV enables bundler dead-code elimination; env.NODE_ENV indirection prevents tree-shaking of this debug log
-  if (process.env.NODE_ENV === "development") {
-    // eslint-disable-next-line no-console -- debug-only log, gated by NODE_ENV; stripped by bundler in production
-    console.debug(
-      `SmartReveal(${length}): SubLen=${subLength}, Center=${centerAbsolute}, Order=${JSON.stringify(finalOrder)}`,
-    );
-  }
   return finalOrder;
 }

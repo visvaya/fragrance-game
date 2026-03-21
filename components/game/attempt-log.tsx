@@ -14,8 +14,10 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { ScrollableRow } from "@/components/game/scrollable-row";
 import { AttemptLogSkeleton } from "@/components/game/skeletons";
 import { lenisScrollTo } from "@/components/providers/smooth-scroll-provider";
+import { useIsOverflowing } from "@/hooks/use-is-overflowing";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
 import { useMountEffect } from "@/lib/hooks/use-mount-effect";
 import { cn } from "@/lib/utils";
@@ -48,6 +50,8 @@ export const AttemptLog = memo(function AttemptLog() {
   const [newAttemptIndex, setNewAttemptIndex] = useState<number | null>(null);
   const isTouchReference = useRef(false);
   const [isTouch, setIsTouch] = useState(false);
+  const { canScrollLeft, canScrollRight, ref } =
+    useIsOverflowing<HTMLDivElement>();
 
   // Scroll to new attempt and mark it as new (enables flash animation).
   // Only fires when a genuine new attempt is submitted, not on initial session restore.
@@ -121,30 +125,54 @@ export const AttemptLog = memo(function AttemptLog() {
     return <AttemptLogSkeleton t={t} />;
   }
 
+  const maskClass = (() => {
+    if (canScrollLeft && canScrollRight) {
+      return "[mask-image:linear-gradient(to_right,transparent_0,black_20px,black_calc(100%-20px),transparent_100%)]";
+    }
+    if (canScrollLeft) {
+      return "[mask-image:linear-gradient(to_right,transparent_0,black_20px,black_100%)]";
+    }
+    if (canScrollRight) {
+      return "[mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent_100%)]";
+    }
+    return "";
+  })();
+
   return (
     <section className="panel-standard">
-      <div className="mb-4 flex w-fit cursor-default items-center">
-        <GameTooltip content={t("titleTooltip")} sideOffset={6}>
-          <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "inline-flex transition-transform duration-300 hover:scale-[1.15]",
-                iconScaled && "scale-[1.15]",
-              )}
-              onPointerDown={handleIconTap}
-            >
-              <ScrollText className="size-4 text-muted-foreground" />
-            </span>
-            <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase">
+      {/* Scrollable Box for attempts title */}
+      <div className="mb-1 flex w-fit max-w-full min-w-0 cursor-default items-center">
+        <ScrollableRow className="flex w-full items-center gap-2 pr-1 pb-1">
+          <span
+            className={cn(
+              "inline-flex transition-transform duration-300 hover:scale-[1.15]",
+              iconScaled && "scale-[1.15]",
+            )}
+            onPointerDown={handleIconTap}
+          >
+            <ScrollText className="size-4 shrink-0 text-muted-foreground" />
+          </span>
+          <GameTooltip
+            className="max-w-full min-w-0"
+            content={t("titleTooltip")}
+            sideOffset={6}
+          >
+            <h2 className="font-[family-name:var(--font-playfair)] text-base whitespace-nowrap text-foreground lowercase">
               {t("title")}
             </h2>
-          </div>
-        </GameTooltip>
+          </GameTooltip>
+        </ScrollableRow>
       </div>
 
-      <div className="grid grid-cols-[32px_1fr_minmax(105px,auto)]">
+      <div
+        className={cn(
+          "grid grid-cols-[1.5rem_1fr_minmax(6.5625rem,auto)] overflow-x-auto pb-1 [scrollbar-width:none] sm:grid-cols-[2rem_1fr_minmax(6.5625rem,auto)] [&::-webkit-scrollbar]:hidden",
+          maskClass,
+        )}
+        ref={ref}
+      >
         {/* Header Row - spread into grid columns */}
-        <div className="flex items-center justify-center border-b-2 border-muted/50 pb-2 text-sm font-semibold tracking-widest text-muted-foreground/70 lowercase transition-colors">
+        <div className="flex items-center justify-center border-b-2 border-muted/50 pb-[0.1875rem] text-[0.8125rem] font-semibold tracking-widest text-muted-foreground/70 lowercase transition-colors">
           <GameTooltip
             className="size-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
             content={t("columns.attemptTooltip")}
@@ -155,11 +183,11 @@ export const AttemptLog = memo(function AttemptLog() {
           </GameTooltip>
         </div>
 
-        <div className="flex items-center border-b-2 border-muted/50 pb-2 pl-2 text-sm font-semibold tracking-widest text-muted-foreground/70 lowercase">
+        <div className="flex items-center border-b-2 border-muted/50 pb-[0.1875rem] pl-1 text-[0.8125rem] font-semibold tracking-widest text-muted-foreground/70 lowercase sm:pl-2">
           {t("columns.perfume")}
         </div>
 
-        <div className="grid w-full grid-cols-5 justify-items-center border-b-2 border-muted/50 px-1 pb-2 text-center text-sm font-semibold tracking-widest text-muted-foreground/70 lowercase">
+        <div className="grid w-full grid-cols-5 justify-items-center border-b-2 border-muted/50 px-0 pb-1 text-center text-[0.8125rem] font-semibold tracking-widest text-muted-foreground/70 lowercase sm:px-1">
           <GameTooltip
             className="size-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
             content={t("columns.brandTooltip")}
@@ -259,11 +287,13 @@ export const AttemptLog = memo(function AttemptLog() {
                 <div
                   className={`flex items-center justify-center py-3 ${borderClass} min-h-[4rem]`}
                 >
-                  <span className="block w-full pr-1 text-center text-[0.8125rem] font-normal text-muted-foreground opacity-30">
+                  <span className="block w-full text-center text-[0.8125rem] font-normal text-muted-foreground opacity-30 sm:pr-1">
                     {attempts.length + i + 1}
                   </span>
                 </div>
-                <div className={`py-3 ${borderClass} min-h-[4rem] px-2`}>
+                <div
+                  className={`py-3 ${borderClass} min-h-[4rem] px-1 sm:px-2`}
+                >
                   <span className="text-sm font-medium text-muted-foreground opacity-30">
                     ...
                   </span>

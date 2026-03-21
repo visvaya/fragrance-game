@@ -164,7 +164,10 @@ describe("autocomplete", () => {
         await searchPerfumes("Chanel");
 
         // Gate 6: anonymous users now get IP-based rate limiting on cache miss
-        expect(checkRateLimit).toHaveBeenCalledWith("autocomplete_anon", expect.any(String));
+        expect(checkRateLimit).toHaveBeenCalledWith(
+          "autocomplete_anon",
+          expect.any(String),
+        );
       });
 
       it("throws error when rate limit exceeded", async () => {

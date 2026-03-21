@@ -9,7 +9,9 @@ import type { createClient } from "./client";
  *
  * Components that import this file statically can still be mocked in tests via vi.mock().
  */
-export async function getSupabaseClient(): Promise<ReturnType<typeof createClient>> {
+export async function getSupabaseClient(): Promise<
+  ReturnType<typeof createClient>
+> {
   const { createClient: create } = await import("./client");
   return create();
 }

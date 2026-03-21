@@ -1483,8 +1483,15 @@ export async function initializeAndGuess(
   const validatedChallengeId = uuidSchema.parse(challengeId);
   const validatedPerfumeId = uuidSchema.parse(perfumeId);
   const validatedInheritedCount = z.number().int().min(0).parse(inheritedCount);
-  const session = await startGame(validatedChallengeId, validatedInheritedCount);
-  const guessResult = await submitGuess(session.sessionId, validatedPerfumeId, session.nonce);
+  const session = await startGame(
+    validatedChallengeId,
+    validatedInheritedCount,
+  );
+  const guessResult = await submitGuess(
+    session.sessionId,
+    validatedPerfumeId,
+    session.nonce,
+  );
   return {
     guessResult,
     imageUrl: guessResult.imageUrl ?? session.imageUrl ?? null,
@@ -1509,7 +1516,10 @@ export async function initializeAndSkip(
 }> {
   const validatedChallengeId = uuidSchema.parse(challengeId);
   const validatedInheritedCount = z.number().int().min(0).parse(inheritedCount);
-  const session = await startGame(validatedChallengeId, validatedInheritedCount);
+  const session = await startGame(
+    validatedChallengeId,
+    validatedInheritedCount,
+  );
   const skipResult = await skipAttempt(session.sessionId, session.nonce);
   return {
     imageUrl: skipResult.imageUrl ?? session.imageUrl ?? null,

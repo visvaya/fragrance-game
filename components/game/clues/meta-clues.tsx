@@ -5,7 +5,9 @@ import { memo } from "react";
 import { Tag, Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { ScrollableRow } from "@/components/game/scrollable-row";
 import { MetaCluesSkeleton } from "@/components/game/skeletons";
+import { useIsOverflowing } from "@/hooks/use-is-overflowing";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
 import { MASK_CHAR, GENERIC_PLACEHOLDER } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -55,23 +57,27 @@ export const MetaClues = memo(function MetaClues() {
 
   return (
     <div className="flex h-full flex-col p-0">
-      <div className="mb-4 flex w-fit cursor-default items-center">
-        <GameTooltip content={t("titleTooltip")} sideOffset={6}>
-          <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "inline-flex transition-transform duration-300 hover:scale-[1.15]",
-                iconScaled && "scale-[1.15]",
-              )}
-              onPointerDown={handleIconTap}
-            >
-              <Tag className="size-4 text-muted-foreground" />
-            </span>
-            <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase">
+      <div className="mb-2 flex w-fit max-w-full min-w-0 cursor-default items-center">
+        <ScrollableRow className="flex w-full items-center gap-2 pr-1 pb-1">
+          <span
+            className={cn(
+              "inline-flex transition-transform duration-300 hover:scale-[1.15]",
+              iconScaled && "scale-[1.15]",
+            )}
+            onPointerDown={handleIconTap}
+          >
+            <Tag className="size-4 shrink-0 text-muted-foreground" />
+          </span>
+          <GameTooltip
+            className="max-w-full min-w-0"
+            content={t("titleTooltip")}
+            sideOffset={6}
+          >
+            <h2 className="font-[family-name:var(--font-playfair)] text-base tracking-wide whitespace-nowrap text-foreground lowercase">
               {t("identity")}
             </h2>
-          </div>
-        </GameTooltip>
+          </GameTooltip>
+        </ScrollableRow>
       </div>
 
       <div className="flex flex-1 flex-col gap-5">
@@ -108,7 +114,7 @@ export const MetaClues = memo(function MetaClues() {
                   if (isLast) {
                     return (
                       <div
-                        className="flex min-w-0 flex-[1_1_0px] items-center gap-2"
+                        className="flex min-w-0 flex-[1_1_auto] items-center gap-2"
                         key={`wrapper-${itemIndex}`}
                       >
                         {badge}
@@ -121,7 +127,7 @@ export const MetaClues = memo(function MetaClues() {
               ) : (
                 // Single badge for other clues
                 <div
-                  className="flex min-w-0 flex-[1_1_0px] items-center gap-2"
+                  className="flex min-w-0 flex-[1_1_auto] items-center gap-2"
                   key="single-wrapper"
                 >
                   <MetaBadge
@@ -148,7 +154,7 @@ export const MetaClues = memo(function MetaClues() {
 
               {/* Value */}
               <div className="flex w-full flex-wrap items-center gap-2">
-                <div className="flex min-w-0 flex-[1_1_0px] items-center gap-2">
+                <div className="flex min-w-0 flex-[1_1_auto] items-center gap-2">
                   <MetaBadge
                     clueKey={clue.key}
                     currentAttempt={currentAttempt}
@@ -176,6 +182,9 @@ function MetaBadge({
   t: (key: string, values?: Record<string, string | number>) => string;
   value: string;
 }>) {
+  const { canScrollLeft, canScrollRight, ref } =
+    useIsOverflowing<HTMLDivElement>();
+
   // Translate "Unknown" for i18n support
   const translatedValue = value === "Unknown" ? t("unknown") : value;
   const words =
@@ -187,10 +196,30 @@ function MetaBadge({
     !translatedValue.includes(MASK_CHAR) &&
     translatedValue !== GENERIC_PLACEHOLDER.repeat(5);
 
+  const maskClass = (() => {
+    if (canScrollLeft && canScrollRight) {
+      return "[mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_85%,transparent_100%)]";
+    }
+    if (canScrollLeft) {
+      return "[mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_100%)]";
+    }
+    if (canScrollRight) {
+      return "[mask-image:linear-gradient(to_right,black_85%,transparent_100%)]";
+    }
+    return "";
+  })();
+
   return (
-    <div className="group inline-flex min-h-[1.375rem] max-w-full cursor-default flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 rounded-md border border-border bg-secondary/50 px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary">
+    <div
+      className={cn(
+        "group inline-flex min-h-[1.375rem] w-fit max-w-full cursor-default flex-nowrap items-center gap-1 rounded-md border border-border bg-secondary/50 px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary",
+        "overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        maskClass,
+      )}
+      ref={ref}
+    >
       {isFullyRevealed ? (
-        <span className="font-sans text-sm text-foreground">
+        <span className="font-sans text-sm whitespace-nowrap text-foreground">
           {translatedValue}
         </span>
       ) : (
@@ -276,12 +305,12 @@ function MetaBadge({
           })();
 
           const content = (
-            <div
-              className="flex flex-nowrap"
+            <span
+              className="inline-flex flex-nowrap"
               key={`meta-content-${clueKey}-${word}-${wordIndex}`}
             >
               {innerContent}
-            </div>
+            </span>
           );
 
           if (showTooltip) {
@@ -291,7 +320,7 @@ function MetaBadge({
                 key={`meta-tt-${clueKey}-${word}-${wordIndex}`}
               >
                 {({ isHovered }: { isHovered?: boolean }) => (
-                  <div className="flex flex-nowrap">
+                  <span className="inline-flex flex-nowrap">
                     {isFullHidden ? (
                       <div className="flex h-5 items-center justify-center opacity-80 transition-colors duration-300 hover:opacity-100">
                         <Lock
@@ -311,7 +340,7 @@ function MetaBadge({
                         word={word}
                       />
                     )}
-                  </div>
+                  </span>
                 )}
               </GameTooltip>
             );

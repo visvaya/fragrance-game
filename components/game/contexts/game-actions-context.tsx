@@ -100,7 +100,9 @@ type GameActionsProviderProperties = {
 };
 
 function isRateLimitError(error: unknown): boolean {
-  return error instanceof Error && error.message.startsWith("Rate limit exceeded");
+  return (
+    error instanceof Error && error.message.startsWith("Rate limit exceeded")
+  );
 }
 
 /** Default no-op for the optional setSessionReady prop. */
@@ -114,7 +116,8 @@ function defaultSetSessionReady(_value: SetStateAction<boolean>): void {
  */
 function readAndClearInheritedCount(): number {
   const stored = sessionStorage.getItem("eauxle_declined_anon_attempts");
-  if (stored !== null) sessionStorage.removeItem("eauxle_declined_anon_attempts");
+  if (stored !== null)
+    sessionStorage.removeItem("eauxle_declined_anon_attempts");
   const parsed = Number.parseInt(stored ?? "0", 10);
   return Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
 }
@@ -136,7 +139,11 @@ async function resolveGuess(
 ): Promise<SubmitGuessResult> {
   if (sessionId) return submitGuess(sessionId, perfumeId, nonce);
   if (!challengeId) throw new Error("challengeId missing for lazy game init");
-  const init = await initializeAndGuess(challengeId, perfumeId, readAndClearInheritedCount());
+  const init = await initializeAndGuess(
+    challengeId,
+    perfumeId,
+    readAndClearInheritedCount(),
+  );
   setSessionId(init.sessionId);
   setNonce(init.nonce);
   if (init.imageUrl) setImageUrl(init.imageUrl);
@@ -160,7 +167,10 @@ async function resolveSkip(
 ): Promise<SkipAttemptResult> {
   if (sessionId) return skipAttempt(sessionId, nonce);
   if (!challengeId) throw new Error("challengeId missing for lazy game init");
-  const init = await initializeAndSkip(challengeId, readAndClearInheritedCount());
+  const init = await initializeAndSkip(
+    challengeId,
+    readAndClearInheritedCount(),
+  );
   setSessionId(init.sessionId);
   setNonce(init.nonce);
   if (init.imageUrl) setImageUrl(init.imageUrl);
@@ -241,11 +251,14 @@ export function GameActionsProvider({
   const haptic = useWebHaptics();
   const t = useTranslations("GameActions");
   const [isRateLimited, setIsRateLimited] = useState(false);
-  const rateLimitTimerReference = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rateLimitTimerReference = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   useEffect(() => {
     return () => {
-      if (rateLimitTimerReference.current) clearTimeout(rateLimitTimerReference.current);
+      if (rateLimitTimerReference.current)
+        clearTimeout(rateLimitTimerReference.current);
     };
   }, []);
 
@@ -253,8 +266,12 @@ export function GameActionsProvider({
   const handleRateLimit = useCallback(() => {
     toast.warning(t("rateLimitError"));
     setIsRateLimited(true);
-    if (rateLimitTimerReference.current) clearTimeout(rateLimitTimerReference.current);
-    rateLimitTimerReference.current = setTimeout(() => setIsRateLimited(false), 60_000);
+    if (rateLimitTimerReference.current)
+      clearTimeout(rateLimitTimerReference.current);
+    rateLimitTimerReference.current = setTimeout(
+      () => setIsRateLimited(false),
+      60_000,
+    );
   }, [t]);
 
   const makeGuess = useCallback(
@@ -271,8 +288,14 @@ export function GameActionsProvider({
       setLoading(true);
       try {
         const result = await resolveGuess(
-          sessionId, challengeId, perfumeId, nonce,
-          setSessionId, setNonce, setImageUrl, setSessionReady,
+          sessionId,
+          challengeId,
+          perfumeId,
+          nonce,
+          setSessionId,
+          setNonce,
+          setImageUrl,
+          setSessionReady,
         );
 
         if (result.imageUrl) {
@@ -430,8 +453,13 @@ export function GameActionsProvider({
     setLoading(true);
     try {
       const result = await resolveSkip(
-        sessionId, challengeId, nonce,
-        setSessionId, setNonce, setImageUrl, setSessionReady,
+        sessionId,
+        challengeId,
+        nonce,
+        setSessionId,
+        setNonce,
+        setImageUrl,
+        setSessionReady,
       );
       if (result.newNonce) setNonce(result.newNonce);
       if (result.imageUrl) setImageUrl(result.imageUrl);

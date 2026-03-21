@@ -8,6 +8,7 @@ import Image from "next/image";
 import { ScanEye } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { ScrollableRow } from "@/components/game/scrollable-row";
 import { RevealImageSquareSkeleton } from "@/components/game/skeletons";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
 import { cn } from "@/lib/utils";
@@ -189,31 +190,33 @@ export function RevealImage() {
   return (
     <div className="flex size-full flex-col">
       {/* Title row — skeleton: przyciemniony/statyczny. Real: z tooltip i hover. */}
-      <div className="mb-4 flex w-fit cursor-default items-center">
+      <div className="mb-2 flex w-fit max-w-full min-w-0 cursor-default items-center">
         {isSkeleton ? (
-          <div className="flex items-center gap-2">
-            <span className="inline-flex size-4 rounded bg-muted/30" />
-            <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase opacity-40">
-              {t("visualEvidence")}
-            </h2>
-          </div>
+          <ScrollableRow className="flex w-full items-center gap-2 pr-1 pb-1">
+            <span className="inline-flex size-4 shrink-0 rounded bg-muted/30" />
+            <div className="h-6 w-32 animate-pulse rounded bg-muted/40" />
+          </ScrollableRow>
         ) : (
-          <GameTooltip content={t("titleTooltip")} sideOffset={6}>
-            <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "inline-flex transition-transform duration-300 hover:scale-[1.15]",
-                  iconScaled && "scale-[1.15]",
-                )}
-                onPointerDown={handleIconTap}
-              >
-                <ScanEye className="size-4 text-muted-foreground" />
-              </span>
-              <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase">
+          <ScrollableRow className="flex w-full items-center gap-2 pr-1 pb-1">
+            <span
+              className={cn(
+                "inline-flex transition-transform duration-300 hover:scale-[1.15]",
+                iconScaled && "scale-[1.15]",
+              )}
+              onPointerDown={handleIconTap}
+            >
+              <ScanEye className="size-4 shrink-0 text-muted-foreground" />
+            </span>
+            <GameTooltip
+              className="max-w-full min-w-0"
+              content={t("titleTooltip")}
+              sideOffset={6}
+            >
+              <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide whitespace-nowrap text-foreground lowercase">
                 {t("visualEvidence")}
               </h2>
-            </div>
-          </GameTooltip>
+            </GameTooltip>
+          </ScrollableRow>
         )}
       </div>
 

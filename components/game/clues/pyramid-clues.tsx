@@ -5,7 +5,9 @@ import { memo } from "react";
 import { Layers, Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { ScrollableRow } from "@/components/game/scrollable-row";
 import { PyramidCluesSkeleton } from "@/components/game/skeletons";
+import { useIsOverflowing } from "@/hooks/use-is-overflowing";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
 import { GENERIC_PLACEHOLDER, MASK_CHAR } from "@/lib/constants";
 import { cn, noop } from "@/lib/utils";
@@ -39,7 +41,7 @@ function renderPyramidNoteWord({
       key={`${levelName}-note-${noteIndex}-word-${wIndex}`}
     >
       {({ isHovered }: { isHovered?: boolean }) => (
-        <div className="flex flex-nowrap">
+        <span className="inline-flex flex-nowrap">
           {isFullHidden ? (
             <div className="flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
               <Lock
@@ -58,20 +60,18 @@ function renderPyramidNoteWord({
               word={word}
             />
           )}
-        </div>
+        </span>
       )}
     </GameTooltip>
   ) : (
-    <span key={wIndex}>
-      <div className="flex flex-nowrap">
-        {isFullHidden ? (
-          <div className="group flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
-            <Lock className="size-2.5 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
-          </div>
-        ) : (
-          <span className="font-sans text-sm text-foreground">{word}</span>
-        )}
-      </div>
+    <span className="inline-flex flex-nowrap" key={wIndex}>
+      {isFullHidden ? (
+        <div className="group flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
+          <Lock className="size-2.5 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
+        </div>
+      ) : (
+        <span className="font-sans text-sm text-foreground">{word}</span>
+      )}
     </span>
   );
 }
@@ -144,23 +144,27 @@ export const PyramidClues = memo(function PyramidClues() {
 
     return (
       <div className="panel-standard">
-        <div className="mb-4 flex w-fit cursor-default items-center">
-          <GameTooltip content={t("olfactoryProfileTooltip")} sideOffset={6}>
-            <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "inline-flex transition-transform duration-300 hover:scale-[1.15]",
-                  iconScaled && "scale-[1.15]",
-                )}
-                onPointerDown={handleIconTap}
-              >
-                <Layers className="size-4 text-muted-foreground" />
-              </span>
-              <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase">
+        <div className="mb-2 flex w-fit max-w-full min-w-0 cursor-default items-center">
+          <ScrollableRow className="flex w-full items-center gap-2 pr-1 pb-1">
+            <span
+              className={cn(
+                "inline-flex transition-transform duration-300 hover:scale-[1.15]",
+                iconScaled && "scale-[1.15]",
+              )}
+              onPointerDown={handleIconTap}
+            >
+              <Layers className="size-4 shrink-0 text-muted-foreground" />
+            </span>
+            <GameTooltip
+              className="max-w-full min-w-0"
+              content={t("pyramidTooltip")}
+              sideOffset={6}
+            >
+              <h2 className="font-[family-name:var(--font-playfair)] text-base whitespace-nowrap text-foreground lowercase">
                 {t("olfactoryProfile")}
               </h2>
-            </div>
-          </GameTooltip>
+            </GameTooltip>
+          </ScrollableRow>
         </div>
 
         <ul className="flex flex-col">
@@ -194,7 +198,7 @@ export const PyramidClues = memo(function PyramidClues() {
             </div>
 
             <div>
-              <div className="flex flex-wrap items-center justify-start gap-2 text-sm">
+              <div className="flex flex-wrap items-start justify-start gap-2 text-sm">
                 {displayNotes.map((note, i, array) => {
                   const words = note.split(" ");
                   const isLast = i === array.length - 1;
@@ -206,7 +210,7 @@ export const PyramidClues = memo(function PyramidClues() {
                     revealLevel === 1 &&
                     note === GENERIC_PLACEHOLDER.repeat(5) ? (
                       <span
-                        className="inline-flex min-h-[1.375rem] max-w-full cursor-default flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 rounded-md border border-border bg-secondary/50 bg-striped-pattern px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary"
+                        className="inline-flex min-h-[1.375rem] w-fit max-w-full cursor-default flex-nowrap items-center rounded-md border border-border bg-secondary/50 bg-striped-pattern px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary"
                         key={`linear-note-${i}-${note.charAt(0)}`}
                       >
                         <GameTooltip
@@ -218,13 +222,10 @@ export const PyramidClues = memo(function PyramidClues() {
                         </GameTooltip>
                       </span>
                     ) : (
-                      <span
-                        className="group inline-flex min-h-[1.375rem] max-w-full cursor-default flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 rounded-md border border-border bg-secondary/50 px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary"
-                        key={`linear-note-${note}-${i}`}
-                      >
+                      <PyramidNoteBadge key={`linear-note-${note}-${i}`}>
                         {!note.includes(MASK_CHAR) &&
                         note !== GENERIC_PLACEHOLDER.repeat(5) ? (
-                          <span className="font-sans text-sm text-foreground">
+                          <span className="font-sans text-sm whitespace-nowrap text-foreground">
                             {note}
                           </span>
                         ) : (
@@ -259,12 +260,12 @@ export const PyramidClues = memo(function PyramidClues() {
                             })();
 
                             const content = (
-                              <div
-                                className="flex flex-nowrap"
+                              <span
+                                className="inline-flex flex-nowrap"
                                 key={`word-content-${word}-${wIndex}`}
                               >
                                 {innerContent}
-                              </div>
+                              </span>
                             );
 
                             if (showTooltip) {
@@ -274,7 +275,7 @@ export const PyramidClues = memo(function PyramidClues() {
                                   key={`linear-tooltip-${word}-${wIndex}`}
                                 >
                                   {({ isHovered }: { isHovered?: boolean }) => (
-                                    <div className="flex flex-nowrap">
+                                    <span className="inline-flex flex-nowrap">
                                       {isFullHidden ? (
                                         <div className="flex items-center justify-center px-1.5 py-0.5 opacity-80 transition-colors duration-300 hover:opacity-100">
                                           <Lock
@@ -293,7 +294,7 @@ export const PyramidClues = memo(function PyramidClues() {
                                           word={word}
                                         />
                                       )}
-                                    </div>
+                                    </span>
                                   )}
                                 </GameTooltip>
                               );
@@ -305,13 +306,13 @@ export const PyramidClues = memo(function PyramidClues() {
                             );
                           })
                         )}
-                      </span>
+                      </PyramidNoteBadge>
                     );
 
                   if (isLast) {
                     return (
                       <div
-                        className="flex min-w-0 flex-[1_1_0px] items-center gap-2"
+                        className="flex min-w-0 flex-[1_1_auto] items-center gap-2"
                         key={`wrapper-${i}`}
                       >
                         {badgeNode}
@@ -339,20 +340,24 @@ export const PyramidClues = memo(function PyramidClues() {
 
   return (
     <div className="panel-standard">
-      <div className="mb-4 flex w-fit cursor-default items-center">
-        <GameTooltip content={t("pyramidTooltip")} sideOffset={6}>
-          <div className="flex items-center gap-2">
-            <span
-              className="inline-flex transition-transform duration-300 hover:scale-[1.15] active:scale-[1.15]"
-              onTouchStart={noop}
-            >
-              <Layers className="size-4 text-muted-foreground" />
-            </span>
-            <h2 className="font-[family-name:var(--font-playfair)] text-lg text-foreground lowercase">
+      <div className="mb-2 flex w-fit max-w-full min-w-0 cursor-default items-center">
+        <ScrollableRow className="flex w-full items-center gap-2 pr-1 pb-1">
+          <span
+            className="inline-flex transition-transform duration-300 hover:scale-[1.15] active:scale-[1.15]"
+            onTouchStart={noop}
+          >
+            <Layers className="size-4 text-muted-foreground" />
+          </span>
+          <GameTooltip
+            className="max-w-full min-w-0"
+            content={t("pyramidTooltip")}
+            sideOffset={6}
+          >
+            <h2 className="font-[family-name:var(--font-playfair)] text-base whitespace-nowrap text-foreground lowercase">
               {t("pyramid")}
             </h2>
-          </div>
-        </GameTooltip>
+          </GameTooltip>
+        </ScrollableRow>
       </div>
 
       <ul className="flex flex-col">
@@ -391,25 +396,29 @@ export const PyramidClues = memo(function PyramidClues() {
 
             <div>
               {level.notes && level.notes.length > 0 ? (
-                <div className="flex flex-wrap items-center gap-1.5">
+                <div className="flex flex-wrap items-start gap-1.5">
                   {level.notes.map((note, noteIndex, array) => {
                     const words = note.split(" ");
                     const isLast = noteIndex === array.length - 1;
 
-                    // if reveal level is not 1, return revealed/masked note badge.
-                    // GameProvider usually returns real notes. If masked, they contain MASK_CHAR.
-                    if (note !== GENERIC_PLACEHOLDER.repeat(5)) {
-                      return (
-                        <span
-                          className="group inline-flex min-h-[1.375rem] max-w-full cursor-default flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 rounded-md border border-border bg-secondary/50 px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary"
-                          key={`${level.name}-note-${noteIndex}-${note.charAt(0)}`}
-                        >
-                          {!note.includes(MASK_CHAR) &&
-                          note !== GENERIC_PLACEHOLDER.repeat(5) ? (
-                            <span className="font-sans text-sm text-foreground">
-                              {note}
-                            </span>
-                          ) : (
+                    const badgeNode =
+                      note === GENERIC_PLACEHOLDER.repeat(5) ? (
+                        // Generic placeholder badge (level 1 = "??????")
+                        <span className="inline-flex min-h-[1.375rem] w-fit max-w-full cursor-default flex-nowrap items-center rounded-md border border-border bg-secondary/50 bg-striped-pattern px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary">
+                          <GameTooltip
+                            content={t("hiddenNote", {
+                              attempt: currentAttempt,
+                            })}
+                          >
+                            <div className="group flex h-5 cursor-help items-center justify-center opacity-80 transition-colors duration-300 hover:opacity-100">
+                              <Lock className="size-3 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
+                            </div>
+                          </GameTooltip>
+                        </span>
+                      ) : (
+                        // Revealed or partially masked note badge
+                        <PyramidNoteBadge>
+                          {note.includes(MASK_CHAR) ? (
                             words.map((word, wIndex) => {
                               const hasMasking = word.includes(MASK_CHAR);
                               const isFullHidden =
@@ -424,33 +433,18 @@ export const PyramidClues = memo(function PyramidClues() {
                                 word,
                               });
                             })
+                          ) : (
+                            <span className="font-sans text-sm whitespace-nowrap text-foreground">
+                              {note}
+                            </span>
                           )}
-                        </span>
+                        </PyramidNoteBadge>
                       );
-                    }
-
-                    // Generic placeholder badge (level 1 = "??????")
-                    const badgeNode = (
-                      <span
-                        className="inline-flex min-h-[1.375rem] max-w-full cursor-default flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 rounded-md border border-border bg-secondary/50 bg-striped-pattern px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary"
-                        key={`${level.name}-note-${noteIndex}-${note.charAt(0)}`}
-                      >
-                        <GameTooltip
-                          content={t("hiddenNote", {
-                            attempt: currentAttempt,
-                          })}
-                        >
-                          <div className="group flex h-5 cursor-help items-center justify-center opacity-80 transition-colors duration-300 hover:opacity-100">
-                            <Lock className="size-3 text-muted-foreground transition-colors group-hover:text-[oklch(0.75_0.15_60)]" />
-                          </div>
-                        </GameTooltip>
-                      </span>
-                    );
 
                     if (isLast) {
                       return (
                         <div
-                          className="flex min-w-0 flex-[1_1_0px] items-center gap-2"
+                          className="flex min-w-0 flex-[1_1_auto] items-center gap-2"
                           key={`wrapper-${noteIndex}`}
                         >
                           {badgeNode}
@@ -459,12 +453,16 @@ export const PyramidClues = memo(function PyramidClues() {
                       );
                     }
 
-                    return badgeNode;
+                    return (
+                      <span key={`${level.name}-note-${noteIndex}`}>
+                        {badgeNode}
+                      </span>
+                    );
                   })}
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-1.5">
-                  <span className="inline-flex min-h-[1.375rem] max-w-full cursor-default flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 rounded-md border border-border bg-secondary/50 bg-striped-pattern px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary">
+                  <span className="inline-flex min-h-[1.375rem] w-fit max-w-full cursor-default flex-nowrap items-center rounded-md border border-border bg-secondary/50 bg-striped-pattern px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary">
                     <GameTooltip
                       content={t("hiddenNotes", { attempt: currentAttempt })}
                     >
@@ -482,3 +480,38 @@ export const PyramidClues = memo(function PyramidClues() {
     </div>
   );
 });
+
+function PyramidNoteBadge({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  const { canScrollLeft, canScrollRight, ref } =
+    useIsOverflowing<HTMLSpanElement>();
+
+  const maskClass = (() => {
+    if (canScrollLeft && canScrollRight) {
+      return "[mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_85%,transparent_100%)]";
+    }
+    if (canScrollLeft) {
+      return "[mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_100%)]";
+    }
+    if (canScrollRight) {
+      return "[mask-image:linear-gradient(to_right,black_85%,transparent_100%)]";
+    }
+    return "";
+  })();
+
+  return (
+    <span
+      className={cn(
+        "group inline-flex min-h-[1.375rem] w-fit max-w-full cursor-default flex-nowrap items-center gap-1 rounded-md border border-border bg-secondary/50 px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary",
+        "overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        maskClass,
+      )}
+      ref={ref}
+    >
+      {children}
+    </span>
+  );
+}

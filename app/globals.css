@@ -360,7 +360,8 @@ html.large-text {
 
 /* Slow pulse for help hint dot */
 @keyframes pulse-slow {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
 
@@ -456,25 +457,27 @@ html.lenis body {
   pointer-events: none;
 }
 
-/* Premium Scrollbar */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
+/* Premium Scrollbar - Desktop Only */
+@media (pointer: fine) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-::-webkit-scrollbar-thumb {
-  background: oklch(0.72 0.16 55 / 0.3);
-  /* Amber with opacity */
-  border-radius: 999px;
-  transition: background 0.3s ease;
-}
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.72 0.16 55 / 0.3);
+    /* Amber with opacity */
+    border-radius: 999px;
+    transition: background 0.3s ease;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.72 0.16 55 / 0.6);
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.72 0.16 55 / 0.6);
+  }
 }
 
 /* Remove default scrollbar for cleaner look in some contexts if needed */

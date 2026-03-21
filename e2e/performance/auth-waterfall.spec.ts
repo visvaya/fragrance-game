@@ -6,8 +6,7 @@ import { test, expect, type Page } from "@playwright/test";
  */
 async function waitForInitEnd(page: Page): Promise<void> {
   await page.waitForFunction(
-    () =>
-      performance.getEntriesByName("eauxle:init_end", "mark").length > 0,
+    () => performance.getEntriesByName("eauxle:init_end", "mark").length > 0,
     { timeout: 25_000 },
   );
 }
@@ -36,15 +35,17 @@ async function collectMarksAndMeasures(page: Page): Promise<{
   return { marks, measures };
 }
 
-function printBreakdown(label: string, measures: PerfMeasure[], marks: PerfMark[]): void {
+function printBreakdown(
+  label: string,
+  measures: PerfMeasure[],
+  marks: PerfMark[],
+): void {
   const initStart = marks.find((m) => m.name === "eauxle:init_start");
   const sessionReady = marks.find((m) => m.name === "eauxle:session_ready");
   const initEnd = marks.find((m) => m.name === "eauxle:init_end");
   const endMark = sessionReady ?? initEnd;
   const totalMs =
-    initStart != null && endMark != null
-      ? endMark.time - initStart.time
-      : null;
+    initStart != null && endMark != null ? endMark.time - initStart.time : null;
 
   const succeeded = sessionReady != null;
   const outcome = succeeded ? "SUCCESS" : "EARLY EXIT (captcha / auth error)";
@@ -82,7 +83,9 @@ test.describe("Auth Waterfall Diagnostics", () => {
     }
   });
 
-  test("returning user — no auth roundtrip, game_fetch only", async ({ page }) => {
+  test("returning user — no auth roundtrip, game_fetch only", async ({
+    page,
+  }) => {
     // First visit to establish anonymous session in cookies
     await page.goto("/en");
     await waitForInitEnd(page);

@@ -123,7 +123,8 @@ function buildSuggestionsFromRows(
 ): PerfumeSuggestion[] {
   const grouped = new Map<string, number>();
   for (const p of perfumes) {
-    const key = `${p.brand_name}|${p.name}|${p.concentration ?? ""}`.toLowerCase();
+    const key =
+      `${p.brand_name}|${p.name}|${p.concentration ?? ""}`.toLowerCase();
     grouped.set(key, (grouped.get(key) ?? 0) + 1);
   }
 
@@ -131,7 +132,9 @@ function buildSuggestionsFromRows(
     const brandName = p.brand_name;
     const key = `${brandName}|${p.name}|${p.concentration ?? ""}`.toLowerCase();
     const hasDuplicates = (grouped.get(key) ?? 0) > 1;
-    const maskedYear = hasDuplicates ? (p.year?.toString() ?? null) : maskYear(p.year, attemptsCount);
+    const maskedYear = hasDuplicates
+      ? (p.year?.toString() ?? null)
+      : maskYear(p.year, attemptsCount);
     const concentration = p.concentration ?? null;
     const { name } = p;
     const yearSuffix = maskedYear ? ` (${maskedYear})` : "";
@@ -149,8 +152,11 @@ function buildSuggestionsFromRows(
     };
   });
 
-  const reranked = transformed.toSorted((a, b) => relevanceScore(b, nq) - relevanceScore(a, nq));
-  if (reranked.length > 0) void setCachedAutocomplete(validatedQuery, dbLimit, reranked);
+  const reranked = transformed.toSorted(
+    (a, b) => relevanceScore(b, nq) - relevanceScore(a, nq),
+  );
+  if (reranked.length > 0)
+    void setCachedAutocomplete(validatedQuery, dbLimit, reranked);
   const relevant = reranked.filter((item) => relevanceScore(item, nq) > 0);
   const candidates = relevant.length > 0 ? relevant : reranked;
   return sliceCandidates(candidates, validatedQuery, isLastAttempt);
@@ -238,7 +244,11 @@ export async function searchPerfumes(
     console.error("Autocomplete DB Error:", dbError);
     void trackEvent(
       "autocomplete_error",
-      { attempt: currentAttempt, error: dbError.message, query: validatedQuery },
+      {
+        attempt: currentAttempt,
+        error: dbError.message,
+        query: validatedQuery,
+      },
       user?.id ?? validatedSessionId ?? "anonymous",
     );
     return [];
@@ -260,7 +270,14 @@ export async function searchPerfumes(
   );
 
   // 6. Transform, rank, cache, slice
-  return buildSuggestionsFromRows(perfumes, attemptsCount, nq, validatedQuery, dbLimit, isLastAttempt);
+  return buildSuggestionsFromRows(
+    perfumes,
+    attemptsCount,
+    nq,
+    validatedQuery,
+    dbLimit,
+    isLastAttempt,
+  );
 }
 
 /**

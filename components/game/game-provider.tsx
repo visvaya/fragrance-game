@@ -613,10 +613,7 @@ export function GameProvider({
           if (verifiedUser != null) {
             // Track Anonymous Session for future migration
             if (verifiedUser.is_anonymous) {
-              localStorage.setItem(
-                "eauxle_anon_player_id",
-                verifiedUser.id,
-              );
+              localStorage.setItem("eauxle_anon_player_id", verifiedUser.id);
             }
             setUser(verifiedUser);
           }
@@ -649,9 +646,7 @@ export function GameProvider({
           "eauxle_declined_anon_attempts",
         );
         const parsedStored =
-          storedInherited === null
-            ? 0
-            : Number.parseInt(storedInherited, 10);
+          storedInherited === null ? 0 : Number.parseInt(storedInherited, 10);
         const inheritedCount = Math.max(
           0,
           Math.min(5, Number.isNaN(parsedStored) ? 0 : parsedStored),

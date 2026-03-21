@@ -110,13 +110,13 @@ export function AttemptRow({
             // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- animate-flash-error is a custom CSS animation class defined in globals.css
             <div className="animate-flash-error pointer-events-none absolute inset-0 rounded-sm" />
           ) : null}
-          <span className="block w-full pr-1 text-center text-[0.8125rem] font-normal text-muted-foreground">
+          <span className="block w-full text-center text-[0.8125rem] font-normal text-muted-foreground sm:pr-1">
             {index + 1}
           </span>
         </RowCell>
 
         <RowCell
-          className="flex min-w-0 flex-row items-center gap-2 pr-0 pl-2"
+          className="flex min-w-0 flex-row items-center gap-2 pr-0 pl-1 sm:pl-2"
           isActive={isActive}
           isTouch={isTouch}
         >
@@ -131,7 +131,7 @@ export function AttemptRow({
         </RowCell>
 
         <RowCell
-          className="grid w-full grid-cols-5 pr-0.5 pl-1"
+          className="grid w-full grid-cols-5 pr-0.5 pl-0 sm:pl-1"
           isActive={isActive}
           isTouch={isTouch}
         >
@@ -156,7 +156,9 @@ export function AttemptRow({
     );
   }
 
-  const flashClass = attempt.isCorrect ? "animate-flash-success" : "animate-flash-error";
+  const flashClass = attempt.isCorrect
+    ? "animate-flash-success"
+    : "animate-flash-error";
 
   return (
     <div className="group contents" data-attempt-row>
@@ -175,13 +177,13 @@ export function AttemptRow({
             )}
           />
         ) : null}
-        <span className="block w-full pr-1 text-center text-[0.8125rem] font-normal text-muted-foreground">
+        <span className="block w-full text-center text-[0.8125rem] font-normal text-muted-foreground sm:pr-1">
           {index + 1}
         </span>
       </RowCell>
 
       <RowCell
-        className="flex min-w-0 flex-row items-center gap-2 pr-0 pl-2"
+        className="flex min-w-0 flex-row items-center gap-2 pr-0 pl-1 sm:pl-2"
         isActive={isActive}
         isTouch={isTouch}
         {...interactiveProperties}
@@ -296,7 +298,7 @@ export function AttemptRow({
       </RowCell>
 
       <RowCell
-        className="grid w-full grid-cols-5 pr-0.5 pl-1 font-hand text-xl text-primary"
+        className="grid w-full grid-cols-5 pr-0.5 pl-0 font-hand text-xl text-primary sm:pl-1"
         isActive={isActive}
         isTouch={isTouch}
         {...interactiveProperties}

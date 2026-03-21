@@ -50,7 +50,10 @@ export async function identifyUser(
 ): Promise<void> {
   try {
     const client = getPostHogClient();
-    await client.identifyImmediate({ distinctId, properties: properties ?? {} });
+    await client.identifyImmediate({
+      distinctId,
+      properties: properties ?? {},
+    });
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
