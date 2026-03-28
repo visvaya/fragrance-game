@@ -44,7 +44,7 @@ jobs:
       - name: Security Check Script
         run: python scripts/security-check.py
       - name: Semgrep
-        uses: returntocorp/semgrep-action@v1
+        uses: semgrep/semgrep-action@v1
         with:
           config: >-
             p/security-audit
