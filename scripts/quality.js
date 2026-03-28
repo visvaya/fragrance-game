@@ -29,7 +29,7 @@ function ensureDir(dir) {
 function run(name, command, outputFile) {
     console.log(`\n[${name.toUpperCase()}] ${command}`);
     try {
-        const output = execSync(command, {
+        const output = execSync(command, { // nosemgrep: javascript.lang.security.detect-child-process.detect-child-process
             encoding: 'utf8',
             maxBuffer: 50 * 1024 * 1024,
             stdio: ['ignore', 'pipe', 'pipe'],
