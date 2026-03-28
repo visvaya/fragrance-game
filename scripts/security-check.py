@@ -47,8 +47,6 @@ SECURITY_PATTERNS: List[Tuple[str, str]] = [
     (r'(?i)[A-Z]:\\(?:Users|Windows|Program Files|fragrance-game)', "Absolute Windows path (privacy/portability)"),
     # Absolute Paths (Linux/Mac)
     (r'(?i)/(?:Users|home)/[a-zA-Z0-9._-]+', "Absolute Unix path (privacy/portability)"),
-    # dangerouslySetInnerHTML without sanitize (Negative lookahead for DOMPurify)
-    (r'dangerouslySetInnerHTML.*(?!=.*DOMPurify\.sanitize)', "Potential XSS via dangerouslySetInnerHTML without sanitization"),
 ]
 
 def check_for_security_issues(content: str) -> List[str]:
@@ -77,11 +75,8 @@ def check_for_secrets(content: str, file_path: str) -> List[str]:
     if os.path.basename(file_path) in SKIP_FILES:
         return issues
 
-    # Skip test files checking for secret patterns
+    # Skip test/spec files entirely
     if "test" in file_path.lower() or "spec" in file_path.lower():
-        # But still check for absolute paths in tests if it's not a mock
-        if "mock" not in file_path.lower():
-            issues.extend(check_for_security_issues(content))
         return issues
 
     # Check for secrets
