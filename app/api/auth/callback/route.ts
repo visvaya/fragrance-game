@@ -53,15 +53,7 @@ export async function GET(request: Request): Promise<Response> {
       // We can't use order/limit in update easily without a subquery,
       // but given the timestamp constraint and user_id, it should be the right one.
 
-      const forwardedHost = request.headers.get("x-forwarded-host"); // original origin before load balancer
-      const isLocal = origin.includes("localhost");
-      if (isLocal) {
-        return NextResponse.redirect(`${origin}${next}`);
-      } else if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${next}`);
-      } else {
-        return NextResponse.redirect(`${origin}${next}`);
-      }
+      return NextResponse.redirect(`${origin}${next}`);
     }
   }
 
