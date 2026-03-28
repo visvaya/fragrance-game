@@ -88,6 +88,11 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build application
         run: pnpm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_ASSETS_HOST: ${{ secrets.NEXT_PUBLIC_ASSETS_HOST }}
       - name: Get Playwright version
         id: playwright-version
         run: echo "version=$(pnpm list @playwright/test --json | jq -r '.[0].dependencies.\"@playwright/test\".version')" >> $GITHUB_OUTPUT
