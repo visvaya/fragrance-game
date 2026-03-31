@@ -158,11 +158,15 @@ SELECT has_function('public', 'delete_auth_session',
 -- PUBLIC VIEW ACCESS
 -- ============================================================
 
-SELECT has_table_privilege('anon', 'public.perfumes_public', 'SELECT',
-  'anon can SELECT from perfumes_public view');
+SELECT ok(
+  has_table_privilege('anon', 'public.perfumes_public', 'SELECT'),
+  'anon can SELECT from perfumes_public view'
+);
 
-SELECT has_table_privilege('anon', 'public.daily_challenges_public', 'SELECT',
-  'anon can SELECT from daily_challenges_public view');
+SELECT ok(
+  has_table_privilege('anon', 'public.daily_challenges_public', 'SELECT'),
+  'anon can SELECT from daily_challenges_public view'
+);
 
 SELECT * FROM finish();
 ROLLBACK;

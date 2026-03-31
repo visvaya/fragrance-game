@@ -131,34 +131,97 @@ SELECT ok(
 
 -- ============================================================
 -- RLS POLICIES — core game
+-- Note: uses pg_policies directly to avoid pgTAP version compatibility issues
 -- ============================================================
 
-SELECT has_policy('public', 'game_sessions',  'Owner read sessions',        'game_sessions has owner-only read policy');
-SELECT has_policy('public', 'game_results',   'Owner read results',          'game_results has owner-only read policy');
-SELECT has_policy('public', 'player_streaks', 'Owner read streaks',          'player_streaks has owner-only read policy');
-SELECT has_policy('public', 'brands',         'Public read brands',          'brands has public read policy');
-SELECT has_policy('public', 'concentrations', 'Public read concentrations',  'concentrations has public read policy');
+SELECT ok(
+  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='game_sessions' AND policyname='Owner read sessions'),
+  'game_sessions has owner-only read policy'
+);
+
+SELECT ok(
+  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='game_results' AND policyname='Owner read results'),
+  'game_results has owner-only read policy'
+);
+
+SELECT ok(
+  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='player_streaks' AND policyname='Owner read streaks'),
+  'player_streaks has owner-only read policy'
+);
+
+SELECT ok(
+  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='brands' AND policyname='Public read brands'),
+  'brands has public read policy'
+);
+
+SELECT ok(
+  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='concentrations' AND policyname='Public read concentrations'),
+  'concentrations has public read policy'
+);
 
 -- ============================================================
 -- RLS POLICIES — player account
 -- ============================================================
 
-SELECT has_policy('public', 'player_auth_links', 'Owner read auth links',       'player_auth_links has owner-only read policy');
-SELECT has_policy('public', 'player_auth_links', 'Owner delete auth links',     'player_auth_links has owner-only delete policy');
-SELECT has_policy('public', 'player_auth_links', 'Service role all auth links', 'player_auth_links has service_role policy');
+SELECT ok(
+  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='player_auth_links' AND policyname='Owner read auth links'),
+  'player_auth_links has owner-only read policy'
+);
 
-SELECT has_policy('public', 'player_profiles', 'Owner read player_profiles',   'player_profiles has owner-only read policy');
-SELECT has_policy('public', 'player_profiles', 'Owner update player_profiles', 'player_profiles has owner-only update policy');
-SELECT has_policy('public', 'player_profiles', 'Owner insert player_profiles', 'player_profiles has owner insert policy');
+SELECT ok(
+  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='player_auth_links' AND policyname='Owner delete auth links'),
+  'player_auth_links has owner-only delete policy'
+);
 
-SELECT has_policy('public', 'user_sessions', 'Users can view own sessions',   'user_sessions has owner-only read policy');
-SELECT has_policy('public', 'user_sessions', 'Users can update own sessions', 'user_sessions has owner-only update policy');
-SELECT has_policy('public', 'user_sessions', 'Users can insert own sessions', 'user_sessions has insert policy');
+SELECT ok(
+  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='player_auth_links' AND policyname='Service role all auth links'),
+  'player_auth_links has service_role policy'
+);
 
-SELECT has_policy('public', 'recovery_keys', 'Owner read recovery keys',      'recovery_keys has owner-only read policy');
-SELECT has_policy('public', 'recovery_keys', 'Service role all recovery keys','recovery_keys has service_role policy');
+SELECT ok(
+  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='player_profiles' AND policyname='Owner read player_profiles'),
+  'player_profiles has owner-only read policy'
+);
 
-SELECT has_policy('public', 'app_admins', 'Service role only app_admins',     'app_admins restricted to service_role only');
+SELECT ok(
+  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='player_profiles' AND policyname='Owner update player_profiles'),
+  'player_profiles has owner-only update policy'
+);
+
+SELECT ok(
+  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='player_profiles' AND policyname='Owner insert player_profiles'),
+  'player_profiles has owner insert policy'
+);
+
+SELECT ok(
+  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='user_sessions' AND policyname='Users can view own sessions'),
+  'user_sessions has owner-only read policy'
+);
+
+SELECT ok(
+  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='user_sessions' AND policyname='Users can update own sessions'),
+  'user_sessions has owner-only update policy'
+);
+
+SELECT ok(
+  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='user_sessions' AND policyname='Users can insert own sessions'),
+  'user_sessions has insert policy'
+);
+
+SELECT ok(
+  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='recovery_keys' AND policyname='Owner read recovery keys'),
+  'recovery_keys has owner-only read policy'
+);
+
+SELECT ok(
+  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='recovery_keys' AND policyname='Service role all recovery keys'),
+  'recovery_keys has service_role policy'
+);
+
+SELECT ok(
+  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='app_admins' AND policyname='Service role only app_admins'),
+  'app_admins restricted to service_role only'
+);
 
 -- ============================================================
 -- SECURITY INVOKER on views (critical — prevents RLS bypass)
@@ -235,21 +298,29 @@ SELECT ok(
 -- anon CAN SELECT from public views
 -- ============================================================
 
-SELECT has_table_privilege('anon', 'public.perfumes_public', 'SELECT',
-  'anon can SELECT from perfumes_public view');
+SELECT ok(
+  has_table_privilege('anon', 'public.perfumes_public', 'SELECT'),
+  'anon can SELECT from perfumes_public view'
+);
 
-SELECT has_table_privilege('anon', 'public.daily_challenges_public', 'SELECT',
-  'anon can SELECT from daily_challenges_public view');
+SELECT ok(
+  has_table_privilege('anon', 'public.daily_challenges_public', 'SELECT'),
+  'anon can SELECT from daily_challenges_public view'
+);
 
 -- ============================================================
 -- service_role CAN access everything
 -- ============================================================
 
-SELECT has_table_privilege('service_role', 'public.perfumes', 'SELECT',
-  'service_role can SELECT from perfumes table directly');
+SELECT ok(
+  has_table_privilege('service_role', 'public.perfumes', 'SELECT'),
+  'service_role can SELECT from perfumes table directly'
+);
 
-SELECT has_table_privilege('service_role', 'public.daily_challenges', 'SELECT',
-  'service_role can SELECT from daily_challenges table directly');
+SELECT ok(
+  has_table_privilege('service_role', 'public.daily_challenges', 'SELECT'),
+  'service_role can SELECT from daily_challenges table directly'
+);
 
 SELECT * FROM finish();
 ROLLBACK;
