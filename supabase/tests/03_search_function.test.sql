@@ -27,7 +27,7 @@ SELECT function_returns(
   'public',
   'search_perfumes_unaccent_v2',
   ARRAY['text', 'integer'],
-  'record',
+  'setof record',
   'search_perfumes_unaccent_v2 returns SETOF record'
 );
 
