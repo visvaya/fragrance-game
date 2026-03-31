@@ -12,6 +12,13 @@ jobs:
   fast-tests:
     name: Unit & Snapshots
     runs-on: ubuntu-latest
+    env:
+      # RLS security tests are read-only (SELECT only) — safe to run against production DB.
+      # algorithm.integration.test.ts is excluded: it truncates all tables (beforeEach DELETE).
+      VITEST_INTEGRATION: "true"
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -110,8 +117,13 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
       - name: Run Smoke Tests
         run: npx playwright test --project=smoke
-      - name: Run Main E2E Tests (excluding non-critical)
-        run: npx playwright test --project=chromium --grep-invert "accessibility|visual"
+      - name: Run Main E2E Tests (excluding visual)
+        run: npx playwright test --project=chromium --grep-invert "visual"
+      - name: Run A11y Tests (non-blocking)
+        # Accessibility violations shouldn't block CI — they are good-to-have, not release gates.
+        # Visual snapshots stay excluded: Linux renderer produces pixel diffs vs Windows baselines.
+        run: npx playwright test --project=chromium --grep "accessibility violations"
+        continue-on-error: true
       - name: Upload Playwright Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -122,3 +134,23 @@ jobs:
             test-results/
             smoke-test-failure.png
           retention-days: 30
+
+  pgtap:
+    name: pgTAP (schema + RLS + search)
+    runs-on: ubuntu-latest
+    needs: fast-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run pgTAP tests on linked project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: pnpm exec supabase test db --linked
