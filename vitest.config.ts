@@ -13,9 +13,14 @@ export default defineConfig({
     env: {
       CRON_SECRET: "test-cron-secret",
       NEXT_PUBLIC_POSTHOG_KEY: "phc_test_key",
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: "test-anon-key",
-      NEXT_PUBLIC_SUPABASE_URL: "https://test.supabase.co",
-      SUPABASE_SERVICE_ROLE_KEY: "test-service-role-key",
+      // Integration tests (VITEST_INTEGRATION=true) use real credentials from CI secrets.
+      // Fallback mock values are used for unit tests that mock Supabase entirely.
+      NEXT_PUBLIC_SUPABASE_ANON_KEY:
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "test-anon-key",
+      NEXT_PUBLIC_SUPABASE_URL:
+        process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://test.supabase.co",
+      SUPABASE_SERVICE_ROLE_KEY:
+        process.env.SUPABASE_SERVICE_ROLE_KEY ?? "test-service-role-key",
     },
     alias: {
       "@": path.resolve(__dirname, "./"),
