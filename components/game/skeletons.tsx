@@ -279,7 +279,7 @@ export function AttemptLogSkeleton({
       </div>
 
       {/* Table — same grid as real: 1.5rem/2rem | 1fr | minmax(105px,auto) */}
-      <div className="grid grid-cols-[1.5rem_1fr_minmax(6.5625rem,auto)] sm:grid-cols-[2rem_1fr_minmax(6.5625rem,auto)]">
+      <div className="-mb-3 grid grid-cols-[1.5rem_1fr_minmax(6.5625rem,auto)] sm:grid-cols-[2rem_1fr_minmax(6.5625rem,auto)]">
         {/* Header: "#" column — real has size-8 GameTooltip placeholder, we replicate 32px height */}
         <div className="flex items-center justify-center border-b-2 border-muted/50 pb-[0.1875rem] text-[0.8125rem] font-semibold tracking-widest text-muted-foreground/70 lowercase">
           {t ? (

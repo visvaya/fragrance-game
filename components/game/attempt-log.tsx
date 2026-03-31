@@ -166,13 +166,13 @@ export const AttemptLog = memo(function AttemptLog() {
 
       <div
         className={cn(
-          "grid grid-cols-[1.5rem_1fr_minmax(6.5625rem,auto)] overflow-x-auto pb-1 [scrollbar-width:none] sm:grid-cols-[2rem_1fr_minmax(6.5625rem,auto)] [&::-webkit-scrollbar]:hidden",
+          "-mb-3 grid grid-cols-[1.5rem_1fr_minmax(6.5625rem,auto)] overflow-x-auto [scrollbar-width:none] sm:grid-cols-[2rem_1fr_minmax(6.5625rem,auto)] [&::-webkit-scrollbar]:hidden",
           maskClass,
         )}
         ref={ref}
       >
         {/* Header Row - spread into grid columns */}
-        <div className="flex items-center justify-center border-b-2 border-muted/50 pb-[0.1875rem] text-[0.8125rem] font-semibold tracking-widest text-muted-foreground/70 lowercase transition-colors">
+        <div className="flex items-center justify-center border-b-2 border-muted/50 pb-[0.1875rem] text-[0.8125rem] font-semibold tracking-widest text-muted-foreground lowercase transition-colors">
           <GameTooltip
             className="size-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
             content={t("columns.attemptTooltip")}
@@ -183,11 +183,11 @@ export const AttemptLog = memo(function AttemptLog() {
           </GameTooltip>
         </div>
 
-        <div className="flex items-center border-b-2 border-muted/50 pb-[0.1875rem] pl-1 text-[0.8125rem] font-semibold tracking-widest text-muted-foreground/70 lowercase sm:pl-2">
+        <div className="flex items-center border-b-2 border-muted/50 pb-[0.1875rem] pl-1 text-[0.8125rem] font-semibold tracking-widest text-muted-foreground lowercase sm:pl-2">
           {t("columns.perfume")}
         </div>
 
-        <div className="grid w-full grid-cols-5 justify-items-center border-b-2 border-muted/50 px-0 pb-1 text-center text-[0.8125rem] font-semibold tracking-widest text-muted-foreground/70 lowercase sm:px-1">
+        <div className="grid w-full grid-cols-5 justify-items-center border-b-2 border-muted/50 px-0 pb-1 text-center text-[0.8125rem] font-semibold tracking-widest text-muted-foreground lowercase sm:px-1">
           <GameTooltip
             className="size-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
             content={t("columns.brandTooltip")}

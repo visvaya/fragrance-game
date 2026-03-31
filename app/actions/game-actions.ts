@@ -133,7 +133,7 @@ function cleanNote(note: string | null | undefined): string {
   const cleanedNote = removeWords.reduce(
     (cleanedAccumulator, word) =>
       cleanedAccumulator.replaceAll(
-        new RegExp(String.raw`\b${word}\b`, "gi"),
+        new RegExp(String.raw`\b${word}\b`, "gi"), // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- word comes from a hardcoded internal array, not user input
         "",
       ),
     note

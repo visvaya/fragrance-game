@@ -49,7 +49,7 @@ export function GameFooter() {
           <p className="text-xs tracking-[0.2em] text-muted-foreground lowercase">
             {t("copyright")}
           </p>
-          <p className="rotate-[-1deg] font-hand text-lg text-muted-foreground/60 italic">
+          <p className="rotate-[-1deg] font-hand text-lg text-muted-foreground italic">
             {t("slogan")}
           </p>
         </div>

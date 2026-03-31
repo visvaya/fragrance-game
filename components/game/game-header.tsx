@@ -265,9 +265,11 @@ export function GameHeader() {
           </div>
         </nav>
 
-        {/* Dropdown positioning layer: sibling of nav so backdrop-blur sees raw page content */}
+        {/* Dropdown positioning layer: sibling of nav so backdrop-blur sees raw page content.
+            No aria-hidden on container — accessibility is controlled by visibility on each dropdown:
+            closed dropdowns use `invisible` (visibility:hidden) which removes them from tab order
+            and the accessibility tree without needing explicit aria-hidden. */}
         <div
-          aria-hidden="true"
           className="pointer-events-none absolute inset-0 mx-auto max-w-2xl wide:max-w-5xl"
         >
           {/* Menu Dropdown */}
@@ -275,8 +277,8 @@ export function GameHeader() {
             className={cn(
               "pointer-events-auto absolute top-full left-2 mt-2 flex max-h-[calc(100dvh-5rem)] w-56 max-w-[calc(100vw-16px)] flex-col overflow-x-hidden overflow-y-auto rounded-md border panel-border bg-background/70 panel-shadow backdrop-blur-md transition-all duration-300 min-[350px]:left-5 min-[350px]:max-w-[calc(100vw-40px)]",
               modals.menuOpen
-                ? "translate-y-0 opacity-100"
-                : "pointer-events-none -translate-y-2 opacity-0",
+                ? "visible translate-y-0 opacity-100"
+                : "invisible pointer-events-none -translate-y-2 opacity-0",
             )}
             style={{ zIndex: 60 }}
           >
@@ -539,8 +541,8 @@ export function GameHeader() {
             className={cn(
               "pointer-events-auto absolute top-full right-16 mt-2 flex max-h-[calc(100dvh-5rem)] w-36 max-w-[calc(100vw-84px)] flex-col overflow-x-hidden overflow-y-auto rounded-md border panel-border bg-background/70 panel-shadow backdrop-blur-md transition-all duration-300 max-[280px]:hidden",
               modals.langOpen
-                ? "translate-y-0 opacity-100"
-                : "pointer-events-none -translate-y-2 opacity-0",
+                ? "visible translate-y-0 opacity-100"
+                : "invisible pointer-events-none -translate-y-2 opacity-0",
             )}
             style={{ zIndex: 60 }}
           >

@@ -1,7 +1,17 @@
+import { existsSync } from "fs";
+import path from "path";
 import { expect, test } from "@playwright/test";
 
+// Auth file created by globalSetup (e2e/global-setup.ts) before tests run.
+// Contains pre-authenticated anonymous Supabase session (bypasses Turnstile captcha).
+const AUTH_FILE = path.join(__dirname, ".auth", "user.json");
+
 test.describe("Game Completion Flows", () => {
-  test.skip(!!process.env.CI, "Skipping game completion flows in CI");
+  // Use pre-authenticated session if globalSetup created it.
+  // This ensures authReady=true from the start — no signInAnonymously() needed.
+  if (existsSync(AUTH_FILE)) {
+    test.use({ storageState: AUTH_FILE });
+  }
 
   // Increase timeout for these tests (default 30s is too short for 6 attempts)
   test.setTimeout(90_000);
@@ -94,16 +104,15 @@ test.describe("Game Completion Flows", () => {
   });
 
   test("Defeat Flow (Loss)", async ({ page }) => {
-    // 1. Visit Home
-    await page.goto("/");
+    // 1. Visit Home — same strategy as game-flow.spec.ts which handles captcha reload
+    await page.goto("/", { waitUntil: "domcontentloaded" });
 
     // 2. Check if already finished or no puzzle
-    const isNoPuzzle = await page
-      .getByText(/No puzzle today|Brak zagadki na dziś/i)
-      .isVisible();
-
-    if (isNoPuzzle) {
-      console.log("[SKIP] No puzzle available today, cannot test loss flow");
+    const closedMessage = page.getByText(
+      /Gra zakończona|Come back tomorrow|No puzzle today|Brak zagadki na dziś/i,
+    );
+    if (await closedMessage.isVisible()) {
+      console.log("[SKIP] Game is closed or no puzzle today.");
       return;
     }
 
@@ -116,52 +125,54 @@ test.describe("Game Completion Flows", () => {
       return;
     }
 
-    // 3. Make 6 WRONG guesses
     const input = page.getByPlaceholder(
       /Guess the fragrance|Napisz jakie to perfumy/i,
     );
 
-    // Ensure input is visible and enabled
-    await expect(input).toBeVisible({ timeout: 15_000 });
-
     // Use 6 distinct brands to ensure we get 6 DIFFERENT perfumes easily
     const brands = ["Dior", "Chanel", "Gucci", "Versace", "Prada", "Hermes"];
 
+    // [data-attempt-row] uses display:contents (no bounding box) — Playwright's toHaveCount skips it.
+    // Use id="attempt-N" (the visible RowCell inside each attempt row) as the reliable indicator.
+    const attemptCells = page.locator('[id^="attempt-"]');
+
     for (let i = 0; i < 6; i++) {
       const brand = brands[i];
-
-      // Ensure input is focused
-      await input.click();
-      await input.clear();
-
-      // Type the brand name
-      await input.fill(brand);
-
+      const expectedCellCount = i + 1;
       const suggestions = page.getByRole("option");
 
-      // Wait for suggestions to appear
-      await expect(suggestions.first()).toBeVisible({ timeout: 7000 });
+      // Retry-safe: if a captcha-triggered page reload happens mid-fill, re-fill on next retry.
+      // toPass() retries the whole block until suggestions appear.
+      await expect(async () => {
+        await input.click();
+        await input.clear();
+        await input.fill(brand);
+        await expect(suggestions.first()).toBeVisible({ timeout: 5_000 });
+      }).toPass({ timeout: 30_000 });
 
       const suggestion = suggestions.first();
       const suggestionText = await suggestion.textContent();
       console.log(`[LOSS FLOW ${i + 1}] Guessing: "${suggestionText}"`);
 
-      if (i < 5) {
-        // For first 5 attempts: simple click and verify cleared input
-        await suggestion.click();
-        await expect(input).toHaveValue("", { timeout: 3000 });
-      } else {
-        // For 6th attempt: use retry logic to handle game over transition
-        await expect(async () => {
-          await suggestion.click();
+      await suggestion.click();
 
+      if (i < 5) {
+        // Wait for the attempt cell to appear — confirms auth + guess submission completed
+        // First guess triggers initializeAndGuess() (session + submit in 1 roundtrip) — allow 30s
+        await expect(attemptCells).toHaveCount(expectedCellCount, {
+          timeout: 30_000,
+        });
+        await expect(input).toHaveValue("", { timeout: 5_000 });
+      } else {
+        // For 6th attempt: wait for either game over message or cell count
+        await expect(async () => {
           const isFinished = await page
             .getByText(/Magnifique!|The answer was\.\.\.|Odpowiedź to\.\.\./i)
             .isVisible();
-          const inputVisible = await input.isVisible();
+          const cellCount = await attemptCells.count();
 
-          expect(isFinished || !inputVisible).toBeTruthy();
-        }).toPass({ timeout: 8000 });
+          expect(isFinished || cellCount >= 6).toBeTruthy();
+        }).toPass({ timeout: 30_000 });
       }
     }
 

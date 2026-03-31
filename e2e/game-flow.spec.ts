@@ -1,8 +1,19 @@
+import { existsSync } from "fs";
+import path from "path";
 import { test, expect } from "@playwright/test";
 
+// Use a SEPARATE pre-authenticated user (game-flow user, not the primary user).
+// Keeps game-flow's guess submissions isolated from game-completion's 6-attempt counter.
+// Without storageState, signInAnonymously() + Turnstile captcha blocks guess submission.
+const AUTH_FILE_GAMEFLOW = path.join(__dirname, ".auth", "user-gameflow.json");
+if (existsSync(AUTH_FILE_GAMEFLOW)) {
+  test.use({ storageState: AUTH_FILE_GAMEFLOW });
+}
+
 test("Game Flow Interaction Test (Real DB Check)", async ({ page }) => {
-  // 1. Navigate to home
-  await page.goto("/");
+  test.setTimeout(60_000);
+  // 1. Navigate to home (domcontentloaded is faster than waiting for all network resources)
+  await page.goto("/", { waitUntil: "domcontentloaded" });
 
   // Check for "Closed" state specifically
   const closedMessage = page.getByText(/Gra zakończona|Come back tomorrow/i);
@@ -25,8 +36,8 @@ test("Game Flow Interaction Test (Real DB Check)", async ({ page }) => {
   const query = "Chanel";
   await input.fill(query);
 
-  // 3. Wait for suggestion list wrapper
-  const suggestionsList = page.locator('button[class*="text-left text-sm"]');
+  // 3. Wait for suggestion list wrapper (role="option" inside role="listbox")
+  const suggestionsList = page.locator('[role="option"]');
 
   // Give it time to hit the DB
   try {
@@ -43,10 +54,10 @@ test("Game Flow Interaction Test (Real DB Check)", async ({ page }) => {
       // 4. Select the first suggestion
       await suggestionsList.first().click();
 
-      // 5. Verify Attempt Log
+      // 5. Verify Attempt Log (may not appear if session not established yet — captcha/auth)
       const attemptRow = page.locator("span", { hasText: /^I$/ }).first();
 
-      await expect(attemptRow).toBeVisible();
+      await expect(attemptRow).toBeVisible({ timeout: 10_000 });
 
       // Verify input is cleared
 

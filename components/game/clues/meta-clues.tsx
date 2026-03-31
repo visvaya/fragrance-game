@@ -88,7 +88,7 @@ export const MetaClues = memo(function MetaClues() {
             key={clue.key}
           >
             {/* Label */}
-            <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
+            <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground lowercase">
               {clue.key === "perfumer" && hasMultiplePerfumers
                 ? t("perfumers")
                 : t(clue.key)}
@@ -148,7 +148,7 @@ export const MetaClues = memo(function MetaClues() {
           {clues.slice(2).map((clue) => (
             <div className="flex flex-col items-start gap-0.5" key={clue.key}>
               {/* Label */}
-              <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
+              <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground lowercase">
                 {t(clue.key)}
               </span>
 

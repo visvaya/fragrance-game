@@ -171,7 +171,7 @@ export const PyramidClues = memo(function PyramidClues() {
           <li className="flex flex-col gap-2 border-b border-border/60 py-4 first:pt-0 last:border-b-0 last:pb-0">
             <div className="flex items-center gap-2">
               <span className="size-2 shrink-0 rounded-full bg-primary" />
-              <span className="text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
+              <span className="text-xs font-semibold tracking-widest text-muted-foreground lowercase">
                 <GameTooltip content={t("linearMeaning")}>
                   <span className="cursor-help underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
                     {t("linearProfile")}
@@ -370,7 +370,7 @@ export const PyramidClues = memo(function PyramidClues() {
               <span
                 className={`size-2 shrink-0 rounded-full ${level.dotClass}`}
               />
-              <span className="text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
+              <span className="text-xs font-semibold tracking-widest text-muted-foreground lowercase">
                 {t(level.name.toLowerCase())}{" "}
                 {revealLevel === 1 ? (
                   <GameTooltip content={t("linearProfileTooltip")}>

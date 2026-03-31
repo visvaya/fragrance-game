@@ -1,11 +1,13 @@
+import { existsSync } from "fs";
+import path from "path";
 import { test, expect } from "@playwright/test";
 
-/**
- * KNOWN ISSUE: Supabase Anonymous Auth Timing in Playwright
- *
- * Some tests are marked as `test.fixme()` due to Supabase anonymous auth timing issues.
- * See e2e/security/xss-injection.spec.ts for detailed documentation.
- */
+// Pre-authenticated session — skips signInAnonymously() + Turnstile captcha.
+// Without this the game shows "No puzzle today" because auth takes >10s in headless mode.
+const AUTH_FILE = path.join(__dirname, "..", ".auth", "user.json");
+if (existsSync(AUTH_FILE)) {
+  test.use({ storageState: AUTH_FILE });
+}
 
 test.describe("Locale Switching", () => {
   test("should default to English locale", async ({ page }) => {
@@ -90,7 +92,7 @@ test.describe("Locale Switching", () => {
     expect(plTitle).toContain("Eauxle");
   });
 
-  test.fixme("should localize placeholder text", async ({ page }) => {
+  test("should localize placeholder text", async ({ page }) => {
     // English placeholder
     await page.goto("/en");
 

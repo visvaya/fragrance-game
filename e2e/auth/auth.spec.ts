@@ -58,38 +58,25 @@ test("Login and Logout", async ({ page }) => {
   // Click Sign In
   await page.getByRole("button", { name: "Sign In" }).click();
 
-  // Wait for redirect to home or game
-  await expect(page).toHaveURL("/");
+  // After login, app redirects to home (locale-prefixed URL)
+  await expect(page).toHaveURL(/\/(en|pl)(\/.*)?$/);
 
-  // Verify User Menu presence (Avatar or Initials)
-  // Assuming there is a button with an Avatar or similar in the header
-  // We'll look for a button that likely opens the user menu.
-  // Based on common shadcn usage, it's often a button with "ghost" variant or Avatar.
-  // Let's try to find it by "Sign Out" NOT being visible yet, but a menu trigger being visible.
+  // Verify Sign In is hidden (user is authenticated)
+  await expect(page.getByRole("button", { name: "Sign In" })).toBeHidden();
 
-  // Specific selector might be needed if no clear accessible name.
-  // Using a generic check for "Sign In" NOT being there anymore
-  await expect(page.getByText("Sign In")).toBeHidden();
+  // Open the header menu to access Sign Out
+  const menuButton = page.locator('button[aria-label="Menu"]');
+  await menuButton.click();
 
-  // Open user menu - try to match the trigger.
-  // Often it has `aria-label="Toggle user menu"` or similar.
-  // If not, we might need to rely on the avatar image or initials.
-  // For now, let's assume there's a button in the header.
-  // We can inspect the DOM in a real run, but here we guess/approximate.
-  // Let's try to find a button in the header `header`.
-
-  const userMenuTrigger = page.locator("header button").last(); // Risky but often works for right-aligned user menu
-  await userMenuTrigger.click();
-
-  // Check if "Sign Out" is in the menu
-  const signOutButton = page.getByRole("menuitem", { name: /Sign Out/i });
+  // Sign Out is a button inside the dropdown (not a menuitem role)
+  const signOutButton = page.getByRole("button", { name: "Sign Out" });
   await expect(signOutButton).toBeVisible();
-
-  // Click Sign Out
   await signOutButton.click();
 
-  // Verify logged out - "Sign In" should be visible again
-  // Or redirect to login page
-  await expect(page).toHaveURL("/auth/login");
-  await expect(page.getByText("Welcome Back")).toBeVisible();
+  // Sign-out reloads the current page (anonymous session restored)
+  // Verify user is no longer authenticated by waiting for page reload
+  await page.waitForLoadState("networkidle");
+  // Sign In button should reappear in the menu
+  await menuButton.click();
+  await expect(page.getByRole("button", { name: "Sign In" })).toBeVisible();
 });

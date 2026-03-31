@@ -1,12 +1,12 @@
 /* eslint-disable playwright/no-wait-for-timeout -- touch interaction tests require explicit waits for animation and gesture completion */
+import { existsSync } from "fs";
+import path from "path";
 import { test, expect, devices } from "@playwright/test";
 
-/**
- * KNOWN ISSUE: Supabase Anonymous Auth Timing in Playwright
- *
- * Several tests are marked as `test.fixme()` due to Supabase anonymous auth timing issues.
- * See e2e/security/xss-injection.spec.ts for detailed documentation.
- */
+
+// Pre-authenticated session from globalSetup — skips signInAnonymously() + Turnstile captcha.
+// Without this the Turnstile SDK (external Cloudflare JS) can crash the mobile browser context.
+const AUTH_FILE = path.join(__dirname, "..", ".auth", "user.json");
 
 // Configure Pixel 5 device for Android tests
 const mobileAndroidTest = test.extend({});
@@ -14,9 +14,12 @@ mobileAndroidTest.use({
   ...devices["Pixel 5"],
   hasTouch: true,
 });
+if (existsSync(AUTH_FILE)) {
+  mobileAndroidTest.use({ storageState: AUTH_FILE });
+}
 
 test.describe("Mobile Touch Interactions - Android", () => {
-  mobileAndroidTest.fixme(
+  mobileAndroidTest(
     "should open autocomplete on touch",
     async ({ page }) => {
       await page.goto("/en");
@@ -107,7 +110,7 @@ test.describe("Mobile Touch Interactions - Android", () => {
     },
   );
 
-  mobileAndroidTest.fixme(
+  mobileAndroidTest(
     "should handle virtual keyboard overlay",
     async ({ page }) => {
       await page.goto("/en");
@@ -190,9 +193,9 @@ test.describe("Mobile Touch Interactions - Android", () => {
     // Look for mobile menu/hamburger button
     const menuButton = page.getByRole("button", { name: /menu/i });
 
-    if (await menuButton.isVisible()) {
+    if (await menuButton.first().isVisible()) {
       // Verify menu button is tappable
-      await menuButton.tap();
+      await menuButton.first().tap();
 
       // Wait for menu to open
       await page.waitForTimeout(500);
@@ -212,19 +215,13 @@ test.describe("Mobile Touch Interactions - Android", () => {
     const viewportMeta = page.locator('meta[name="viewport"]');
     await expect(viewportMeta).toHaveAttribute("content", /width=device-width/);
 
+    // Intentionally not restricting zoom (WCAG 1.4.4 — user-scalable=no is an accessibility violation).
+    // We only verify width=device-width is present, which is the essential part.
     const content = (await viewportMeta.getAttribute("content")) || "";
-    // Should contain either user-scalable=no or maximum-scale=1.0
-    const preventsZoom =
-      content.includes("user-scalable=no") ||
-      content.includes("maximum-scale=1") ||
-      content.includes("maximum-scale=1.0");
-
-    // Note: Some apps allow zoom for accessibility
-    // This test just verifies the meta tag is configured
-    expect(preventsZoom).toBe(true);
+    expect(content).toContain("width=device-width");
   });
 
-  mobileAndroidTest.fixme(
+  mobileAndroidTest(
     "should handle touch gestures for autocomplete",
     async ({ page }) => {
       await page.goto("/en");
@@ -286,9 +283,12 @@ mobileIOSTest.use({
   ...devices["iPhone 13"],
   hasTouch: true,
 });
+if (existsSync(AUTH_FILE)) {
+  mobileIOSTest.use({ storageState: AUTH_FILE });
+}
 
 test.describe("Mobile Touch Interactions - iOS", () => {
-  mobileIOSTest.fixme("should work on iOS Safari", async ({ page }) => {
+  mobileIOSTest("should work on iOS Safari", async ({ page }) => {
     await page.goto("/en");
 
     // Check for "Closed" state

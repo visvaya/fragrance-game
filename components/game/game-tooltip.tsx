@@ -76,9 +76,11 @@ export function GameTooltip({
     >
       <TooltipTrigger asChild>
         <div
-          aria-label={typeof content === "string" ? content : t("ariaLabel")}
-          // Use 'div' wrapper to capture events even if child is disabled or prevents propagation
-          // Also acts as Hit Area buffer if needed
+          // No aria-label here — the wrapper div has no interactive role (not button/link).
+          // aria-label on plain divs violates WCAG (aria-prohibited-attr).
+          // Children (buttons/links) carry their own accessible labels.
+          // Use 'div' wrapper to capture events even if child is disabled or prevents propagation.
+          // Also acts as Hit Area buffer if needed.
           className={cn(
             "inline-flex cursor-help touch-manipulation",
             className,
@@ -134,9 +136,10 @@ export function GameTooltip({
             setIsHovered(false);
             setOpen(false);
           }}
-          role="button"
-          // Ensure it's focusable for keyboard users if the child isn't naturally
-          tabIndex={0}
+          // No role="button" here — children are natively focusable (buttons/links).
+          // Adding role="button" to a div wrapping a button violates WCAG 4.1.2 (no-focusable-content).
+          // Tooltip still opens via onFocus bubbling from the child element and onPointerEnter.
+          tabIndex={-1}
         >
           {typeof children === "function"
             ? children({

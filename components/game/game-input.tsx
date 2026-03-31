@@ -539,8 +539,14 @@ export function GameInput() {
   }
 
   const isCurrentlyLoading = isLoading || gameLoading;
-  const isNormallyVisible = !isCurrentlyLoading && !isError;
-  const isErrorVisible = !isCurrentlyLoading && isError;
+
+  type InputIcon = "search" | "loading" | "error" | "wrong";
+  const activeIcon: InputIcon = (() => {
+    if (showWrongFeedback) return "wrong";
+    if (isCurrentlyLoading || isConnecting) return "loading";
+    if (isError) return "error";
+    return "search";
+  })();
 
   const getSurfaceClasses = (): string => {
     if (shouldShowList || hasTransitionedIn) {
@@ -572,7 +578,7 @@ export function GameInput() {
       >
         <div className="flex flex-col items-center gap-0">
           <div className="rounded-lg border border-primary/40 bg-background px-4 py-1.5">
-            <p className="font-hand text-base whitespace-nowrap text-primary">
+            <p className="font-hand text-base whitespace-nowrap text-foreground">
               {tFooter("selectHelper")}
             </p>
           </div>
@@ -637,11 +643,11 @@ export function GameInput() {
               />
             ) : null}
             <div className="pointer-events-none absolute top-[calc(50%+1px)] right-0.5 flex size-8 -translate-y-1/2 items-center justify-center">
-              {/* Search Icon — hidden during loading, connecting, autocomplete error, or wrong-guess feedback */}
+              {/* Search */}
               <div
                 className={cn(
                   "absolute transition-all duration-300 ease-out",
-                  isNormallyVisible && !isConnecting && !showWrongFeedback
+                  activeIcon === "search"
                     ? "scale-100 rotate-0 opacity-100"
                     : "scale-50 -rotate-90 opacity-0",
                 )}
@@ -649,18 +655,23 @@ export function GameInput() {
                 <Search className="size-5 text-muted-foreground" />
               </div>
 
-              {/* Loader Icon — shown during autocomplete search or pending guess (isConnecting) */}
-              {isCurrentlyLoading || isConnecting ? (
-                <div className="absolute scale-100 opacity-100 transition-all duration-300 ease-out">
-                  <Loader2 className="size-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : null}
-
-              {/* Autocomplete Error Icon */}
+              {/* Loader */}
               <div
                 className={cn(
                   "absolute transition-all duration-300 ease-out",
-                  isErrorVisible && !showWrongFeedback
+                  activeIcon === "loading"
+                    ? "scale-100 rotate-0 opacity-100"
+                    : "scale-50 -rotate-90 opacity-0",
+                )}
+              >
+                <Loader2 className="size-5 animate-spin text-muted-foreground" />
+              </div>
+
+              {/* Autocomplete Error */}
+              <div
+                className={cn(
+                  "absolute transition-all duration-300 ease-out",
+                  activeIcon === "error"
                     ? "scale-100 rotate-0 opacity-100"
                     : "scale-50 rotate-90 opacity-0",
                 )}
@@ -668,11 +679,11 @@ export function GameInput() {
                 <X className="size-5 text-destructive" />
               </div>
 
-              {/* Guess Wrong / Skip Icon — temporary feedback after incorrect submission */}
+              {/* Wrong / Skip feedback */}
               <div
                 className={cn(
                   "absolute transition-all duration-300 ease-out",
-                  showWrongFeedback
+                  activeIcon === "wrong"
                     ? "scale-100 rotate-0 opacity-100"
                     : "scale-50 rotate-90 opacity-0",
                 )}
@@ -762,7 +773,7 @@ export function GameInput() {
               </div>
               <span
                 className={cn(
-                  "whitespace-nowrap text-primary",
+                  "whitespace-nowrap text-muted-foreground",
                   needsStack ? "text-center" : "pr-1 text-right",
                 )}
               >
