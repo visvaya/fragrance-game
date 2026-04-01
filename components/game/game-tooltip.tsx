@@ -2,7 +2,6 @@
 
 import { useState, useRef, type ReactNode } from "react";
 
-import { useTranslations } from "next-intl";
 
 import {
   Tooltip,
@@ -56,7 +55,6 @@ export function GameTooltip({
   // Mount TooltipContent only after first interaction — avoids Radix Presence
   // mounting all tooltip contents on page load (134ms forced reflow from getComputedStyle).
   const [hasOpenedOnce, setHasOpenedOnce] = useState(false);
-  const t = useTranslations("GameTooltip");
   // Ref to track if the interaction is touch-based.
   // This prevents the onFocus handler from overriding the onClick toggle on mobile.
   const isTouchReference = useRef(false);
@@ -75,6 +73,7 @@ export function GameTooltip({
       open={open}
     >
       <TooltipTrigger asChild>
+        {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- TooltipTrigger (asChild) wraps this div as a trigger; keyboard handling is present via onKeyDown */}
         <div
           // No aria-label here — the wrapper div has no interactive role (not button/link).
           // aria-label on plain divs violates WCAG (aria-prohibited-attr).

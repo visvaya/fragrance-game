@@ -278,7 +278,7 @@ export function GameHeader() {
               "pointer-events-auto absolute top-full left-2 mt-2 flex max-h-[calc(100dvh-5rem)] w-56 max-w-[calc(100vw-16px)] flex-col overflow-x-hidden overflow-y-auto rounded-md border panel-border bg-background/70 panel-shadow backdrop-blur-md transition-all duration-300 min-[350px]:left-5 min-[350px]:max-w-[calc(100vw-40px)]",
               modals.menuOpen
                 ? "visible translate-y-0 opacity-100"
-                : "invisible pointer-events-none -translate-y-2 opacity-0",
+                : "pointer-events-none invisible -translate-y-2 opacity-0",
             )}
             style={{ zIndex: 60 }}
           >
@@ -542,7 +542,7 @@ export function GameHeader() {
               "pointer-events-auto absolute top-full right-16 mt-2 flex max-h-[calc(100dvh-5rem)] w-36 max-w-[calc(100vw-84px)] flex-col overflow-x-hidden overflow-y-auto rounded-md border panel-border bg-background/70 panel-shadow backdrop-blur-md transition-all duration-300 max-[280px]:hidden",
               modals.langOpen
                 ? "visible translate-y-0 opacity-100"
-                : "invisible pointer-events-none -translate-y-2 opacity-0",
+                : "pointer-events-none invisible -translate-y-2 opacity-0",
             )}
             style={{ zIndex: 60 }}
           >

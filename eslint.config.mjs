@@ -740,6 +740,8 @@ export default tseslint.config(
       "no-restricted-globals": "off",
       // Playwright can't use @/lib/env — allow direct process.env access
       "no-restricted-properties": "off",
+      // E2E setup/teardown writes to paths derived from import.meta.url — safe, not user-controlled
+      "security/detect-non-literal-fs-filename": "off",
     },
     languageOptions: {
       globals: {
@@ -1160,6 +1162,8 @@ export default tseslint.config(
       "sonarjs/todo-tag": "off",
       "sonarjs/max-lines-per-function": "off",
       "@typescript-eslint/strict-boolean-expressions": "off",
+      // E2E setup/teardown writes to paths derived from import.meta.url — safe, not user-controlled
+      "security/detect-non-literal-fs-filename": "off",
     },
   },
 

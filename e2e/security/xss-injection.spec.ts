@@ -1,11 +1,14 @@
 /* eslint-disable playwright/no-wait-for-timeout -- XSS security tests require explicit waits for async DOM mutations after injection */
-import { existsSync } from "fs";
-import path from "path";
+import { existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { test, expect } from "@playwright/test";
 
 // Pre-authenticated session — skips signInAnonymously() + Turnstile captcha.
 // Without this the game shows "No puzzle today" because auth takes >10s in headless mode.
-const AUTH_FILE = path.join(__dirname, "..", ".auth", "user.json");
+const DIR = path.dirname(fileURLToPath(import.meta.url));
+const AUTH_FILE = path.join(DIR, "..", ".auth", "user.json");
 if (existsSync(AUTH_FILE)) {
   test.use({ storageState: AUTH_FILE });
 }
@@ -145,9 +148,7 @@ test.describe("XSS Injection Prevention", () => {
     await page.goto("/en");
 
     const hasUnsafeInnerHTML = await page.evaluate(() => {
-      const userContentElements = Array.from(
-        document.querySelectorAll('[data-testid*="game"], [class*="game-"]'),
-      );
+      const userContentElements = [...document.querySelectorAll('[data-testid*="game"], [class*="game-"]')];
 
       for (const element of userContentElements) {
         const html = element.innerHTML;
