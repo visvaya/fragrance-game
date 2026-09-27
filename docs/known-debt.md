@@ -48,6 +48,13 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 - **Risk:** low. If someone later restores table access for client roles, the view becomes readable again without a deliberate decision.
 - **Done when (optional hardening):** a migration revokes SELECT on `daily_challenges_public` (and `perfumes_public`, if also unused by clients) from `anon` and `authenticated`, and the pgTAP assertions are updated.
 
+## No staging database for the challenge algorithm tests
+
+- **Where:** `app/api/cron/generate-daily/__tests__/algorithm.integration.test.ts`, `.github/workflows/integration-tests.yml`.
+- **Shortcut:** the suite truncates tables, so it may only run against a staging project, and none exists (no `TEST_SUPABASE_URL` / `TEST_SUPABASE_SERVICE_ROLE_KEY` secrets). It is not run in CI; the nightly workflow runs only the read-only RLS tests.
+- **Risk:** changes to daily challenge generation are verified only by unit tests with mocks.
+- **Done when:** a staging Supabase project (or Supabase branch) exists, its credentials are stored as the two secrets, and the nightly workflow runs the suite against it.
+
 ## Coverage thresholds below the target
 
 - **Where:** `vitest.config.ts` (`coverage.thresholds`).

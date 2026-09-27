@@ -11,8 +11,7 @@ jobs:
     name: Integration & RLS tests (live DB)
     runs-on: ubuntu-latest
     env:
-      # Required: real Supabase credentials (read-only RLS tests + algorithm tests)
-      # WARNING: algorithm.integration.test.ts uses beforeEach DELETE — use staging DB only.
+      # Real Supabase credentials for the read-only RLS tests.
       VITEST_INTEGRATION: "true"
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
@@ -33,9 +32,9 @@ jobs:
 
       - name: Run RLS security tests (read-only, safe on production DB)
         run: pnpm vitest run lib/supabase/__tests__/rls-security.test.ts
-
-      - name: Run algorithm integration tests (STAGING DB ONLY — truncates tables)
-        run: pnpm vitest run app/api/cron/generate-daily/__tests__/algorithm.integration.test.ts
+      # The daily-challenge algorithm suite truncates tables and needs a staging
+      # database (TEST_SUPABASE_URL / TEST_SUPABASE_SERVICE_ROLE_KEY). There is none
+      # yet, so it is not run here; see docs/known-debt.md.
 
       - name: Upload test results
         if: always()
