@@ -16,6 +16,42 @@ import { getDailyChallenge } from "../game-actions";
 vi.mock("@/lib/supabase/server", () => ({
   createAdminClient: vi.fn(() => ({
     from: vi.fn((table: string) => {
+      // daily_challenges_public is a security_invoker view with no anon/authenticated
+      // SELECT grant, so getDailyChallenge() reads it through the admin (service-role) client.
+      if (table === "daily_challenges_public") {
+        return {
+          eq: vi.fn(() => ({
+            limit: vi.fn(() => ({
+              single: vi.fn(async () => ({
+                data: {
+                  challenge_date: "2026-02-13",
+                  grace_deadline_at_utc: "2026-02-13T23:59:59Z",
+                  id: "test-challenge-id",
+                  mode: "standard",
+                  snapshot_metadata: {},
+                },
+                error: null,
+              })),
+            })),
+          })),
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              limit: vi.fn(() => ({
+                single: vi.fn(async () => ({
+                  data: {
+                    challenge_date: "2026-02-13",
+                    grace_deadline_at_utc: "2026-02-13T23:59:59Z",
+                    id: "test-challenge-id",
+                    mode: "standard",
+                    snapshot_metadata: {},
+                  },
+                  error: null,
+                })),
+              })),
+            })),
+          })),
+        };
+      }
       if (table === "daily_challenges") {
         return {
           eq: vi.fn(() => ({
@@ -94,20 +130,23 @@ vi.mock("@/lib/supabase/server", () => ({
     }),
   })),
   createClient: vi.fn(async () => ({
+    auth: {
+      getUser: vi.fn(async () => ({ data: { user: null }, error: null })),
+    },
     from: vi.fn((table: string) => {
+      // Mirrors production: the user-scoped client has no SELECT grant on
+      // daily_challenges_public (security_invoker view), so this branch would
+      // catch a regression back to the user client in getDailyChallenge().
       if (table === "daily_challenges_public") {
         return {
           eq: vi.fn(() => ({
             limit: vi.fn(() => ({
               single: vi.fn(async () => ({
-                data: {
-                  challenge_date: "2026-02-13",
-                  grace_deadline_at_utc: "2026-02-13T23:59:59Z",
-                  id: "test-challenge-id",
-                  mode: "standard",
-                  snapshot_metadata: {},
+                data: null,
+                error: {
+                  code: "42501",
+                  message: "permission denied for table daily_challenges",
                 },
-                error: null,
               })),
             })),
           })),
@@ -115,14 +154,11 @@ vi.mock("@/lib/supabase/server", () => ({
             eq: vi.fn(() => ({
               limit: vi.fn(() => ({
                 single: vi.fn(async () => ({
-                  data: {
-                    challenge_date: "2026-02-13",
-                    grace_deadline_at_utc: "2026-02-13T23:59:59Z",
-                    id: "test-challenge-id",
-                    mode: "standard",
-                    snapshot_metadata: {},
+                  data: null,
+                  error: {
+                    code: "42501",
+                    message: "permission denied for table daily_challenges",
                   },
-                  error: null,
                 })),
               })),
             })),

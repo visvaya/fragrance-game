@@ -1,29 +1,39 @@
-import fs from "fs";
-import path from "path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+
 import type { FullConfig } from "@playwright/test";
 
+// Playwright runs from the project root and loads specs as CommonJS; import.meta
+// would make Node parse the file as an ES module ("exports is not defined").
+const DIR = path.join(process.cwd(), "e2e");
 // Primary user — for game-completion tests (tracks win/loss across 6 attempts).
-const AUTH_FILE = path.join(__dirname, ".auth", "user.json");
+const AUTH_FILE = path.join(DIR, ".auth", "user.json");
 // Secondary user — for game-flow and other tests that submit guesses.
 // Separate user prevents interference with game-completion's attempt counter.
-const AUTH_FILE_GAMEFLOW = path.join(__dirname, ".auth", "user-gameflow.json");
+const AUTH_FILE_GAMEFLOW = path.join(DIR, ".auth", "user-gameflow.json");
 // A11y user — dedicated to accessibility tests; fresh game state, never played.
 // Prevents interference from game-completion Defeat test changing the game page UI.
-const AUTH_FILE_A11Y = path.join(__dirname, ".auth", "user-a11y.json");
-const ENV_FILE = path.join(__dirname, "..", ".env.local");
+const AUTH_FILE_A11Y = path.join(DIR, ".auth", "user-a11y.json");
+const ENVIRONMENT_FILE = path.join(DIR, "..", ".env.local");
 // Persists test user IDs between globalSetup and globalTeardown for cleanup.
-export const TEST_USER_IDS_FILE = path.join(__dirname, ".auth", "test-user-ids.json");
-const MAX_CHUNK_SIZE = 3180; // @supabase/ssr cookie chunk size
+export const TEST_USER_IDS_FILE = path.join(DIR, ".auth", "test-user-ids.json");
+const MAX_CHUNK_SIZE = 3180; // `@supabase/ssr` cookie chunk size
+
+type AuthSession = {
+  access_token: string;
+  refresh_token: string;
+  user?: { id: string };
+};
 
 /** Parse .env.local file since Playwright runs outside of Next.js env loading. */
-function loadEnvFile(): Record<string, string> {
-  if (!fs.existsSync(ENV_FILE)) return {};
-  const lines = fs.readFileSync(ENV_FILE, "utf8").split("\n");
+function loadEnvironmentFile(): Record<string, string> {
+  if (!existsSync(ENVIRONMENT_FILE)) return {};
+  const lines = readFileSync(ENVIRONMENT_FILE, "utf8").split("\n");
   const result: Record<string, string> = {};
   for (const line of lines) {
     const match = /^([A-Z_][A-Z0-9_]*)=(.+)/.exec(line.trim());
     if (match) {
-      result[match[1]] = match[2].replace(/^['"]|['"]$/g, "");
+      result[match[1]] = match[2].replaceAll(/^['"]|['"]$/g, "");
     }
   }
   return result;
@@ -33,28 +43,33 @@ function loadEnvFile(): Record<string, string> {
 async function createAnonymousSession(
   supabaseUrl: string,
   serviceRoleKey: string,
-): Promise<Record<string, unknown> | null> {
+): Promise<AuthSession | null> {
   try {
+    // eslint-disable-next-line no-restricted-syntax -- E2E Admin API call with service role key; response structure is known
     const response = await fetch(`${supabaseUrl}/auth/v1/signup`, {
-      method: "POST",
+      body: JSON.stringify({ data: { is_test_user: true } }),
       headers: {
         apikey: serviceRoleKey,
         Authorization: `Bearer ${serviceRoleKey}`,
         "Content-Type": "application/json",
       },
-      // is_test_user flag allows filtering test accounts out of player statistics.
-      body: JSON.stringify({ data: { is_test_user: true } }),
+      method: "POST",
     });
 
     if (!response.ok) {
       const body = await response.text();
-      console.warn(`[E2E globalSetup] Auth endpoint returned ${response.status}: ${body}`);
+      console.warn(
+        `[E2E globalSetup] Auth endpoint returned ${response.status}: ${body}`,
+      );
       return null;
     }
 
-    const session = (await response.json()) as Record<string, unknown>;
+    const session = (await response.json()) as AuthSession;
     if (!session.access_token || !session.refresh_token) {
-      console.warn("[E2E globalSetup] Session missing tokens:", Object.keys(session));
+      console.warn(
+        "[E2E globalSetup] Session missing tokens:",
+        Object.keys(session),
+      );
       return null;
     }
     return session;
@@ -64,9 +79,13 @@ async function createAnonymousSession(
   }
 }
 
-/** Save a Supabase session as @supabase/ssr-compatible browser cookies. */
-function saveStorageState(filePath: string, session: Record<string, unknown>, projectRef: string): void {
-  const cookieName = `sb-${projectRef}-auth-token`;
+/** Save a Supabase session as `@supabase/ssr`-compatible browser cookies. */
+function saveStorageState(
+  filePath: string,
+  session: AuthSession,
+  projectReference: string,
+): void {
+  const cookieName = `sb-${projectReference}-auth-token`;
   const sessionJson = JSON.stringify(session);
   const chunks: string[] = [];
   for (let i = 0; i < sessionJson.length; i += MAX_CHUNK_SIZE) {
@@ -75,24 +94,24 @@ function saveStorageState(filePath: string, session: Record<string, unknown>, pr
 
   const cookieBase = {
     domain: "localhost",
-    path: "/",
-    httpOnly: false,
-    secure: false,
-    sameSite: "Lax" as const,
     expires: Math.floor(Date.now() / 1000) + 3600,
+    httpOnly: false,
+    path: "/",
+    sameSite: "Lax" as const,
+    secure: false,
   };
 
   const cookies =
     chunks.length === 1
       ? [{ ...cookieBase, name: cookieName, value: chunks[0] }]
-      : chunks.map((chunk, i) => ({
+      : chunks.map((chunk, index) => ({
           ...cookieBase,
-          name: `${cookieName}.${i}`,
+          name: `${cookieName}.${index}`,
           value: chunk,
         }));
 
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify({ cookies, origins: [] }, null, 2));
+  mkdirSync(path.dirname(filePath), { recursive: true });
+  writeFileSync(filePath, JSON.stringify({ cookies, origins: [] }, null, 2));
 }
 
 /**
@@ -107,10 +126,11 @@ function saveStorageState(filePath: string, session: Record<string, unknown>, pr
  *
  * Calls POST /auth/v1/signup with the service role key, which bypasses Turnstile
  * captcha (GoTrue skips captcha for admin requests). Saves sessions as
- * @supabase/ssr-compatible cookies for tests to reuse.
+ * `@supabase/ssr`-compatible cookies for tests to reuse.
  */
+// eslint-disable-next-line import-x/no-default-export -- Playwright requires default export for globalSetup
 export default async function globalSetup(_config: FullConfig): Promise<void> {
-  const env = { ...loadEnvFile(), ...process.env };
+  const env = { ...loadEnvironmentFile(), ...process.env };
   const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -121,9 +141,11 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
     return;
   }
 
-  const projectRef = /https?:\/\/([^.]+)\./.exec(supabaseUrl)?.[1];
-  if (!projectRef) {
-    console.warn("[E2E globalSetup] Cannot parse project ref from Supabase URL");
+  const projectReference = /https?:\/\/([^.]+)\./.exec(supabaseUrl)?.[1];
+  if (!projectReference) {
+    console.warn(
+      "[E2E globalSetup] Cannot parse project reference from Supabase URL",
+    );
     return;
   }
 
@@ -135,37 +157,47 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
   ]);
 
   if (primarySession) {
-    saveStorageState(AUTH_FILE, primarySession, projectRef);
-    const userId = (primarySession.user as Record<string, unknown> | undefined)?.id;
-    console.log(`[E2E globalSetup] Primary user: ${userId}`);
+    saveStorageState(AUTH_FILE, primarySession, projectReference);
+    console.log(
+      `[E2E globalSetup] Primary user: ${primarySession.user?.id ?? ""}`,
+    );
   } else {
-    console.warn("[E2E globalSetup] Primary session failed — game-completion/mobile tests may fail");
+    console.warn(
+      "[E2E globalSetup] Primary session failed — game-completion/mobile tests may fail",
+    );
   }
 
   if (gameflowSession) {
-    saveStorageState(AUTH_FILE_GAMEFLOW, gameflowSession, projectRef);
-    const userId = (gameflowSession.user as Record<string, unknown> | undefined)?.id;
-    console.log(`[E2E globalSetup] Game-flow user: ${userId}`);
+    saveStorageState(AUTH_FILE_GAMEFLOW, gameflowSession, projectReference);
+    console.log(
+      `[E2E globalSetup] Game-flow user: ${gameflowSession.user?.id ?? ""}`,
+    );
   } else {
-    console.warn("[E2E globalSetup] Game-flow session failed — game-flow test may fail");
+    console.warn(
+      "[E2E globalSetup] Game-flow session failed — game-flow test may fail",
+    );
   }
 
   if (a11ySession) {
-    saveStorageState(AUTH_FILE_A11Y, a11ySession, projectRef);
-    const userId = (a11ySession.user as Record<string, unknown> | undefined)?.id;
-    console.log(`[E2E globalSetup] A11y user: ${userId}`);
+    saveStorageState(AUTH_FILE_A11Y, a11ySession, projectReference);
+    console.log(`[E2E globalSetup] A11y user: ${a11ySession.user?.id ?? ""}`);
   } else {
     console.warn("[E2E globalSetup] A11y session failed — a11y tests may fail");
   }
 
   // Persist user IDs for globalTeardown cleanup.
   const userIds = [primarySession, gameflowSession, a11ySession]
-    .map((s) => (s?.user as Record<string, unknown> | undefined)?.id)
+    .map((s) => s?.user?.id)
     .filter((id): id is string => typeof id === "string");
 
   if (userIds.length > 0) {
-    fs.mkdirSync(path.dirname(TEST_USER_IDS_FILE), { recursive: true });
-    fs.writeFileSync(TEST_USER_IDS_FILE, JSON.stringify({ supabaseUrl, serviceRoleKey, userIds }));
-    console.log(`[E2E globalSetup] Saved ${userIds.length} test user IDs for teardown cleanup`);
+    mkdirSync(path.dirname(TEST_USER_IDS_FILE), { recursive: true });
+    writeFileSync(
+      TEST_USER_IDS_FILE,
+      JSON.stringify({ serviceRoleKey, supabaseUrl, userIds }),
+    );
+    console.log(
+      `[E2E globalSetup] Saved ${userIds.length} test user IDs for teardown cleanup`,
+    );
   }
 }

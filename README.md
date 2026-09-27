@@ -1,78 +1,71 @@
-# Eauxle — Olfactory Deduction
+# Eauxle: Olfactory Deduction
 
-Codzienna gra logiczna dla miłośników perfum. Odgadnij tajemniczy zapach na podstawie ewoluujących wskazówek.
+A daily puzzle for perfume lovers, inspired by Wordle. Guess the mystery perfume from clues that sharpen with every attempt.
 
-## 🎮 O grze
+Play at [eauxle.vercel.app](https://eauxle.vercel.app).
 
-**Eauxle** (wym. "oksle") to gra inspirowana Wordle, ale zamiast słów zgadujesz perfumy. Każdego dnia pojawia się nowy zapach do odgadnięcia, a z każdą próbą otrzymujesz coraz więcej wskazówek:
+## How it works
 
-- 🏠 Marka i perfumiarz
-- 📅 Rok wydania
-- 🎵 Nuty zapachowe (góra, serce, baza)
-- 🖼️ Grafika (stopniowo wyostrzana)
+**Eauxle** (pronounced "oksle") has one new perfume per day and six attempts. Each wrong guess or skip reveals more:
 
-## 🚀 Uruchomienie
+- Brand and perfumer (letters revealed progressively)
+- Release year
+- Fragrance notes (top, heart, base)
+- Bottle image (progressively unblurred)
+- Gender
 
-### Wymagania
+Fewer attempts give a higher score; harder perfumes earn a bonus.
 
-- Node.js 20+
-- pnpm
+## Getting started
 
-### Instalacja
+### Requirements
+
+- Node.js and pnpm in the versions set by `engines` and `packageManager` in `package.json`
+- A Supabase project (database, auth) and an Upstash Redis instance (rate limiting)
+
+### Setup
 
 ```bash
-# Zainstaluj zależności
 pnpm install
-
-# Uruchom serwer deweloperski
-pnpm dev
+cp .env.example .env.local   # fill in the values; lib/env.ts validates them at startup
+pnpm dev                     # http://localhost:3000
 ```
 
-Aplikacja będzie dostępna pod adresem [http://localhost:3000](http://localhost:3000).
+### Quality checks
 
-### Zmienne środowiskowe
-
-Utwórz plik `.env.local` z wymaganymi zmiennymi, na podstawie `.env.example`.
-
-## 🛠️ Stack technologiczny
-
-- **Framework**: Next.js 16 (App Router)
-- **UI**: React 19, Shadcn/UI, Radix Primitives
-- **Styling**: Tailwind CSS v4 (OKLCH colors)
-- **Backend**: Supabase (PostgreSQL + Auth)
-- **Deployment**: Vercel
-
-## 📁 Struktura projektu
-
-```
-fragrance-webapp/
-├── app/                 # Next.js App Router
-│   ├── [locale]/       # Locale routing (en, pl)
-│   ├── actions/        # Server Actions
-│   └── api/            # API routes
-├── components/
-│   ├── game/           # Komponenty gry
-│   ├── ui/             # Shadcn/UI components
-│   └── providers/      # Context providers
-├── hooks/              # Custom React hooks
-├── lib/
-│   ├── supabase/       # Klienty Supabase (client/server)
-│   ├── game/           # Logika gry (scoring, reveal)
-│   └── utils.ts        # Utility functions
-├── messages/           # Tłumaczenia (en.json, pl.json)
-└── public/             # Statyczne assety
+```bash
+pnpm typecheck
+pnpm lint:strict
+pnpm format:check
+pnpm test            # unit and component tests (Vitest)
+pnpm test:e2e        # end-to-end tests (Playwright)
 ```
 
-## 🎨 Design System
+## Tech stack
 
-Projekt używa estetyki "Elegant French Perfumery":
+- **Framework**: Next.js 16 (App Router, Server Actions), React 19 with the React Compiler
+- **UI**: shadcn/ui, Radix primitives, Tailwind CSS v4 (OKLCH colors)
+- **Backend**: Supabase (PostgreSQL, Auth, row-level security), Upstash Redis
+- **i18n**: next-intl (English, Polish)
+- **Monitoring**: Sentry, PostHog, Vercel Analytics
+- **Deployment**: Vercel, with a daily cron job that picks the next challenge
 
-- **Paleta**: Amber, Cream, Charcoal
-- **Fonty**:
-  - Geist Sans (body)
-  - Playfair Display (nagłówki)
-  - Caveat (akcenty odręczne)
+## Project structure
 
-## 📜 Licencja
+```
+app/            Next.js routes ([locale]/), server actions, API routes (cron)
+components/     game components, shadcn/ui primitives, providers
+lib/            game logic (scoring, reveal), Supabase clients, validation
+messages/       translations (en.json, pl.json)
+supabase/       migrations, pgTAP tests
+e2e/            Playwright tests
+scripts/        data pipeline (Python ETL) and tooling
+```
 
-MIT License - zobacz [LICENSE](./LICENSE)
+## Security
+
+See [docs/SECURITY.md](./docs/SECURITY.md) for how to report a vulnerability.
+
+## License
+
+Apache License 2.0. See [LICENSE](./LICENSE).

@@ -4,10 +4,10 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { GENERIC_PLACEHOLDER } from "@/lib/constants";
+import { noop } from "@/lib/utils";
 
 import {
   GameStateProvider,
-  type Attempt,
   type DailyPerfume,
   type GameState,
 } from "../../contexts";
@@ -131,7 +131,7 @@ const MOCK_PERFUME_LINEAR = {
 function createTestWrapper({
   currentAttempt = 1,
   dailyPerfume = MOCK_PERFUME_PYRAMID,
-  gameState = "playing" as GameState,
+  gameState = "playing",
 }: {
   currentAttempt?: number;
   dailyPerfume?: DailyPerfume;
@@ -140,19 +140,17 @@ function createTestWrapper({
   return function TestWrapper({ children }: { children: React.ReactNode }) {
     return (
       <GameStateProvider
-        attempts={
-          Array.from({ length: currentAttempt - 1 }).map(() => ({
-            brand: "Test",
-            feedback: {
-              brandMatch: false,
-              notesMatch: 0.1,
-              perfumerMatch: "none",
-              yearDirection: "lower",
-              yearMatch: "wrong",
-            },
-            guess: "Test",
-          })) as Attempt[]
-        }
+        attempts={Array.from({ length: currentAttempt - 1 }).map(() => ({
+          brand: "Test",
+          feedback: {
+            brandMatch: false,
+            notesMatch: 0.1,
+            perfumerMatch: "none",
+            yearDirection: "lower",
+            yearMatch: "wrong",
+          },
+          guess: "Test",
+        }))}
         dailyPerfume={dailyPerfume}
         discoveredPerfumers={new Set()}
         gameState={gameState}
@@ -214,19 +212,17 @@ describe("PyramidClues", () => {
       // Mid attempt - Top and Heart
       rerender(
         <GameStateProvider
-          attempts={
-            Array.from({ length: 3 }).map(() => ({
-              brand: "Test",
-              feedback: {
-                brandMatch: false,
-                notesMatch: 0.1,
-                perfumerMatch: "none",
-                yearDirection: "lower",
-                yearMatch: "wrong",
-              },
-              guess: "Test",
-            })) as Attempt[]
-          }
+          attempts={Array.from({ length: 3 }).map(() => ({
+            brand: "Test",
+            feedback: {
+              brandMatch: false,
+              notesMatch: 0.1,
+              perfumerMatch: "none",
+              yearDirection: "lower",
+              yearMatch: "wrong",
+            },
+            guess: "Test",
+          }))}
           dailyPerfume={MOCK_PERFUME_PYRAMID}
           discoveredPerfumers={new Set()}
           gameState="playing"
@@ -303,6 +299,29 @@ describe("PyramidClues", () => {
       expect(screen.getByText(GENERIC_PLACEHOLDER)).toBeInTheDocument();
     });
 
+    it("gives masked linear notes of equal length distinct keys", () => {
+      // "Musk"/"Rose" and "Lemon"/"Amber" mask to identical text at attempt 2
+      const consoleError = vi.spyOn(console, "error").mockImplementation(noop);
+
+      render(<PyramidClues />, {
+        wrapper: createTestWrapper({
+          currentAttempt: 2,
+          dailyPerfume: MOCK_PERFUME_LINEAR,
+        }),
+      });
+
+      const duplicateKeyWarnings = consoleError.mock.calls.filter((call) =>
+        call.some(
+          (argument) =>
+            typeof argument === "string" &&
+            argument.includes("Encountered two children with the same key"),
+        ),
+      );
+      consoleError.mockRestore();
+
+      expect(duplicateKeyWarnings).toHaveLength(0);
+    });
+
     it("progressively reveals linear notes (1/3, 2/3, all)", () => {
       // Level 3: 1/3 revealed
       const { rerender } = render(<PyramidClues />, {
@@ -317,19 +336,17 @@ describe("PyramidClues", () => {
       // Level 4: 2/3 revealed
       rerender(
         <GameStateProvider
-          attempts={
-            Array.from({ length: 3 }).map(() => ({
-              brand: "Test",
-              feedback: {
-                brandMatch: false,
-                notesMatch: 0.1,
-                perfumerMatch: "none",
-                yearDirection: "lower",
-                yearMatch: "wrong",
-              },
-              guess: "Test",
-            })) as Attempt[]
-          }
+          attempts={Array.from({ length: 3 }).map(() => ({
+            brand: "Test",
+            feedback: {
+              brandMatch: false,
+              notesMatch: 0.1,
+              perfumerMatch: "none",
+              yearDirection: "lower",
+              yearMatch: "wrong",
+            },
+            guess: "Test",
+          }))}
           dailyPerfume={MOCK_PERFUME_LINEAR}
           discoveredPerfumers={new Set()}
           gameState="playing"
@@ -348,19 +365,17 @@ describe("PyramidClues", () => {
       // Level 5+: All revealed
       rerender(
         <GameStateProvider
-          attempts={
-            Array.from({ length: 4 }).map(() => ({
-              brand: "Test",
-              feedback: {
-                brandMatch: false,
-                notesMatch: 0.1,
-                perfumerMatch: "none",
-                yearDirection: "lower",
-                yearMatch: "wrong",
-              },
-              guess: "Test",
-            })) as Attempt[]
-          }
+          attempts={Array.from({ length: 4 }).map(() => ({
+            brand: "Test",
+            feedback: {
+              brandMatch: false,
+              notesMatch: 0.1,
+              perfumerMatch: "none",
+              yearDirection: "lower",
+              yearMatch: "wrong",
+            },
+            guess: "Test",
+          }))}
           dailyPerfume={MOCK_PERFUME_LINEAR}
           discoveredPerfumers={new Set()}
           gameState="playing"

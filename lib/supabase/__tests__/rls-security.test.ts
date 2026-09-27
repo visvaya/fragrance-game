@@ -86,41 +86,30 @@ skipIfNoEnvironment("RLS Security - perfumes_public VIEW", () => {
       expect(data).toBeNull();
     });
 
-    it("allows reading basic metadata from perfumes_public", async () => {
-      // Public metadata should be accessible
+    // perfumes_public is security_invoker and client roles have no SELECT on the
+    // base table; no browser code reads the view (autocomplete goes through a
+    // SECURITY DEFINER RPC), so anon is denied outright.
+    it("denies anonymous reads of basic metadata through perfumes_public", async () => {
       const { data, error } = await anonClient
         .from("perfumes_public")
         .select("id, name, brand_name, release_year, gender")
         .limit(1)
         .single();
 
-      expect(error).toBeNull();
-      expect(data).toBeDefined();
-      expect(data?.id).toBeDefined();
-      expect(data?.name).toBeDefined();
+      expect(error?.code).toBe("42501");
+      expect(data).toBeNull();
     });
 
-    it("SELECT * from perfumes_public does NOT include notes", async () => {
-      // ATTACK: Try to dump entire dataset with SELECT *
+    it("CRITICAL: SELECT * from perfumes_public is denied to anon", async () => {
+      // ATTACK: Try to dump the dataset, including notes, with SELECT *
       const { data, error } = await anonClient
         .from("perfumes_public")
         .select("*")
         .limit(1)
         .single();
 
-      expect(error).toBeNull();
-      expect(data).toBeDefined();
-
-      // CRITICAL: Notes should NOT be in response
-      expect(data).not.toHaveProperty("top_notes");
-      expect(data).not.toHaveProperty("middle_notes");
-      expect(data).not.toHaveProperty("base_notes");
-      expect(data).not.toHaveProperty("xsolve_score");
-
-      // But basic data should be present
-      expect(data).toHaveProperty("id");
-      expect(data).toHaveProperty("name");
-      expect(data).toHaveProperty("brand_name");
+      expect(error?.code).toBe("42501");
+      expect(data).toBeNull();
     });
   });
 
@@ -212,36 +201,30 @@ skipIfNoEnvironment("RLS Security - daily_challenges_public VIEW", () => {
       expect(data).toBeNull();
     });
 
-    it("allows reading basic challenge metadata", async () => {
+    // The view is security_invoker and client roles have no SELECT on the base
+    // table, so anon cannot read the view at all. Server actions read it through
+    // the service-role client instead.
+    it("denies anonymous reads of challenge metadata through the view", async () => {
       const { data, error } = await anonClient
         .from("daily_challenges_public")
-        .select("id, challenge_date, mode, grace_deadline_at_utc")
+        .select("id, challenge_date, mode")
         .limit(1)
         .single();
 
-      expect(error).toBeNull();
-      expect(data).toBeDefined();
-      expect(data?.id).toBeDefined();
-      expect(data?.challenge_date).toBeDefined();
+      expect(error?.code).toBe("42501");
+      expect(data).toBeNull();
     });
 
-    it("SELECT * from daily_challenges_public does NOT include perfume_id", async () => {
-      // ATTACK: Try to get perfume_id with SELECT *
+    it("CRITICAL: SELECT * from daily_challenges_public is denied to anon", async () => {
+      // ATTACK: Try to get every column, including a hidden perfume_id
       const { data, error } = await anonClient
         .from("daily_challenges_public")
         .select("*")
         .limit(1)
         .single();
 
-      expect(error).toBeNull();
-      expect(data).toBeDefined();
-
-      // CRITICAL: perfume_id should NOT be in response
-      expect(data).not.toHaveProperty("perfume_id");
-
-      // But basic data should be present
-      expect(data).toHaveProperty("id");
-      expect(data).toHaveProperty("challenge_date");
+      expect(error?.code).toBe("42501");
+      expect(data).toBeNull();
     });
   });
 
@@ -317,15 +300,15 @@ skipIfNoEnvironment("RLS Security - Attack Scenario Prevention", () => {
     // ATTACK SCENARIO: User tries to join daily_challenges with perfumes
     // to discover today's answer
 
-    // Step 1: Get today's challenge (should work - gives id, NOT perfume_id)
-    const { data: challenge } = await anonClient
+    // Step 1: Try to get today's challenge (denied - client roles cannot read it)
+    const { data: challenge, error: challengeError } = await anonClient
       .from("daily_challenges_public")
       .select("id, challenge_date")
       .limit(1)
       .single();
 
-    expect(challenge).toBeDefined();
-    expect(challenge).not.toHaveProperty("perfume_id");
+    expect(challengeError?.code).toBe("42501");
+    expect(challenge).toBeNull();
 
     // Step 2: Try to read perfumes table directly (should fail)
     const { data: perfumes, error } = await anonClient
@@ -337,7 +320,7 @@ skipIfNoEnvironment("RLS Security - Attack Scenario Prevention", () => {
     expect(perfumes).toBeNull();
 
     // EXPECTED: Cannot discover answer because:
-    // 1. daily_challenges_public doesn't have perfume_id
+    // 1. daily_challenges_public is not readable by anon (and has no perfume_id)
     // 2. perfumes table is not accessible to anon users
   });
 });

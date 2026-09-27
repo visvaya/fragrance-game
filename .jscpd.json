@@ -1,0 +1,17 @@
+{
+  "threshold": 1,
+  "reporters": ["html", "console"],
+  "ignore": [
+    "node_modules/**",
+    ".next/**",
+    "out/**",
+    "dist/**",
+    "reports/**",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "types/supabase.ts"
+  ],
+  "absolute": true,
+  "mode": "mild"
+}

@@ -1,11 +1,15 @@
 /* eslint-disable playwright/no-wait-for-timeout -- error handling tests require explicit waits for async error boundaries to render */
-import { existsSync } from "fs";
-import path from "path";
+import { existsSync } from "node:fs";
+import path from "node:path";
+
 import { test, expect, type Page } from "@playwright/test";
 
 // Pre-authenticated session — skips signInAnonymously() + Turnstile captcha.
 // Without this the game shows "No puzzle today" because auth takes >10s in headless mode.
-const AUTH_FILE = path.join(__dirname, "..", ".auth", "user.json");
+// Playwright runs from the project root and loads specs as CommonJS; import.meta
+// would make Node parse the file as an ES module ("exports is not defined").
+const DIR = path.join(process.cwd(), "e2e", "errors");
+const AUTH_FILE = path.join(DIR, "..", ".auth", "user.json");
 if (existsSync(AUTH_FILE)) {
   test.use({ storageState: AUTH_FILE });
 }
@@ -111,7 +115,6 @@ test.describe("Error Handling", () => {
 
   test.describe("Duplicate Prevention", () => {
     test("prevents selecting already guessed perfume", async ({ page }) => {
-
       await page.goto("/");
 
       const closedMessage = page.getByText(
@@ -224,7 +227,6 @@ test.describe("Error Handling", () => {
 
   test.describe("Incorrect Guess Feedback", () => {
     test("shows visual feedback for incorrect guess", async ({ page }) => {
-
       await page.goto("/", { waitUntil: "domcontentloaded" });
 
       const closedMessage = page.getByText(

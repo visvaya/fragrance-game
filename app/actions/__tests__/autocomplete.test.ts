@@ -19,9 +19,9 @@ vi.mock("@/lib/utils/brand-masking", () => ({
     if (!year) return null;
     const stringYear = String(year);
     if (attempt <= 1) return "⎵⎵⎵⎵";
-    if (attempt === 2) return stringYear[0] + "⎵⎵⎵";
-    if (attempt === 3) return stringYear.slice(0, 2) + "⎵⎵";
-    if (attempt === 4) return stringYear.slice(0, 3) + "⎵";
+    if (attempt === 2) return `${stringYear[0]}⎵⎵⎵`;
+    if (attempt === 3) return `${stringYear.slice(0, 2)}⎵⎵`;
+    if (attempt === 4) return `${stringYear.slice(0, 3)}⎵`;
     return stringYear;
   }),
 }));
@@ -50,12 +50,12 @@ vi.mock("@/lib/validations/game.schema", () => ({
 }));
 
 vi.mock("@/lib/analytics-server", () => ({
-  trackEvent: vi.fn().mockReturnValue(Promise.resolve()),
+  trackEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/cache/autocomplete-cache", () => ({
   getCachedAutocomplete: vi.fn().mockResolvedValue(null),
-  setCachedAutocomplete: vi.fn().mockReturnValue(Promise.resolve()),
+  setCachedAutocomplete: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Import after mocks

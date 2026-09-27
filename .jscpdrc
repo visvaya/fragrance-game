@@ -1,0 +1,10 @@
+{
+  "threshold": 5,
+  "reporters": ["json", "console"],
+  "output": "reports/jscpd",
+  "format": ["typescript", "javascript"],
+  "pattern": "**/*.{ts,tsx}",
+  "ignore": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx", "**/__tests__/**", "**/node_modules/**", "**/.next/**", "types/**", "reports/**", "**/supabase.schema.ts"],
+  "minLines": 8,
+  "minTokens": 50
+}

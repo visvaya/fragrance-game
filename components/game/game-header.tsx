@@ -21,6 +21,7 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
+import { useEscapeKey } from "@/hooks/use-escape-key";
 import { useScrollDirection } from "@/hooks/use-scroll-direction";
 import { usePathname, useRouter, routing, localeNames } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
@@ -105,6 +106,18 @@ export function GameHeader() {
     sessionsOpen: false,
     statsOpen: false,
   });
+
+  const closeDropdowns = () => {
+    setModals((previous) => ({
+      ...previous,
+      langOpen: false,
+      menuOpen: false,
+    }));
+  };
+
+  // Escape closes the menu and language dropdowns wherever focus is (the
+  // backdrop below is not focusable, so its own key handler rarely fires).
+  useEscapeKey(modals.menuOpen || modals.langOpen, closeDropdowns);
 
   const openAuth = (view: "login" | "register") => {
     setModals((previous) => ({
@@ -208,6 +221,7 @@ export function GameHeader() {
                   <span
                     aria-hidden="true"
                     className="animate-pulse-slow absolute top-0.5 right-0.5 inline-flex size-2 rounded-full bg-amber-500"
+                    data-testid="help-hint-badge"
                   />
                 ) : null}
               </button>
@@ -269,16 +283,14 @@ export function GameHeader() {
             No aria-hidden on container — accessibility is controlled by visibility on each dropdown:
             closed dropdowns use `invisible` (visibility:hidden) which removes them from tab order
             and the accessibility tree without needing explicit aria-hidden. */}
-        <div
-          className="pointer-events-none absolute inset-0 mx-auto max-w-2xl wide:max-w-5xl"
-        >
+        <div className="pointer-events-none absolute inset-0 mx-auto max-w-2xl wide:max-w-5xl">
           {/* Menu Dropdown */}
           <div
             className={cn(
               "pointer-events-auto absolute top-full left-2 mt-2 flex max-h-[calc(100dvh-5rem)] w-56 max-w-[calc(100vw-16px)] flex-col overflow-x-hidden overflow-y-auto rounded-md border panel-border bg-background/70 panel-shadow backdrop-blur-md transition-all duration-300 min-[350px]:left-5 min-[350px]:max-w-[calc(100vw-40px)]",
               modals.menuOpen
                 ? "visible translate-y-0 opacity-100"
-                : "invisible pointer-events-none -translate-y-2 opacity-0",
+                : "pointer-events-none invisible -translate-y-2 opacity-0",
             )}
             style={{ zIndex: 60 }}
           >
@@ -542,7 +554,7 @@ export function GameHeader() {
               "pointer-events-auto absolute top-full right-16 mt-2 flex max-h-[calc(100dvh-5rem)] w-36 max-w-[calc(100vw-84px)] flex-col overflow-x-hidden overflow-y-auto rounded-md border panel-border bg-background/70 panel-shadow backdrop-blur-md transition-all duration-300 max-[280px]:hidden",
               modals.langOpen
                 ? "visible translate-y-0 opacity-100"
-                : "invisible pointer-events-none -translate-y-2 opacity-0",
+                : "pointer-events-none invisible -translate-y-2 opacity-0",
             )}
             style={{ zIndex: 60 }}
           >
@@ -574,20 +586,10 @@ export function GameHeader() {
         <div
           aria-label="Close menu"
           className="fixed inset-0 z-40"
-          onClick={() => {
-            setModals((previous) => ({
-              ...previous,
-              langOpen: false,
-              menuOpen: false,
-            }));
-          }}
+          onClick={closeDropdowns}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
-              setModals((previous) => ({
-                ...previous,
-                langOpen: false,
-                menuOpen: false,
-              }));
+              closeDropdowns();
             }
           }}
           role="button"

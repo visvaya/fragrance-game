@@ -1,11 +1,15 @@
-import { existsSync } from "fs";
-import path from "path";
+import { existsSync } from "node:fs";
+import path from "node:path";
+
 import { test, expect } from "@playwright/test";
 
 // Use a SEPARATE pre-authenticated user (game-flow user, not the primary user).
 // Keeps game-flow's guess submissions isolated from game-completion's 6-attempt counter.
 // Without storageState, signInAnonymously() + Turnstile captcha blocks guess submission.
-const AUTH_FILE_GAMEFLOW = path.join(__dirname, ".auth", "user-gameflow.json");
+// Playwright runs from the project root and loads specs as CommonJS; import.meta
+// would make Node parse the file as an ES module ("exports is not defined").
+const DIR = path.join(process.cwd(), "e2e");
+const AUTH_FILE_GAMEFLOW = path.join(DIR, ".auth", "user-gameflow.json");
 if (existsSync(AUTH_FILE_GAMEFLOW)) {
   test.use({ storageState: AUTH_FILE_GAMEFLOW });
 }

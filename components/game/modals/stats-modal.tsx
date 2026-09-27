@@ -63,14 +63,26 @@ export function StatsModal({ onClose, open }: Readonly<StatsModalProperties>) {
           {/* Stats Grid */}
           <div className="mb-8 grid grid-cols-2 gap-4">
             {[
-              { label: t("played"), value: STATS.played },
-              { label: t("winPercent"), value: `${STATS.winPercent}%` },
-              { label: t("currentStreak"), value: STATS.currentStreak },
-              { label: t("maxStreak"), value: STATS.maxStreak },
+              { id: "played", label: t("played"), value: STATS.played },
+              {
+                id: "winPercent",
+                label: t("winPercent"),
+                value: `${STATS.winPercent}%`,
+              },
+              {
+                id: "currentStreak",
+                label: t("currentStreak"),
+                value: STATS.currentStreak,
+              },
+              {
+                id: "maxStreak",
+                label: t("maxStreak"),
+                value: STATS.maxStreak,
+              },
             ].map((stat) => (
               <div
                 className="border border-border p-4 text-center"
-                key={stat.label}
+                key={stat.id}
               >
                 <span className="block font-[family-name:var(--font-playfair)] text-3xl text-foreground">
                   {stat.value}
@@ -96,7 +108,7 @@ export function StatsModal({ onClose, open }: Readonly<StatsModalProperties>) {
               return (
                 <div
                   className="flex items-center gap-3 text-sm"
-                  key={`distribution-${index}`}
+                  key={`distribution-${index + 1}`}
                 >
                   <span className="w-5 text-right text-muted-foreground">
                     {index + 1}

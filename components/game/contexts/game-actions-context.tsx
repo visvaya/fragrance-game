@@ -573,7 +573,7 @@ export function GameActionsProvider({
             ],
           },
           perfumer: GENERIC_PLACEHOLDER.repeat(5),
-          xsolve: 0 as number,
+          xsolve: 0,
           year: MASK_CHAR.repeat(4) as string | number,
         });
         setImageUrl("/placeholder.svg");

@@ -236,6 +236,7 @@ export function PyramidCluesSkeleton({
               {Array.from({ length: level.count - 1 }).map((_, i) => (
                 <Skeleton
                   className="h-7 w-9 rounded-md"
+                  // eslint-disable-next-line react/no-array-index-key
                   key={`skel-${level.label}-${i}`}
                 />
               ))}
@@ -302,8 +303,8 @@ export function AttemptLogSkeleton({
 
         {/* Header: 5 attribute columns — neutral squares instead of icons */}
         <div className="grid w-full grid-cols-5 justify-items-center border-b-2 border-muted/50 px-0 pb-2 sm:px-1">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div className="flex size-8 items-center justify-center" key={i}>
+          {["brand", "perfumer", "year", "gender", "notes"].map((col) => (
+            <div className="flex size-8 items-center justify-center" key={col}>
               <div className="size-4 rounded bg-muted/40 opacity-40" />
             </div>
           ))}

@@ -175,21 +175,44 @@ function createAdminClientMock(config: {
   };
 }
 
+/**
+ * Server actions read daily_challenges_public through the service-role client
+ * (createAdminClient), because the view is security_invoker and anon/authenticated
+ * have no SELECT on the underlying daily_challenges table. This helper layers a
+ * "daily_challenges_public" branch onto an existing admin client mock without
+ * disturbing the rest of its table handling.
+ */
+function withPublicView<T extends { from: (table: string) => unknown }>(
+  admin: T,
+  view: unknown,
+): T {
+  return {
+    ...admin,
+    from: vi.fn((table: string) =>
+      table === "daily_challenges_public" ? view : admin.from(table),
+    ),
+  };
+}
+
+/**
+ * Builds the mock chain for the daily_challenges_public view query used by
+ * getDailyChallenge()/getDailyChallengeSSR()/startGame(): select().eq().limit().single().
+ */
+function createPublicViewChain(
+  data: Record<string, unknown> | null,
+  error: unknown = null,
+) {
+  return {
+    eq: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data, error }),
+  };
+}
+
 describe("game-actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  // ==================== Helper Functions Tests ====================
-  // Note: Helper functions are not exported, so we test them indirectly through public APIs
-  // However, we can test their behavior through the functions that use them
-
-  describe("cleanNote (tested indirectly through calculateNotesMatch)", () => {
-    it("removes trademark symbols from notes", () => {
-      // This will be tested when we test submitGuess with notes matching
-      // cleanNote() removes ™ and ® symbols
-      expect(true).toBe(true); // Placeholder - tested via submitGuess
-    });
   });
 
   // ==================== getDailyChallenge Tests ====================
@@ -201,23 +224,14 @@ describe("game-actions", () => {
         const mockPerfume = createMockPerfume();
 
         const mockSupabaseClient = {
-          eq: vi.fn().mockReturnThis(),
-          from: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockReturnThis(),
-          select: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
-            data: {
-              challenge_date: mockChallenge.challenge_date,
-              grace_deadline_at_utc: mockChallenge.grace_deadline_at_utc,
-              id: mockChallenge.id,
-              mode: mockChallenge.mode,
-              snapshot_metadata: mockChallenge.snapshot_metadata,
-            },
-            error: null,
-          }),
+          auth: {
+            getUser: vi
+              .fn()
+              .mockResolvedValue({ data: { user: null }, error: null }),
+          },
         };
 
-        const mockAdminClient = {
+        const mockAdminClientBase = {
           from: vi.fn((table: string) => {
             const chain = {
               eq: vi.fn().mockReturnThis(),
@@ -253,6 +267,17 @@ describe("game-actions", () => {
           }),
         };
 
+        const mockAdminClient = withPublicView(
+          mockAdminClientBase,
+          createPublicViewChain({
+            challenge_date: mockChallenge.challenge_date,
+            grace_deadline_at_utc: mockChallenge.grace_deadline_at_utc,
+            id: mockChallenge.id,
+            mode: mockChallenge.mode,
+            snapshot_metadata: mockChallenge.snapshot_metadata,
+          }),
+        );
+
         vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
         vi.mocked(createAdminClient).mockReturnValue(mockAdminClient as never);
 
@@ -273,23 +298,14 @@ describe("game-actions", () => {
         const mockChallenge = createMockChallenge();
 
         const mockSupabaseClient = {
-          eq: vi.fn().mockReturnThis(),
-          from: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockReturnThis(),
-          select: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
-            data: {
-              challenge_date: mockChallenge.challenge_date,
-              grace_deadline_at_utc: mockChallenge.grace_deadline_at_utc,
-              id: mockChallenge.id,
-              mode: mockChallenge.mode,
-              snapshot_metadata: mockChallenge.snapshot_metadata,
-            },
-            error: null,
-          }),
+          auth: {
+            getUser: vi
+              .fn()
+              .mockResolvedValue({ data: { user: null }, error: null }),
+          },
         };
 
-        const mockAdminClient = {
+        const mockAdminClientBase = {
           from: vi.fn((table: string) => {
             const chain = {
               eq: vi.fn().mockReturnThis(),
@@ -325,6 +341,17 @@ describe("game-actions", () => {
           }),
         };
 
+        const mockAdminClient = withPublicView(
+          mockAdminClientBase,
+          createPublicViewChain({
+            challenge_date: mockChallenge.challenge_date,
+            grace_deadline_at_utc: mockChallenge.grace_deadline_at_utc,
+            id: mockChallenge.id,
+            mode: mockChallenge.mode,
+            snapshot_metadata: mockChallenge.snapshot_metadata,
+          }),
+        );
+
         vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
         vi.mocked(createAdminClient).mockReturnValue(mockAdminClient as never);
 
@@ -340,23 +367,14 @@ describe("game-actions", () => {
         const todayDate = new Date().toISOString().split("T")[0];
 
         const mockSupabaseClient = {
-          eq: vi.fn().mockReturnThis(),
-          from: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockReturnThis(),
-          select: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
-            data: {
-              challenge_date: todayDate,
-              grace_deadline_at_utc: mockChallenge.grace_deadline_at_utc,
-              id: mockChallenge.id,
-              mode: mockChallenge.mode,
-              snapshot_metadata: mockChallenge.snapshot_metadata,
-            },
-            error: null,
-          }),
+          auth: {
+            getUser: vi
+              .fn()
+              .mockResolvedValue({ data: { user: null }, error: null }),
+          },
         };
 
-        const mockAdminClient = {
+        const mockAdminClientBase = {
           from: vi.fn((table: string) => {
             const chain = {
               eq: vi.fn().mockReturnThis(),
@@ -392,12 +410,26 @@ describe("game-actions", () => {
           }),
         };
 
+        const publicViewChain = createPublicViewChain({
+          challenge_date: todayDate,
+          grace_deadline_at_utc: mockChallenge.grace_deadline_at_utc,
+          id: mockChallenge.id,
+          mode: mockChallenge.mode,
+          snapshot_metadata: mockChallenge.snapshot_metadata,
+        });
+        const mockAdminClient = withPublicView(
+          mockAdminClientBase,
+          publicViewChain,
+        );
+
         vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
         vi.mocked(createAdminClient).mockReturnValue(mockAdminClient as never);
 
         await getDailyChallenge();
 
-        expect(mockSupabaseClient.eq).toHaveBeenCalledWith(
+        // getDailyChallenge() now reads daily_challenges_public through the
+        // service-role client (createAdminClient), not the user-scoped client.
+        expect(publicViewChain.eq).toHaveBeenCalledWith(
           "challenge_date",
           todayDate,
         );
@@ -407,17 +439,22 @@ describe("game-actions", () => {
     describe("error cases", () => {
       it("returns null when no challenge exists for today", async () => {
         const mockSupabaseClient = {
-          eq: vi.fn().mockReturnThis(),
-          from: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockReturnThis(),
-          select: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
-            data: null,
-            error: { code: "PGRST116", message: "No rows found" },
-          }),
+          auth: {
+            getUser: vi
+              .fn()
+              .mockResolvedValue({ data: { user: null }, error: null }),
+          },
         };
+        const mockAdminClient = withPublicView(
+          { from: vi.fn() },
+          createPublicViewChain(null, {
+            code: "PGRST116",
+            message: "No rows found",
+          }),
+        );
 
         vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        vi.mocked(createAdminClient).mockReturnValue(mockAdminClient as never);
 
         const result = await getDailyChallenge();
 
@@ -426,17 +463,22 @@ describe("game-actions", () => {
 
       it("throws error when database query fails", async () => {
         const mockSupabaseClient = {
-          eq: vi.fn().mockReturnThis(),
-          from: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockReturnThis(),
-          select: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
-            data: null,
-            error: { code: "DB_ERROR", message: "Database connection failed" },
-          }),
+          auth: {
+            getUser: vi
+              .fn()
+              .mockResolvedValue({ data: { user: null }, error: null }),
+          },
         };
+        const mockAdminClient = withPublicView(
+          { from: vi.fn() },
+          createPublicViewChain(null, {
+            code: "DB_ERROR",
+            message: "Database connection failed",
+          }),
+        );
 
         vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        vi.mocked(createAdminClient).mockReturnValue(mockAdminClient as never);
 
         await expect(getDailyChallenge()).rejects.toThrow(
           "Failed to fetch daily challenge",
@@ -447,23 +489,14 @@ describe("game-actions", () => {
         const mockChallenge = createMockChallenge();
 
         const mockSupabaseClient = {
-          eq: vi.fn().mockReturnThis(),
-          from: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockReturnThis(),
-          select: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
-            data: {
-              challenge_date: mockChallenge.challenge_date,
-              grace_deadline_at_utc: mockChallenge.grace_deadline_at_utc,
-              id: mockChallenge.id,
-              mode: mockChallenge.mode,
-              snapshot_metadata: mockChallenge.snapshot_metadata,
-            },
-            error: null,
-          }),
+          auth: {
+            getUser: vi
+              .fn()
+              .mockResolvedValue({ data: { user: null }, error: null }),
+          },
         };
 
-        const mockAdminClient = {
+        const mockAdminClientBase = {
           from: vi.fn((table: string) => {
             const chain = {
               eq: vi.fn().mockReturnThis(),
@@ -499,6 +532,17 @@ describe("game-actions", () => {
           }),
         };
 
+        const mockAdminClient = withPublicView(
+          mockAdminClientBase,
+          createPublicViewChain({
+            challenge_date: mockChallenge.challenge_date,
+            grace_deadline_at_utc: mockChallenge.grace_deadline_at_utc,
+            id: mockChallenge.id,
+            mode: mockChallenge.mode,
+            snapshot_metadata: mockChallenge.snapshot_metadata,
+          }),
+        );
+
         vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
         vi.mocked(createAdminClient).mockReturnValue(mockAdminClient as never);
 
@@ -511,23 +555,14 @@ describe("game-actions", () => {
         const mockChallenge = createMockChallenge();
 
         const mockSupabaseClient = {
-          eq: vi.fn().mockReturnThis(),
-          from: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockReturnThis(),
-          select: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
-            data: {
-              challenge_date: mockChallenge.challenge_date,
-              grace_deadline_at_utc: mockChallenge.grace_deadline_at_utc,
-              id: mockChallenge.id,
-              mode: mockChallenge.mode,
-              snapshot_metadata: mockChallenge.snapshot_metadata,
-            },
-            error: null,
-          }),
+          auth: {
+            getUser: vi
+              .fn()
+              .mockResolvedValue({ data: { user: null }, error: null }),
+          },
         };
 
-        const mockAdminClient = {
+        const mockAdminClientBase = {
           from: vi.fn((table: string) => {
             const chain = {
               eq: vi.fn().mockReturnThis(),
@@ -551,6 +586,17 @@ describe("game-actions", () => {
           }),
         };
 
+        const mockAdminClient = withPublicView(
+          mockAdminClientBase,
+          createPublicViewChain({
+            challenge_date: mockChallenge.challenge_date,
+            grace_deadline_at_utc: mockChallenge.grace_deadline_at_utc,
+            id: mockChallenge.id,
+            mode: mockChallenge.mode,
+            snapshot_metadata: mockChallenge.snapshot_metadata,
+          }),
+        );
+
         vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
         vi.mocked(createAdminClient).mockReturnValue(mockAdminClient as never);
 
@@ -565,23 +611,14 @@ describe("game-actions", () => {
         const mockChallenge = createMockChallenge();
 
         const mockSupabaseClient = {
-          eq: vi.fn().mockReturnThis(),
-          from: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockReturnThis(),
-          select: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
-            data: {
-              challenge_date: mockChallenge.challenge_date,
-              grace_deadline_at_utc: mockChallenge.grace_deadline_at_utc,
-              id: mockChallenge.id,
-              mode: mockChallenge.mode,
-              snapshot_metadata: mockChallenge.snapshot_metadata,
-            },
-            error: null,
-          }),
+          auth: {
+            getUser: vi
+              .fn()
+              .mockResolvedValue({ data: { user: null }, error: null }),
+          },
         };
 
-        const mockAdminClient = {
+        const mockAdminClientBase = {
           from: vi.fn((table: string) => {
             const chain = {
               eq: vi.fn().mockReturnThis(),
@@ -616,6 +653,17 @@ describe("game-actions", () => {
             return chain;
           }),
         };
+
+        const mockAdminClient = withPublicView(
+          mockAdminClientBase,
+          createPublicViewChain({
+            challenge_date: mockChallenge.challenge_date,
+            grace_deadline_at_utc: mockChallenge.grace_deadline_at_utc,
+            id: mockChallenge.id,
+            mode: mockChallenge.mode,
+            snapshot_metadata: mockChallenge.snapshot_metadata,
+          }),
+        );
 
         vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
         vi.mocked(createAdminClient).mockReturnValue(mockAdminClient as never);
@@ -1000,25 +1048,16 @@ describe("game-actions", () => {
       const todayDate = new Date().toISOString().split("T")[0];
       const mockChallenge = createMockChallenge({ challenge_date: todayDate });
 
-      // Mock getDailyChallenge
+      // Mock getDailyChallenge (user client is only used for auth here)
       const mockSupabaseClientForChallenge = {
-        eq: vi.fn().mockReturnThis(),
-        from: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: {
-            challenge_date: mockChallenge.challenge_date,
-            grace_deadline_at_utc: mockChallenge.grace_deadline_at_utc,
-            id: mockChallenge.id,
-            mode: mockChallenge.mode,
-            snapshot_metadata: mockChallenge.snapshot_metadata,
-          },
-          error: null,
-        }),
+        auth: {
+          getUser: vi
+            .fn()
+            .mockResolvedValue({ data: { user: null }, error: null }),
+        },
       };
 
-      const mockAdminClient = {
+      const mockAdminClientBase = {
         from: vi.fn((table: string) => {
           const chain = {
             eq: vi.fn().mockReturnThis(),
@@ -1078,7 +1117,19 @@ describe("game-actions", () => {
         }),
       };
 
-      // Mock startGame
+      const mockAdminClient = withPublicView(
+        mockAdminClientBase,
+        createPublicViewChain({
+          challenge_date: mockChallenge.challenge_date,
+          grace_deadline_at_utc: mockChallenge.grace_deadline_at_utc,
+          id: mockChallenge.id,
+          mode: mockChallenge.mode,
+          snapshot_metadata: mockChallenge.snapshot_metadata,
+        }),
+      );
+
+      // Mock startGame (game_sessions only; daily_challenges_public now comes
+      // from the admin client mock above via createNewGameSession)
       const mockSupabaseClientForStart = {
         auth: {
           getUser: vi.fn().mockResolvedValue({
@@ -1104,18 +1155,6 @@ describe("game-actions", () => {
                   player_id: "user-123",
                   start_time: new Date().toISOString(),
                   status: "active",
-                },
-                error: null,
-              }),
-            };
-          } else if (table === "daily_challenges_public") {
-            return {
-              eq: vi.fn().mockReturnThis(),
-              select: vi.fn().mockReturnThis(),
-              single: vi.fn().mockResolvedValue({
-                data: {
-                  grace_deadline_at_utc: "2026-02-13T00:00:00Z",
-                  mode: "daily",
                 },
                 error: null,
               }),
@@ -1163,23 +1202,14 @@ describe("game-actions", () => {
       const mockChallenge = createMockChallenge();
 
       const mockSupabaseClientForChallenge = {
-        eq: vi.fn().mockReturnThis(),
-        from: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: {
-            challenge_date: mockChallenge.challenge_date,
-            grace_deadline_at_utc: mockChallenge.grace_deadline_at_utc,
-            id: mockChallenge.id,
-            mode: mockChallenge.mode,
-            snapshot_metadata: mockChallenge.snapshot_metadata,
-          },
-          error: null,
-        }),
+        auth: {
+          getUser: vi
+            .fn()
+            .mockResolvedValue({ data: { user: null }, error: null }),
+        },
       };
 
-      const mockAdminClient = {
+      const mockAdminClientBase = {
         from: vi.fn((table: string) => {
           const chain = {
             eq: vi.fn().mockReturnThis(),
@@ -1215,6 +1245,17 @@ describe("game-actions", () => {
         }),
       };
 
+      const mockAdminClient = withPublicView(
+        mockAdminClientBase,
+        createPublicViewChain({
+          challenge_date: mockChallenge.challenge_date,
+          grace_deadline_at_utc: mockChallenge.grace_deadline_at_utc,
+          id: mockChallenge.id,
+          mode: mockChallenge.mode,
+          snapshot_metadata: mockChallenge.snapshot_metadata,
+        }),
+      );
+
       const mockSupabaseClientForStart = {
         auth: {
           getUser: vi.fn().mockResolvedValue({
@@ -1238,17 +1279,22 @@ describe("game-actions", () => {
 
     it("returns null when no challenge exists", async () => {
       const mockSupabaseClient = {
-        eq: vi.fn().mockReturnThis(),
-        from: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: null,
-          error: { code: "PGRST116", message: "No rows found" },
-        }),
+        auth: {
+          getUser: vi
+            .fn()
+            .mockResolvedValue({ data: { user: null }, error: null }),
+        },
       };
+      const mockAdminClient = withPublicView(
+        { from: vi.fn() },
+        createPublicViewChain(null, {
+          code: "PGRST116",
+          message: "No rows found",
+        }),
+      );
 
       vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+      vi.mocked(createAdminClient).mockReturnValue(mockAdminClient as never);
 
       const result = await initializeGame();
 

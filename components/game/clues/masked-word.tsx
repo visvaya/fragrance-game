@@ -52,6 +52,7 @@ export function MaskedWord({
         <MaskSlot
           char={char}
           isHovered={isHovered}
+          // eslint-disable-next-line react/no-array-index-key -- index is required for stable char keying
           key={`${keyPrefix}-slot-${index}`}
         />
       );
@@ -63,7 +64,8 @@ export function MaskedWord({
           "mx-px flex h-5 w-2 items-center justify-center border-b border-transparent font-mono text-sm leading-none transition-colors duration-300",
           getCharClass(isHovered, hoverColorChars),
         )}
-        key={`${keyPrefix}-char-${index}`}
+        // eslint-disable-next-line react/no-array-index-key -- index is required for stable char keying
+        key={`${keyPrefix}-char-${char}-${index}`}
       >
         <span className="inline-block translate-y-px">{char}</span>
       </div>

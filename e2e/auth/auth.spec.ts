@@ -75,6 +75,7 @@ test("Login and Logout", async ({ page }) => {
 
   // Sign-out reloads the current page (anonymous session restored)
   // Verify user is no longer authenticated by waiting for page reload
+  // eslint-disable-next-line playwright/no-networkidle -- post-sign-out reload; networkidle is the only reliable signal here
   await page.waitForLoadState("networkidle");
   // Sign In button should reappear in the menu
   await menuButton.click();

@@ -6,10 +6,10 @@ import type { Database } from "@/types/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Tworzy klienta Supabase do użycia w komponencie po stronie przeglądarki (Client Components).
- * Wykorzystuje \`@supabase/ssr\`, który automatycznie zarządza ciasteczkami sesji.
- * @returns Klient Supabase skonfigurowany dla przeglądarki
- * @throws {Error} gdy brakuje zmiennych środowiskowych NEXT_PUBLIC_SUPABASE_URL lub NEXT_PUBLIC_SUPABASE_ANON_KEY
+ * Creates a Supabase client for use in browser-side components (Client Components).
+ * Utilizes `@supabase/ssr`, which automatically manages session cookies.
+ * @returns Supabase client configured for the browser
+ * @throws {Error} when NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables are missing
  * @example
  * ```tsx
  * 'use client'
@@ -27,11 +27,10 @@ export function createClient(): SupabaseClient<Database> {
 
   // Use local proxy to bypass uMatrix/AdBlockers
   // Valid URL is required by createBrowserClient
-  // eslint-disable-next-line unicorn/prefer-global-this -- typeof window required for SSR safety (ReferenceError-safe)
+  // eslint-disable-next-line unicorn/prefer-global-this -- safer for SSR pre-render
   const isBrowser = typeof window !== "undefined";
   const proxyUrl = isBrowser
-    ? // eslint-disable-next-line unicorn/prefer-global-this -- window.location.origin used after isBrowser guard; globalThis.window lacks type narrowing in this conditional
-      `${window.location.origin}/api/db`
+    ? `${globalThis.location.origin}/api/db`
     : supabaseUrl;
 
   // Determine the correct cookie name prefix from the REAL Supabase URL

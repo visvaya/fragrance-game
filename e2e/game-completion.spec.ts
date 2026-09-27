@@ -1,10 +1,14 @@
-import { existsSync } from "fs";
-import path from "path";
+import { existsSync } from "node:fs";
+import path from "node:path";
+
 import { expect, test } from "@playwright/test";
 
 // Auth file created by globalSetup (e2e/global-setup.ts) before tests run.
 // Contains pre-authenticated anonymous Supabase session (bypasses Turnstile captcha).
-const AUTH_FILE = path.join(__dirname, ".auth", "user.json");
+// Playwright runs from the project root and loads specs as CommonJS; import.meta
+// would make Node parse the file as an ES module ("exports is not defined").
+const DIR = path.join(process.cwd(), "e2e");
+const AUTH_FILE = path.join(DIR, ".auth", "user.json");
 
 test.describe("Game Completion Flows", () => {
   // Use pre-authenticated session if globalSetup created it.
@@ -147,7 +151,7 @@ test.describe("Game Completion Flows", () => {
         await input.click();
         await input.clear();
         await input.fill(brand);
-        await expect(suggestions.first()).toBeVisible({ timeout: 5_000 });
+        await expect(suggestions.first()).toBeVisible({ timeout: 5000 });
       }).toPass({ timeout: 30_000 });
 
       const suggestion = suggestions.first();
@@ -162,7 +166,7 @@ test.describe("Game Completion Flows", () => {
         await expect(attemptCells).toHaveCount(expectedCellCount, {
           timeout: 30_000,
         });
-        await expect(input).toHaveValue("", { timeout: 5_000 });
+        await expect(input).toHaveValue("", { timeout: 5000 });
       } else {
         // For 6th attempt: wait for either game over message or cell count
         await expect(async () => {

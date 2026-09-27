@@ -1,10 +1,14 @@
-import { existsSync } from "fs";
-import path from "path";
+import { existsSync } from "node:fs";
+import path from "node:path";
+
 import { test, expect } from "@playwright/test";
 
 // Pre-authenticated session — skips signInAnonymously() + Turnstile captcha.
 // Without this the game shows "No puzzle today" because auth takes >10s in headless mode.
-const AUTH_FILE = path.join(__dirname, "..", ".auth", "user.json");
+// Playwright runs from the project root and loads specs as CommonJS; import.meta
+// would make Node parse the file as an ES module ("exports is not defined").
+const DIR = path.join(process.cwd(), "e2e", "i18n");
+const AUTH_FILE = path.join(DIR, "..", ".auth", "user.json");
 if (existsSync(AUTH_FILE)) {
   test.use({ storageState: AUTH_FILE });
 }

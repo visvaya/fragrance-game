@@ -143,9 +143,9 @@ describe("Translation Keys Parity", () => {
     const placeholderPatterns = [
       /TODO/i,
       /FIXME/i,
-      // eslint-disable-next-line sonarjs/slow-regex -- complex regex used once at test runtime; performance not a concern
+      // eslint-disable-next-line sonarjs/super-linear-regex -- negated class matches linearly; input is short translation strings
       /\[[^\]]*\]/,
-      // eslint-disable-next-line sonarjs/slow-regex -- complex regex used once at test runtime; performance not a concern
+      // eslint-disable-next-line sonarjs/super-linear-regex -- negated class matches linearly; input is short translation strings
       /\{[^}]*\}/,
       /xxx/i,
     ];
@@ -177,10 +177,9 @@ describe("Translation Keys Parity", () => {
       console.warn("Possible placeholders in Polish:", plPlaceholders);
     }
 
-    // This is a soft warning, not a hard failure
-    // expect(enPlaceholders).toHaveLength(0);
-    // expect(plPlaceholders).toHaveLength(0);
-    expect(true).toBe(true); // Ensure test has at least one assertion
+    // Placeholders are reported as a soft warning above, not a failure;
+    // assert only that the scan covered the translation keys.
+    expect(Object.keys(enFlat).length).toBeGreaterThan(0);
   });
 });
 

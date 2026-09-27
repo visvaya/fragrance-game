@@ -9,11 +9,11 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(),
 }));
 vi.mock("@/lib/redis", () => ({
-  checkRateLimit: vi.fn().mockReturnValue(Promise.resolve(true)),
+  checkRateLimit: vi.fn().mockResolvedValue(true),
 }));
 vi.mock("@/lib/analytics-server", () => ({
-  identifyUser: vi.fn().mockReturnValue(Promise.resolve()),
-  trackEvent: vi.fn().mockReturnValue(Promise.resolve()),
+  identifyUser: vi.fn().mockResolvedValue(undefined),
+  trackEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { skipAttempt } from "@/app/actions/game-actions";

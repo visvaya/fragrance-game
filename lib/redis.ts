@@ -1,6 +1,15 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
+/**
+ * Upstash Redis client backing every rate limiter below.
+ *
+ * `fromEnv()` reads UPSTASH_REDIS_REST_URL/TOKEN straight from process.env. That is
+ * intentional: both are declared in the server schema of lib/env.ts, so a missing or
+ * malformed value already fails at startup with a Zod error naming the variable.
+ * Reading them through `env` here instead would trip the t3-env client guard in any
+ * jsdom test that transitively imports this module.
+ */
 export const redis = Redis.fromEnv();
 
 export const limiters = {

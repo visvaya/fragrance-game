@@ -204,7 +204,7 @@ export function SessionsModal({
     const browser = ua.getBrowser();
     const os = ua.getOS();
 
-    if (!browser.name && !os.name) return userAgent.slice(0, 30) + "...";
+    if (!browser.name && !os.name) return `${userAgent.slice(0, 30)}...`;
 
     return `${browser.name ?? t("unknownBrowser")} on ${os.name ?? t("unknownOS")}`;
   };

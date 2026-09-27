@@ -142,7 +142,7 @@ function cleanNote(note: string | null | undefined): string {
       .replaceAll(/\bLa Réunion\b/gi, ""),
   );
   const t = cleanedNote
-    // eslint-disable-next-line sonarjs/slow-regex -- /\([^)]*\)/ uses nested quantifier flagged by Sonar; bounded by explicit parentheses, no catastrophic backtracking risk
+    // eslint-disable-next-line sonarjs/super-linear-regex -- negated class [^)]* cannot backtrack into the closing paren; linear
     .replaceAll(/\([^)]*\)/g, "")
     .replaceAll(/\s+/g, " ")
     .trim()
@@ -230,6 +230,9 @@ function generateNonce(): string {
  * Pobiera dane codziennego wyzwania (widok publiczny + detale od admina).
  */
 export async function getDailyChallenge(): Promise<DailyChallenge | null> {
+  // daily_challenges_public is a security_invoker view and anon/authenticated have no
+  // SELECT on daily_challenges (migration 20260331000003), so server actions read the
+  // view through the service-role client. The user client stays for auth only.
   const supabase = await createClient();
 
   // Rate limiting
@@ -246,7 +249,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
 
   const targetDate = new Date().toISOString().split("T")[0];
 
-  const { data, error } = await supabase
+  const { data, error } = await createAdminClient()
     .from("daily_challenges_public")
     .select(
       "challenge_date, grace_deadline_at_utc, id, mode, snapshot_metadata",
@@ -331,10 +334,8 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     );
   }
 
-  const brandName =
-    (perfume.brands as { name: string } | null)?.name ?? "Unknown";
-  const concentrationName =
-    (perfume.concentrations as { name: string } | null)?.name ?? "Unknown";
+  const brandName = perfume.brands?.name ?? "Unknown";
+  const concentrationName = perfume.concentrations?.name ?? "Unknown";
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- daily_challenges_public view returns nullable fields; critical ones validated above; brands/concentrations need narrowing from Supabase join type
   return {
@@ -417,8 +418,8 @@ async function enrichGuessesWithPerfumeDetails(
     if (!p) return [];
     return [
       {
-        brandName: (p.brands as { name: string } | null)?.name ?? "Unknown",
-        concentration: (p.concentrations as { name: string } | null)?.name,
+        brandName: p.brands?.name ?? "Unknown",
+        concentration: p.concentrations?.name,
         feedback: guess.feedback,
         gender: p.gender ?? undefined,
         isCorrect: guess.isCorrect,
@@ -476,7 +477,7 @@ async function createNewGameSession(
   }
 
   const imageUrl = await getImageUrlForStep(session.id);
-  const { data: challengeData } = (await supabase
+  const { data: challengeData } = (await createAdminClient()
     .from("daily_challenges_public")
     .select("mode, grace_deadline_at_utc")
     .eq("id", challengeId)
@@ -556,7 +557,7 @@ export async function startGame(
   };
 
   if (existingSession) {
-    const { data: graceQuery } = (await supabase
+    const { data: graceQuery } = (await createAdminClient()
       .from("daily_challenges_public")
       .select("grace_deadline_at_utc")
       .eq("id", challengeId)

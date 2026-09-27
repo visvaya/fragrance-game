@@ -50,6 +50,7 @@ yarn-error.log*
 
 # Test & coverage
 coverage/
+/report/
 /reports/
 /playwright-report/
 /test-results/
@@ -60,6 +61,9 @@ lighthouse-*.json
 *.report.html
 a11y_report.txt
 lint_*.txt
+dependency-graph.*
+madge-graph.*
+.DS_Store
 
 # Misc
 page_dump.html

@@ -79,9 +79,7 @@ test.describe("Rate Limiting", () => {
 
       expect(response.status()).not.toBe(429);
     } else {
-      // If we couldn't trigger rate limit, skip this test
-
-      test.skip();
+      test.skip(true, "Rate limit was not triggered within the request budget");
     }
   });
 
@@ -100,7 +98,7 @@ test.describe("Rate Limiting", () => {
 
     // Every response must be either successful (200) or rate-limited (429) — no 5xx errors
     const validStatuses = responses.filter((s) => s === 200 || s === 429);
-    expect(validStatuses.length).toBe(10);
+    expect(validStatuses).toHaveLength(10);
   });
 
   test("rate limit only applies to /api routes", async ({ request }) => {

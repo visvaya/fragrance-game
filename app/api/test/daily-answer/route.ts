@@ -80,9 +80,7 @@ export async function GET(): Promise<Response> {
       }
 
       const formattedPerfume = {
-        brand:
-          (randomPerfume.brands as unknown as { name: string } | null)?.name ??
-          "Unknown",
+        brand: randomPerfume.brands?.name ?? "Unknown",
         id: randomPerfume.id,
         name: randomPerfume.name,
       };
@@ -119,9 +117,7 @@ export async function GET(): Promise<Response> {
 
     const formattedPerfume = {
       ...perfume,
-      brand:
-        (perfume.brands as unknown as { name: string } | null)?.name ??
-        "Unknown",
+      brand: perfume.brands?.name ?? "Unknown",
     };
 
     return NextResponse.json({ perfume: formattedPerfume });

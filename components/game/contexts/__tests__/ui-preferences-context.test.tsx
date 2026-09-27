@@ -175,17 +175,16 @@ describe("UIPreferencesContext", () => {
   it("should auto-detect system dark mode if no saved theme", async () => {
     // Set system to dark mode
     vi.mocked(globalThis.matchMedia).mockImplementationOnce(
-      (query: string) =>
-        ({
-          addEventListener: vi.fn(),
-          addListener: vi.fn(),
-          dispatchEvent: vi.fn(),
-          matches: true,
-          media: query,
-          onchange: null,
-          removeEventListener: vi.fn(),
-          removeListener: vi.fn(),
-        }) as unknown as MediaQueryList,
+      (query: string) => ({
+        addEventListener: vi.fn(),
+        addListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+        matches: true,
+        media: query,
+        onchange: null,
+        removeEventListener: vi.fn(),
+        removeListener: vi.fn(),
+      }),
     );
 
     const { result } = renderHook(() => useUIPreferences(), {

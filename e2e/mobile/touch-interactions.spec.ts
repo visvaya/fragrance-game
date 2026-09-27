@@ -1,12 +1,15 @@
 /* eslint-disable playwright/no-wait-for-timeout -- touch interaction tests require explicit waits for animation and gesture completion */
-import { existsSync } from "fs";
-import path from "path";
-import { test, expect, devices } from "@playwright/test";
+import { existsSync } from "node:fs";
+import path from "node:path";
 
+import { test, expect, devices } from "@playwright/test";
 
 // Pre-authenticated session from globalSetup — skips signInAnonymously() + Turnstile captcha.
 // Without this the Turnstile SDK (external Cloudflare JS) can crash the mobile browser context.
-const AUTH_FILE = path.join(__dirname, "..", ".auth", "user.json");
+// Playwright runs from the project root and loads specs as CommonJS; import.meta
+// would make Node parse the file as an ES module ("exports is not defined").
+const DIR = path.join(process.cwd(), "e2e", "mobile");
+const AUTH_FILE = path.join(DIR, "..", ".auth", "user.json");
 
 // Configure Pixel 5 device for Android tests
 const mobileAndroidTest = test.extend({});
@@ -19,49 +22,42 @@ if (existsSync(AUTH_FILE)) {
 }
 
 test.describe("Mobile Touch Interactions - Android", () => {
-  mobileAndroidTest(
-    "should open autocomplete on touch",
-    async ({ page }) => {
-      await page.goto("/en");
+  mobileAndroidTest("should open autocomplete on touch", async ({ page }) => {
+    await page.goto("/en");
 
-      // Check for "Closed" state
-      const closedMessage = page.getByText(
-        /Gra zakończona|Come back tomorrow/i,
-      );
+    // Check for "Closed" state
+    const closedMessage = page.getByText(/Gra zakończona|Come back tomorrow/i);
 
-      if (await closedMessage.isVisible()) {
-        test.skip(true, "Game is currently closed.");
-        return;
-      }
+    if (await closedMessage.isVisible()) {
+      test.skip(true, "Game is currently closed.");
+      return;
+    }
 
-      const input = page.getByPlaceholder(
-        /Guess the fragrance|Napisz jakie to perfumy/i,
-      );
+    const input = page.getByPlaceholder(
+      /Guess the fragrance|Napisz jakie to perfumy/i,
+    );
 
-      // Use tap() instead of click() for mobile
-      await input.tap();
-      await input.fill("Cha");
+    // Use tap() instead of click() for mobile
+    await input.tap();
+    await input.fill("Cha");
 
-      // Wait for autocomplete suggestions
-      await page.waitForTimeout(1000);
+    // Wait for autocomplete suggestions
+    await page.waitForTimeout(1000);
 
-      const suggestionsList = page.locator(
-        'button[class*="text-left text-sm"]',
-      );
-      const count = await suggestionsList.count();
+    const suggestionsList = page.locator('button[class*="text-left text-sm"]');
+    const count = await suggestionsList.count();
 
-      // If suggestions appear, verify they're tappable
+    // If suggestions appear, verify they're tappable
 
-      if (count > 0) {
-        const firstSuggestion = suggestionsList.first();
+    if (count > 0) {
+      const firstSuggestion = suggestionsList.first();
 
-        await expect(firstSuggestion).toBeVisible();
+      await expect(firstSuggestion).toBeVisible();
 
-        // Tap should work
-        await firstSuggestion.tap();
-      }
-    },
-  );
+      // Tap should work
+      await firstSuggestion.tap();
+    }
+  });
 
   mobileAndroidTest.skip(
     "should have accessible touch targets (48x48px minimum)",

@@ -275,18 +275,15 @@ export function GameInput() {
           // noisy partial results for names like "Y" or "Si".
           const filtered =
             tq.length < 3
-              ? results.filter(
-                  // eslint-disable-next-line sonarjs/no-nested-functions -- single-expression filter predicate; extraction requires hoisting tq from enclosing closure
-                  (r) => {
-                    return normalizeText(r.name) === normalizeText(tq);
-                  },
-                )
+              ? results.filter((r) => {
+                  return normalizeText(r.name) === normalizeText(tq);
+                })
               : results;
 
           // Re-rank: brand/name matches first, perfumer-only matches last.
           // Stable sort preserves the DB relevance order within each tier.
           const nq = normalizeText(tq);
-          // eslint-disable-next-line sonarjs/no-nested-functions -- single-expression sort comparator; extraction requires hoisting nq from enclosing closure
+
           const ranked = filtered.toSorted((a, b) => {
             return relevanceScore(b, nq) - relevanceScore(a, nq);
           });
@@ -322,7 +319,6 @@ export function GameInput() {
 
   // Handle click outside
   useMountEffect(() => {
-    // eslint-disable-next-line unicorn/consistent-function-scoping -- closes over wrapperReference and dispatch from component scope
     function handleClickOutside(event: MouseEvent) {
       if (
         wrapperReference.current &&
@@ -878,9 +874,13 @@ export function GameInput() {
                               if (perfume.year === MASK_CHAR.repeat(4)) {
                                 return (
                                   <span className="tracking-widest text-muted-foreground opacity-30">
-                                    {/* eslint-disable-next-line unicorn/prefer-spread -- string character iteration; split("") vs [...str] conflict with no-misused-spread */}
-                                    {"____".split("").map((char, i) => (
-                                      <span className="inline-block" key={i}>
+                                    {/* eslint-disable-next-line @typescript-eslint/no-misused-spread -- digits/placeholders are ASCII safe */}
+                                    {[..."____"].map((char, i) => (
+                                      <span
+                                        className="inline-block"
+                                        // eslint-disable-next-line react/no-array-index-key -- index is required for stable char keying
+                                        key={i}
+                                      >
                                         {char}
                                       </span>
                                     ))}
@@ -890,14 +890,15 @@ export function GameInput() {
 
                               return (
                                 <span className="tracking-widest">
-                                  {/* eslint-disable-next-line unicorn/prefer-spread -- string character iteration; split("") vs [...str] conflict with no-misused-spread */}
-                                  {perfume.year.split("").map((char, i) => (
+                                  {/* eslint-disable-next-line @typescript-eslint/no-misused-spread -- year digits are ASCII safe */}
+                                  {[...perfume.year].map((char, i) => (
                                     <span
                                       className={
                                         char === MASK_CHAR
                                           ? "inline-block text-muted-foreground opacity-40"
                                           : "text-foreground"
                                       }
+                                      // eslint-disable-next-line react/no-array-index-key -- index is required for stable char keying
                                       key={i}
                                     >
                                       {char === MASK_CHAR ? "_" : char}

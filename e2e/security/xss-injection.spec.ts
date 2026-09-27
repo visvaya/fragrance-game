@@ -1,11 +1,15 @@
 /* eslint-disable playwright/no-wait-for-timeout -- XSS security tests require explicit waits for async DOM mutations after injection */
-import { existsSync } from "fs";
-import path from "path";
+import { existsSync } from "node:fs";
+import path from "node:path";
+
 import { test, expect } from "@playwright/test";
 
 // Pre-authenticated session — skips signInAnonymously() + Turnstile captcha.
 // Without this the game shows "No puzzle today" because auth takes >10s in headless mode.
-const AUTH_FILE = path.join(__dirname, "..", ".auth", "user.json");
+// Playwright runs from the project root and loads specs as CommonJS; import.meta
+// would make Node parse the file as an ES module ("exports is not defined").
+const DIR = path.join(process.cwd(), "e2e", "security");
+const AUTH_FILE = path.join(DIR, "..", ".auth", "user.json");
 if (existsSync(AUTH_FILE)) {
   test.use({ storageState: AUTH_FILE });
 }
@@ -112,7 +116,7 @@ test.describe("XSS Injection Prevention", () => {
 
     const xssPayloads = [
       "<svg/onload=alert(1)>",
-      // eslint-disable-next-line sonarjs/code-eval -- intentional eval to verify XSS payload is sanitized before reaching DOM
+
       "javascript:alert(1)",
       '"><script>alert(1)</script>',
     ];
@@ -130,7 +134,7 @@ test.describe("XSS Injection Prevention", () => {
           expect(html).not.toContain("<script");
           expect(html).not.toContain("onerror=");
           expect(html).not.toContain("onload=");
-          // eslint-disable-next-line sonarjs/code-eval -- intentional eval to verify XSS payload is sanitized before reaching DOM
+
           expect(html).not.toContain("javascript:");
         }
       }
@@ -145,9 +149,9 @@ test.describe("XSS Injection Prevention", () => {
     await page.goto("/en");
 
     const hasUnsafeInnerHTML = await page.evaluate(() => {
-      const userContentElements = Array.from(
-        document.querySelectorAll('[data-testid*="game"], [class*="game-"]'),
-      );
+      const userContentElements = [
+        ...document.querySelectorAll('[data-testid*="game"], [class*="game-"]'),
+      ];
 
       for (const element of userContentElements) {
         const html = element.innerHTML;
@@ -188,7 +192,6 @@ test.describe("XSS Injection Prevention", () => {
   });
 
   test("should sanitize perfume data from database", async ({ page }) => {
-
     await page.goto("/en");
 
     const closedMessage = page.getByText(/Gra zakończona|Come back tomorrow/i);
