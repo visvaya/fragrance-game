@@ -507,3 +507,6 @@ log(`${LINE}\n`);
 
 fs.writeFileSync(TEXT_REPORT, outputLog.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, ''));
 log(`📄 Full state summary saved to: ${path.relative(process.cwd(), TEXT_REPORT)}`);
+
+// Non-zero exit when any check failed, so the report can also serve as a gate.
+process.exitCode = allClean ? 0 : 1;
