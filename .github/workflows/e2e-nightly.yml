@@ -1,0 +1,71 @@
+name: E2E Nightly
+
+# The full Playwright suite takes about 18 minutes and currently has known failures
+# (docs/known-debt.md "E2E suite does not pass"), so it runs nightly and on demand
+# instead of on every pull request. Pull requests run the blocking smoke tests.
+on:
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+
+env:
+  TZ: Europe/Warsaw
+
+jobs:
+  e2e:
+    name: Playwright full suite (chromium + a11y)
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+      UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+      NEXT_PUBLIC_ASSETS_HOST: ${{ secrets.NEXT_PUBLIC_ASSETS_HOST }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build application
+        run: pnpm run build
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(pnpm list @playwright/test --json | jq -r '.[0].dependencies.\"@playwright/test\".version')" >> $GITHUB_OUTPUT
+      - name: Cache Playwright Browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+      - name: Install Playwright Browsers
+        run: pnpm exec playwright install --with-deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+      - name: Install Playwright system dependencies
+        run: pnpm exec playwright install-deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+      - name: Run chromium suite (excluding visual)
+        # DEBT: known failures; remove continue-on-error once the suite passes twice in a row.
+        run: pnpm exec playwright test --project=chromium --grep-invert "visual"
+        continue-on-error: true
+      - name: Run a11y suite
+        # Visual snapshots stay excluded: the Linux renderer differs from the Windows baselines.
+        run: pnpm exec playwright test --project=chromium --grep "accessibility violations"
+        continue-on-error: true
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-nightly
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

@@ -1,6 +1,10 @@
 import pandas as pd
 import hashlib
 import re
+from pathlib import Path
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+WEBAPP_DIR = SCRIPTS_DIR.parent
 
 # Same normalization as etl_v5.py
 def normalize_text(text):
@@ -19,7 +23,7 @@ def get_fingerprint(row):
     return hashlib.sha256(fp_str.encode()).hexdigest()
 
 # Load
-df = pd.read_csv('e:/fragrance-game/fragrance-webapp/data/dataset.csv', sep=';', decimal=',')
+df = pd.read_csv(WEBAPP_DIR / 'data' / 'dataset.csv', sep=';', decimal=',')
 print(f"Total raw rows: {len(df)}")
 
 # Apply temporary FP Column
@@ -62,7 +66,7 @@ for fp, group in duplicate_groups:
         break
 
 pdf_report = pd.DataFrame(report_samples)
-pdf_report.to_csv('e:/fragrance-game/fragrance-webapp/scripts/exclusion_samples.csv', index=False, sep=';')
+pdf_report.to_csv(SCRIPTS_DIR / 'exclusion_samples.csv', index=False, sep=';')
 
 # Summary Stats
 summary = {
@@ -70,6 +74,6 @@ summary = {
     'total_imported': len(original),
     'total_excluded': len(duplicates)
 }
-with open('e:/fragrance-game/fragrance-webapp/scripts/exclusion_summary.json', 'w') as f:
+with open(SCRIPTS_DIR / 'exclusion_summary.json', 'w') as f:
     import json
     json.dump(summary, f)

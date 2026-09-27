@@ -40,7 +40,7 @@ jobs:
         run: pnpm run test -- --run
 
   playwright-e2e:
-    name: Playwright E2E & Smoke
+    name: Playwright Smoke
     runs-on: ubuntu-latest
     needs: fast-tests
     env:
@@ -98,17 +98,8 @@ jobs:
         run: pnpm exec playwright install-deps
         if: steps.playwright-cache.outputs.cache-hit == 'true'
       - name: Run Smoke Tests
+        # The full chromium and a11y suites run nightly in e2e-nightly.yml (see docs/known-debt.md).
         run: pnpm exec playwright test --project=smoke
-      - name: Run Main E2E Tests (excluding visual, non-blocking)
-        # DEBT: about 15 specs fail (stale selectors, shared test users); smoke tests above
-        # stay blocking. Remove continue-on-error once docs/known-debt.md "E2E suite" is done.
-        run: pnpm exec playwright test --project=chromium --grep-invert "visual"
-        continue-on-error: true
-      - name: Run A11y Tests (non-blocking)
-        # Accessibility violations shouldn't block CI — they are good-to-have, not release gates.
-        # Visual snapshots stay excluded: Linux renderer produces pixel diffs vs Windows baselines.
-        run: pnpm exec playwright test --project=chromium --grep "accessibility violations"
-        continue-on-error: true
       - name: Upload Playwright Report
         if: always()
         uses: actions/upload-artifact@v4
