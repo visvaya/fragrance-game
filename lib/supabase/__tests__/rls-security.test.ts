@@ -86,41 +86,30 @@ skipIfNoEnvironment("RLS Security - perfumes_public VIEW", () => {
       expect(data).toBeNull();
     });
 
-    it("allows reading basic metadata from perfumes_public", async () => {
-      // Public metadata should be accessible
+    // perfumes_public is security_invoker and client roles have no SELECT on the
+    // base table; no browser code reads the view (autocomplete goes through a
+    // SECURITY DEFINER RPC), so anon is denied outright.
+    it("denies anonymous reads of basic metadata through perfumes_public", async () => {
       const { data, error } = await anonClient
         .from("perfumes_public")
         .select("id, name, brand_name, release_year, gender")
         .limit(1)
         .single();
 
-      expect(error).toBeNull();
-      expect(data).toBeDefined();
-      expect(data?.id).toBeDefined();
-      expect(data?.name).toBeDefined();
+      expect(error?.code).toBe("42501");
+      expect(data).toBeNull();
     });
 
-    it("SELECT * from perfumes_public does NOT include notes", async () => {
-      // ATTACK: Try to dump entire dataset with SELECT *
+    it("CRITICAL: SELECT * from perfumes_public is denied to anon", async () => {
+      // ATTACK: Try to dump the dataset, including notes, with SELECT *
       const { data, error } = await anonClient
         .from("perfumes_public")
         .select("*")
         .limit(1)
         .single();
 
-      expect(error).toBeNull();
-      expect(data).toBeDefined();
-
-      // CRITICAL: Notes should NOT be in response
-      expect(data).not.toHaveProperty("top_notes");
-      expect(data).not.toHaveProperty("middle_notes");
-      expect(data).not.toHaveProperty("base_notes");
-      expect(data).not.toHaveProperty("xsolve_score");
-
-      // But basic data should be present
-      expect(data).toHaveProperty("id");
-      expect(data).toHaveProperty("name");
-      expect(data).toHaveProperty("brand_name");
+      expect(error?.code).toBe("42501");
+      expect(data).toBeNull();
     });
   });
 
