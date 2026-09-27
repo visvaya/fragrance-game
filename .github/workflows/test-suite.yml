@@ -38,7 +38,6 @@ jobs:
             ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-
       - name: Run Vitest (Unit + Snapshots)
         run: pnpm run test -- --run
-        continue-on-error: true
 
   security-scan:
     name: Security Audit

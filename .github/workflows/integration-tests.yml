@@ -1,0 +1,46 @@
+name: Integration Tests
+
+on:
+  schedule:
+    # Run daily at 02:00 UTC (after daily challenge generation at midnight)
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  integration:
+    name: Integration & RLS tests (live DB)
+    runs-on: ubuntu-latest
+    env:
+      # Required: real Supabase credentials (read-only RLS tests + algorithm tests)
+      # WARNING: algorithm.integration.test.ts uses beforeEach DELETE — use staging DB only.
+      VITEST_INTEGRATION: "true"
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run RLS security tests (read-only, safe on production DB)
+        run: pnpm vitest run lib/supabase/__tests__/rls-security.test.ts
+
+      - name: Run algorithm integration tests (STAGING DB ONLY — truncates tables)
+        run: pnpm vitest run app/api/cron/generate-daily/__tests__/algorithm.integration.test.ts
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: coverage/
+          retention-days: 7
