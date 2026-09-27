@@ -21,6 +21,7 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
+import { useEscapeKey } from "@/hooks/use-escape-key";
 import { useScrollDirection } from "@/hooks/use-scroll-direction";
 import { usePathname, useRouter, routing, localeNames } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
@@ -105,6 +106,18 @@ export function GameHeader() {
     sessionsOpen: false,
     statsOpen: false,
   });
+
+  const closeDropdowns = () => {
+    setModals((previous) => ({
+      ...previous,
+      langOpen: false,
+      menuOpen: false,
+    }));
+  };
+
+  // Escape closes the menu and language dropdowns wherever focus is (the
+  // backdrop below is not focusable, so its own key handler rarely fires).
+  useEscapeKey(modals.menuOpen || modals.langOpen, closeDropdowns);
 
   const openAuth = (view: "login" | "register") => {
     setModals((previous) => ({
@@ -573,20 +586,10 @@ export function GameHeader() {
         <div
           aria-label="Close menu"
           className="fixed inset-0 z-40"
-          onClick={() => {
-            setModals((previous) => ({
-              ...previous,
-              langOpen: false,
-              menuOpen: false,
-            }));
-          }}
+          onClick={closeDropdowns}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
-              setModals((previous) => ({
-                ...previous,
-                langOpen: false,
-                menuOpen: false,
-              }));
+              closeDropdowns();
             }
           }}
           role="button"
