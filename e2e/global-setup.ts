@@ -1,10 +1,11 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import type { FullConfig } from "@playwright/test";
 
-const DIR = path.dirname(fileURLToPath(import.meta.url));
+// Playwright runs from the project root and loads specs as CommonJS; import.meta
+// would make Node parse the file as an ES module ("exports is not defined").
+const DIR = path.join(process.cwd(), "e2e");
 // Primary user — for game-completion tests (tracks win/loss across 6 attempts).
 const AUTH_FILE = path.join(DIR, ".auth", "user.json");
 // Secondary user — for game-flow and other tests that submit guesses.

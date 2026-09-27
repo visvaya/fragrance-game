@@ -1,12 +1,13 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { expect, test } from "@playwright/test";
 
 // Auth file created by globalSetup (e2e/global-setup.ts) before tests run.
 // Contains pre-authenticated anonymous Supabase session (bypasses Turnstile captcha).
-const DIR = path.dirname(fileURLToPath(import.meta.url));
+// Playwright runs from the project root and loads specs as CommonJS; import.meta
+// would make Node parse the file as an ES module ("exports is not defined").
+const DIR = path.join(process.cwd(), "e2e");
 const AUTH_FILE = path.join(DIR, ".auth", "user.json");
 
 test.describe("Game Completion Flows", () => {

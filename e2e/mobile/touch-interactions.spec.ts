@@ -1,13 +1,14 @@
 /* eslint-disable playwright/no-wait-for-timeout -- touch interaction tests require explicit waits for animation and gesture completion */
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { test, expect, devices } from "@playwright/test";
 
 // Pre-authenticated session from globalSetup — skips signInAnonymously() + Turnstile captcha.
 // Without this the Turnstile SDK (external Cloudflare JS) can crash the mobile browser context.
-const DIR = path.dirname(fileURLToPath(import.meta.url));
+// Playwright runs from the project root and loads specs as CommonJS; import.meta
+// would make Node parse the file as an ES module ("exports is not defined").
+const DIR = path.join(process.cwd(), "e2e", "mobile");
 const AUTH_FILE = path.join(DIR, "..", ".auth", "user.json");
 
 // Configure Pixel 5 device for Android tests

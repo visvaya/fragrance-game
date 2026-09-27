@@ -1,6 +1,5 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { AxeBuilder } from "@axe-core/playwright";
 import { test, expect } from "@playwright/test";
@@ -9,7 +8,9 @@ import { test, expect } from "@playwright/test";
 // Using a separate user prevents game-completion Defeat test (same parallel run)
 // from exhausting 6 attempts on the primary user before a11y tests see the game page.
 // Without storageState, signInAnonymously() fails → Turnstile overlay blocks all clicks.
-const DIR = path.dirname(fileURLToPath(import.meta.url));
+// Playwright runs from the project root and loads specs as CommonJS; import.meta
+// would make Node parse the file as an ES module ("exports is not defined").
+const DIR = path.join(process.cwd(), "e2e", "a11y");
 const AUTH_FILE_A11Y = path.join(DIR, "..", ".auth", "user-a11y.json");
 if (existsSync(AUTH_FILE_A11Y)) {
   test.use({ storageState: AUTH_FILE_A11Y });
