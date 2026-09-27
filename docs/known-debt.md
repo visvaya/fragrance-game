@@ -23,6 +23,20 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 - **Risk:** an override added in one place only silently disappears in the other environment.
 - **Done when:** the Vercel project has `ENABLE_EXPERIMENTAL_COREPACK=1` (so Vercel also uses pnpm 11), then the `"pnpm"` field and `onlyBuiltDependencies` are removed.
 
+## Vulnerable development dependencies
+
+- **Where:** dev tooling in `package.json` (artillery, ESLint plugins, commitlint, madge, depcheck and their transitive dependencies): about 40 high and 3 critical advisories at the time of writing.
+- **Shortcut:** the CI audit gate in `security-scan.yml` runs `pnpm audit --prod`, because dev tooling does not ship to users. Production dependencies have no high or critical advisories (vulnerable transitive packages are pinned through `overrides`).
+- **Risk:** a compromised or vulnerable tool can still affect a developer machine or CI runner.
+- **Done when:** `pnpm audit --audit-level=high` passes without `--prod` (update or replace the tools, add overrides), and the gate drops `--prod`.
+
+## Client roles keep an unused grant on `daily_challenges_public`
+
+- **Where:** production database grants; `supabase/tests/01_schema.test.sql` and `02_rls.test.sql` assert the grant exists.
+- **State:** the view is `security_invoker` and `anon`/`authenticated` have no SELECT on `daily_challenges`, so the view grant is inert: client reads fail with `42501`, and server actions read the view through the service-role client. No browser code reads the view.
+- **Risk:** low. If someone later restores table access for client roles, the view becomes readable again without a deliberate decision.
+- **Done when (optional hardening):** a migration revokes SELECT on `daily_challenges_public` (and `perfumes_public`, if also unused by clients) from `anon` and `authenticated`, and the pgTAP assertions are updated.
+
 ## Coverage thresholds below the target
 
 - **Where:** `vitest.config.ts` (`coverage.thresholds`).

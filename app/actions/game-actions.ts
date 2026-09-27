@@ -230,6 +230,9 @@ function generateNonce(): string {
  * Pobiera dane codziennego wyzwania (widok publiczny + detale od admina).
  */
 export async function getDailyChallenge(): Promise<DailyChallenge | null> {
+  // daily_challenges_public is a security_invoker view and anon/authenticated have no
+  // SELECT on daily_challenges (migration 20260331000003), so server actions read the
+  // view through the service-role client. The user client stays for auth only.
   const supabase = await createClient();
 
   // Rate limiting
@@ -246,7 +249,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
 
   const targetDate = new Date().toISOString().split("T")[0];
 
-  const { data, error } = await supabase
+  const { data, error } = await createAdminClient()
     .from("daily_challenges_public")
     .select(
       "challenge_date, grace_deadline_at_utc, id, mode, snapshot_metadata",
@@ -474,7 +477,7 @@ async function createNewGameSession(
   }
 
   const imageUrl = await getImageUrlForStep(session.id);
-  const { data: challengeData } = (await supabase
+  const { data: challengeData } = (await createAdminClient()
     .from("daily_challenges_public")
     .select("mode, grace_deadline_at_utc")
     .eq("id", challengeId)
@@ -554,7 +557,7 @@ export async function startGame(
   };
 
   if (existingSession) {
-    const { data: graceQuery } = (await supabase
+    const { data: graceQuery } = (await createAdminClient()
       .from("daily_challenges_public")
       .select("grace_deadline_at_utc")
       .eq("id", challengeId)
