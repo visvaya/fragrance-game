@@ -1,9 +1,12 @@
 import pandas as pd
 import hashlib
 import re
+from pathlib import Path
+
+WEBAPP_DIR = Path(__file__).resolve().parent.parent
 
 # Load
-df = pd.read_csv('e:/fragrance-game/fragrance-webapp/data/dataset.csv', sep=';', decimal=',')
+df = pd.read_csv(WEBAPP_DIR / 'data' / 'dataset.csv', sep=';', decimal=',')
 print(f'Total CSV rows: {len(df)}')
 
 # Clean
