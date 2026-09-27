@@ -10,6 +10,7 @@
   ],
   "author": "visvaya",
   "license": "Apache-2.0",
+  "packageManager": "pnpm@11.1.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/visvaya/fragrance-game.git"
@@ -19,7 +20,7 @@
     "url": "https://github.com/visvaya/fragrance-game/issues"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "build": "next build",
@@ -60,7 +61,7 @@
     "test:db": "pnpm supabase test db",
     "test:db:lint": "pnpm supabase db lint --level warning",
     "generate:zod": "tsx scripts/generate-zod.ts --input types/supabase.ts --output lib/validations/supabase.schema.ts",
-    "audit:react": "npx -y react-doctor@latest . --verbose --offline --no-ami --yes",
+    "audit:react": "pnpm dlx react-doctor@latest . --verbose --offline --no-ami --yes",
     "lint:circular": "madge --circular .",
     "lint:duplicates": "jscpd app lib components",
     "lint:arch": "depcruise .",
