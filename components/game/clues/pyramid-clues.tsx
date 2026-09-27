@@ -224,7 +224,10 @@ export const PyramidClues = memo(function PyramidClues() {
                         </GameTooltip>
                       </span>
                     ) : (
-                      <PyramidNoteBadge key={`linear-note-${note}`}>
+                      <PyramidNoteBadge
+                        // eslint-disable-next-line react/no-array-index-key -- masked notes of equal length share text (e.g. "____"); the note position is the stable identity
+                        key={`linear-note-${i}`}
+                      >
                         {!note.includes(MASK_CHAR) &&
                         note !== GENERIC_PLACEHOLDER.repeat(5) ? (
                           <span className="font-sans text-sm whitespace-nowrap text-foreground">

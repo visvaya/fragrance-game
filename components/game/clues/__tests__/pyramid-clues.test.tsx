@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { GENERIC_PLACEHOLDER } from "@/lib/constants";
+import { noop } from "@/lib/utils";
 
 import {
   GameStateProvider,
@@ -296,6 +297,29 @@ describe("PyramidClues", () => {
 
       // At attempt 1, should show "?" placeholder
       expect(screen.getByText(GENERIC_PLACEHOLDER)).toBeInTheDocument();
+    });
+
+    it("gives masked linear notes of equal length distinct keys", () => {
+      // "Musk"/"Rose" and "Lemon"/"Amber" mask to identical text at attempt 2
+      const consoleError = vi.spyOn(console, "error").mockImplementation(noop);
+
+      render(<PyramidClues />, {
+        wrapper: createTestWrapper({
+          currentAttempt: 2,
+          dailyPerfume: MOCK_PERFUME_LINEAR,
+        }),
+      });
+
+      const duplicateKeyWarnings = consoleError.mock.calls.filter((call) =>
+        call.some(
+          (argument) =>
+            typeof argument === "string" &&
+            argument.includes("Encountered two children with the same key"),
+        ),
+      );
+      consoleError.mockRestore();
+
+      expect(duplicateKeyWarnings).toHaveLength(0);
     });
 
     it("progressively reveals linear notes (1/3, 2/3, all)", () => {
