@@ -4,14 +4,14 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 
 ## E2E suite does not pass
 
-- **Where:** `e2e/**`, the "Run Main E2E Tests" step in `.github/workflows/test-suite.yml`.
-- **Shortcut:** the suite never ran in CI between March and September 2026 (a module-format error aborted every run). Once it ran again, 15 of 102 chromium tests failed and 4 were flaky, so the step is `continue-on-error`. The two smoke tests stay blocking and pass.
+- **Where:** `e2e/**`, `.github/workflows/e2e-nightly.yml`.
+- **Shortcut:** the suite never ran in CI between March and September 2026 (a module-format error aborted every run). Once it ran again, 15 of 102 chromium tests failed and 4 were flaky. The full suite (about 18 minutes, mostly retries of known failures) therefore runs nightly and on demand with `continue-on-error`; pull requests run only the two blocking smoke tests ("Playwright Smoke").
 - **Causes seen in the first run (2026-09-27):**
   - Stale expectations: `getByLabel(/help/i)` and `/pomoc/i`, `getByTestId("loader-icon")`, the "No results" text, disabled state of already guessed options.
   - Shared test users: after the defeat flow finishes today's game, later specs using the same user no longer find the guess input (`xss-injection`, `game-completion`, `locale-switching`).
   - Auth and session specs (`auth.spec.ts` login/logout, `daily-reset.spec.ts` session persistence) no longer match the lazy session creation flow.
 - **Risk:** regressions in user flows are not caught automatically.
-- **Done when:** the chromium suite passes on CI twice in a row and `continue-on-error` is removed. Start with test isolation (one fresh user per spec file or a reset between specs), then selectors.
+- **Done when:** the nightly chromium suite passes twice in a row, `continue-on-error` is removed, and the suite is either fast enough for pull requests again or kept nightly as a deliberate choice. Start with test isolation (one fresh user per spec file or a reset between specs), then selectors.
 
 ## E2E synchronisation uses fixed waits
 
