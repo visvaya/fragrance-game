@@ -29,6 +29,7 @@ const particles = Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
  * Confetti overlay shown on game win.
  * CSS-only particles — no external library.
  */
+// eslint-disable-next-line @typescript-eslint/no-shadow -- the named function gives the memoized component its DevTools name
 export const Confetti = memo(function Confetti() {
   return (
     <div

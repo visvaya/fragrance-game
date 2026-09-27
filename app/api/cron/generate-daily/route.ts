@@ -156,9 +156,9 @@ async function ensureChallenge(
         .not("image_key_step_1", "is", null)
         .eq("perfumes.is_uncertain", false);
 
-      return (await (excludeIds7.length > 0
+      return await (excludeIds7.length > 0
         ? baseRetryQuery.not("perfume_id", "in", `(${excludeIds7.join(",")})`)
-        : baseRetryQuery)) as CandidateResult;
+        : baseRetryQuery);
     })();
 
   if (error || !candidates || candidates.length === 0) {

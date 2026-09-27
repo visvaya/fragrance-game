@@ -208,6 +208,7 @@ export function GameHeader() {
                   <span
                     aria-hidden="true"
                     className="animate-pulse-slow absolute top-0.5 right-0.5 inline-flex size-2 rounded-full bg-amber-500"
+                    data-testid="help-hint-badge"
                   />
                 ) : null}
               </button>
@@ -269,9 +270,7 @@ export function GameHeader() {
             No aria-hidden on container — accessibility is controlled by visibility on each dropdown:
             closed dropdowns use `invisible` (visibility:hidden) which removes them from tab order
             and the accessibility tree without needing explicit aria-hidden. */}
-        <div
-          className="pointer-events-none absolute inset-0 mx-auto max-w-2xl wide:max-w-5xl"
-        >
+        <div className="pointer-events-none absolute inset-0 mx-auto max-w-2xl wide:max-w-5xl">
           {/* Menu Dropdown */}
           <div
             className={cn(

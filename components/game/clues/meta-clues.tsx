@@ -18,6 +18,7 @@ import { GameTooltip } from "../game-tooltip";
 
 import { MaskedWord } from "./masked-word";
 
+// eslint-disable-next-line @typescript-eslint/no-shadow -- the named function gives the memoized component its DevTools name
 export const MetaClues = memo(function MetaClues() {
   const {
     currentAttempt,
@@ -105,6 +106,7 @@ export const MetaClues = memo(function MetaClues() {
                     <MetaBadge
                       clueKey={clue.key}
                       currentAttempt={currentAttempt}
+                      // eslint-disable-next-line react/no-array-index-key -- index is required for stable keying of items
                       key={`${clue.key}-${perfumer}-${itemIndex}`}
                       t={t}
                       value={perfumer}
@@ -115,7 +117,7 @@ export const MetaClues = memo(function MetaClues() {
                     return (
                       <div
                         className="flex min-w-0 flex-[1_1_auto] items-center gap-2"
-                        key={`wrapper-${itemIndex}`}
+                        key={`wrapper-${perfumer}`}
                       >
                         {badge}
                         <DotFiller className="pr-2" />
@@ -240,6 +242,7 @@ function MetaBadge({
             return (
               <GameTooltip
                 content={tooltipContent}
+                // eslint-disable-next-line react/no-array-index-key -- index is required for stable keying of repeated placeholders
                 key={`meta-${clueKey}-placeholder-${wordIndex}`}
               >
                 <div className="group flex h-5 cursor-help items-center justify-center opacity-80 transition-colors duration-300 hover:opacity-100">
@@ -255,6 +258,7 @@ function MetaBadge({
             return (
               <GameTooltip
                 content={t("dataUnavailable")}
+                // eslint-disable-next-line react/no-array-index-key -- index is required for stable keying of repeated placeholders
                 key={`meta-${clueKey}-unknown-${wordIndex}`}
               >
                 <span className="cursor-help opacity-70">
@@ -294,6 +298,8 @@ function MetaBadge({
             if (isWordMasked) {
               return (
                 <MaskedWord
+                  // eslint-disable-next-line react/no-array-index-key -- index is required for stable keying of repeated placeholders
+                  key={`meta-${clueKey}-${wordIndex}`}
                   keyPrefix={`meta-${clueKey}-${wordIndex}`}
                   word={word}
                 />
@@ -307,7 +313,7 @@ function MetaBadge({
           const content = (
             <span
               className="inline-flex flex-nowrap"
-              key={`meta-content-${clueKey}-${word}-${wordIndex}`}
+              key={`meta-content-${clueKey}-${word}`}
             >
               {innerContent}
             </span>
@@ -317,7 +323,8 @@ function MetaBadge({
             return (
               <GameTooltip
                 content={tooltipContent}
-                key={`meta-tt-${clueKey}-${word}-${wordIndex}`}
+                // eslint-disable-next-line react/no-array-index-key -- index is required for stable keying of repeated placeholders
+                key={`meta-${clueKey}-tt-unknown-${wordIndex}`}
               >
                 {({ isHovered }: { isHovered?: boolean }) => (
                   <span className="inline-flex flex-nowrap">
@@ -346,11 +353,7 @@ function MetaBadge({
             );
           }
 
-          return (
-            <div key={`meta-span-${clueKey}-${word}-${wordIndex}`}>
-              {content}
-            </div>
-          );
+          return <div key={`meta-span-${clueKey}-${word}`}>{content}</div>;
         })
       )}
     </div>

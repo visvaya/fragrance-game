@@ -142,7 +142,7 @@ function cleanNote(note: string | null | undefined): string {
       .replaceAll(/\bLa Réunion\b/gi, ""),
   );
   const t = cleanedNote
-    // eslint-disable-next-line sonarjs/slow-regex -- /\([^)]*\)/ uses nested quantifier flagged by Sonar; bounded by explicit parentheses, no catastrophic backtracking risk
+    // eslint-disable-next-line sonarjs/super-linear-regex -- negated class [^)]* cannot backtrack into the closing paren; linear
     .replaceAll(/\([^)]*\)/g, "")
     .replaceAll(/\s+/g, " ")
     .trim()
@@ -331,10 +331,8 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     );
   }
 
-  const brandName =
-    (perfume.brands as { name: string } | null)?.name ?? "Unknown";
-  const concentrationName =
-    (perfume.concentrations as { name: string } | null)?.name ?? "Unknown";
+  const brandName = perfume.brands?.name ?? "Unknown";
+  const concentrationName = perfume.concentrations?.name ?? "Unknown";
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- daily_challenges_public view returns nullable fields; critical ones validated above; brands/concentrations need narrowing from Supabase join type
   return {
@@ -417,8 +415,8 @@ async function enrichGuessesWithPerfumeDetails(
     if (!p) return [];
     return [
       {
-        brandName: (p.brands as { name: string } | null)?.name ?? "Unknown",
-        concentration: (p.concentrations as { name: string } | null)?.name,
+        brandName: p.brands?.name ?? "Unknown",
+        concentration: p.concentrations?.name,
         feedback: guess.feedback,
         gender: p.gender ?? undefined,
         isCorrect: guess.isCorrect,

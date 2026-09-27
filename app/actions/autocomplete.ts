@@ -14,6 +14,8 @@ import { normalizeText } from "@/lib/utils";
 import { maskYear } from "@/lib/utils/brand-masking";
 import { autocompleteSchema } from "@/lib/validations/game.schema";
 
+import type { PerfumeSuggestion } from "@/lib/types/game";
+
 /**
  * Scores a suggestion by how well its brand/name matches the query.
  * Phonetic-only DB matches (false positives like "L'Oriental" for "laurent") score 0.
@@ -35,18 +37,6 @@ function relevanceScore(
   if (name.includes(normalizedQuery)) return 1;
   return 0;
 }
-
-export type PerfumeSuggestion = {
-  brand_masked: string;
-  brand_norm: string;
-  concentration: string | null;
-  display_name: string;
-  name: string;
-  name_norm: string;
-  perfume_id: string;
-  raw_year: number | null;
-  year: string | null;
-};
 
 type FragranceRow = {
   brand_name: string;
@@ -82,7 +72,8 @@ function remaskCachedSuggestions(
       : maskYear(p.raw_year, attemptsCount);
 
     const yearSuffix = maskedYear ? ` (${maskedYear})` : "";
-    const displayName = `${p.brand_masked} - ${p.name}${p.concentration ? " " + p.concentration : ""}${yearSuffix}`;
+    const concentrationSuffix = p.concentration ? ` ${p.concentration}` : "";
+    const displayName = `${p.brand_masked} - ${p.name}${concentrationSuffix}${yearSuffix}`;
 
     return {
       ...p,
@@ -138,7 +129,8 @@ function buildSuggestionsFromRows(
     const concentration = p.concentration ?? null;
     const { name } = p;
     const yearSuffix = maskedYear ? ` (${maskedYear})` : "";
-    const displayName = `${brandName} - ${name}${concentration ? " " + concentration : ""}${yearSuffix}`;
+    const concentrationSuffix = concentration ? ` ${concentration}` : "";
+    const displayName = `${brandName} - ${name}${concentrationSuffix}${yearSuffix}`;
     return {
       brand_masked: brandName,
       brand_norm: normalizeText(brandName),
@@ -330,3 +322,5 @@ function sliceCandidates(
 
   return candidates.slice(0, finalCount);
 }
+
+export { type PerfumeSuggestion } from "@/lib/types/game";

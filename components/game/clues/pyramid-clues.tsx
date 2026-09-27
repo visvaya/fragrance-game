@@ -76,6 +76,7 @@ function renderPyramidNoteWord({
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-shadow -- the named function gives the memoized component its DevTools name
 export const PyramidClues = memo(function PyramidClues() {
   const t = useTranslations("PyramidClues");
   const { currentAttempt, dailyPerfume, gameState, revealLevel, visibleNotes } =
@@ -211,7 +212,8 @@ export const PyramidClues = memo(function PyramidClues() {
                     note === GENERIC_PLACEHOLDER.repeat(5) ? (
                       <span
                         className="inline-flex min-h-[1.375rem] w-fit max-w-full cursor-default flex-nowrap items-center rounded-md border border-border bg-secondary/50 bg-striped-pattern px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary"
-                        key={`linear-note-${i}-${note.charAt(0)}`}
+                        // eslint-disable-next-line react/no-array-index-key -- index is required for stable keying of repeated placeholders
+                        key={`linear-hidden-${i}`}
                       >
                         <GameTooltip
                           content={t("hiddenNote", { attempt: currentAttempt })}
@@ -222,7 +224,7 @@ export const PyramidClues = memo(function PyramidClues() {
                         </GameTooltip>
                       </span>
                     ) : (
-                      <PyramidNoteBadge key={`linear-note-${note}-${i}`}>
+                      <PyramidNoteBadge key={`linear-note-${note}`}>
                         {!note.includes(MASK_CHAR) &&
                         note !== GENERIC_PLACEHOLDER.repeat(5) ? (
                           <span className="font-sans text-sm whitespace-nowrap text-foreground">
@@ -247,6 +249,8 @@ export const PyramidClues = memo(function PyramidClues() {
                               if (hasMasking) {
                                 return (
                                   <MaskedWord
+                                    // eslint-disable-next-line react/no-array-index-key -- index is required for stable keying of repeated words
+                                    key={`note-reveal-${i}-${wIndex}`}
                                     keyPrefix={`linear-${i}-${wIndex}`}
                                     word={word}
                                   />
@@ -262,7 +266,8 @@ export const PyramidClues = memo(function PyramidClues() {
                             const content = (
                               <span
                                 className="inline-flex flex-nowrap"
-                                key={`word-content-${word}-${wIndex}`}
+                                // eslint-disable-next-line react/no-array-index-key -- index is required for stable keying of repeated words
+                                key={`note-reveal-linear-${i}-${wIndex}`}
                               >
                                 {innerContent}
                               </span>
@@ -272,6 +277,7 @@ export const PyramidClues = memo(function PyramidClues() {
                               return (
                                 <GameTooltip
                                   content={t("letters", { count: word.length })}
+                                  // eslint-disable-next-line react/no-array-index-key -- index required for stable keying of words in linear mode
                                   key={`linear-tooltip-${word}-${wIndex}`}
                                 >
                                   {({ isHovered }: { isHovered?: boolean }) => (
@@ -300,7 +306,10 @@ export const PyramidClues = memo(function PyramidClues() {
                               );
                             }
                             return (
-                              <span key={`word-span-${word}-${wIndex}`}>
+                              <span
+                                // eslint-disable-next-line react/no-array-index-key -- index is required for stable keying
+                                key={`word-span-${word}-${wIndex}`}
+                              >
                                 {content}
                               </span>
                             );
@@ -313,7 +322,7 @@ export const PyramidClues = memo(function PyramidClues() {
                     return (
                       <div
                         className="flex min-w-0 flex-[1_1_auto] items-center gap-2"
-                        key={`wrapper-${i}`}
+                        key={`linear-wrapper-${note}`}
                       >
                         {badgeNode}
                         <DotFiller className="pr-2" />
@@ -445,7 +454,7 @@ export const PyramidClues = memo(function PyramidClues() {
                       return (
                         <div
                           className="flex min-w-0 flex-[1_1_auto] items-center gap-2"
-                          key={`wrapper-${noteIndex}`}
+                          key={`trad-wrapper-${note}`}
                         >
                           {badgeNode}
                           <DotFiller className="pr-2" />
@@ -454,7 +463,10 @@ export const PyramidClues = memo(function PyramidClues() {
                     }
 
                     return (
-                      <span key={`${level.name}-note-${noteIndex}`}>
+                      <span
+                        // eslint-disable-next-line react/no-array-index-key -- index is required for stable keying of repeated notes
+                        key={`trad-note-${level.name}-${noteIndex}`}
+                      >
                         {badgeNode}
                       </span>
                     );

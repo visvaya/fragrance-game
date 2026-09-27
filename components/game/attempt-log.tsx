@@ -29,6 +29,7 @@ import { GameTooltip } from "./game-tooltip";
 /**
  * Komponent logu prób gracza.
  */
+// eslint-disable-next-line @typescript-eslint/no-shadow -- the named function gives the memoized component its DevTools name
 export const AttemptLog = memo(function AttemptLog() {
   const { attempts, dailyPerfume, gameState, loading, maxAttempts } =
     useGameState();
@@ -103,7 +104,6 @@ export const AttemptLog = memo(function AttemptLog() {
 
   // Reset active row when clicking outside
   useMountEffect(() => {
-    // eslint-disable-next-line unicorn/consistent-function-scoping -- closes over isTouchReference and setActiveRowIndex from component scope
     const handleClickOutside = (e: MouseEvent) => {
       // Only handle touch interactions
       if (!isTouchReference.current) return;

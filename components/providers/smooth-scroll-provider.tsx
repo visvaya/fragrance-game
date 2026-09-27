@@ -19,13 +19,19 @@ export function lenisScrollTo(
   if (lenis) {
     lenis.scrollTo(target);
   } else {
-    window.scrollTo({ behavior: options?.behavior ?? "smooth", top: target });
+    globalThis.scrollTo({
+      behavior: options?.behavior ?? "smooth",
+      top: target,
+    });
   }
 }
 
 function initLenis() {
-  // eslint-disable-next-line unicorn/prefer-global-this -- typeof window required for SSR safety (ReferenceError-safe)
-  if (typeof window === "undefined" || globalThis.window.innerWidth < 1024) {
+  if (
+    // eslint-disable-next-line unicorn/prefer-global-this -- Safer for SSR pre-render
+    typeof window === "undefined" ||
+    window.innerWidth < 1024
+  ) {
     return;
   }
 
@@ -59,8 +65,8 @@ export function SmoothScrollProvider({
 }: Readonly<{ children: ReactNode }>) {
   useMountEffect(() => {
     // Skip Lenis entirely on mobile — no init, no RAF loop, no MutationObserver
-    // eslint-disable-next-line unicorn/prefer-global-this -- typeof window required for SSR safety (ReferenceError-safe)
-    if (typeof window !== "undefined" && globalThis.window.innerWidth < 1024) {
+
+    if (globalThis.innerWidth < 1024) {
       return;
     }
 
