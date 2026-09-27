@@ -1,4 +1,5 @@
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -95,6 +96,11 @@ function TestComponent() {
       </button>
     </div>
   );
+}
+
+function LoadingTestComponent() {
+  const game = useGame();
+  return <div data-testid="loading">{String(game.loading)}</div>;
 }
 
 function renderWithProviders(ui: React.ReactElement) {
@@ -198,8 +204,7 @@ describe("GameProvider", () => {
       expect(screen.getByTestId("daily-brand")).toHaveTextContent("Chanel"),
     );
 
-    // eslint-disable-next-line testing-library/prefer-user-event -- direct fireEvent used for low-level mock interaction; userEvent overhead unnecessary here
-    fireEvent.click(screen.getByText("Guess"));
+    await userEvent.setup().click(screen.getByText("Guess"));
 
     await waitFor(() => {
       expect(screen.getByTestId("game-state")).toHaveTextContent("won");
@@ -226,7 +231,7 @@ describe("GameProvider", () => {
     };
 
     renderWithProviders(
-      <GameProvider initialChallenge={mockInitialChallenge as any}>
+      <GameProvider initialChallenge={mockInitialChallenge}>
         <TestComponent />
       </GameProvider>,
     );
@@ -271,12 +276,186 @@ describe("GameProvider", () => {
       expect(screen.getByTestId("daily-brand")).toHaveTextContent("Chanel"),
     );
 
-    // eslint-disable-next-line testing-library/prefer-user-event -- direct fireEvent used for low-level mock interaction; userEvent overhead unnecessary here
-    fireEvent.click(screen.getByText("Guess"));
+    await userEvent.setup().click(screen.getByText("Guess"));
 
     await waitFor(() => {
       expect(screen.getByTestId("attempts-count")).toHaveTextContent("1");
       expect(screen.getByTestId("game-state")).toHaveTextContent("playing");
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// State restoration from initialSession (synchronous lazy useState init)
+// ---------------------------------------------------------------------------
+
+describe("GameProvider — initialSession state restoration", () => {
+  const mockInitialChallenge = {
+    challenge_date: "2026-02-27",
+    clues: {
+      brand: "Chanel",
+      concentration: "EDP",
+      gender: "Female",
+      isLinear: false,
+      notes: { base: ["Vanilla"], heart: ["Rose"], top: ["Bergamot"] },
+      perfumer: "Jacques Polge",
+      xsolve: 3,
+      year: 1921,
+    },
+    grace_deadline_at_utc: "2026-02-28T00:00:00Z",
+    id: VALID_CHALLENGE_ID,
+    mode: "standard",
+    snapshot_metadata: {},
+  };
+
+  const wonGuess = {
+    brandName: "Chanel",
+    concentration: "EDP",
+    feedback: null,
+    gender: "Female",
+    isCorrect: true,
+    perfumeId: "perfume-5",
+    perfumeName: "N°5",
+    perfumers: ["Jacques Polge"],
+    year: 1921,
+  };
+
+  const lostGuess = {
+    brandName: "SomeBrand",
+    concentration: "EDT",
+    feedback: null,
+    gender: "Male",
+    isCorrect: false,
+    perfumeId: "perfume-x",
+    perfumeName: "Wrong Guess",
+    perfumers: [],
+    year: 2000,
+  };
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    const mockSupabaseClient = {
+      auth: {
+        getSession: vi.fn().mockResolvedValue({
+          data: { session: { user: { id: "test-user", is_anonymous: true } } },
+        }),
+        onAuthStateChange: vi.fn().mockReturnValue({
+          data: { subscription: { unsubscribe: vi.fn() } },
+        }),
+        signInAnonymously: vi.fn().mockResolvedValue({
+          data: { session: { user: { id: "test-user" } } },
+          error: null,
+        }),
+      },
+    };
+    vi.mocked(getClientModule.getSupabaseClient).mockResolvedValue(
+      mockSupabaseClient as any,
+    );
+  });
+
+  it("initializes gameState as 'won' when last guess is correct", () => {
+    const wonSession = {
+      answerName: "N°5",
+      guesses: [wonGuess],
+      imageUrl: "/win.jpg",
+      nonce: "nonce-2",
+      sessionId: VALID_SESSION_ID,
+    };
+
+    renderWithProviders(
+      <GameProvider
+        initialChallenge={mockInitialChallenge}
+        initialSession={wonSession as any}
+      >
+        <TestComponent />
+      </GameProvider>,
+    );
+
+    // Synchronous: lazy useState reads initialSession.guesses.at(-1)?.isCorrect
+    expect(screen.getByTestId("game-state")).toHaveTextContent("won");
+  });
+
+  it("initializes gameState as 'lost' when all 6 guesses used without a win", () => {
+    const lostSession = {
+      guesses: Array.from({ length: 6 }, () => lostGuess),
+      imageUrl: "/lost.jpg",
+      nonce: "nonce-7",
+      sessionId: VALID_SESSION_ID,
+    };
+
+    renderWithProviders(
+      <GameProvider
+        initialChallenge={mockInitialChallenge}
+        initialSession={lostSession as any}
+      >
+        <TestComponent />
+      </GameProvider>,
+    );
+
+    expect(screen.getByTestId("game-state")).toHaveTextContent("lost");
+  });
+
+  it("populates attempts from session guesses via hydrateAttempts", () => {
+    const twoGuessSession = {
+      guesses: [lostGuess, lostGuess],
+      imageUrl: "/test.jpg",
+      nonce: "nonce-3",
+      sessionId: VALID_SESSION_ID,
+    };
+
+    renderWithProviders(
+      <GameProvider
+        initialChallenge={mockInitialChallenge}
+        initialSession={twoGuessSession as any}
+      >
+        <TestComponent />
+      </GameProvider>,
+    );
+
+    // Synchronous: lazy useState initializer calls hydrateAttempts
+    expect(screen.getByTestId("attempts-count")).toHaveTextContent("2");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Error handling
+// ---------------------------------------------------------------------------
+
+describe("GameProvider — error handling", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    const mockSupabaseClient = {
+      auth: {
+        getSession: vi.fn().mockResolvedValue({
+          data: { session: { user: { id: "test-user" } } },
+        }),
+        onAuthStateChange: vi.fn().mockReturnValue({
+          data: { subscription: { unsubscribe: vi.fn() } },
+        }),
+        signInAnonymously: vi.fn().mockResolvedValue({
+          data: { session: null },
+          error: null,
+        }),
+      },
+    };
+    vi.mocked(getClientModule.getSupabaseClient).mockResolvedValue(
+      mockSupabaseClient as any,
+    );
+  });
+
+  it("sets loading to false when initializeGame throws", async () => {
+    vi.mocked(gameActions.initializeGame).mockRejectedValue(
+      new Error("Network error"),
+    );
+
+    renderWithProviders(
+      <GameProvider>
+        <LoadingTestComponent />
+      </GameProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("loading")).toHaveTextContent("false");
     });
   });
 });

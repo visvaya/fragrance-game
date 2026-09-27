@@ -166,6 +166,6 @@ test.describe("CSP Enforcement", () => {
 
     // Verify page loads without CSP blocking legitimate resources
     // If CSP was too strict, page would fail to load
-    expect(errors.length).toBe(0);
+    expect(errors).toHaveLength(0);
   });
 });

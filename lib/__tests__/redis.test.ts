@@ -17,14 +17,12 @@ vi.mock("@upstash/ratelimit", () => {
 
   // Use a factory instead of a class to avoid constructor-related lint issues
   const MockRatelimit = function (this: any) {
-    this.limit = vi.fn().mockReturnValue(
-      Promise.resolve({
-        limit: 10,
-        remaining: 5,
-        reset: Date.now() + 60_000,
-        success: true,
-      }),
-    );
+    this.limit = vi.fn().mockResolvedValue({
+      limit: 10,
+      remaining: 5,
+      reset: Date.now() + 60_000,
+      success: true,
+    });
   };
 
   MockRatelimit.slidingWindow = mockSlidingWindow;

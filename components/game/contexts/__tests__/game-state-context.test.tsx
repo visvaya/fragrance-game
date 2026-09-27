@@ -147,7 +147,7 @@ describe("GameStateContext", () => {
     const { result: level2 } = renderHook(() => useGameState(), {
       wrapper: createWrapper({ attempts: mockAttempts1 }),
     });
-    expect(level2.current.revealedYear).toBe("1" + MASK_CHAR.repeat(3));
+    expect(level2.current.revealedYear).toBe(`1${MASK_CHAR.repeat(3)}`);
   });
 
   it("should compute visibleNotes progressively", () => {
@@ -261,5 +261,84 @@ describe("GameStateContext", () => {
     expect(() => {
       renderHook(() => useGameState());
     }).toThrow("useGameState must be used within GameStateProvider");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Edge cases: "Unknown" fields and discoveredPerfumers
+// ---------------------------------------------------------------------------
+
+describe("GameStateContext — Unknown fields and discoveredPerfumers", () => {
+  it("returns 'Unknown' for brand when brand is 'Unknown'", () => {
+    const { result } = renderHook(() => useGameState(), {
+      wrapper: createWrapper({
+        dailyPerfume: { ...MOCK_PERFUME, brand: "Unknown" },
+      }),
+    });
+    expect(result.current.revealedBrand).toBe("Unknown");
+  });
+
+  it("returns 'Unknown' for year when year is 0", () => {
+    const { result } = renderHook(() => useGameState(), {
+      wrapper: createWrapper({
+        dailyPerfume: { ...MOCK_PERFUME, year: 0 },
+      }),
+    });
+    expect(result.current.revealedYear).toBe("Unknown");
+  });
+
+  it("returns 'Unknown' for gender when gender is 'Unknown'", () => {
+    const { result } = renderHook(() => useGameState(), {
+      wrapper: createWrapper({
+        dailyPerfume: { ...MOCK_PERFUME, gender: "Unknown" },
+      }),
+    });
+    expect(result.current.revealedGender).toBe("Unknown");
+  });
+
+  it("returns full perfumer when all perfumers are in discoveredPerfumers set", () => {
+    const { result } = renderHook(() => useGameState(), {
+      wrapper: createWrapper({
+        dailyPerfume: { ...MOCK_PERFUME, perfumer: "François Demachy" },
+        discoveredPerfumers: new Set(["François Demachy"]),
+      }),
+    });
+    expect(result.current.revealedPerfumer).toBe("François Demachy");
+  });
+
+  it("reveals individual discovered perfumer in multi-perfumer scenario", () => {
+    const { result } = renderHook(() => useGameState(), {
+      wrapper: createWrapper({
+        attempts: [
+          {
+            brand: "X",
+            feedback: {
+              brandMatch: false,
+              notesMatch: 0,
+              perfumerMatch: "none",
+              yearDirection: "higher",
+              yearMatch: "wrong",
+            },
+            guess: "X",
+          },
+          {
+            brand: "Y",
+            feedback: {
+              brandMatch: false,
+              notesMatch: 0,
+              perfumerMatch: "none",
+              yearDirection: "higher",
+              yearMatch: "wrong",
+            },
+            guess: "Y",
+          },
+        ],
+        dailyPerfume: { ...MOCK_PERFUME, perfumer: "Polge, Beaux" },
+        discoveredPerfumers: new Set(["Polge"]),
+      }),
+    });
+    // Polge should be fully shown, Beaux partially
+    const revealed = result.current.revealedPerfumer;
+    expect(revealed).toContain("Polge");
   });
 });

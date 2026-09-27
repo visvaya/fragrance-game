@@ -115,7 +115,7 @@ test.describe("XSS Injection Prevention", () => {
 
     const xssPayloads = [
       "<svg/onload=alert(1)>",
-      // eslint-disable-next-line sonarjs/code-eval -- intentional eval to verify XSS payload is sanitized before reaching DOM
+
       "javascript:alert(1)",
       '"><script>alert(1)</script>',
     ];
@@ -133,7 +133,7 @@ test.describe("XSS Injection Prevention", () => {
           expect(html).not.toContain("<script");
           expect(html).not.toContain("onerror=");
           expect(html).not.toContain("onload=");
-          // eslint-disable-next-line sonarjs/code-eval -- intentional eval to verify XSS payload is sanitized before reaching DOM
+
           expect(html).not.toContain("javascript:");
         }
       }
@@ -148,7 +148,9 @@ test.describe("XSS Injection Prevention", () => {
     await page.goto("/en");
 
     const hasUnsafeInnerHTML = await page.evaluate(() => {
-      const userContentElements = [...document.querySelectorAll('[data-testid*="game"], [class*="game-"]')];
+      const userContentElements = [
+        ...document.querySelectorAll('[data-testid*="game"], [class*="game-"]'),
+      ];
 
       for (const element of userContentElements) {
         const html = element.innerHTML;
@@ -189,7 +191,6 @@ test.describe("XSS Injection Prevention", () => {
   });
 
   test("should sanitize perfume data from database", async ({ page }) => {
-
     await page.goto("/en");
 
     const closedMessage = page.getByText(/Gra zakończona|Come back tomorrow/i);

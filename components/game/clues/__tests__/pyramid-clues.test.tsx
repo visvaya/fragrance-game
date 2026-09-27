@@ -7,7 +7,6 @@ import { GENERIC_PLACEHOLDER } from "@/lib/constants";
 
 import {
   GameStateProvider,
-  type Attempt,
   type DailyPerfume,
   type GameState,
 } from "../../contexts";
@@ -131,7 +130,7 @@ const MOCK_PERFUME_LINEAR = {
 function createTestWrapper({
   currentAttempt = 1,
   dailyPerfume = MOCK_PERFUME_PYRAMID,
-  gameState = "playing" as GameState,
+  gameState = "playing",
 }: {
   currentAttempt?: number;
   dailyPerfume?: DailyPerfume;
@@ -140,19 +139,17 @@ function createTestWrapper({
   return function TestWrapper({ children }: { children: React.ReactNode }) {
     return (
       <GameStateProvider
-        attempts={
-          Array.from({ length: currentAttempt - 1 }).map(() => ({
-            brand: "Test",
-            feedback: {
-              brandMatch: false,
-              notesMatch: 0.1,
-              perfumerMatch: "none",
-              yearDirection: "lower",
-              yearMatch: "wrong",
-            },
-            guess: "Test",
-          })) as Attempt[]
-        }
+        attempts={Array.from({ length: currentAttempt - 1 }).map(() => ({
+          brand: "Test",
+          feedback: {
+            brandMatch: false,
+            notesMatch: 0.1,
+            perfumerMatch: "none",
+            yearDirection: "lower",
+            yearMatch: "wrong",
+          },
+          guess: "Test",
+        }))}
         dailyPerfume={dailyPerfume}
         discoveredPerfumers={new Set()}
         gameState={gameState}
@@ -214,19 +211,17 @@ describe("PyramidClues", () => {
       // Mid attempt - Top and Heart
       rerender(
         <GameStateProvider
-          attempts={
-            Array.from({ length: 3 }).map(() => ({
-              brand: "Test",
-              feedback: {
-                brandMatch: false,
-                notesMatch: 0.1,
-                perfumerMatch: "none",
-                yearDirection: "lower",
-                yearMatch: "wrong",
-              },
-              guess: "Test",
-            })) as Attempt[]
-          }
+          attempts={Array.from({ length: 3 }).map(() => ({
+            brand: "Test",
+            feedback: {
+              brandMatch: false,
+              notesMatch: 0.1,
+              perfumerMatch: "none",
+              yearDirection: "lower",
+              yearMatch: "wrong",
+            },
+            guess: "Test",
+          }))}
           dailyPerfume={MOCK_PERFUME_PYRAMID}
           discoveredPerfumers={new Set()}
           gameState="playing"
@@ -317,19 +312,17 @@ describe("PyramidClues", () => {
       // Level 4: 2/3 revealed
       rerender(
         <GameStateProvider
-          attempts={
-            Array.from({ length: 3 }).map(() => ({
-              brand: "Test",
-              feedback: {
-                brandMatch: false,
-                notesMatch: 0.1,
-                perfumerMatch: "none",
-                yearDirection: "lower",
-                yearMatch: "wrong",
-              },
-              guess: "Test",
-            })) as Attempt[]
-          }
+          attempts={Array.from({ length: 3 }).map(() => ({
+            brand: "Test",
+            feedback: {
+              brandMatch: false,
+              notesMatch: 0.1,
+              perfumerMatch: "none",
+              yearDirection: "lower",
+              yearMatch: "wrong",
+            },
+            guess: "Test",
+          }))}
           dailyPerfume={MOCK_PERFUME_LINEAR}
           discoveredPerfumers={new Set()}
           gameState="playing"
@@ -348,19 +341,17 @@ describe("PyramidClues", () => {
       // Level 5+: All revealed
       rerender(
         <GameStateProvider
-          attempts={
-            Array.from({ length: 4 }).map(() => ({
-              brand: "Test",
-              feedback: {
-                brandMatch: false,
-                notesMatch: 0.1,
-                perfumerMatch: "none",
-                yearDirection: "lower",
-                yearMatch: "wrong",
-              },
-              guess: "Test",
-            })) as Attempt[]
-          }
+          attempts={Array.from({ length: 4 }).map(() => ({
+            brand: "Test",
+            feedback: {
+              brandMatch: false,
+              notesMatch: 0.1,
+              perfumerMatch: "none",
+              yearDirection: "lower",
+              yearMatch: "wrong",
+            },
+            guess: "Test",
+          }))}
           dailyPerfume={MOCK_PERFUME_LINEAR}
           discoveredPerfumers={new Set()}
           gameState="playing"

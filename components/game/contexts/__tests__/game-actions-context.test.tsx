@@ -7,6 +7,35 @@ import { GameActionsProvider, useGameActions } from "../game-actions-context";
 
 import type { Attempt } from "../game-state-context";
 
+// ---------------------------------------------------------------------------
+// Hoisted mock refs
+// ---------------------------------------------------------------------------
+
+const {
+  mockInitializeAndGuess,
+  mockInitializeAndSkip,
+  mockInitializeGame,
+  mockResetGame,
+  mockSkipAttempt,
+  mockSubmitGuess,
+} = vi.hoisted(() => ({
+  mockInitializeAndGuess: vi.fn(),
+  mockInitializeAndSkip: vi.fn(),
+  mockInitializeGame: vi.fn(),
+  mockResetGame: vi.fn(),
+  mockSkipAttempt: vi.fn(),
+  mockSubmitGuess: vi.fn(),
+}));
+
+const { mockHapticTrigger } = vi.hoisted(() => ({
+  mockHapticTrigger: vi.fn().mockResolvedValue(undefined),
+}));
+
+const { mockToastError, mockToastWarning } = vi.hoisted(() => ({
+  mockToastError: vi.fn(),
+  mockToastWarning: vi.fn(),
+}));
+
 // Mock next-intl: GameActionsProvider calls useTranslations internally
 function mockTranslator(key: string) {
   return key;
@@ -15,11 +44,27 @@ vi.mock("next-intl", () => ({
   useTranslations: () => mockTranslator,
 }));
 
+// Mock web-haptics/react
+vi.mock("web-haptics/react", () => ({
+  useWebHaptics: () => ({ trigger: mockHapticTrigger }),
+}));
+
+// Mock sonner toasts
+vi.mock("sonner", () => ({
+  toast: {
+    error: mockToastError,
+    warning: mockToastWarning,
+  },
+}));
+
 // Mock server actions
 vi.mock("@/app/actions/game-actions", () => ({
-  initializeGame: vi.fn(),
-  resetGame: vi.fn(),
-  submitGuess: vi.fn(),
+  initializeAndGuess: mockInitializeAndGuess,
+  initializeAndSkip: mockInitializeAndSkip,
+  initializeGame: mockInitializeGame,
+  resetGame: mockResetGame,
+  skipAttempt: mockSkipAttempt,
+  submitGuess: mockSubmitGuess,
 }));
 
 const MOCK_PERFUME = {
@@ -51,7 +96,6 @@ const createWrapper = (
     isYearRevealed: false,
     maxAttempts: 6,
     nonce: "test-nonce",
-    posthog: null,
     sessionId: "test-session",
     setAttempts: vi.fn(),
     setBaseAttemptCount: vi.fn(),
@@ -165,5 +209,460 @@ describe("GameActionsContext", () => {
     expect(() => {
       renderHook(() => useGameActions());
     }).toThrow("useGameActions must be used within GameActionsProvider");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// makeGuess — action execution paths (authReady: true required)
+// ---------------------------------------------------------------------------
+
+const VALID_PERFUME_ID = "f47ac10b-58cc-4372-a567-0e02b2c3d471";
+
+const SUCCESS_GUESS_RESULT = {
+  answerConcentration: undefined,
+  answerName: undefined,
+  feedback: {
+    brandMatch: false,
+    notesMatch: 0,
+    perfumerMatch: "none" as const,
+    yearDirection: "higher" as const,
+    yearMatch: "wrong" as const,
+  },
+  gameStatus: "playing" as const,
+  guessedPerfumeDetails: { concentration: "EDP", gender: "Male", year: 2015 },
+  guessedPerfumers: ["Creator"],
+  hasGuessedNotes: false,
+  imageUrl: null,
+  newNonce: "nonce-2",
+  result: "wrong" as const,
+};
+
+function createAuthWrapper(
+  overrides?: Partial<Parameters<typeof GameActionsProvider>[0]>,
+) {
+  return createWrapper({ authReady: true, ...overrides });
+}
+
+describe("makeGuess — successful paths", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("calls submitGuess and appends attempt on success (playing continues)", async () => {
+    mockSubmitGuess.mockResolvedValueOnce(SUCCESS_GUESS_RESULT);
+    const setAttempts = vi.fn();
+    const setLoading = vi.fn();
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createAuthWrapper({ setAttempts, setLoading }),
+    });
+
+    await act(async () => {
+      await result.current.makeGuess("Sauvage", "Dior", VALID_PERFUME_ID);
+    });
+
+    expect(mockSubmitGuess).toHaveBeenCalledWith(
+      "test-session",
+      VALID_PERFUME_ID,
+      "test-nonce",
+    );
+    expect(setAttempts).toHaveBeenCalled();
+    expect(setLoading).toHaveBeenCalledWith(true);
+    expect(setLoading).toHaveBeenCalledWith(false);
+  });
+
+  it("sets gameState to 'won' when result is 'won'", async () => {
+    mockSubmitGuess.mockResolvedValueOnce({
+      ...SUCCESS_GUESS_RESULT,
+      answerName: "Sauvage",
+      feedback: {
+        ...SUCCESS_GUESS_RESULT.feedback,
+        brandMatch: true,
+        yearMatch: "correct",
+      },
+      gameStatus: "won" as const,
+      imageUrl: "/win.jpg",
+      result: "correct" as const,
+    });
+    const setGameState = vi.fn();
+    const setAttempts = vi.fn();
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createAuthWrapper({ setAttempts, setGameState }),
+    });
+
+    await act(async () => {
+      await result.current.makeGuess("Sauvage", "Dior", VALID_PERFUME_ID);
+    });
+
+    expect(setGameState).toHaveBeenCalledWith("won");
+  });
+
+  it("sets gameState to 'lost' when gameStatus is 'lost'", async () => {
+    mockSubmitGuess.mockResolvedValueOnce({
+      ...SUCCESS_GUESS_RESULT,
+      answerName: "Sauvage",
+      gameStatus: "lost" as const,
+    });
+    const setGameState = vi.fn();
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createAuthWrapper({ setGameState }),
+    });
+
+    await act(async () => {
+      await result.current.makeGuess("X", "Dior", VALID_PERFUME_ID);
+    });
+
+    expect(setGameState).toHaveBeenCalledWith("lost");
+  });
+
+  it("updates nonce from newNonce", async () => {
+    mockSubmitGuess.mockResolvedValueOnce({
+      ...SUCCESS_GUESS_RESULT,
+      newNonce: "nonce-updated",
+    });
+    const setNonce = vi.fn();
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createAuthWrapper({ setNonce }),
+    });
+
+    await act(async () => {
+      await result.current.makeGuess("X", "Dior", VALID_PERFUME_ID);
+    });
+
+    expect(setNonce).toHaveBeenCalledWith("nonce-updated");
+  });
+
+  it("updates imageUrl when result contains one", async () => {
+    mockSubmitGuess.mockResolvedValueOnce({
+      ...SUCCESS_GUESS_RESULT,
+      imageUrl: "/step2.jpg",
+    });
+    const setImageUrl = vi.fn();
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createAuthWrapper({ setImageUrl }),
+    });
+
+    await act(async () => {
+      await result.current.makeGuess("X", "Dior", VALID_PERFUME_ID);
+    });
+
+    expect(setImageUrl).toHaveBeenCalledWith("/step2.jpg");
+  });
+
+  it("uses lazy init path (initializeAndGuess) when sessionId is null", async () => {
+    mockInitializeAndGuess.mockResolvedValueOnce({
+      guessResult: SUCCESS_GUESS_RESULT,
+      imageUrl: "/lazy.jpg",
+      nonce: "lazy-nonce",
+      sessionId: "new-session-id",
+    });
+    const setSessionId = vi.fn();
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createAuthWrapper({
+        challengeId: "550e8400-e29b-41d4-a716-446655440000",
+        sessionId: null,
+        setSessionId,
+      }),
+    });
+
+    await act(async () => {
+      await result.current.makeGuess("X", "Dior", VALID_PERFUME_ID);
+    });
+
+    expect(mockInitializeAndGuess).toHaveBeenCalled();
+    expect(mockSubmitGuess).not.toHaveBeenCalled();
+    expect(setSessionId).toHaveBeenCalledWith("new-session-id");
+  });
+});
+
+describe("makeGuess — error paths", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("shows rate limit toast when error starts with 'Rate limit exceeded'", async () => {
+    mockSubmitGuess.mockRejectedValueOnce(
+      new Error("Rate limit exceeded — slow down"),
+    );
+    const setLoading = vi.fn();
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createAuthWrapper({ setLoading }),
+    });
+
+    await act(async () => {
+      await result.current.makeGuess("X", "Dior", VALID_PERFUME_ID);
+    });
+
+    expect(mockToastWarning).toHaveBeenCalled();
+    expect(setLoading).toHaveBeenCalledWith(false);
+  });
+
+  it("shows network error toast on generic error", async () => {
+    mockSubmitGuess.mockRejectedValueOnce(new Error("Network error"));
+    const setLoading = vi.fn();
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createAuthWrapper({ setLoading }),
+    });
+
+    await act(async () => {
+      await result.current.makeGuess("X", "Dior", VALID_PERFUME_ID);
+    });
+
+    expect(mockToastError).toHaveBeenCalled();
+    expect(setLoading).toHaveBeenCalledWith(false);
+  });
+
+  it("blocks concurrent guess while processing", async () => {
+    let resolveFirst!: () => void;
+    const firstCall = new Promise<typeof SUCCESS_GUESS_RESULT>((resolve) => {
+      resolveFirst = () => resolve(SUCCESS_GUESS_RESULT);
+    });
+    mockSubmitGuess.mockReturnValueOnce(firstCall);
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createAuthWrapper(),
+    });
+
+    // Start first guess (doesn't await)
+    const p1 = result.current.makeGuess("X", "Dior", VALID_PERFUME_ID);
+    // Immediately try a second guess
+    const p2 = result.current.makeGuess("Y", "Chanel", VALID_PERFUME_ID);
+
+    resolveFirst();
+    await act(async () => {
+      await Promise.all([p1, p2]);
+    });
+
+    // submitGuess should only be called once (second call was blocked)
+    expect(mockSubmitGuess).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// skipAttempt — action execution paths
+// ---------------------------------------------------------------------------
+
+const SKIP_RESULT = {
+  answerConcentration: undefined,
+  answerName: undefined,
+  gameStatus: "playing" as const,
+  imageUrl: null,
+  newNonce: "skip-nonce",
+};
+
+describe("skipAttempt — successful paths", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("calls skipAttempt and appends skipped attempt", async () => {
+    mockSkipAttempt.mockResolvedValueOnce(SKIP_RESULT);
+    const setAttempts = vi.fn();
+    const setLoading = vi.fn();
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createAuthWrapper({ setAttempts, setLoading }),
+    });
+
+    await act(async () => {
+      await result.current.skipAttempt();
+    });
+
+    expect(mockSkipAttempt).toHaveBeenCalledWith("test-session", "test-nonce");
+    expect(setAttempts).toHaveBeenCalled();
+    expect(setLoading).toHaveBeenCalledWith(false);
+  });
+
+  it("sets gameState to 'lost' when skip returns gameStatus 'lost'", async () => {
+    mockSkipAttempt.mockResolvedValueOnce({
+      ...SKIP_RESULT,
+      answerName: "Sauvage",
+      gameStatus: "lost" as const,
+    });
+    const setGameState = vi.fn();
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createAuthWrapper({ setGameState }),
+    });
+
+    await act(async () => {
+      await result.current.skipAttempt();
+    });
+
+    expect(setGameState).toHaveBeenCalledWith("lost");
+  });
+
+  it("does not skip when authReady=false", async () => {
+    const setAttempts = vi.fn();
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createWrapper({ setAttempts }),
+    });
+
+    await act(async () => {
+      await result.current.skipAttempt();
+    });
+
+    expect(mockSkipAttempt).not.toHaveBeenCalled();
+    expect(setAttempts).not.toHaveBeenCalled();
+  });
+
+  it("shows rate limit toast on rate limit error during skip", async () => {
+    mockSkipAttempt.mockRejectedValueOnce(
+      new Error("Rate limit exceeded — slow down"),
+    );
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createAuthWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.skipAttempt();
+    });
+
+    expect(mockToastWarning).toHaveBeenCalled();
+  });
+
+  it("uses lazy init path (initializeAndSkip) when sessionId is null", async () => {
+    mockInitializeAndSkip.mockResolvedValueOnce({
+      imageUrl: null,
+      nonce: "skip-lazy-nonce",
+      sessionId: "new-session",
+      skipResult: SKIP_RESULT,
+    });
+    const setSessionId = vi.fn();
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createAuthWrapper({
+        challengeId: "550e8400-e29b-41d4-a716-446655440000",
+        sessionId: null,
+        setSessionId,
+      }),
+    });
+
+    await act(async () => {
+      await result.current.skipAttempt();
+    });
+
+    expect(mockInitializeAndSkip).toHaveBeenCalled();
+    expect(mockSkipAttempt).not.toHaveBeenCalled();
+    expect(setSessionId).toHaveBeenCalledWith("new-session");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// resetGame — action execution paths
+// ---------------------------------------------------------------------------
+
+describe("resetGame — successful paths", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("calls resetGame server action and resets state", async () => {
+    mockResetGame.mockResolvedValueOnce({ success: true });
+    mockInitializeGame.mockResolvedValueOnce({
+      challenge: {
+        clues: {
+          brand: "Dior",
+          concentration: "EDP",
+          gender: "Male",
+          isLinear: false,
+          notes: { base: ["X"], heart: ["Y"], top: ["Z"] },
+          perfumer: "Creator",
+          xsolve: 90,
+          year: 2000,
+        },
+        id: "550e8400-e29b-41d4-a716-446655440000",
+      },
+      session: {
+        imageUrl: "/fresh.jpg",
+        nonce: "fresh-nonce",
+        sessionId: "fresh-session",
+      },
+    });
+
+    const setAttempts = vi.fn();
+    const setGameState = vi.fn();
+    const setLoading = vi.fn();
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createWrapper({
+        setAttempts,
+        setGameState,
+        setLoading,
+      }),
+    });
+
+    await act(async () => {
+      await result.current.resetGame();
+    });
+
+    expect(mockResetGame).toHaveBeenCalledWith("test-session");
+    expect(setAttempts).toHaveBeenCalledWith([]);
+    expect(setGameState).toHaveBeenCalledWith("playing");
+    expect(setLoading).toHaveBeenCalledWith(false);
+  });
+
+  it("handles reset server error gracefully", async () => {
+    mockResetGame.mockRejectedValueOnce(new Error("Server error"));
+    const setLoading = vi.fn();
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createWrapper({ setLoading }),
+    });
+
+    await act(async () => {
+      await result.current.resetGame();
+    });
+
+    expect(setLoading).toHaveBeenCalledWith(false);
+  });
+
+  it("handles reset when backend returns success:false", async () => {
+    mockResetGame.mockResolvedValueOnce({ success: false });
+    const setAttempts = vi.fn();
+    const setLoading = vi.fn();
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createWrapper({ setAttempts, setLoading }),
+    });
+
+    await act(async () => {
+      await result.current.resetGame();
+    });
+
+    // State should NOT be reset when backend reports failure
+    expect(setAttempts).not.toHaveBeenCalled();
+    expect(setLoading).toHaveBeenCalledWith(false);
+  });
+});
+
+describe("skipAttempt — network error path", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("shows network error toast on generic skip error", async () => {
+    mockSkipAttempt.mockRejectedValueOnce(new Error("Connection refused"));
+    const setLoading = vi.fn();
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createAuthWrapper({ setLoading }),
+    });
+
+    await act(async () => {
+      await result.current.skipAttempt();
+    });
+
+    expect(mockToastError).toHaveBeenCalled();
+    expect(setLoading).toHaveBeenCalledWith(false);
   });
 });

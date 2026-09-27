@@ -16,7 +16,9 @@ test.describe("Web Vitals & Performance Audit", () => {
       const navStart = Date.now();
       await page.goto(url);
       // Login page renders a div (no <main>), home page has <main>
-      await expect(page.locator("main, form, [role='main']").first()).toBeVisible();
+      await expect(
+        page.locator("main, form, [role='main']").first(),
+      ).toBeVisible();
       const navEnd = Date.now();
 
       // 3. Navigation Timing API

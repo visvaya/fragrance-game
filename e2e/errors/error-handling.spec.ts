@@ -114,7 +114,6 @@ test.describe("Error Handling", () => {
 
   test.describe("Duplicate Prevention", () => {
     test("prevents selecting already guessed perfume", async ({ page }) => {
-
       await page.goto("/");
 
       const closedMessage = page.getByText(
@@ -227,7 +226,6 @@ test.describe("Error Handling", () => {
 
   test.describe("Incorrect Guess Feedback", () => {
     test("shows visual feedback for incorrect guess", async ({ page }) => {
-
       await page.goto("/", { waitUntil: "domcontentloaded" });
 
       const closedMessage = page.getByText(

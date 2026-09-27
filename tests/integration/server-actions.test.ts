@@ -29,7 +29,7 @@ const { mockSupabase } = vi.hoisted(() => {
 
 vi.mock("@/lib/supabase/server", () => ({
   createAdminClient: vi.fn(() => mockSupabase),
-  createClient: vi.fn().mockReturnValue(Promise.resolve(mockSupabase)),
+  createClient: vi.fn().mockResolvedValue(mockSupabase),
 }));
 
 vi.mock("@/lib/analytics-server", () => ({
@@ -43,12 +43,10 @@ vi.mock("next/cache", () => ({
 }));
 
 vi.mock("next/headers", () => ({
-  cookies: vi.fn().mockReturnValue(
-    Promise.resolve({
-      getAll: vi.fn(),
-      set: vi.fn(),
-    }),
-  ),
+  cookies: vi.fn().mockResolvedValue({
+    getAll: vi.fn(),
+    set: vi.fn(),
+  }),
 }));
 
 describe("Game Actions Integration (Mocked)", () => {

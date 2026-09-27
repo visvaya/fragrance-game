@@ -57,13 +57,18 @@ async function createAnonymousSession(
 
     if (!response.ok) {
       const body = await response.text();
-      console.warn(`[E2E globalSetup] Auth endpoint returned ${response.status}: ${body}`);
+      console.warn(
+        `[E2E globalSetup] Auth endpoint returned ${response.status}: ${body}`,
+      );
       return null;
     }
 
     const session = (await response.json()) as AuthSession;
     if (!session.access_token || !session.refresh_token) {
-      console.warn("[E2E globalSetup] Session missing tokens:", Object.keys(session));
+      console.warn(
+        "[E2E globalSetup] Session missing tokens:",
+        Object.keys(session),
+      );
       return null;
     }
     return session;
@@ -74,7 +79,11 @@ async function createAnonymousSession(
 }
 
 /** Save a Supabase session as `@supabase/ssr`-compatible browser cookies. */
-function saveStorageState(filePath: string, session: AuthSession, projectReference: string): void {
+function saveStorageState(
+  filePath: string,
+  session: AuthSession,
+  projectReference: string,
+): void {
   const cookieName = `sb-${projectReference}-auth-token`;
   const sessionJson = JSON.stringify(session);
   const chunks: string[] = [];
@@ -133,7 +142,9 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
 
   const projectReference = /https?:\/\/([^.]+)\./.exec(supabaseUrl)?.[1];
   if (!projectReference) {
-    console.warn("[E2E globalSetup] Cannot parse project reference from Supabase URL");
+    console.warn(
+      "[E2E globalSetup] Cannot parse project reference from Supabase URL",
+    );
     return;
   }
 
@@ -146,16 +157,24 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
 
   if (primarySession) {
     saveStorageState(AUTH_FILE, primarySession, projectReference);
-    console.log(`[E2E globalSetup] Primary user: ${primarySession.user?.id ?? ""}`);
+    console.log(
+      `[E2E globalSetup] Primary user: ${primarySession.user?.id ?? ""}`,
+    );
   } else {
-    console.warn("[E2E globalSetup] Primary session failed — game-completion/mobile tests may fail");
+    console.warn(
+      "[E2E globalSetup] Primary session failed — game-completion/mobile tests may fail",
+    );
   }
 
   if (gameflowSession) {
     saveStorageState(AUTH_FILE_GAMEFLOW, gameflowSession, projectReference);
-    console.log(`[E2E globalSetup] Game-flow user: ${gameflowSession.user?.id ?? ""}`);
+    console.log(
+      `[E2E globalSetup] Game-flow user: ${gameflowSession.user?.id ?? ""}`,
+    );
   } else {
-    console.warn("[E2E globalSetup] Game-flow session failed — game-flow test may fail");
+    console.warn(
+      "[E2E globalSetup] Game-flow session failed — game-flow test may fail",
+    );
   }
 
   if (a11ySession) {
@@ -172,7 +191,12 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
 
   if (userIds.length > 0) {
     mkdirSync(path.dirname(TEST_USER_IDS_FILE), { recursive: true });
-    writeFileSync(TEST_USER_IDS_FILE, JSON.stringify({ serviceRoleKey, supabaseUrl, userIds }));
-    console.log(`[E2E globalSetup] Saved ${userIds.length} test user IDs for teardown cleanup`);
+    writeFileSync(
+      TEST_USER_IDS_FILE,
+      JSON.stringify({ serviceRoleKey, supabaseUrl, userIds }),
+    );
+    console.log(
+      `[E2E globalSetup] Saved ${userIds.length} test user IDs for teardown cleanup`,
+    );
   }
 }

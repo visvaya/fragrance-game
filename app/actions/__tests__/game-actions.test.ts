@@ -180,18 +180,6 @@ describe("game-actions", () => {
     vi.clearAllMocks();
   });
 
-  // ==================== Helper Functions Tests ====================
-  // Note: Helper functions are not exported, so we test them indirectly through public APIs
-  // However, we can test their behavior through the functions that use them
-
-  describe("cleanNote (tested indirectly through calculateNotesMatch)", () => {
-    it("removes trademark symbols from notes", () => {
-      // This will be tested when we test submitGuess with notes matching
-      // cleanNote() removes ™ and ® symbols
-      expect(true).toBe(true); // Placeholder - tested via submitGuess
-    });
-  });
-
   // ==================== getDailyChallenge Tests ====================
 
   describe("getDailyChallenge", () => {

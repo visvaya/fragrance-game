@@ -13,9 +13,13 @@ import type { FullConfig } from "@playwright/test";
  * guard — statistics queries can filter on that field even if teardown was skipped.
  */
 // eslint-disable-next-line import-x/no-default-export -- Playwright requires default export for globalTeardown
-export default async function globalTeardown(_config: FullConfig): Promise<void> {
+export default async function globalTeardown(
+  _config: FullConfig,
+): Promise<void> {
   if (!existsSync(TEST_USER_IDS_FILE)) {
-    console.warn("[E2E globalTeardown] No test user IDs file found — skipping cleanup");
+    console.warn(
+      "[E2E globalTeardown] No test user IDs file found — skipping cleanup",
+    );
     return;
   }
 
@@ -33,7 +37,9 @@ export default async function globalTeardown(_config: FullConfig): Promise<void>
     serviceRoleKey = raw.serviceRoleKey;
     userIds = raw.userIds;
   } catch {
-    console.warn("[E2E globalTeardown] Failed to parse test user IDs file — skipping cleanup");
+    console.warn(
+      "[E2E globalTeardown] Failed to parse test user IDs file — skipping cleanup",
+    );
     return;
   }
 
@@ -50,7 +56,9 @@ export default async function globalTeardown(_config: FullConfig): Promise<void>
         method: "DELETE",
       });
       if (!res.ok && res.status !== 404) {
-        console.warn(`[E2E globalTeardown] Failed to delete user ${userId}: HTTP ${res.status}`);
+        console.warn(
+          `[E2E globalTeardown] Failed to delete user ${userId}: HTTP ${res.status}`,
+        );
       } else {
         console.log(`[E2E globalTeardown] Deleted test user: ${userId}`);
       }
@@ -59,7 +67,9 @@ export default async function globalTeardown(_config: FullConfig): Promise<void>
 
   const failed = results.filter((r) => r.status === "rejected").length;
   if (failed > 0) {
-    console.warn(`[E2E globalTeardown] ${failed} user deletion(s) threw an error`);
+    console.warn(
+      `[E2E globalTeardown] ${failed} user deletion(s) threw an error`,
+    );
   }
 
   // Clean up the IDs file regardless of deletion outcome.

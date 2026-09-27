@@ -21,49 +21,42 @@ if (existsSync(AUTH_FILE)) {
 }
 
 test.describe("Mobile Touch Interactions - Android", () => {
-  mobileAndroidTest(
-    "should open autocomplete on touch",
-    async ({ page }) => {
-      await page.goto("/en");
+  mobileAndroidTest("should open autocomplete on touch", async ({ page }) => {
+    await page.goto("/en");
 
-      // Check for "Closed" state
-      const closedMessage = page.getByText(
-        /Gra zakończona|Come back tomorrow/i,
-      );
+    // Check for "Closed" state
+    const closedMessage = page.getByText(/Gra zakończona|Come back tomorrow/i);
 
-      if (await closedMessage.isVisible()) {
-        test.skip(true, "Game is currently closed.");
-        return;
-      }
+    if (await closedMessage.isVisible()) {
+      test.skip(true, "Game is currently closed.");
+      return;
+    }
 
-      const input = page.getByPlaceholder(
-        /Guess the fragrance|Napisz jakie to perfumy/i,
-      );
+    const input = page.getByPlaceholder(
+      /Guess the fragrance|Napisz jakie to perfumy/i,
+    );
 
-      // Use tap() instead of click() for mobile
-      await input.tap();
-      await input.fill("Cha");
+    // Use tap() instead of click() for mobile
+    await input.tap();
+    await input.fill("Cha");
 
-      // Wait for autocomplete suggestions
-      await page.waitForTimeout(1000);
+    // Wait for autocomplete suggestions
+    await page.waitForTimeout(1000);
 
-      const suggestionsList = page.locator(
-        'button[class*="text-left text-sm"]',
-      );
-      const count = await suggestionsList.count();
+    const suggestionsList = page.locator('button[class*="text-left text-sm"]');
+    const count = await suggestionsList.count();
 
-      // If suggestions appear, verify they're tappable
+    // If suggestions appear, verify they're tappable
 
-      if (count > 0) {
-        const firstSuggestion = suggestionsList.first();
+    if (count > 0) {
+      const firstSuggestion = suggestionsList.first();
 
-        await expect(firstSuggestion).toBeVisible();
+      await expect(firstSuggestion).toBeVisible();
 
-        // Tap should work
-        await firstSuggestion.tap();
-      }
-    },
-  );
+      // Tap should work
+      await firstSuggestion.tap();
+    }
+  });
 
   mobileAndroidTest.skip(
     "should have accessible touch targets (48x48px minimum)",
