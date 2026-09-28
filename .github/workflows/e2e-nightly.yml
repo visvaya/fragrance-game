@@ -11,6 +11,9 @@ on:
 env:
   TZ: Europe/Warsaw
 
+permissions:
+  contents: read
+
 jobs:
   e2e:
     name: Playwright full suite (chromium + a11y)
