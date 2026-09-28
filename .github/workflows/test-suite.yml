@@ -8,6 +8,9 @@ on:
 env:
   TZ: Europe/Warsaw
 
+permissions:
+  contents: read
+
 jobs:
   fast-tests:
     name: Unit & Snapshots
