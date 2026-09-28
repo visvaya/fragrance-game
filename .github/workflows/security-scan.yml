@@ -43,6 +43,10 @@ jobs:
 
   supabase-advisors:
     name: Supabase Security Advisor
+    # Needs repository secrets, which Dependabot PRs do not receive; a skipped job
+    # counts as passing for branch protection. The advisor checks the database, not
+    # dependencies, so a dependency update loses nothing here.
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
