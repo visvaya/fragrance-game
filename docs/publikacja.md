@@ -25,7 +25,7 @@ Gdy właściciel kupi domenę przed przenosinami:
 
 Zakres przenosin (Next.js poza Vercelem, baza i auth, Upstash, operacje) opisuje backlog. Warunki dla serwera `vps-waw` (OVH VPS-1, 4 GB RAM współdzielone z innymi projektami, zasady w `/opt/SERVER.md` na serwerze):
 
-- Next.js jako `next start` z `output: "standalone"` w usłudze systemd z limitem pamięci, za reverse proxy z TLS; cron Vercela zastępuje timer systemd wołający endpoint z `CRON_SECRET`; sekrety w `/etc`, nie w repozytorium.
+- Next.js z `output: "standalone"`: usługa systemd z limitem pamięci uruchamia `node server.js` z katalogu `.next/standalone` (nie `next start`), a krok wdrożenia kopiuje do tej paczki katalogi `public/` i `.next/static/`, których build tam nie umieszcza (bez nich znikają ikony i obrazy zastępcze); usługa działa za reverse proxy z TLS; cron Vercela zastępuje timer systemd wołający endpoint z `CRON_SECRET`; sekrety w `/etc`, nie w repozytorium.
 - Pojemność: Supabase self-hosted to zestaw kilku do kilkunastu kontenerów (Postgres, Auth, PostgREST, Realtime, Storage, Studio i inne). Przy 4 GB RAM dzielonych z innymi usługami to główne ryzyko; przed decyzją o przenosinach zmierzyć zużycie pamięci na próbnej instalacji (niesprawdzone) i rozważyć większy plan VPS, osobny serwer albo wariant bez pełnego Supabase.
 - Utracone elementy platformy: CDN (możliwy Cloudflare przed serwerem), podglądy per PR, monitoring crona; kopie zapasowe bazy i test odtwarzania przechodzą na właściciela.
 - Snapshot serwera przed każdą aktualizacją, zgodnie z zasadami serwera.
