@@ -34,7 +34,9 @@ describe("InfoPopover", () => {
 
     await user.click(trigger);
     expect(trigger).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("dialog")).toHaveTextContent(EXPLANATION);
+    expect(screen.getByRole("dialog", { name: "Attempts" })).toHaveTextContent(
+      EXPLANATION,
+    );
 
     await user.keyboard("{Escape}");
     expect(trigger).toHaveAttribute("aria-expanded", "false");

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 
 import {
   Popover,
@@ -30,6 +30,8 @@ export function InfoPopover({
   className,
   content,
 }: InfoPopoverProperties) {
+  // Names the panel after its trigger, so a screen reader announces which explanation opened.
+  const triggerId = useId();
   return (
     <Popover>
       <PopoverTrigger
@@ -37,12 +39,14 @@ export function InfoPopover({
           "cursor-help rounded-sm text-left [text-transform:inherit] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
           className,
         )}
+        id={triggerId}
         type="button"
       >
         {children}
       </PopoverTrigger>
       <PopoverContent
         align="start"
+        aria-labelledby={triggerId}
         className="z-[60] w-[min(20rem,calc(100vw-2rem))] leading-relaxed"
       >
         {content}
