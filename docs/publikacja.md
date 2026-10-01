@@ -1,6 +1,6 @@
 # Publikacja
 
-Status: 2026-09-30. Obecnie Vercel (produkcja działa); docelowo własny VPS właściciela według `.plans/BACKLOG_V2.md` (katalog główny projektu, poza repozytorium), sekcja „Infrastruktura”. Termin przenosin nieustalony.
+Status: 2026-09-30. Obecnie Vercel (produkcja działa); docelowo własny VPS właściciela według `.plans/ROADMAP.md` (katalog główny projektu, poza repozytorium), sekcja „Infrastruktura: własny VPS”. Termin przenosin nieustalony.
 
 ## Decyzje właściciela
 

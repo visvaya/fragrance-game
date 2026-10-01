@@ -40,6 +40,7 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 - **Shortcut:** the CI audit gate in `security-scan.yml` runs `pnpm audit --prod`, because dev tooling does not ship to users. Production dependencies have no high or critical advisories (vulnerable transitive packages are pinned through `overrides`).
 - **Risk:** a compromised or vulnerable tool can still affect a developer machine or CI runner.
 - **Done when:** `pnpm audit --audit-level=high` passes without `--prod` (update or replace the tools, add overrides), and the gate drops `--prod`.
+- **Status 2026-10-01:** Dependabot shows 17 open alerts: 15 in development dependencies (undici, js-yaml, nanoid, vitest, joi and others) and 2 medium ones in runtime dependencies (`fflate`, `baseline-browser-mapping`). The runtime ones are fixed first, with the smallest update that clears each advisory.
 
 ## Client roles keep an unused grant on `daily_challenges_public`
 
@@ -66,3 +67,73 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 - **Where:** `app/sentry-example-page/` (route `/sentry-example-page`).
 - **Shortcut:** leftover from the Sentry setup wizard.
 - **Done when:** the page is deleted and error reporting is confirmed through a real error.
+
+## Migrations do not reproduce the production schema
+
+- **Where:** `supabase/migrations/` versus the production database (checked 2026-10-01).
+- **Shortcut:** several objects were created by hand and exist only in production: the functions `handle_new_user`, `auto_create_player`, `delete_auth_session` and `refresh_autocomplete_cache`, the triggers on `auth.users` and `auth.sessions`, the `user_sessions` table, several RLS policies, and view columns that differ from the migration definitions. `perfume_asset_sources` has two conflicting `IF NOT EXISTS` definitions, and the `eligible_perfumes` view exists only in migrations.
+- **Risk:** a fresh database (staging, local, a future self-hosted server) does not match production; pgTAP in CI runs against production only.
+- **Done when:** `supabase db diff` against production is empty and a database rebuilt from migrations passes `pnpm test:db`.
+
+## Image pipeline lives outside version control
+
+- **Where:** `img/bottles/` (git-ignored): `scripts/process_game_assets.py`, `generate_asset_list.py`, `preprocess_assets.py`, the prompt and the readme.
+- **Shortcut:** the scripts that produce and upload every game image exist on one machine only; the readme describes old directory names and thresholds, and `scripts/requirements.txt` does not list Pillow or the AVIF plugin.
+- **Risk:** losing the machine loses the pipeline; changes cannot be reviewed.
+- **Done when:** the scripts and prompt are tracked under `scripts/assets/` (photos stay outside the repository), with dependencies listed and a secret scan passed.
+
+## `asset_random_id` is not unique
+
+- **Where:** `supabase/migrations/20260120100000_perfume_assets.sql` (plain index only).
+- **Done when:** a `UNIQUE` constraint replaces the index.
+
+## Daily puzzle cron is unbounded and reads live difficulty
+
+- **Where:** `app/api/cron/generate-daily/route.ts`.
+- **Shortcut:** the candidate query has no `.limit()` or paging, it does not skip perfumes with `is_active = false` or without `xsolve_score` (a missing score later breaks `getDailyChallenge`), and `snapshot_metadata` is stored empty, so the score multiplier is read live and a new ETL import changes the scoring of past puzzles.
+- **Done when:** candidates are filtered and paged, and the puzzle stores the xSolve value it was published with.
+
+## Hardcoded fallback for the assets host
+
+- **Where:** `app/actions/game-actions.ts` (`NEXT_PUBLIC_ASSETS_HOST ?? "assets.eauxle.com"`, two places).
+- **Done when:** the variable is required in `lib/env.ts` and the fallback is gone.
+
+## Unbounded session list
+
+- **Where:** `app/actions/auth-actions.ts`, `getSessions` (query on `user_sessions` without `.limit()`).
+- **Done when:** the query has a limit, as the project rules require for every `select()`.
+
+## Account merge is not transactional
+
+- **Where:** `app/actions/auth-actions.ts`, `migrateAnonymousPlayer` (separate deletes and updates through the service role).
+- **Risk:** a failure halfway leaves a player's history split between two accounts.
+- **Done when:** the merge runs in one database function inside a transaction.
+
+## ETL does not record import runs
+
+- **Where:** `scripts/etl_v5.py`.
+- **Shortcut:** the `import_runs` and `import_conflicts` tables are never written; duplicates are dropped keep-first instead of merged.
+- **Done when:** each import writes a run record and its conflicts.
+
+## Client IP taken from `x-forwarded-for`
+
+- **Where:** `proxy.ts` and `app/actions/autocomplete.ts` (per-IP rate limits).
+- **Shortcut:** the first value of the header is trusted. Vercel sets the header itself, so this is safe there; behind a self-hosted reverse proxy that appends to the header, clients could choose their own IP and bypass per-IP limits.
+- **Done when:** before moving off Vercel, the IP is taken from the hop added by the trusted proxy.
+
+## Local and production migration histories are disjoint
+
+- **Where:** `supabase/migrations/` versus `supabase_migrations.schema_migrations` in production.
+- **Shortcut:** production migrations were applied through the dashboard or the Supabase MCP server, which records its own timestamps, so `supabase migration list` shows two unrelated version sequences. `supabase db push` would try to re-apply every local migration.
+- **Risk:** the standard deploy command cannot be used; a migration is applied by hand, one file at a time.
+- **Done when:** the remote history is repaired (`supabase migration repair`) after the schema drift above is resolved, and `supabase db push` reports nothing to apply.
+
+## Dead and duplicated reveal data
+
+- **Where:** `lib/game/scoring.ts` (`yearMask` templates, correct only for years starting with 1 and read only by tests) and `components/game/contexts/game-state-context.tsx` (letter reveal percentages repeated instead of read from `getRevealPercentages()`).
+- **Done when:** one reveal table drives both server and client, and unused fields are gone.
+
+## Loose validation and limits in auth actions
+
+- **Where:** `app/actions/auth-actions.ts`, `getAnonSessionAttemptCount` (ids validated as plain strings, not UUIDs); `app/actions/security-actions.ts`, `validatePasswordSafety` (no rate limit).
+- **Done when:** both ids use `z.uuid()` and the password check has a per-IP limit in `lib/redis.ts`.

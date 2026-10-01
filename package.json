@@ -49,7 +49,7 @@
     "test:perf": "cross-env NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA playwright test e2e/performance",
     "test:full": "pnpm test && pnpm test:a11y && pnpm test:perf",
     "audit:report": "node scripts/audit-parse.js",
-    "audit:lighthouse": "python ../.agent/scripts/parse_lighthouse.py ./reports/latest.report.json",
+    "audit:lighthouse": "node scripts/parse-lighthouse.mjs ./reports/latest.report.json",
     "clean": "pnpm dlx rimraf .next node_modules",
     "supabase": "pnpm dlx supabase",
     "supabase:start": "pnpm supabase start",
