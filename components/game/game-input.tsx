@@ -521,7 +521,7 @@ export function GameInput() {
           "sticky bottom-0 z-30 mx-auto w-full max-w-2xl will-change-transform wide:max-w-xl",
         )}
       >
-        <div className="relative border-x-0 border-t panel-border bg-background/70 px-5 py-4 panel-shadow backdrop-blur-md transition-colors duration-500 ease-in-out sm:rounded-t-md sm:border-x">
+        <div className="relative border-x-0 border-t panel-border bg-background/70 px-5 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] panel-shadow backdrop-blur-md transition-colors duration-500 ease-in-out sm:rounded-t-md sm:border-x">
           {/* Input-like look for closed state */}
           <div className="relative flex items-center justify-center">
             <span className="font-hand text-lg text-primary">
@@ -572,12 +572,12 @@ export function GameInput() {
         )}
       >
         <div className="flex flex-col items-center gap-0">
-          <div className="rounded-lg border border-primary/40 bg-background px-4 py-1.5">
-            <p className="font-hand text-base whitespace-nowrap text-foreground">
+          <div className="rounded-lg bg-primary px-4 py-1.5 panel-shadow">
+            <p className="font-hand text-base whitespace-nowrap text-foreground dark:text-primary-foreground">
               {tFooter("selectHelper")}
             </p>
           </div>
-          <ChevronDown className="size-3 text-primary/60" strokeWidth={2} />
+          <ChevronDown className="size-4 text-primary" strokeWidth={2.5} />
         </div>
       </div>
 
@@ -585,7 +585,7 @@ export function GameInput() {
         {/* Input Surface (Visual Layer) */}
         <div
           className={cn(
-            "relative z-20 border-x-0 border-t panel-border px-5 py-1.5 panel-shadow backdrop-blur-md transition-colors duration-200 ease-in-out sm:border-x",
+            "relative z-20 border-x-0 border-t panel-border px-5 pt-1.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] panel-shadow backdrop-blur-md transition-colors duration-200 ease-in-out sm:border-x",
             surfaceClasses,
           )}
         >
@@ -742,7 +742,7 @@ export function GameInput() {
                       "flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-30",
                       isRateLimited || gameLoading
                         ? "cursor-not-allowed opacity-30"
-                        : "hover:bg-muted/50 hover:text-foreground active:bg-muted/50",
+                        : "hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:duration-0",
                     )}
                     disabled={!sessionReady || gameLoading || isRateLimited}
                     onClick={() => {

@@ -14,7 +14,7 @@ import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
 import { cn } from "@/lib/utils";
 
 import { useGameState } from "./contexts";
-import { GameTooltip } from "./game-tooltip";
+import { InfoPopover } from "./info-popover";
 
 // Low Quality Image Placeholder (LQIP) - 20x20px blurred perfume bottle
 // Improves LCP by providing instant visual feedback
@@ -207,15 +207,14 @@ export function RevealImage() {
             >
               <ScanEye className="size-4 shrink-0 text-muted-foreground" />
             </span>
-            <GameTooltip
-              className="max-w-full min-w-0"
-              content={t("titleTooltip")}
-              sideOffset={6}
-            >
-              <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide whitespace-nowrap text-foreground lowercase">
+            <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide whitespace-nowrap text-foreground lowercase">
+              <InfoPopover
+                className="max-w-full min-w-0"
+                content={t("titleTooltip")}
+              >
                 {t("visualEvidence")}
-              </h2>
-            </GameTooltip>
+              </InfoPopover>
+            </h2>
           </ScrollableRow>
         )}
       </div>

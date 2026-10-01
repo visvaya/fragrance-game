@@ -15,6 +15,7 @@ import { cn, noop } from "@/lib/utils";
 import { useGameState } from "../contexts";
 import { DotFiller } from "../dot-filler";
 import { GameTooltip } from "../game-tooltip";
+import { InfoPopover } from "../info-popover";
 
 import { MaskedWord } from "./masked-word";
 
@@ -156,15 +157,14 @@ export const PyramidClues = memo(function PyramidClues() {
             >
               <Layers className="size-4 shrink-0 text-muted-foreground" />
             </span>
-            <GameTooltip
-              className="max-w-full min-w-0"
-              content={t("pyramidTooltip")}
-              sideOffset={6}
-            >
-              <h2 className="font-[family-name:var(--font-playfair)] text-base whitespace-nowrap text-foreground lowercase">
+            <h2 className="font-[family-name:var(--font-playfair)] text-base whitespace-nowrap text-foreground lowercase">
+              <InfoPopover
+                className="max-w-full min-w-0"
+                content={t("pyramidTooltip")}
+              >
                 {t("olfactoryProfile")}
-              </h2>
-            </GameTooltip>
+              </InfoPopover>
+            </h2>
           </ScrollableRow>
         </div>
 
@@ -173,11 +173,12 @@ export const PyramidClues = memo(function PyramidClues() {
             <div className="flex items-center gap-2">
               <span className="size-2 shrink-0 rounded-full bg-primary" />
               <span className="text-xs font-semibold tracking-widest text-muted-foreground lowercase">
-                <GameTooltip content={t("linearMeaning")}>
-                  <span className="cursor-help underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-                    {t("linearProfile")}
-                  </span>
-                </GameTooltip>{" "}
+                <InfoPopover
+                  className="underline decoration-muted-foreground/30 decoration-dotted underline-offset-2"
+                  content={t("linearMeaning")}
+                >
+                  {t("linearProfile")}
+                </InfoPopover>{" "}
                 {revealLevel === 1 ? (
                   <GameTooltip content={t("linearProfileTooltip")}>
                     <span className="cursor-help">
@@ -360,15 +361,14 @@ export const PyramidClues = memo(function PyramidClues() {
           >
             <Layers className="size-4 text-muted-foreground" />
           </span>
-          <GameTooltip
-            className="max-w-full min-w-0"
-            content={t("pyramidTooltip")}
-            sideOffset={6}
-          >
-            <h2 className="font-[family-name:var(--font-playfair)] text-base whitespace-nowrap text-foreground lowercase">
+          <h2 className="font-[family-name:var(--font-playfair)] text-base whitespace-nowrap text-foreground lowercase">
+            <InfoPopover
+              className="max-w-full min-w-0"
+              content={t("pyramidTooltip")}
+            >
               {t("pyramid")}
-            </h2>
-          </GameTooltip>
+            </InfoPopover>
+          </h2>
         </ScrollableRow>
       </div>
 

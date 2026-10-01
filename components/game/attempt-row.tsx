@@ -131,7 +131,7 @@ export function AttemptRow({
         </RowCell>
 
         <RowCell
-          className="grid w-full grid-cols-5 pr-0.5 pl-0 sm:pl-1"
+          className="grid w-full grid-cols-5 pr-1.5 pl-0 sm:pr-2 sm:pl-1"
           isActive={isActive}
           isTouch={isTouch}
         >
@@ -300,7 +300,7 @@ export function AttemptRow({
       </RowCell>
 
       <RowCell
-        className="grid w-full grid-cols-5 pr-0.5 pl-0 font-hand text-xl text-primary sm:pl-1"
+        className="grid w-full grid-cols-5 pr-1.5 pl-0 font-hand text-xl text-primary sm:pr-2 sm:pl-1"
         isActive={isActive}
         isTouch={isTouch}
         {...interactiveProperties}

@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { AttemptRow } from "./attempt-row";
 import { useGameState, useUIPreferences } from "./contexts";
 import { GameTooltip } from "./game-tooltip";
+import { InfoPopover } from "./info-popover";
 
 /**
  * Komponent logu prób gracza.
@@ -152,21 +153,20 @@ export const AttemptLog = memo(function AttemptLog() {
           >
             <ScrollText className="size-4 shrink-0 text-muted-foreground" />
           </span>
-          <GameTooltip
-            className="max-w-full min-w-0"
-            content={t("titleTooltip")}
-            sideOffset={6}
-          >
-            <h2 className="font-[family-name:var(--font-playfair)] text-base whitespace-nowrap text-foreground lowercase">
+          <h2 className="font-[family-name:var(--font-playfair)] text-base whitespace-nowrap text-foreground lowercase">
+            <InfoPopover
+              className="max-w-full min-w-0"
+              content={t("titleTooltip")}
+            >
               {t("title")}
-            </h2>
-          </GameTooltip>
+            </InfoPopover>
+          </h2>
         </ScrollableRow>
       </div>
 
       <div
         className={cn(
-          "-mb-3 grid [scrollbar-width:none] grid-cols-[1.5rem_1fr_minmax(6.5625rem,auto)] overflow-x-auto sm:grid-cols-[2rem_1fr_minmax(6.5625rem,auto)] [&::-webkit-scrollbar]:hidden",
+          "-mb-3 grid [scrollbar-width:none] grid-cols-[2rem_1fr_minmax(7rem,auto)] overflow-x-auto [&::-webkit-scrollbar]:hidden",
           maskClass,
         )}
         ref={ref}
@@ -174,7 +174,7 @@ export const AttemptLog = memo(function AttemptLog() {
         {/* Header Row - spread into grid columns */}
         <div className="flex items-center justify-center border-b-2 border-muted/50 pb-[0.1875rem] text-[0.8125rem] font-semibold tracking-widest text-muted-foreground lowercase transition-colors">
           <GameTooltip
-            className="size-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+            className="size-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0"
             content={t("columns.attemptTooltip")}
           >
             <span className="w-full cursor-help text-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
@@ -187,9 +187,9 @@ export const AttemptLog = memo(function AttemptLog() {
           {t("columns.perfume")}
         </div>
 
-        <div className="grid w-full grid-cols-5 justify-items-center border-b-2 border-muted/50 px-0 pb-1 text-center text-[0.8125rem] font-semibold tracking-widest text-muted-foreground lowercase sm:px-1">
+        <div className="grid w-full grid-cols-5 justify-items-center border-b-2 border-muted/50 pr-1.5 pb-1 pl-0 text-center text-[0.8125rem] font-semibold tracking-widest text-muted-foreground lowercase sm:pr-2 sm:pl-1">
           <GameTooltip
-            className="size-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+            className="size-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0"
             content={t("columns.brandTooltip")}
           >
             <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
@@ -198,7 +198,7 @@ export const AttemptLog = memo(function AttemptLog() {
           </GameTooltip>
 
           <GameTooltip
-            className="size-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+            className="size-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0"
             content={
               attempts.length > 0 && dailyPerfume.perfumer.includes(",")
                 ? t("columns.perfumersTooltip")
@@ -215,7 +215,7 @@ export const AttemptLog = memo(function AttemptLog() {
           </GameTooltip>
 
           <GameTooltip
-            className="size-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+            className="size-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0"
             content={t("columns.yearTooltip")}
           >
             <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
@@ -224,7 +224,7 @@ export const AttemptLog = memo(function AttemptLog() {
           </GameTooltip>
 
           <GameTooltip
-            className="size-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+            className="size-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0"
             content={t("columns.genderTooltip")}
           >
             <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
@@ -233,7 +233,7 @@ export const AttemptLog = memo(function AttemptLog() {
           </GameTooltip>
 
           <GameTooltip
-            className="size-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+            className="size-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0"
             content={t("columns.notesTooltip")}
           >
             <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
