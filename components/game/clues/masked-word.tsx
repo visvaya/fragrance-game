@@ -50,7 +50,6 @@ export function MaskedWord({
     if (char === MASK_CHAR) {
       return (
         <MaskSlot
-          char={char}
           isHovered={isHovered}
           // eslint-disable-next-line react/no-array-index-key -- index is required for stable char keying
           key={`${keyPrefix}-slot-${index}`}
@@ -61,7 +60,7 @@ export function MaskedWord({
     return (
       <div
         className={cn(
-          "mx-px flex h-5 w-2 items-center justify-center border-b border-transparent font-mono text-sm leading-none transition-colors duration-300",
+          "mx-px flex h-5 w-2.5 items-center justify-center border-b border-transparent font-mono text-sm leading-none transition-colors duration-300",
           getCharClass(isHovered, hoverColorChars),
         )}
         // eslint-disable-next-line react/no-array-index-key -- index is required for stable char keying

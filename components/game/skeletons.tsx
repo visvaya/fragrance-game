@@ -280,7 +280,7 @@ export function AttemptLogSkeleton({
       </div>
 
       {/* Table — same grid as real: 1.5rem/2rem | 1fr | minmax(105px,auto) */}
-      <div className="-mb-3 grid grid-cols-[1.5rem_1fr_minmax(6.5625rem,auto)] sm:grid-cols-[2rem_1fr_minmax(6.5625rem,auto)]">
+      <div className="-mb-3 grid grid-cols-[2rem_1fr_minmax(7rem,auto)]">
         {/* Header: "#" column — real has size-8 GameTooltip placeholder, we replicate 32px height */}
         <div className="flex items-center justify-center border-b-2 border-muted/50 pb-[0.1875rem] text-[0.8125rem] font-semibold tracking-widest text-muted-foreground/70 lowercase">
           {t ? (
@@ -302,7 +302,7 @@ export function AttemptLogSkeleton({
         </div>
 
         {/* Header: 5 attribute columns — neutral squares instead of icons */}
-        <div className="grid w-full grid-cols-5 justify-items-center border-b-2 border-muted/50 px-0 pb-2 sm:px-1">
+        <div className="grid w-full grid-cols-5 justify-items-center border-b-2 border-muted/50 pr-1.5 pb-2 pl-0 sm:pr-2 sm:pl-1">
           {["brand", "perfumer", "year", "gender", "notes"].map((col) => (
             <div className="flex size-8 items-center justify-center" key={col}>
               <div className="size-4 rounded bg-muted/40 opacity-40" />
@@ -347,7 +347,7 @@ export function GameInputSkeleton() {
         "sticky bottom-0 z-30 mx-auto w-full max-w-2xl will-change-transform wide:max-w-xl",
       )}
     >
-      <div className="relative z-20 border-x-0 border-t panel-border bg-background/70 px-5 py-1.5 panel-shadow backdrop-blur-md sm:rounded-t-md sm:border-x">
+      <div className="relative z-20 border-x-0 border-t panel-border bg-background/70 px-5 pt-1.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] panel-shadow backdrop-blur-md sm:rounded-t-md sm:border-x">
         {/* Input field skeleton */}
         <div className="relative">
           <div className="w-full border-b-2 border-border pt-2 pb-1 pl-1">

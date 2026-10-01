@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { useGameState } from "../contexts";
 import { DotFiller } from "../dot-filler";
 import { GameTooltip } from "../game-tooltip";
+import { InfoPopover } from "../info-popover";
 
 import { MaskedWord } from "./masked-word";
 
@@ -69,15 +70,14 @@ export const MetaClues = memo(function MetaClues() {
           >
             <Tag className="size-4 shrink-0 text-muted-foreground" />
           </span>
-          <GameTooltip
-            className="max-w-full min-w-0"
-            content={t("titleTooltip")}
-            sideOffset={6}
-          >
-            <h2 className="font-[family-name:var(--font-playfair)] text-base tracking-wide whitespace-nowrap text-foreground lowercase">
+          <h2 className="font-[family-name:var(--font-playfair)] text-base tracking-wide whitespace-nowrap text-foreground lowercase">
+            <InfoPopover
+              className="max-w-full min-w-0"
+              content={t("titleTooltip")}
+            >
               {t("identity")}
-            </h2>
-          </GameTooltip>
+            </InfoPopover>
+          </h2>
         </ScrollableRow>
       </div>
 

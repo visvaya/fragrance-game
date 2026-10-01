@@ -55,7 +55,7 @@ export function ResetButton({
           <TooltipTrigger asChild>
             <button
               aria-label={t("ariaLabel")}
-              className="flex items-center justify-center rounded-sm p-2 text-foreground/70 transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-muted/50 active:text-foreground"
+              className="flex items-center justify-center rounded-sm p-2 text-foreground/70 transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0"
               onClick={() => setShowConfirm(true)}
             >
               <RotateCcw size={18} />
