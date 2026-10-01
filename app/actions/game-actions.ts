@@ -524,8 +524,8 @@ export async function startGame(
     error: userError,
   } = await supabase.auth.getUser();
 
-  // Authentication is required; getSession() fallback removed per CLAUDE.md
-  // getUser() performs proper JWT validation
+  // Authentication is required. getUser() validates the JWT with the auth server;
+  // getSession() only reads the cookie, so it is not used as a fallback.
 
   if (!user) {
     console.error("Auth error in startGame:", userError);
@@ -658,8 +658,8 @@ async function getImageUrlForStep(sessionId: string): Promise<string | null> {
     error: userError,
   } = await supabase.auth.getUser();
 
-  // Authentication is required; getSession() fallback removed per CLAUDE.md
-  // getUser() performs proper JWT validation
+  // Authentication is required. getUser() validates the JWT with the auth server;
+  // getSession() only reads the cookie, so it is not used as a fallback.
 
   if (!user) {
     console.error("getImageUrlForStep: Unauthorized access", {
@@ -793,8 +793,8 @@ export async function submitGuess(
     error: userError,
   } = await supabase.auth.getUser();
 
-  // Authentication is required; getSession() fallback removed per CLAUDE.md
-  // getUser() performs proper JWT validation
+  // Authentication is required. getUser() validates the JWT with the auth server;
+  // getSession() only reads the cookie, so it is not used as a fallback.
 
   if (!user) {
     console.error("submitGuess: Unauthorized access", { sessionId, userError });
@@ -1265,8 +1265,8 @@ export async function resetGame(
     error: userError,
   } = await supabase.auth.getUser();
 
-  // Authentication is required; getSession() fallback removed per CLAUDE.md
-  // getUser() performs proper JWT validation
+  // Authentication is required. getUser() validates the JWT with the auth server;
+  // getSession() only reads the cookie, so it is not used as a fallback.
 
   if (!user) {
     console.error("resetGame: Unauthorized access", { sessionId, userError });
