@@ -8,7 +8,6 @@
 /out/
 /build
 .vercel
-.serena
 
 # Linting & caching
 .eslintcache
