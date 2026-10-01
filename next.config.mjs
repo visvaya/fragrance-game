@@ -52,6 +52,7 @@ const nextConfig = {
     ],
   },
   poweredByHeader: false,
+  agentRules: false,
   async rewrites() {
     const posthogHost =
       process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://eu.i.posthog.com";
