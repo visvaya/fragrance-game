@@ -201,7 +201,7 @@ test.describe("Locale Content Validation", () => {
     await page.goto("/en");
 
     // Check that we don't see raw translation keys like "Game.start" or "Header.menu"
-    const content = await page.textContent("body");
+    const content = await page.locator("body").textContent();
 
     expect(content).not.toContain("Game.start");
     expect(content).not.toContain("Header.menu");
@@ -213,7 +213,7 @@ test.describe("Locale Content Validation", () => {
     await page.goto("/pl");
 
     // Check that we don't see raw translation keys
-    const content = await page.textContent("body");
+    const content = await page.locator("body").textContent();
 
     expect(content).not.toContain("Game.start");
     expect(content).not.toContain("Header.menu");

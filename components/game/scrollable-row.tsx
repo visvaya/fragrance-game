@@ -32,7 +32,7 @@ export function ScrollableRow({
   return (
     <div
       className={cn(
-        "overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        "[scrollbar-width:none] overflow-x-auto [&::-webkit-scrollbar]:hidden",
         maskClass,
         className,
       )}

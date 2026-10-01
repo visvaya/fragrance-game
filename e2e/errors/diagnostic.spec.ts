@@ -17,7 +17,7 @@ test.describe("Global Game Diagnostics", () => {
     console.log("\n=== START DIAGNOSTIC AUDIT ===");
 
     // 1. Check for State Messages
-    const bodyTextContent = (await page.textContent("body")) ?? "";
+    const bodyTextContent = (await page.locator("body").textContent()) ?? "";
     const isClosedState =
       bodyTextContent.includes("Gra zakończona") ||
       bodyTextContent.includes("Come back tomorrow");
