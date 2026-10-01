@@ -1284,12 +1284,15 @@ export async function resetGame(
     : undefined;
   if (!targetChallengeId) return { success: true };
 
-  await supabase
+  // Players have no DELETE rights on their game rows (anti-replay), so the
+  // debug reset deletes with the service role, still scoped to the caller.
+  const adminSupabase = createAdminClient();
+  await adminSupabase
     .from("game_results")
     .delete()
     .eq("player_id", user.id)
     .eq("challenge_id", targetChallengeId);
-  await supabase
+  await adminSupabase
     .from("game_sessions")
     .delete()
     .eq("player_id", user.id)

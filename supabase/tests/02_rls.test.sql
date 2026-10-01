@@ -5,7 +5,7 @@
 -- and anon role cannot bypass VIEW protections.
 
 BEGIN;
-SELECT plan(54);
+SELECT plan(59);
 
 -- ============================================================
 -- RLS ENABLED — core game tables
@@ -320,6 +320,42 @@ SELECT ok(
 SELECT ok(
   has_table_privilege('service_role', 'public.daily_challenges', 'SELECT'),
   'service_role can SELECT from daily_challenges table directly'
+);
+
+-- ============================================================
+-- Players cannot read image keys or delete their own game state
+-- ============================================================
+
+SELECT ok(
+  NOT has_table_privilege('authenticated', 'public.perfume_assets', 'SELECT'),
+  'authenticated (incl. anonymous players) cannot SELECT perfume_assets'
+);
+
+SELECT ok(
+  NOT has_table_privilege('anon', 'public.perfume_assets', 'SELECT'),
+  'anon cannot SELECT perfume_assets'
+);
+
+SELECT ok(
+  NOT EXISTS(
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN ('game_sessions', 'game_results')
+      AND cmd IN ('DELETE', 'ALL')
+  ),
+  'game_sessions and game_results have no DELETE policy'
+);
+
+SELECT ok(
+  NOT has_table_privilege('authenticated', 'public.game_sessions', 'DELETE')
+    AND NOT has_table_privilege('authenticated', 'public.game_results', 'DELETE'),
+  'authenticated cannot DELETE game_sessions or game_results'
+);
+
+SELECT ok(
+  NOT has_table_privilege('authenticated', 'public.players', 'SELECT')
+    AND NOT has_table_privilege('anon', 'public.players', 'SELECT'),
+  'player ids cannot be listed by client roles'
 );
 
 SELECT * FROM finish();
