@@ -34,14 +34,6 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 - **Risk:** an override added in one place only silently disappears in the other environment.
 - **Done when:** the Vercel project has `ENABLE_EXPERIMENTAL_COREPACK=1` (so Vercel also uses pnpm 11), then the `"pnpm"` field and `onlyBuiltDependencies` are removed.
 
-## Vulnerable development dependencies
-
-- **Where:** dev tooling in `package.json` (artillery, ESLint plugins, commitlint, madge, depcheck and their transitive dependencies): about 40 high and 3 critical advisories at the time of writing.
-- **Shortcut:** the CI audit gate in `security-scan.yml` runs `pnpm audit --prod`, because dev tooling does not ship to users. Production dependencies have no high or critical advisories (vulnerable transitive packages are pinned through `overrides`).
-- **Risk:** a compromised or vulnerable tool can still affect a developer machine or CI runner.
-- **Done when:** `pnpm audit --audit-level=high` passes without `--prod` (update or replace the tools, add overrides), and the gate drops `--prod`.
-- **Status 2026-10-01:** Dependabot shows 17 open alerts: 15 in development dependencies (undici, js-yaml, nanoid, vitest, joi and others) and 2 medium ones in runtime dependencies (`fflate`, `baseline-browser-mapping`). The runtime ones are fixed first, with the smallest update that clears each advisory.
-
 ## Client roles keep an unused grant on `daily_challenges_public`
 
 - **Where:** production database grants; `supabase/tests/01_schema.test.sql` and `02_rls.test.sql` assert the grant exists.
