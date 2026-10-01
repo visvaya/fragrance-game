@@ -34,13 +34,6 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 - **Risk:** a manual load-test run can pull a different or vulnerable transitive version; nothing in CI depends on it.
 - **Done when:** an artillery release moves to `csv-parse` 5 or later (or the load test moves to another tool), and the tool returns to `devDependencies`.
 
-## Playwright version pinned for the axe helper
-
-- **Where:** `pnpm-workspace.yaml` and the `"pnpm"` field in `package.json` (`"@axe-core/playwright>playwright-core": "1.58.2"`).
-- **Shortcut:** `@axe-core/playwright` takes `playwright-core` as a peer with no upper bound, so without the pin it resolves the newest release while `@playwright/test` stays older, and `e2e/a11y/wcag.spec.ts` gets two incompatible `Page` types.
-- **Risk:** a `@playwright/test` update without a matching pin change fails the typecheck (loud, not silent).
-- **Done when:** the pin can go, for example because `@playwright/test` and the resolved peer match again without an override.
-
 ## pnpm settings are duplicated for Vercel
 
 - **Where:** `package.json` (`"pnpm"` field) and `pnpm-workspace.yaml` (`overrides`, `peerDependencyRules`, `allowBuilds`, `onlyBuiltDependencies`).
