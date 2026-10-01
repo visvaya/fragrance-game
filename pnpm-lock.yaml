@@ -116,8 +116,8 @@ importers:
         specifier: ^1.36.1
         version: 1.36.2
       '@vercel/analytics':
-        specifier: ^1.3.1
-        version: 1.6.1(next@16.3.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@22.19.11)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
+        specifier: ^2.0.1
+        version: 2.0.1(next@16.3.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@22.19.11)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
       '@vercel/speed-insights':
         specifier: ^1.3.1
         version: 1.3.1(next@16.3.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@22.19.11)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
@@ -3284,12 +3284,13 @@ packages:
     peerDependencies:
       valibot: ^1.5.0
 
-  '@vercel/analytics@1.6.1':
-    resolution: {integrity: sha512-oH9He/bEM+6oKlv3chWuOOcp8Y6fo6/PSro8hEkgCW3pu9/OiCXiUpRUogDh3Fs3LH2sosDrx8CxeOLBEE+afg==}
+  '@vercel/analytics@2.0.1':
+    resolution: {integrity: sha512-MTQG6V9qQrt1tsDeF+2Uoo5aPjqbVPys1xvnIftXSJYG2SrwXRHnqEvVoYID7BTruDz4lCd2Z7rM1BdkUehk2g==}
     peerDependencies:
       '@remix-run/react': ^2
       '@sveltejs/kit': ^1 || ^2
       next: '>=16.2.3'
+      nuxt: '>= 3'
       react: 19.2.0
       svelte: '>= 4'
       vue: ^3
@@ -3300,6 +3301,8 @@ packages:
       '@sveltejs/kit':
         optional: true
       next:
+        optional: true
+      nuxt:
         optional: true
       react:
         optional: true
@@ -7044,8 +7047,8 @@ packages:
     engines: {node: '>= 10.13.0'}
     hasBin: true
 
-  webpack-sources@3.5.2:
-    resolution: {integrity: sha512-ycBMOBAiZPtRcp1AoPAClkBuNB8SyHicj7gMJH90LD1QxUtyhEpZ8sZ55yI87zz0EL49zskBu5ptnaps2+hZaA==}
+  webpack-sources@3.5.3:
+    resolution: {integrity: sha512-F/zS5rEcCKxS6hrhxkLjOzblTsuv89rkuDyP+vToquds6KfPJ3fDqg9UNzbtJcA2AgXZOLMYLQqZpuyE5zDfxg==}
     engines: {node: '>=10.13.0'}
 
   webpack@5.105.2:
@@ -9758,7 +9761,7 @@ snapshots:
     dependencies:
       valibot: 1.5.0(typescript@5.9.3)
 
-  '@vercel/analytics@1.6.1(next@16.3.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@22.19.11)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)':
+  '@vercel/analytics@2.0.1(next@16.3.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@22.19.11)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)':
     optionalDependencies:
       next: 16.3.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@22.19.11)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react: 19.2.0
@@ -13798,7 +13801,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  webpack-sources@3.5.2: {}
+  webpack-sources@3.5.3: {}
 
   webpack@5.105.2(esbuild@0.28.2)(postcss@8.5.28):
     dependencies:
@@ -13826,7 +13829,7 @@ snapshots:
       tapable: 2.3.3
       terser-webpack-plugin: 5.6.1(esbuild@0.28.2)(postcss@8.5.28)(webpack@5.105.2(esbuild@0.28.2)(postcss@8.5.28))
       watchpack: 2.5.2
-      webpack-sources: 3.5.2
+      webpack-sources: 3.5.3
     transitivePeerDependencies:
       - '@minify-html/node'
       - '@swc/core'
