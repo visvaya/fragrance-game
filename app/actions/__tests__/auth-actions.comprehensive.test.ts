@@ -69,6 +69,24 @@ function makeChain(value: unknown): SupabaseChainMock {
   return chain;
 }
 
+/** Admin auth mock whose getUserById reports the source account's anonymity. */
+function makeAdminAuth({ isAnonymous }: { isAnonymous: boolean | null }): {
+  admin: { getUserById: Mock };
+} {
+  return {
+    admin: {
+      getUserById: vi.fn().mockResolvedValue(
+        isAnonymous === null
+          ? { data: { user: null }, error: { message: "User not found" } }
+          : {
+              data: { user: { id: "source", is_anonymous: isAnonymous } },
+              error: null,
+            },
+      ),
+    },
+  };
+}
+
 const MOCK_IP = "127.0.0.1";
 const VALID_UUID = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
 const VALID_UUID_2 = "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
@@ -267,6 +285,55 @@ describe("migrateAnonymousPlayer", () => {
     expect(result).toEqual({ error: "Invalid anonymous player ID" });
   });
 
+  it("returns error for a string that is not a UUID", async () => {
+    const result = await migrateAnonymousPlayer("not-a-uuid");
+
+    expect(result).toEqual({ error: "Invalid anonymous player ID" });
+    expect(createClient).not.toHaveBeenCalled();
+  });
+
+  it("refuses to migrate from a registered (non-anonymous) account", async () => {
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-abc" } },
+          error: null,
+        }),
+      },
+    } as never);
+    const from = vi.fn();
+    vi.mocked(createAdminClient).mockReturnValue({
+      auth: makeAdminAuth({ isAnonymous: false }),
+      from,
+    } as never);
+
+    const result = await migrateAnonymousPlayer(VALID_UUID_2);
+
+    expect(result).toEqual({ error: "Source account is not anonymous" });
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("refuses to migrate when the source account does not exist", async () => {
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-abc" } },
+          error: null,
+        }),
+      },
+    } as never);
+    const from = vi.fn();
+    vi.mocked(createAdminClient).mockReturnValue({
+      auth: makeAdminAuth({ isAnonymous: null }),
+      from,
+    } as never);
+
+    const result = await migrateAnonymousPlayer(VALID_UUID_2);
+
+    expect(result).toEqual({ error: "Source account is not anonymous" });
+    expect(from).not.toHaveBeenCalled();
+  });
+
   it("returns error when user not authenticated", async () => {
     vi.mocked(createClient).mockResolvedValue({
       auth: {
@@ -310,6 +377,7 @@ describe("migrateAnonymousPlayer", () => {
     // Call counter for game_sessions (1st = user sessions read, 2nd = update)
     let gameSessionsCount = 0;
     vi.mocked(createAdminClient).mockReturnValue({
+      auth: makeAdminAuth({ isAnonymous: true }),
       // eslint-disable-next-line @typescript-eslint/promise-function-async -- mocks return thenable chains
       from: vi.fn().mockImplementation((table: string) => {
         if (table === "game_sessions") {
@@ -345,6 +413,7 @@ describe("migrateAnonymousPlayer", () => {
     } as never);
 
     vi.mocked(createAdminClient).mockReturnValue({
+      auth: makeAdminAuth({ isAnonymous: true }),
       // eslint-disable-next-line @typescript-eslint/promise-function-async -- mocks return thenable chains
       from: vi.fn().mockImplementation((table: string) => {
         if (table === "game_sessions") {
@@ -378,6 +447,7 @@ describe("migrateAnonymousPlayer", () => {
     } as never);
 
     vi.mocked(createAdminClient).mockReturnValue({
+      auth: makeAdminAuth({ isAnonymous: true }),
       from: vi
         .fn()
         // eslint-disable-next-line @typescript-eslint/promise-function-async -- mocks return thenable chains
@@ -402,6 +472,7 @@ describe("migrateAnonymousPlayer", () => {
 
     let playerStreaksCount = 0;
     vi.mocked(createAdminClient).mockReturnValue({
+      auth: makeAdminAuth({ isAnonymous: true }),
       // eslint-disable-next-line @typescript-eslint/promise-function-async -- mocks return thenable chains
       from: vi.fn().mockImplementation((table: string) => {
         if (table === "player_streaks") {
@@ -458,6 +529,7 @@ describe("migrateAnonymousPlayer", () => {
 
     let playerStreaksCount = 0;
     vi.mocked(createAdminClient).mockReturnValue({
+      auth: makeAdminAuth({ isAnonymous: true }),
       // eslint-disable-next-line @typescript-eslint/promise-function-async -- mocks return thenable chains
       from: vi.fn().mockImplementation((table: string) => {
         if (table === "player_streaks") {

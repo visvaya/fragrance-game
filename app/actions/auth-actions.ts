@@ -140,7 +140,7 @@ export async function migrateAnonymousPlayer(
   anonPlayerId: string,
 ): Promise<{ error: string } | { success: true }> {
   // Validate anonPlayerId is a valid UUID before any DB operations
-  const uuidValidation = z.string().safeParse(anonPlayerId);
+  const uuidValidation = z.uuid().safeParse(anonPlayerId);
   if (!uuidValidation.success) {
     return { error: "Invalid anonymous player ID" };
   }
@@ -167,6 +167,14 @@ export async function migrateAnonymousPlayer(
 
   // 2. Use Admin Client for Cross-User Operations
   const adminSupabase = createAdminClient();
+
+  // The source ID comes from client storage, so only an anonymous account may be
+  // merged; otherwise any signed-in user could take over a registered player's history.
+  const { data: sourceData, error: sourceError } =
+    await adminSupabase.auth.admin.getUserById(validatedAnonPlayerId);
+  if (sourceError !== null || sourceData.user.is_anonymous !== true) {
+    return { error: "Source account is not anonymous" };
+  }
 
   // 3. Move Game Sessions & Results
   // 3. Move Game Sessions & Results (with conflict handling)
