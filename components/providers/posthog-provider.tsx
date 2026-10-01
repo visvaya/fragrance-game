@@ -45,7 +45,8 @@ async function initPostHog(
       advanced_disable_feature_flags: true,
       api_host: "/ph-proxy",
       autocapture: false,
-      capture_pageview: false,
+      // Page views and page leaves are the only traffic metrics; "history_change" also covers client-side navigation.
+      capture_pageview: "history_change",
       disable_external_dependency_loading: true,
       disable_session_recording: true,
       disable_surveys: true,

@@ -47,7 +47,7 @@ pnpm test:e2e        # end-to-end tests (Playwright)
 - **UI**: shadcn/ui, Radix primitives, Tailwind CSS v4 (OKLCH colors)
 - **Backend**: Supabase (PostgreSQL, Auth, row-level security), Upstash Redis
 - **i18n**: next-intl (English, Polish)
-- **Monitoring**: Sentry, PostHog, Vercel Analytics
+- **Monitoring**: Sentry, PostHog, Vercel Speed Insights
 - **Deployment**: Vercel, with a daily cron job that picks the next challenge
 
 ## Project structure

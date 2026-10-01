@@ -3,7 +3,6 @@ import type React from "react";
 import { Geist, Geist_Mono, Playfair_Display, Caveat } from "next/font/google";
 import { notFound } from "next/navigation";
 
-import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NextIntlClientProvider } from "next-intl";
 import { getTranslations, getMessages } from "next-intl/server";
@@ -179,7 +178,6 @@ export default async function RootLayout({
               </SmoothScrollProvider>
             </UIPreferencesProvider>
           </AnalyticsProviders>
-          <Analytics />
           <SpeedInsights />
         </NextIntlClientProvider>
       </body>
