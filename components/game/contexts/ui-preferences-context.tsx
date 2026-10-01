@@ -147,17 +147,11 @@ export function UIPreferencesProvider({
   useEffect(() => {
     requestAnimationFrame(() => {
       const savedLayout = localStorage.getItem("fragrance-game-layout") as
-        | "narrow"
-        | "wide"
-        | null;
+        "narrow" | "wide" | null;
       const savedFont = localStorage.getItem("fragrance-game-font") as
-        | "normal"
-        | "large"
-        | null;
+        "normal" | "large" | null;
       const savedTheme = localStorage.getItem("fragrance-game-theme") as
-        | "light"
-        | "dark"
-        | null;
+        "light" | "dark" | null;
       const savedAutoScroll = localStorage.getItem(
         "fragrance-game-auto-scroll",
       );

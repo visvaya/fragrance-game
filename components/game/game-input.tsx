@@ -309,8 +309,7 @@ export function GameInput() {
     const listElement = listReference.current;
     if (listElement && selectedIndex >= 0) {
       const activeItem = listElement.children[selectedIndex] as
-        | HTMLElement
-        | undefined;
+        HTMLElement | undefined;
       if (activeItem) {
         activeItem.scrollIntoView({ behavior: "smooth", block: "nearest" });
       }

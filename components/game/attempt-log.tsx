@@ -166,7 +166,7 @@ export const AttemptLog = memo(function AttemptLog() {
 
       <div
         className={cn(
-          "-mb-3 grid grid-cols-[1.5rem_1fr_minmax(6.5625rem,auto)] overflow-x-auto [scrollbar-width:none] sm:grid-cols-[2rem_1fr_minmax(6.5625rem,auto)] [&::-webkit-scrollbar]:hidden",
+          "-mb-3 grid [scrollbar-width:none] grid-cols-[1.5rem_1fr_minmax(6.5625rem,auto)] overflow-x-auto sm:grid-cols-[2rem_1fr_minmax(6.5625rem,auto)] [&::-webkit-scrollbar]:hidden",
           maskClass,
         )}
         ref={ref}

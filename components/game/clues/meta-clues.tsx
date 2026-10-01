@@ -215,7 +215,7 @@ function MetaBadge({
     <div
       className={cn(
         "group inline-flex min-h-[1.375rem] w-fit max-w-full cursor-default flex-nowrap items-center gap-1 rounded-md border border-border bg-secondary/50 px-2.5 py-1 text-sm font-normal text-muted-foreground transition-colors duration-300 hover:bg-secondary",
-        "overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        "[scrollbar-width:none] overflow-x-auto [&::-webkit-scrollbar]:hidden",
         maskClass,
       )}
       ref={ref}

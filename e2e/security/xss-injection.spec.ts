@@ -274,14 +274,12 @@ test.describe("Input Validation Security", () => {
     await page.waitForTimeout(1000);
 
     const suggestions = page.locator('button[class*="text-left text-sm"]');
-    let count = await suggestions.count();
-    expect(count).toBe(0);
+    await expect(suggestions).toHaveCount(0);
 
     await input.fill("xy");
     await page.waitForTimeout(1000);
 
-    count = await suggestions.count();
-    expect(count).toBe(0);
+    await expect(suggestions).toHaveCount(0);
 
     await input.fill("Cha");
     await page.waitForTimeout(1000);
