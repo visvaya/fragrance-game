@@ -136,3 +136,10 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 
 - **Where:** `app/actions/auth-actions.ts`, `getAnonSessionAttemptCount` (ids validated as plain strings, not UUIDs); `app/actions/security-actions.ts`, `validatePasswordSafety` (no rate limit).
 - **Done when:** both ids use `z.uuid()` and the password check has a per-IP limit in `lib/redis.ts`.
+
+## No privacy policy or consent choice
+
+- **Where:** `components/game/game-footer.tsx` (the privacy policy, terms and contact links only show a "coming soon" toast); `components/providers/posthog-provider.tsx` and `instrumentation-client.ts` (analytics and error reporting start without asking).
+- **Shortcut:** there is no privacy policy or terms page and no dialog to accept or refuse optional cookies. PostHog loads on the first interaction or after 15 seconds and keeps its identifier in a cookie and `localStorage` (default persistence); Sentry reports errors for every visitor.
+- **Risk:** processing personal data without the information and consent that GDPR and the ePrivacy rules require for players in the EU.
+- **Done when:** the footer links open real privacy policy, terms and contact pages (both locales; the policy needs a contact point anyway), and a consent dialog with equally prominent accept and reject options gates optional analytics, with the choice stored and changeable later.
