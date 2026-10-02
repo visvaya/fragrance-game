@@ -150,3 +150,45 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 - **Shortcut:** in full `pnpm test:coverage` runs on a loaded machine, one test from this file regularly exceeds the 5 s default timeout (a different test each time; seen in at least five runs on 2026-10-01 and 2026-10-02). The file passes on its own every time and in CI, so the failures are treated as load noise and the file is re-run alone.
 - **Risk:** a real regression in this file can be dismissed as noise, and full local runs need a second pass.
 - **Done when:** the file passes reliably in full runs, for example by finding what makes it slow (rendering the whole provider tree, real timers in `waitFor`) and fixing that, or by a justified per-file timeout.
+
+## Stats and profile dialogs show sample numbers
+
+- **Where:** `components/game/modals/stats-modal.tsx` (`STATS` constant), `components/profile/profile-modal.tsx` (played, won and streak cells).
+- **Shortcut:** both dialogs render fixed sample values (12 played, 83% won, streak 4, best 9; distribution `[0, 2, 6, 3, 1]`). The distribution has five rows although a game has six attempts, and there is no row for lost games.
+- **Risk:** every player, including a first-time guest, sees statistics that are not theirs.
+- **Done when:** both dialogs read the player's own games (six attempt rows plus losses, today's result highlighted), and a player with no games sees an empty state instead of numbers.
+
+## Auth error toast uses missing translation keys
+
+- **Where:** `components/auth/auth-error-watcher.tsx` (`t("title")`, `t("defaultMessage")` in the `Auth.errorWatcher` namespace).
+- **Shortcut:** the namespace defines `authError`, `unknownError`, `loginFailed` and `problemSigningIn`; `title` and `defaultMessage` do not exist in either locale.
+- **Risk:** when a login redirect carries an error, the toast shows a missing-message fallback instead of a readable message.
+- **Done when:** the component uses the existing keys and a test renders the toast for both the query-string and the hash error.
+
+## Mobile reset menu item ignores the reset flag
+
+- **Where:** `components/game/mobile-reset-item.tsx`, rendered unconditionally in `components/game/game-header.tsx`.
+- **Shortcut:** the desktop reset button returns `null` unless `NEXT_PUBLIC_GAME_RESET_ENABLED` is `"true"`, but the mobile menu item has no such check. The server action refuses the reset when the flag is off, and the item only logs the failure to the console.
+- **Risk:** every mobile player sees a debug "Resetuj" item that does nothing visible when confirmed.
+- **Done when:** the mobile item uses the same flag check as the desktop button, with a test for both flag values.
+
+## Toasts and captcha ignore the in-app theme
+
+- **Where:** `components/ui/sonner.tsx` and `components/auth/captcha.tsx` (`useTheme()` from `next-themes`).
+- **Shortcut:** no `ThemeProvider` from `next-themes` is mounted; the app sets dark mode itself through the `.dark` class and `localStorage` key `fragrance-game-theme`. The hook therefore always returns its default, so toasts follow the system theme and the Turnstile widget never receives the in-app choice.
+- **Risk:** with dark mode chosen in the menu on a light system (or the reverse), toasts and the captcha widget use the other theme.
+- **Done when:** both components read the theme from the app's own UI preferences, or a `next-themes` provider is mounted and wired to the existing toggle, and `next-themes` is removed if unused.
+
+## Striped placeholder pattern is invalid CSS
+
+- **Where:** `app/globals.css` (`@utility bg-striped-pattern`), used by the hidden note badges in `components/game/clues/pyramid-clues.tsx`.
+- **Shortcut:** the gradient stops use `oklch(var(--color-foreground) / 0.06)`, but `--color-foreground` already holds a complete `oklch()` value, so the declaration is invalid and the browser drops it.
+- **Risk:** the first-attempt note placeholders lose their intended striped look without any error.
+- **Done when:** the stops use `color-mix(in oklch, var(--color-foreground) 6%, transparent)` (or an equivalent valid form) and the stripes are confirmed in both themes.
+
+## Error pages are untranslated and unstyled
+
+- **Where:** `app/[locale]/not-found.tsx`, `app/global-error.tsx`.
+- **Shortcut:** the 404 page is hard-coded English text without the game's header, fonts or palette; the global error page is the default Next.js error with `lang="en"`.
+- **Risk:** a mistyped link or a crash drops players onto a page that looks unrelated to the game, in the wrong language.
+- **Done when:** both pages use the game's layout and tokens, read their text from `messages/*.json` in both locales, and offer a way back to today's game.
