@@ -143,3 +143,10 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 - **Shortcut:** there is no privacy policy or terms page and no dialog to accept or refuse optional cookies. PostHog loads on the first interaction or after 15 seconds and keeps its identifier in a cookie and `localStorage` (default persistence); Sentry reports errors for every visitor.
 - **Risk:** processing personal data without the information and consent that GDPR and the ePrivacy rules require for players in the EU.
 - **Done when:** the footer links open real privacy policy, terms and contact pages (both locales; the policy needs a contact point anyway), and a consent dialog with equally prominent accept and reject options gates optional analytics, with the choice stored and changeable later.
+
+## `game-provider` tests time out under load
+
+- **Where:** `components/game/__tests__/game-provider.test.tsx`.
+- **Shortcut:** in full `pnpm test:coverage` runs on a loaded machine, one test from this file regularly exceeds the 5 s default timeout (a different test each time; seen in at least five runs on 2026-10-01 and 2026-10-02). The file passes on its own every time and in CI, so the failures are treated as load noise and the file is re-run alone.
+- **Risk:** a real regression in this file can be dismissed as noise, and full local runs need a second pass.
+- **Done when:** the file passes reliably in full runs, for example by finding what makes it slow (rendering the whole provider tree, real timers in `waitFor`) and fixing that, or by a justified per-file timeout.
