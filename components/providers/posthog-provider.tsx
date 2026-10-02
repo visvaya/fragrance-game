@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useState,
-  type ReactNode,
-  type Dispatch,
-  type SetStateAction,
-} from "react";
+import type { ReactNode } from "react";
 
 import { env } from "@/lib/env";
 import { useMountEffect } from "@/lib/hooks/use-mount-effect";
@@ -32,14 +27,10 @@ export function captureAnalyticsEvent(
  * improving initial load performance (TBT, LCP).
  */
 
-async function initPostHog(
-  setPhClient: (client: unknown) => void,
-  setPhProvider: Dispatch<SetStateAction<React.ElementType | null>>,
-) {
+async function initPostHog() {
   try {
     // Dynamic import posthog-js
     const { default: posthog } = await import("posthog-js");
-    const { PostHogProvider: Provider } = await import("posthog-js/react");
 
     posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
       advanced_disable_feature_flags: true,
@@ -63,10 +54,8 @@ async function initPostHog(
       ui_host: env.NEXT_PUBLIC_POSTHOG_UI_HOST ?? "https://eu.posthog.com",
     });
 
-    setPhClient(posthog);
     // eslint-disable-next-line fp/no-mutation -- module-level singleton, set once after PostHog initializes
     _posthogInstance = posthog;
-    setPhProvider(() => Provider);
   } catch (error) {
     console.error("Failed to load PostHog:", error);
   }
@@ -80,9 +69,6 @@ async function initPostHog(
 export function PostHogProvider({
   children,
 }: Readonly<{ children: ReactNode }>) {
-  const [phProvider, setPhProvider] = useState<React.ElementType | null>(null);
-  const [phClient, setPhClient] = useState<unknown>(null);
-
   useMountEffect(() => {
     let triggered = false;
 
@@ -91,7 +77,7 @@ export function PostHogProvider({
       // eslint-disable-next-line fp/no-mutation -- necessary for single-fire pattern
       triggered = true;
       cleanup();
-      void initPostHog(setPhClient, setPhProvider);
+      void initPostHog();
     };
 
     const events = ["click", "scroll", "keydown", "touchstart"] as const;
@@ -115,14 +101,8 @@ export function PostHogProvider({
     return cleanup;
   });
 
-  // Return children directly until PostHog is loaded to avoid blocking render
-  if (phProvider === null || phClient === null) {
-    return <>{children}</>;
-  }
-
-  const ProviderComponent = phProvider;
-  return (
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any -- PostHog provider is dynamically imported; client prop type not exported by posthog-js; any cast unavoidable
-    <ProviderComponent client={phClient as any}>{children}</ProviderComponent>
-  );
+  // The tree must stay identical before and after PostHog loads: wrapping children in
+  // posthog-js/react's provider once it arrived remounted the whole app and reset game
+  // state mid-move. Events go through captureAnalyticsEvent, so no React context is needed.
+  return <>{children}</>;
 }
