@@ -2,10 +2,11 @@
 -- Run: supabase test db
 --
 -- Verifies that RLS is enabled on tables, correct policies exist,
--- and anon role cannot bypass VIEW protections.
+-- anon role cannot bypass VIEW protections, and client roles hold only the
+-- table privileges they need.
 
 BEGIN;
-SELECT plan(65);
+SELECT plan(66);
 
 -- ============================================================
 -- RLS ENABLED — core game tables
@@ -401,6 +402,17 @@ SELECT is(
     WHERE has_table_privilege(r.role_name, t.table_name, p.privilege)),
   0,
   'client roles hold no DELETE, TRUNCATE, REFERENCES or TRIGGER on the game state tables'
+);
+
+SELECT ok(
+  CASE WHEN current_setting('server_version_num')::int < 170000 THEN true
+       ELSE NOT EXISTS (
+         SELECT 1 FROM (VALUES ('anon'), ('authenticated')) AS r(role_name)
+         CROSS JOIN (VALUES ('public.game_sessions'), ('public.game_results'),
+                            ('public.player_streaks')) AS t(table_name)
+         WHERE has_table_privilege(r.role_name, t.table_name, 'MAINTAIN'))
+  END,
+  'client roles hold no MAINTAIN on the game state tables (PostgreSQL 17+)'
 );
 
 SELECT ok(

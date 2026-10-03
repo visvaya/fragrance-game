@@ -10,6 +10,7 @@
 --
 -- player_streaks has no client write policy, but the table-level grants were still in
 -- place; they are revoked so a future policy cannot open writes by accident.
+-- INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER and MAINTAIN are revoked from client roles.
 -- Revoking a table-level privilege also revokes it on every column.
 
 DROP POLICY IF EXISTS "Owner insert sessions" ON public.game_sessions;
@@ -19,3 +20,12 @@ DROP POLICY IF EXISTS "Players can insert their own results" ON public.game_resu
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
   ON public.game_sessions, public.game_results, public.player_streaks
   FROM anon, authenticated;
+
+-- MAINTAIN exists from PostgreSQL 17; the local stack still runs 15, so the revoke is guarded.
+DO $$
+BEGIN
+  IF current_setting('server_version_num')::int >= 170000 THEN
+    EXECUTE 'REVOKE MAINTAIN ON public.game_sessions, public.game_results, public.player_streaks '
+      'FROM anon, authenticated';
+  END IF;
+END $$;
