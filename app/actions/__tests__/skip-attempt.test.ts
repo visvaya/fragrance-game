@@ -93,6 +93,7 @@ function makeAdminMock() {
               },
         error: null,
       }),
+      update: vi.fn().mockReturnThis(),
     })),
   };
 }
@@ -164,9 +165,10 @@ describe("skipAttempt", () => {
     vi.mocked(createClient).mockResolvedValue(client as any);
 
     const admin = makeAdminMock();
+    const adminUpdate = vi.fn().mockReturnThis();
     vi.mocked(createAdminClient).mockReturnValue({
       from: vi.fn((table: string) => {
-        const chain = admin.from(table);
+        const chain = { ...admin.from(table), update: adminUpdate };
         // The history read is the only query that filters with in(); fail it.
         return {
           ...chain,
@@ -183,10 +185,7 @@ describe("skipAttempt", () => {
     await expect(skipAttempt(SESSION_ID, NONCE)).rejects.toThrow(
       "Guess history unavailable",
     );
-    const sessionChain = client.from.mock.results[0]?.value as {
-      update: ReturnType<typeof vi.fn>;
-    };
-    expect(sessionChain.update).not.toHaveBeenCalled();
+    expect(adminUpdate).not.toHaveBeenCalled();
   });
 
   it("throws on nonce mismatch", async () => {

@@ -26,6 +26,11 @@ import {
   getRevealPercentages,
   type RevealState,
 } from "@/lib/game/scoring";
+import {
+  insertGameSession,
+  recordGameResult,
+  updateGameSession,
+} from "@/lib/game/session-writes";
 import { checkRateLimit } from "@/lib/redis";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { GameSessionsUpdate } from "@/lib/validations/supabase.schema";
@@ -334,39 +339,22 @@ async function createNewGameSession(
   challengeId: string,
   safeInheritedCount: number,
   userId: string,
-  supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<StartGameResponse> {
   await checkRateLimit("startGame", userId);
 
   const nonce = generateNonce();
-  const { data: session, error: insertError } = (await supabase
-    .from("game_sessions")
-    .insert({
+  const { data: session, error: insertError } = await insertGameSession(
+    userId,
+    {
       attempts_count: safeInheritedCount,
       challenge_id: challengeId,
       guesses: [],
       last_guess: null,
       last_nonce: nonce,
-      player_id: userId,
       start_time: new Date().toISOString(),
       status: "active",
-    })
-    .select(
-      "attempts_count, challenge_id, id, last_nonce, player_id, start_time, status",
-    )
-    .limit(1)
-    .single()) as {
-    data: {
-      attempts_count: number;
-      challenge_id: string;
-      id: string;
-      last_nonce: string | number;
-      player_id: string;
-      start_time: string;
-      status: string;
-    } | null;
-    error: Error | null;
-  };
+    },
+  );
 
   if (insertError || !session) {
     console.error("Error starting game:", insertError);
@@ -506,12 +494,7 @@ export async function startGame(
   }
 
   // Rate limiting: only applies to creating NEW sessions, not resuming existing ones
-  return createNewGameSession(
-    challengeId,
-    safeInheritedCount,
-    user.id,
-    supabase,
-  );
+  return createNewGameSession(challengeId, safeInheritedCount, user.id);
 }
 
 /**
@@ -873,18 +856,12 @@ export async function submitGuess(
     throw new Error("Game state validation failed");
   }
 
-  const { data: updatedSession, error: updateError } = await supabase
-    .from("game_sessions")
-    .update(updatePayload)
-    .eq("id", sessionId)
-    .eq("last_nonce", clientNonce)
-    .select(
-      "attempts_count, challenge_id, guesses, id, last_guess, last_nonce, player_id, start_time, status",
-    )
-    .limit(1)
-    .single();
+  const { data: updatedSession, error: updateError } = await updateGameSession(
+    { expectedNonce: clientNonce, playerId: user.id, sessionId },
+    updatePayload,
+  );
 
-  if (updateError) {
+  if (updateError || !updatedSession) {
     throw new Error(`CONFLICT:${session.last_nonce}`);
   }
 
@@ -915,11 +892,10 @@ export async function submitGuess(
     const now = new Date();
     const isRanked = now <= new Date(challenge.grace_deadline_at_utc);
 
-    await supabase.from("game_results").insert({
+    await recordGameResult(user.id, {
       attempts: nextAttempts,
       challenge_id: session.challenge_id,
       is_ranked: isRanked,
-      player_id: user.id,
       score,
       score_raw: baseScore,
       scoring_version: 1,
@@ -999,7 +975,6 @@ function mapPerfumeDetails(perfume: {
  * Records a loss in game_results and fetches the answer perfume name for reveal.
  */
 async function recordSkipLoss(
-  supabase: Awaited<ReturnType<typeof createClient>>,
   session: { challenge_id: string; start_time: string },
   sessionId: string,
   playerId: string,
@@ -1017,11 +992,10 @@ async function recordSkipLoss(
 
   const now = new Date();
   const isRanked = now <= new Date(challenge.grace_deadline_at_utc);
-  await supabase.from("game_results").insert({
+  await recordGameResult(playerId, {
     attempts: attemptCount,
     challenge_id: session.challenge_id,
     is_ranked: isRanked,
-    player_id: playerId,
     score: 0,
     score_raw: 0,
     scoring_version: 1,
@@ -1138,17 +1112,16 @@ export async function skipAttempt(
     [...previousHistory, skipHistoryItem(skipEntry.timestamp)],
   );
 
-  const { error: updateError } = await supabase
-    .from("game_sessions")
-    .update({
+  const { error: updateError } = await updateGameSession(
+    { expectedNonce: clientNonce, playerId: user.id, sessionId },
+    {
       attempts_count: nextAttempts,
       guesses: nextGuesses,
       last_guess: new Date().toISOString(),
       last_nonce: newNonce,
       status: newStatus,
-    })
-    .eq("id", sessionId)
-    .eq("last_nonce", clientNonce);
+    },
+  );
 
   if (updateError) throw new Error(`CONFLICT:${session.last_nonce}`);
 
@@ -1163,7 +1136,7 @@ export async function skipAttempt(
   );
 
   const { answerConcentration, answerName } = isGameOver
-    ? await recordSkipLoss(supabase, session, sessionId, user.id, nextAttempts)
+    ? await recordSkipLoss(session, sessionId, user.id, nextAttempts)
     : { answerConcentration: undefined, answerName: undefined };
 
   const imageUrl = await getImageUrlForStep(sessionId);
