@@ -91,3 +91,11 @@ peerDependencyRules:
     - "@opentelemetry/api"
   "allowAny":
     - "@opentelemetry/api"
+
+# GHSA-vfj7-8cjw-p6xm (braces <= 3.0.3, high): no patched release exists yet.
+# braces is reached only through development tools (ESLint, depcheck, ts-morph)
+# that expand patterns from this repository's own configuration; production
+# dependencies are not affected. Remove this entry once braces 3.0.4 is out.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-vfj7-8cjw-p6xm

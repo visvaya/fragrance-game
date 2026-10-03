@@ -34,6 +34,13 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 - **Risk:** a manual load-test run can pull a different or vulnerable transitive version; nothing in CI depends on it.
 - **Done when:** an artillery release moves to `csv-parse` 5 or later (or the load test moves to another tool), and the tool returns to `devDependencies`.
 
+## Ignored audit advisory for `braces`
+
+- **Where:** `pnpm-workspace.yaml` (`auditConfig.ignoreGhsas`).
+- **Shortcut:** GHSA-vfj7-8cjw-p6xm (`braces` <= 3.0.3, denial of service through deeply nested brace patterns) has no patched release, so `pnpm audit` ignores it to keep the required Dependency Audit check usable. `braces` is reached only through development tools (ESLint, depcheck, ts-morph) that expand patterns from this repository's own configuration; `pnpm audit --prod` reports nothing. A step in `security-scan.yml` fails if `braces` becomes a production dependency while the ignore is in place.
+- **Risk:** a development tool could hang on a crafted pattern; no user input reaches it, and production builds do not ship it.
+- **Done when:** `braces` 3.0.4 or later is released, the lockfile picks it up, and the ignore entry is removed.
+
 ## pnpm settings are duplicated for Vercel
 
 - **Where:** `package.json` (`"pnpm"` field) and `pnpm-workspace.yaml` (`overrides`, `peerDependencyRules`, `allowBuilds`, `onlyBuiltDependencies`).
