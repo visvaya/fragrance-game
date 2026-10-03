@@ -12,6 +12,7 @@ import {
   buildSessionClues,
   enrichGuessHistory,
   fetchChallengeAnswer,
+  skipHistoryItem,
   toClueAnswer,
   type AttemptFeedback,
   type GuessHistoryItem,
@@ -785,7 +786,7 @@ export async function submitGuess(
     adminSupabase
       .from("perfumes")
       .select(
-        "brand_id, release_year, top_notes, middle_notes, base_notes, perfumers, concentration_id, concentrations(name), gender",
+        "name, brand_id, brands(name), release_year, top_notes, middle_notes, base_notes, perfumers, concentration_id, concentrations(name), gender",
       )
       .eq("id", perfumeId)
       .limit(1)
@@ -826,6 +827,34 @@ export async function submitGuess(
   })();
 
   const nextGuesses: StoredGuess[] = [...(session.guesses ?? []), guessEntry];
+
+  // Every read behind the clues happens before the write: once the nonce changes,
+  // a failed read would leave the browser without the new nonce.
+  const answerClue = toClueAnswer(answerPerfume);
+  const previousHistory = await enrichGuessHistory(
+    session.guesses ?? [],
+    answerClue,
+  );
+  const revealed = buildSessionClues(
+    answerClue,
+    { attempts_count: nextAttempts, status: newStatus },
+    [
+      ...previousHistory,
+      {
+        brandName: guessedPerfume.brands?.name ?? "Unknown",
+        concentration: getArrayName(guessedPerfume.concentrations),
+        feedback,
+        gender: guessedPerfume.gender ?? undefined,
+        isCorrect,
+        perfumeId,
+        perfumeName: guessedPerfume.name ?? "",
+        perfumers: guessedPerfume.perfumers ?? [],
+        timestamp: guessEntry.timestamp,
+        year: guessedPerfume.release_year ?? undefined,
+      },
+    ],
+  );
+
   const updatePayload = {
     attempts_count: nextAttempts,
     guesses: nextGuesses,
@@ -913,8 +942,6 @@ export async function submitGuess(
   })();
 
   const nextImageUrl = await getImageUrlForStep(sessionId);
-  const answerClue = toClueAnswer(answerPerfume);
-  const history = await enrichGuessHistory(nextGuesses, answerClue);
 
   return {
     answerConcentration: isGameOver
@@ -933,11 +960,7 @@ export async function submitGuess(
     imageUrl: nextImageUrl,
     newNonce: newNonce,
     result: isCorrect ? "correct" : "incorrect",
-    revealed: buildSessionClues(
-      answerClue,
-      { attempts_count: nextAttempts, status: newStatus },
-      history,
-    ),
+    revealed,
     revealState: getRevealPercentages(nextAttempts),
   };
 }
@@ -1102,6 +1125,18 @@ export async function skipAttempt(
   };
 
   const nextGuesses = [...(session.guesses ?? []), skipEntry];
+
+  // Read the history before the write so a failed read cannot strand the new nonce.
+  const previousHistory = await enrichGuessHistory(
+    session.guesses ?? [],
+    answer.clue,
+  );
+  const revealed = buildSessionClues(
+    answer.clue,
+    { attempts_count: nextAttempts, status: newStatus },
+    [...previousHistory, skipHistoryItem(skipEntry.timestamp)],
+  );
+
   const { error: updateError } = await supabase
     .from("game_sessions")
     .update({
@@ -1131,7 +1166,6 @@ export async function skipAttempt(
     : { answerConcentration: undefined, answerName: undefined };
 
   const imageUrl = await getImageUrlForStep(sessionId);
-  const history = await enrichGuessHistory(nextGuesses, answer.clue);
 
   return {
     answerConcentration,
@@ -1139,11 +1173,7 @@ export async function skipAttempt(
     gameStatus: newStatus,
     imageUrl,
     newNonce,
-    revealed: buildSessionClues(
-      answer.clue,
-      { attempts_count: nextAttempts, status: newStatus },
-      history,
-    ),
+    revealed,
   };
 }
 

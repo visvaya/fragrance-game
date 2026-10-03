@@ -169,6 +169,30 @@ describe("enrichGuessHistory", () => {
     });
   });
 
+  it("rejects when the guessed perfumes cannot be read", async () => {
+    mockAdmin({
+      perfumes: { data: null, error: { message: "connection reset" } },
+    });
+
+    await expect(
+      enrichGuessHistory(
+        [{ isCorrect: false, perfumeId: GUESS_ID, timestamp: "t" }],
+        ANSWER,
+      ),
+    ).rejects.toThrow("Guess history unavailable");
+  });
+
+  it("drops a guess whose perfume row is missing without an error", async () => {
+    mockAdmin({ perfumes: { data: [], error: null } });
+
+    const result = await enrichGuessHistory(
+      [{ isCorrect: false, perfumeId: GUESS_ID, timestamp: "t" }],
+      ANSWER,
+    );
+
+    expect(result).toEqual([]);
+  });
+
   it("marks a legacy correct guess as full match", async () => {
     mockAdmin({ perfumes: { data: [guessedRow], error: null } });
 

@@ -1831,7 +1831,9 @@ describe("game-actions", () => {
       return chain;
     }
 
-    function mockAdmin() {
+    const historyOk = { data: [guessedRow], error: null };
+
+    function mockAdmin(historyResult: unknown = historyOk) {
       vi.mocked(createAdminClient).mockReturnValue({
         from: vi.fn((table: string) => {
           switch (table) {
@@ -1861,7 +1863,7 @@ describe("game-actions", () => {
             }
             case "perfumes": {
               // Awaited list (.in) returns the guessed perfume; .single() is keyed by id.
-              const chain = thenable({ data: [guessedRow], error: null });
+              const chain = thenable(historyResult);
               const eq = vi.fn((_column: string, id: string) => {
                 chain.single = vi.fn().mockResolvedValue({
                   data: id === GUESS_ID ? guessedRow : answerRow,
@@ -1928,6 +1930,32 @@ describe("game-actions", () => {
       expect(result.revealed.year).toBe(`2${MASK_CHAR.repeat(3)}`);
       expect(result.revealed.brand).not.toBe("Chanel");
       expect(result.revealed.genderRevealed).toBe(true);
+    });
+
+    it("submitGuess fails before saving when the guess history cannot be read", async () => {
+      mockAdmin({ data: null, error: { message: "connection reset" } });
+      const sessionChain = thenable({
+        data: {
+          ...baseSession,
+          attempts_count: 1,
+          guesses: [{ isCorrect: false, perfumeId: GUESS_ID, timestamp: "t" }],
+        },
+        error: null,
+      });
+      vi.mocked(createClient).mockResolvedValue({
+        auth: {
+          getUser: vi.fn().mockResolvedValue({
+            data: { user: { id: USER_ID } },
+            error: null,
+          }),
+        },
+        from: vi.fn(() => sessionChain),
+      } as never);
+
+      await expect(submitGuess(SESSION_ID, GUESS_ID, NONCE)).rejects.toThrow(
+        "Guess history unavailable",
+      );
+      expect(sessionChain.update).not.toHaveBeenCalled();
     });
 
     it("submitGuess on a finished session returns fully revealed clues", async () => {

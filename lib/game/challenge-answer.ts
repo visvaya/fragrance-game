@@ -190,14 +190,32 @@ async function loadGuessedPerfumes(
   ids: readonly string[],
 ): Promise<Map<string, GuessedPerfumeRow>> {
   if (ids.length === 0) return new Map();
-  const { data: perfumes } = (await createAdminClient()
+  const { data: perfumes, error } = (await createAdminClient()
     .from("perfumes")
     .select(
       "id, name, brands(name), release_year, concentrations(name), gender, perfumers",
     )
     .in("id", ids)
-    .limit(ids.length)) as { data: GuessedPerfumeRow[] | null };
+    .limit(ids.length)) as {
+    data: GuessedPerfumeRow[] | null;
+    error: unknown;
+  };
+  // A failed read must not shorten the history: the client derives the game state from it.
+  if (error) throw new Error("Guess history unavailable");
   return new Map((perfumes ?? []).map((p) => [p.id, p]));
+}
+
+/** History entry of a skipped attempt. */
+export function skipHistoryItem(timestamp: string): GuessHistoryItem {
+  return {
+    brandName: "",
+    feedback: SKIP_FEEDBACK,
+    isCorrect: false,
+    isSkip: true,
+    perfumeId: "",
+    perfumeName: "",
+    timestamp,
+  };
 }
 
 /** Enriches stored guesses with guessed-perfume details; always returns feedback (computed for legacy rows). */
@@ -213,19 +231,7 @@ export async function enrichGuessHistory(
   const perfumeMap = await loadGuessedPerfumes(ids);
 
   return rawGuesses.flatMap((guess): GuessHistoryItem[] => {
-    if (guess.isSkip) {
-      return [
-        {
-          brandName: "",
-          feedback: SKIP_FEEDBACK,
-          isCorrect: false,
-          isSkip: true,
-          perfumeId: "",
-          perfumeName: "",
-          timestamp: guess.timestamp,
-        },
-      ];
-    }
+    if (guess.isSkip) return [skipHistoryItem(guess.timestamp)];
     const p = guess.perfumeId ? perfumeMap.get(guess.perfumeId) : undefined;
     if (!p || !guess.perfumeId) return [];
     return [
