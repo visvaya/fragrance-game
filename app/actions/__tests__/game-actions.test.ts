@@ -196,6 +196,38 @@ function withPublicView<T extends { from: (table: string) => unknown }>(
 }
 
 /**
+ * Routes the game state writes (game_sessions and game_results) of an admin client
+ * mock to dedicated chains: server actions write game state only with the service
+ * role. The session chain resolves `.single()` to `session`.
+ */
+function withGameWrites<T extends { from: (table: string) => unknown }>(
+  admin: T,
+  session: { data: unknown; error: unknown },
+) {
+  const sessionChain = {
+    eq: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue(session),
+    update: vi.fn().mockReturnThis(),
+  };
+  const resultChain = {
+    insert: vi.fn().mockResolvedValue({ data: null, error: null }),
+  };
+  return {
+    ...admin,
+    from: vi.fn((table: string) => {
+      if (table === "game_sessions") return sessionChain;
+      if (table === "game_results") return resultChain;
+      return admin.from(table);
+    }),
+    resultChain,
+    sessionChain,
+  };
+}
+
+/**
  * Builds the mock chain for the daily_challenges_public view query used by
  * getDailyChallenge()/getDailyChallengeSSR()/startGame(): select().eq().limit().single().
  */
@@ -755,7 +787,17 @@ describe("game-actions", () => {
 
         vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
 
-        vi.mocked(createAdminClient).mockReturnValue(mockAdminClient as never);
+        vi.mocked(createAdminClient).mockReturnValue(
+          withGameWrites(mockAdminClient, {
+            data: {
+              attempts_count: 0,
+              id: "123e4567-e89b-12d3-a456-426614174000",
+              last_nonce: mockNonce,
+              status: "active",
+            },
+            error: null,
+          }) as never,
+        );
 
         const result = await startGame(mockChallengeId);
 
@@ -805,6 +847,12 @@ describe("game-actions", () => {
         };
 
         vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        vi.mocked(createAdminClient).mockReturnValue(
+          withGameWrites(
+            { from: vi.fn() },
+            { data: null, error: { message: "Insert failed" } },
+          ) as never,
+        );
 
         await expect(startGame(mockChallengeId)).rejects.toThrow(
           "Failed to create session",
@@ -1195,7 +1243,18 @@ describe("game-actions", () => {
         .mockResolvedValueOnce(mockSupabaseClientForStart as never)
         .mockResolvedValueOnce(mockSupabaseClientForImage as never);
 
-      vi.mocked(createAdminClient).mockReturnValue(mockAdminClient as never);
+      vi.mocked(createAdminClient).mockReturnValue(
+        withGameWrites(mockAdminClient, {
+          data: {
+            attempts_count: 0,
+            challenge_id: mockChallenge.id,
+            id: "123e4567-e89b-12d3-a456-426614174000",
+            last_nonce: "nonce-123",
+            status: "active",
+          },
+          error: null,
+        }) as never,
+      );
 
       const result = await initializeGame();
 
@@ -1470,7 +1529,12 @@ describe("game-actions", () => {
           .mockResolvedValueOnce(mockSupabaseClient1 as never)
           .mockResolvedValueOnce(mockSupabaseClient2 as never);
 
-        vi.mocked(createAdminClient).mockReturnValue(mockAdminClient as never);
+        vi.mocked(createAdminClient).mockReturnValue(
+          withGameWrites(mockAdminClient, {
+            data: { ...sessionData, attempts_count: 3, status: "won" },
+            error: null,
+          }) as never,
+        );
 
         const result = await submitGuess(
           mockSessionId,
@@ -1641,7 +1705,12 @@ describe("game-actions", () => {
           .mockResolvedValueOnce(mockSupabaseClient1 as never)
           .mockResolvedValueOnce(mockSupabaseClient2 as never);
 
-        vi.mocked(createAdminClient).mockReturnValue(mockAdminClient as never);
+        vi.mocked(createAdminClient).mockReturnValue(
+          withGameWrites(mockAdminClient, {
+            data: { ...sessionData, attempts_count: 3 },
+            error: null,
+          }) as never,
+        );
 
         const result = await submitGuess(
           mockSessionId,
@@ -1834,52 +1903,64 @@ describe("game-actions", () => {
     const historyOk = { data: [guessedRow], error: null };
 
     function mockAdmin(historyResult: unknown = historyOk) {
-      vi.mocked(createAdminClient).mockReturnValue({
-        from: vi.fn((table: string) => {
-          switch (table) {
-            case "daily_challenges": {
-              return thenable({
-                data: {
-                  grace_deadline_at_utc: "2999-01-01T00:00:00Z",
-                  perfume_id: ANSWER_ID,
-                },
-                error: null,
-              });
-            }
-            case "daily_challenges_public": {
-              return thenable({
-                data: { grace_deadline_at_utc: "2999-01-01T00:00:00Z" },
-                error: null,
-              });
-            }
-            case "perfume_assets": {
-              return thenable({
-                data: {
-                  image_key_step_1: "s1.jpg",
-                  image_key_step_6: "s6.jpg",
-                },
-                error: null,
-              });
-            }
-            case "perfumes": {
-              // Awaited list (.in) returns the guessed perfume; .single() is keyed by id.
-              const chain = thenable(historyResult);
-              const eq = vi.fn((_column: string, id: string) => {
-                chain.single = vi.fn().mockResolvedValue({
-                  data: id === GUESS_ID ? guessedRow : answerRow,
-                  error: null,
-                });
-                return chain;
-              });
-              chain.eq = eq;
-              return chain;
-            }
-            default: {
-              return thenable({ data: null, error: null });
-            }
+      const from = vi.fn((table: string) => {
+        switch (table) {
+          case "daily_challenges": {
+            return thenable({
+              data: {
+                grace_deadline_at_utc: "2999-01-01T00:00:00Z",
+                perfume_id: ANSWER_ID,
+              },
+              error: null,
+            });
           }
-        }),
-      } as never);
+          case "daily_challenges_public": {
+            return thenable({
+              data: { grace_deadline_at_utc: "2999-01-01T00:00:00Z" },
+              error: null,
+            });
+          }
+          case "perfume_assets": {
+            return thenable({
+              data: {
+                image_key_step_1: "s1.jpg",
+                image_key_step_6: "s6.jpg",
+              },
+              error: null,
+            });
+          }
+          case "perfumes": {
+            // Awaited list (.in) returns the guessed perfume; .single() is keyed by id.
+            const chain = thenable(historyResult);
+            const eq = vi.fn((_column: string, id: string) => {
+              chain.single = vi.fn().mockResolvedValue({
+                data: id === GUESS_ID ? guessedRow : answerRow,
+                error: null,
+              });
+              return chain;
+            });
+            chain.eq = eq;
+            return chain;
+          }
+          case "game_sessions": {
+            // Session writes echo the stored row, as the service role returns it.
+            const chain = thenable({ data: null, error: null });
+            chain.update = vi.fn((values: Record<string, unknown>) => {
+              chain.single = vi.fn().mockResolvedValue({
+                data: { ...baseSession, ...values },
+                error: null,
+              });
+              return chain;
+            });
+            return chain;
+          }
+          default: {
+            return thenable({ data: null, error: null });
+          }
+        }
+      });
+      vi.mocked(createAdminClient).mockReturnValue({ from } as never);
+      return from;
     }
 
     function mockUserClient(session: Record<string, unknown>) {
@@ -1933,7 +2014,10 @@ describe("game-actions", () => {
     });
 
     it("submitGuess fails before saving when the guess history cannot be read", async () => {
-      mockAdmin({ data: null, error: { message: "connection reset" } });
+      const adminFrom = mockAdmin({
+        data: null,
+        error: { message: "connection reset" },
+      });
       const sessionChain = thenable({
         data: {
           ...baseSession,
@@ -1955,7 +2039,7 @@ describe("game-actions", () => {
       await expect(submitGuess(SESSION_ID, GUESS_ID, NONCE)).rejects.toThrow(
         "Guess history unavailable",
       );
-      expect(sessionChain.update).not.toHaveBeenCalled();
+      expect(adminFrom).not.toHaveBeenCalledWith("game_sessions");
     });
 
     it("submitGuess on a finished session returns fully revealed clues", async () => {
