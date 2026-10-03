@@ -9,7 +9,8 @@ import {
 } from "@/lib/game/clue-reveal";
 import { createAdminClient } from "@/lib/supabase/server";
 
-const UNKNOWN = "Unknown";
+/** Fallback shown for a missing brand, gender, concentration or perfumer. */
+export const UNKNOWN_VALUE = "Unknown";
 const CLOSE_YEAR_RANGE = 3;
 
 /** Feedback of one guess compared with the answer. */
@@ -102,8 +103,8 @@ export type ClueSourceRow = {
 /** Maps an answer perfume row to the clue source, with "Unknown", 0 and empty-list fallbacks. */
 export function toClueAnswer(perfume: ClueSourceRow): ClueAnswer {
   return {
-    brand: perfume.brands?.name ?? UNKNOWN,
-    gender: perfume.gender || UNKNOWN,
+    brand: perfume.brands?.name ?? UNKNOWN_VALUE,
+    gender: perfume.gender || UNKNOWN_VALUE,
     isLinear: perfume.is_linear ?? false,
     notes: {
       base: perfume.base_notes ?? [],
@@ -174,7 +175,7 @@ function resolveFeedback(
       genderMatch: guess.feedback.genderMatch ?? genderMatch,
     };
   }
-  const brandName = perfume.brands?.name ?? UNKNOWN;
+  const brandName = perfume.brands?.name ?? UNKNOWN_VALUE;
   const yearDiff = (perfume.release_year ?? 0) - answer.year;
   return {
     brandMatch: brandName.toLowerCase() === answer.brand.toLowerCase(),
@@ -236,7 +237,7 @@ export async function enrichGuessHistory(
     if (!p || !guess.perfumeId) return [];
     return [
       {
-        brandName: p.brands?.name ?? UNKNOWN,
+        brandName: p.brands?.name ?? UNKNOWN_VALUE,
         concentration: p.concentrations?.name,
         feedback: resolveFeedback(guess, p, answer),
         gender: p.gender ?? undefined,

@@ -17,6 +17,7 @@ import {
   type AttemptFeedback,
   type GuessHistoryItem,
   type StoredGuess,
+  UNKNOWN_VALUE,
 } from "@/lib/game/challenge-answer";
 import { isGenderMatch, type RevealedClues } from "@/lib/game/clue-reveal";
 import {
@@ -841,7 +842,7 @@ export async function submitGuess(
     [
       ...previousHistory,
       {
-        brandName: guessedPerfume.brands?.name ?? "Unknown",
+        brandName: guessedPerfume.brands?.name ?? UNKNOWN_VALUE,
         concentration: getArrayName(guessedPerfume.concentrations),
         feedback,
         gender: guessedPerfume.gender ?? undefined,
@@ -988,8 +989,8 @@ function mapPerfumeDetails(perfume: {
   release_year: number | null;
 }) {
   return {
-    concentration: getArrayName(perfume.concentrations) ?? "Unknown",
-    gender: perfume.gender ?? "Unknown", // Don't default to "Unisex" - Unknown is safer
+    concentration: getArrayName(perfume.concentrations) ?? UNKNOWN_VALUE,
+    gender: perfume.gender ?? UNKNOWN_VALUE, // Don't default to "Unisex" - Unknown is safer
     year: perfume.release_year ?? 0,
   };
 }

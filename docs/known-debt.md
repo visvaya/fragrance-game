@@ -139,13 +139,6 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 - **Where:** `lib/game/scoring.ts` (`yearMask` templates, correct only for years starting with 1 and read only by tests) and `lib/game/clue-reveal.ts` (letter reveal fractions repeated instead of read from `getRevealPercentages()`).
 - **Done when:** one reveal table drives the clue masking and the score data, and unused fields are gone.
 
-## Leftovers from moving clue masking to the server
-
-- **Where:** `components/game/game-provider.tsx` and `components/game/contexts/game-actions-context.tsx` (two copies of `SKELETON_PERFUME`); `components/game/contexts/game-state-context.tsx` (`revealedGender`, `isBrandRevealed` and `isYearRevealed` are exposed but no component reads them); `app/actions/game-actions.ts` (`"Unknown"` literals instead of one shared constant); `app/actions/__tests__/skip-attempt.test.ts` (no test for a failed history read before the session update); `components/game/__tests__/game-provider.test.tsx` (the incorrect-guess test takes about 2 s and needs a 10 s timeout).
-- **Shortcut:** cleanup left out of the change that moved masking to the server, to keep its diff focused.
-- **Risk:** the two skeleton copies or the fallback strings can drift apart; the slow test can still time out on a loaded runner.
-- **Done when:** one skeleton and one fallback constant are shared, unused context fields are removed, `skipAttempt` has the failed-read test, and the slow test is fast enough for the default timeout.
-
 ## Loose validation and limits in auth actions
 
 - **Where:** `app/actions/auth-actions.ts`, `getAnonSessionAttemptCount` (ids validated as plain strings, not UUIDs); `app/actions/security-actions.ts`, `validatePasswordSafety` (no rate limit).

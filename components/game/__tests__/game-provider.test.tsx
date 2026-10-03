@@ -37,6 +37,10 @@ vi.mock("@/i18n/routing", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+// The provider lazily imports Sentry to tag the user; loading the real SDK in the
+// middle of a test stalls it for seconds.
+vi.mock("@sentry/nextjs", () => ({ setUser: vi.fn() }));
+
 // Mock dependencies
 vi.mock("@/app/actions/game-actions", () => ({
   getDailyChallenge: vi.fn(),
@@ -242,7 +246,7 @@ describe("GameProvider", () => {
     expect(screen.getByTestId("daily-brand")).toHaveTextContent("C____l");
   });
 
-  it("handles making an incorrect guess", { timeout: 10_000 }, async () => {
+  it("handles making an incorrect guess", async () => {
     const mockGuessResult = {
       feedback: {
         brandMatch: false,
