@@ -12,15 +12,12 @@ import {
   buildSessionClues,
   enrichGuessHistory,
   fetchChallengeAnswer,
+  toClueAnswer,
   type AttemptFeedback,
   type GuessHistoryItem,
   type StoredGuess,
 } from "@/lib/game/challenge-answer";
-import {
-  isGenderMatch,
-  type ClueAnswer,
-  type RevealedClues,
-} from "@/lib/game/clue-reveal";
+import { isGenderMatch, type RevealedClues } from "@/lib/game/clue-reveal";
 import {
   calculateBaseScore,
   calculateFinalScore,
@@ -35,22 +32,6 @@ import { GameSessionsUpdate } from "@/lib/validations/supabase.schema";
 
 export type DailyChallenge = {
   challenge_date: string;
-  // Public clues (safe to expose, progressively masked on client)
-  clues: {
-    brand: string;
-    concentration: string;
-    gender: string;
-    // accords removed as per user request
-    isLinear: boolean;
-    notes: {
-      base: string[];
-      heart: string[];
-      top: string[];
-    };
-    perfumer: string;
-    xsolve: number;
-    year: number;
-  };
   grace_deadline_at_utc: string;
   id: string;
   mode: string;
@@ -222,33 +203,6 @@ function generateNonce(): string {
   return value.toString();
 }
 
-/**
- * Maps an answer perfume row to the clue source with the same fallbacks as fetchChallengeAnswer.
- */
-function toClueAnswer(perfume: {
-  base_notes: string[] | null;
-  brands?: { name: string } | null;
-  gender?: string | null;
-  is_linear?: boolean | null;
-  middle_notes: string[] | null;
-  perfumers: string[] | null;
-  release_year: number | null;
-  top_notes: string[] | null;
-}): ClueAnswer {
-  return {
-    brand: perfume.brands?.name ?? "Unknown",
-    gender: perfume.gender || "Unknown",
-    isLinear: perfume.is_linear ?? false,
-    notes: {
-      base: perfume.base_notes ?? [],
-      heart: perfume.middle_notes ?? [],
-      top: perfume.top_notes ?? [],
-    },
-    perfumers: perfume.perfumers ?? [],
-    year: perfume.release_year ?? 0,
-  };
-}
-
 const NEW_SESSION = { attempts_count: 0, status: "active" } as const;
 
 /** Loads the challenge answer or fails; every game response needs it for the clues. */
@@ -333,8 +287,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
             middle_notes,
             base_notes,
             perfumers,
-            brands (name),
-            concentrations (name)
+            brands (name)
         `,
     )
     .eq("id", challengePrivate.perfume_id)
@@ -342,7 +295,6 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     data: {
       base_notes: string[] | null;
       brands: { name: string } | null;
-      concentrations: { name: string } | null;
       gender: string | null;
       is_linear: boolean | null;
       middle_notes: string[] | null;
@@ -368,29 +320,9 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     );
   }
 
-  const brandName = perfume.brands?.name ?? "Unknown";
-  const concentrationName = perfume.concentrations?.name ?? "Unknown";
-
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- daily_challenges_public view returns nullable fields; critical ones validated above; brands/concentrations need narrowing from Supabase join type
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- daily_challenges_public view returns nullable fields; critical ones validated above; brands needs narrowing from Supabase join type
   return {
     ...data,
-    clues: {
-      brand: brandName,
-      concentration: concentrationName,
-      gender: perfume.gender || "Unknown", // "Unknown" for missing gender (works in both attempt-log and meta-clues)
-      isLinear: perfume.is_linear ?? false,
-      notes: {
-        base: perfume.base_notes ?? [],
-        heart: perfume.middle_notes ?? [],
-        top: perfume.top_notes ?? [],
-      },
-      perfumer:
-        perfume.perfumers && perfume.perfumers.length > 0
-          ? perfume.perfumers.join(", ")
-          : "Unknown",
-      xsolve: perfume.xsolve_score, // Now guaranteed to be a number
-      year: perfume.release_year ?? 0, // Keep 0 for year - it's checked as !year || year === 0
-    },
     revealed: buildSessionClues(toClueAnswer(perfume), NEW_SESSION, []),
     xsolve: perfume.xsolve_score,
   } as DailyChallenge;
@@ -1318,7 +1250,7 @@ export const getDailyChallengeSSR = unstable_cache(
         `
         release_year, gender, is_linear, xsolve_score,
         top_notes, middle_notes, base_notes, perfumers,
-        brands (name), concentrations (name)
+        brands (name)
       `,
       )
       .eq("id", challengePrivate.perfume_id)
@@ -1326,7 +1258,6 @@ export const getDailyChallengeSSR = unstable_cache(
       data: {
         base_notes: string[] | null;
         brands: { name: string } | null;
-        concentrations: { name: string } | null;
         gender: string | null;
         is_linear: boolean | null;
         middle_notes: string[] | null;
@@ -1342,28 +1273,11 @@ export const getDailyChallengeSSR = unstable_cache(
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- same pattern as getDailyChallenge: view returns nullable fields validated above
     return {
       ...data,
-      clues: {
-        brand: perfume.brands?.name ?? "Unknown",
-        concentration: perfume.concentrations?.name ?? "Unknown",
-        gender: perfume.gender || "Unknown",
-        isLinear: perfume.is_linear ?? false,
-        notes: {
-          base: perfume.base_notes ?? [],
-          heart: perfume.middle_notes ?? [],
-          top: perfume.top_notes ?? [],
-        },
-        perfumer:
-          perfume.perfumers && perfume.perfumers.length > 0
-            ? perfume.perfumers.join(", ")
-            : "Unknown",
-        xsolve: perfume.xsolve_score,
-        year: perfume.release_year ?? 0,
-      },
       revealed: buildSessionClues(toClueAnswer(perfume), NEW_SESSION, []),
       xsolve: perfume.xsolve_score,
     } as DailyChallenge;
   },
-  ["daily-challenge-ssr"],
+  ["daily-challenge-ssr-v2"],
   { revalidate: 86_400, tags: ["daily-challenge"] },
 );
 

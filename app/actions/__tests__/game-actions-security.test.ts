@@ -207,96 +207,65 @@ describe("Server Actions Security", () => {
       expect(challenge).toBeDefined();
 
       // xsolve is exposed as difficulty (public API)
-      expect(challenge?.clues.xsolve).toBeDefined();
+      expect(challenge?.xsolve).toBeDefined();
 
       // But NOT as raw score (internal calculation)
       expect(challenge).not.toHaveProperty("xsolve_score");
-
-      // Check clues object doesn't leak internal data
-      const cluesJson = JSON.stringify(challenge?.clues);
-      expect(cluesJson).not.toContain("xsolve_score");
+      expect(JSON.stringify(challenge)).not.toContain("xsolve_score");
     });
 
-    it("response DOES contain notes (from perfumes table via Admin Client)", async () => {
+    it("CRITICAL: response does NOT contain the unrevealed notes", async () => {
       const challenge = await getDailyChallenge();
 
       expect(challenge).toBeDefined();
-      expect(challenge?.clues).toBeDefined();
-      expect(challenge?.clues.notes).toBeDefined();
-
-      // Notes should be present (fetched from perfumes table)
-      expect(challenge?.clues.notes.top).toBeDefined();
-      expect(challenge?.clues.notes.heart).toBeDefined();
-      expect(challenge?.clues.notes.base).toBeDefined();
-
-      // Verify notes are arrays with data
-      expect(Array.isArray(challenge?.clues.notes.top)).toBe(true);
-      expect(challenge?.clues.notes.top.length).toBeGreaterThan(0);
+      expect(challenge?.revealed.notes).toBeDefined();
+      expect(JSON.stringify(challenge)).not.toMatch(
+        /Lavender|Bergamot|Honey|Cashmere|Cinnamon|Tobacco|Tonka|Vanilla/,
+      );
     });
 
     it("response contains only safe public clues", async () => {
       const challenge = await getDailyChallenge();
 
       expect(challenge).toBeDefined();
-      expect(challenge?.clues).toBeDefined();
+      expect(challenge).not.toHaveProperty("clues");
 
-      // Safe public clues (progressively revealed during game)
-      expect(challenge?.clues.brand).toBeDefined();
-      expect(challenge?.clues.year).toBeDefined();
-      expect(challenge?.clues.gender).toBeDefined();
-      expect(challenge?.clues.concentration).toBeDefined();
-      expect(challenge?.clues.notes).toBeDefined();
-      expect(challenge?.clues.perfumer).toBeDefined();
-      expect(challenge?.clues.xsolve).toBeDefined(); // Difficulty (public)
-      expect(challenge?.clues.isLinear).toBeDefined();
+      // Safe public clues, masked on the server for the first attempt
+      expect(challenge?.revealed.brand).toBeDefined();
+      expect(challenge?.revealed.year).toBeDefined();
+      expect(challenge?.revealed.notes).toBeDefined();
+      expect(challenge?.revealed.perfumer).toBeDefined();
+      expect(challenge?.xsolve).toBeDefined(); // Difficulty (public)
 
       // Dangerous data should NOT be present
       expect(challenge).not.toHaveProperty("perfume_id");
       expect(challenge).not.toHaveProperty("seed_hash");
-      expect(challenge?.clues).not.toHaveProperty("xsolve_score");
-      expect(challenge?.clues).not.toHaveProperty("fingerprint_strict");
-      expect(challenge?.clues).not.toHaveProperty("fingerprint_loose");
+      expect(challenge?.revealed).not.toHaveProperty("xsolve_score");
+      expect(challenge?.revealed).not.toHaveProperty("fingerprint_strict");
+      expect(challenge?.revealed).not.toHaveProperty("fingerprint_loose");
     });
   });
 
   describe("Server Actions - Admin Client Usage", () => {
     it("Server Action uses Admin Client to read perfumes table", async () => {
-      // This test verifies that Server Actions CAN read from perfumes table
-      // (not perfumes_public VIEW) using Admin Client
-
+      // Notes come from the perfumes table (not the perfumes_public VIEW), read with the
+      // Admin Client; at level 1 only their count is visible, as placeholders.
       const challenge = await getDailyChallenge();
 
       expect(challenge).toBeDefined();
-      expect(challenge?.clues.notes).toBeDefined();
-
-      // If we got notes, it means Admin Client successfully read from perfumes table
-      // (perfumes_public doesn't have notes anymore after security fix)
-      expect(challenge?.clues.notes.top).toEqual([
-        "Lavender",
-        "Bergamot",
-        "Lemon",
-      ]);
-      expect(challenge?.clues.notes.heart).toEqual([
-        "Honey",
-        "Cashmere",
-        "Cinnamon",
-      ]);
-      expect(challenge?.clues.notes.base).toEqual([
-        "Tobacco",
-        "Tonka bean",
-        "Vanilla",
-      ]);
+      expect(challenge?.revealed.notes).toBeDefined();
+      expect(challenge?.revealed.answerHas.notes).toBe(true);
     });
 
     it("Server Action can read xsolve_score from perfumes table", async () => {
       const challenge = await getDailyChallenge();
 
       expect(challenge).toBeDefined();
-      expect(challenge?.clues.xsolve).toBeDefined();
+      expect(challenge?.xsolve).toBeDefined();
 
       // xsolve is exposed as difficulty multiplier (public API)
-      expect(typeof challenge?.clues.xsolve).toBe("number");
-      expect(challenge?.clues.xsolve).toBeGreaterThan(0);
+      expect(typeof challenge?.xsolve).toBe("number");
+      expect(challenge?.xsolve).toBeGreaterThan(0);
     });
   });
 });
@@ -316,8 +285,8 @@ describe("Security - Defense in Depth", () => {
     expect(challenge).not.toHaveProperty("xsolve_score");
 
     // Layer 4: Clues object doesn't leak internals
-    expect(challenge?.clues).not.toHaveProperty("fingerprint_strict");
-    expect(challenge?.clues).not.toHaveProperty("fingerprint_loose");
+    expect(challenge?.revealed).not.toHaveProperty("fingerprint_strict");
+    expect(challenge?.revealed).not.toHaveProperty("fingerprint_loose");
 
     // RESULT: Even if one layer fails, others protect data
   });
@@ -330,14 +299,13 @@ describe("Security - Defense in Depth", () => {
     expect(clientResponse).not.toBeNull();
 
     // Safe data
-    expect(clientResponse!.clues.brand).toBeDefined();
-    expect(clientResponse!.clues.notes).toBeDefined();
+    expect(clientResponse!.revealed.brand).toBeDefined();
+    expect(clientResponse!.revealed.notes).toBeDefined();
 
     // Dangerous data should not exist
     expect((clientResponse as any).perfume_id).toBeUndefined();
     expect((clientResponse as any).seed_hash).toBeUndefined();
 
-    // No way to reverse-engineer answer from clues
-    // (notes are progressively masked, brand is masked, year is masked)
+    // No way to reverse-engineer the answer: clues are masked on the server
   });
 });

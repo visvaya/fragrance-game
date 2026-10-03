@@ -129,8 +129,8 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 
 ## Dead and duplicated reveal data
 
-- **Where:** `lib/game/scoring.ts` (`yearMask` templates, correct only for years starting with 1 and read only by tests) and `components/game/contexts/game-state-context.tsx` (letter reveal percentages repeated instead of read from `getRevealPercentages()`).
-- **Done when:** one reveal table drives both server and client, and unused fields are gone.
+- **Where:** `lib/game/scoring.ts` (`yearMask` templates, correct only for years starting with 1 and read only by tests) and `lib/game/clue-reveal.ts` (letter reveal fractions repeated instead of read from `getRevealPercentages()`).
+- **Done when:** one reveal table drives the clue masking and the score data, and unused fields are gone.
 
 ## Loose validation and limits in auth actions
 

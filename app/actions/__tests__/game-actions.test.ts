@@ -220,7 +220,7 @@ describe("game-actions", () => {
 
   describe("getDailyChallenge", () => {
     describe("success cases", () => {
-      it("returns daily challenge with complete clues structure", async () => {
+      it("returns daily challenge with level-1 revealed clues", async () => {
         const mockChallenge = createMockChallenge();
         const mockPerfume = createMockPerfume();
 
@@ -285,14 +285,12 @@ describe("game-actions", () => {
         const result = await getDailyChallenge();
 
         expect(result).not.toBeNull();
-        expect(result).toHaveProperty("clues");
-        expect(result?.clues).toHaveProperty("brand");
-        expect(result?.clues).toHaveProperty("perfumer");
-        expect(result?.clues).toHaveProperty("year");
-        expect(result?.clues).toHaveProperty("notes");
-        expect(result?.clues.notes).toHaveProperty("top");
-        expect(result?.clues.notes).toHaveProperty("heart");
-        expect(result?.clues.notes).toHaveProperty("base");
+        expect(result).not.toHaveProperty("clues");
+        expect(result?.revealed).toHaveProperty("brand");
+        expect(result?.revealed).toHaveProperty("perfumer");
+        expect(result?.revealed).toHaveProperty("year");
+        expect(result?.revealed).toHaveProperty("notes");
+        expect(result?.revealed.brandRevealed).toBe(false);
       });
 
       it("handles perfumes with multiple perfumers", async () => {
@@ -358,9 +356,8 @@ describe("game-actions", () => {
 
         const result = await getDailyChallenge();
 
-        expect(result?.clues.perfumer).toBe(
-          "Jean-Claude Ellena, Jacques Cavallier",
-        );
+        expect(result?.revealed.perfumerCount).toBe(2);
+        expect(JSON.stringify(result)).not.toMatch(/Ellena|Cavallier/);
       });
 
       it("uses today's date for challenge lookup", async () => {
@@ -671,14 +668,14 @@ describe("game-actions", () => {
 
         const result = await getDailyChallenge();
 
-        expect(result?.clues.brand).toBe("Unknown");
-        expect(result?.clues.concentration).toBe("Unknown");
-        expect(result?.clues.gender).toBe("Unknown");
-        expect(result?.clues.isLinear).toBe(false);
-        expect(result?.clues.notes.top).toEqual([]);
-        expect(result?.clues.notes.heart).toEqual([]);
-        expect(result?.clues.notes.base).toEqual([]);
-        expect(result?.clues.perfumer).toBe("Unknown");
+        expect(result?.revealed.answerHas).toEqual({
+          brand: false,
+          gender: false,
+          notes: false,
+          perfumer: false,
+          year: false,
+        });
+        expect(result?.revealed.perfumerCount).toBe(0);
       });
     });
   });

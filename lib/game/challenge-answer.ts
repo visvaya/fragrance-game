@@ -87,6 +87,34 @@ const SKIP_FEEDBACK: AttemptFeedback = {
   yearMatch: "wrong",
 };
 
+/** Fields of an answer perfume row that the clue source is built from. */
+export type ClueSourceRow = {
+  base_notes: string[] | null;
+  brands?: { name: string } | null;
+  gender?: string | null;
+  is_linear?: boolean | null;
+  middle_notes: string[] | null;
+  perfumers: string[] | null;
+  release_year: number | null;
+  top_notes: string[] | null;
+};
+
+/** Maps an answer perfume row to the clue source, with "Unknown", 0 and empty-list fallbacks. */
+export function toClueAnswer(perfume: ClueSourceRow): ClueAnswer {
+  return {
+    brand: perfume.brands?.name ?? UNKNOWN,
+    gender: perfume.gender || UNKNOWN,
+    isLinear: perfume.is_linear ?? false,
+    notes: {
+      base: perfume.base_notes ?? [],
+      heart: perfume.middle_notes ?? [],
+      top: perfume.top_notes ?? [],
+    },
+    perfumers: perfume.perfumers ?? [],
+    year: perfume.release_year ?? 0,
+  };
+}
+
 /** Loads the answer of a challenge with the service-role client; null when missing. */
 export async function fetchChallengeAnswer(
   challengeId: string,
@@ -111,18 +139,7 @@ export async function fetchChallengeAnswer(
   if (!perfume) return null;
 
   return {
-    clue: {
-      brand: perfume.brands?.name ?? UNKNOWN,
-      gender: perfume.gender || UNKNOWN,
-      isLinear: perfume.is_linear ?? false,
-      notes: {
-        base: perfume.base_notes ?? [],
-        heart: perfume.middle_notes ?? [],
-        top: perfume.top_notes ?? [],
-      },
-      perfumers: perfume.perfumers ?? [],
-      year: perfume.release_year ?? 0,
-    },
+    clue: toClueAnswer(perfume),
     perfumeId: challenge.perfume_id,
     xsolve: perfume.xsolve_score,
   };

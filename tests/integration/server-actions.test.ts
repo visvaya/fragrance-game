@@ -122,6 +122,23 @@ describe("Game Actions Integration (Mocked)", () => {
             error: null,
           };
         }
+        if (table === "perfumes") {
+          return {
+            data: {
+              base_notes: ["Vanilla"],
+              brands: { name: "Test Brand" },
+              gender: "Unisex",
+              is_linear: false,
+              middle_notes: ["Rose"],
+              name: "Test Perfume",
+              perfumers: ["Test Perfumer"],
+              release_year: 2000,
+              top_notes: ["Lemon"],
+              xsolve_score: 50,
+            },
+            error: null,
+          };
+        }
         return { data: null, error: null };
       });
 
