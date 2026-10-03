@@ -2,10 +2,11 @@
 -- Run: supabase test db
 --
 -- Verifies that RLS is enabled on tables, correct policies exist,
--- and anon role cannot bypass VIEW protections.
+-- anon role cannot bypass VIEW protections, and client roles hold only the
+-- table privileges they need.
 
 BEGIN;
-SELECT plan(59);
+SELECT plan(66);
 
 -- ============================================================
 -- RLS ENABLED — core game tables
@@ -356,6 +357,75 @@ SELECT ok(
   NOT has_table_privilege('authenticated', 'public.players', 'SELECT')
     AND NOT has_table_privilege('anon', 'public.players', 'SELECT'),
   'player ids cannot be listed by client roles'
+);
+
+-- ============================================================
+-- Game state is written only by the server (service role)
+-- ============================================================
+
+SELECT ok(
+  NOT EXISTS(
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN ('game_sessions', 'game_results', 'player_streaks')
+      AND cmd IN ('INSERT', 'UPDATE', 'ALL')
+  ),
+  'game_sessions, game_results and player_streaks have no INSERT or UPDATE policy'
+);
+
+SELECT is(
+  (SELECT count(*)::int
+     FROM (VALUES ('anon'), ('authenticated')) AS r(role_name)
+     CROSS JOIN (VALUES ('public.game_sessions'), ('public.game_results'),
+                        ('public.player_streaks')) AS t(table_name)
+    WHERE has_any_column_privilege(r.role_name, t.table_name, 'INSERT')),
+  0,
+  'client roles cannot INSERT into any column of the game state tables'
+);
+
+SELECT is(
+  (SELECT count(*)::int
+     FROM (VALUES ('anon'), ('authenticated')) AS r(role_name)
+     CROSS JOIN (VALUES ('public.game_sessions'), ('public.game_results'),
+                        ('public.player_streaks')) AS t(table_name)
+    WHERE has_any_column_privilege(r.role_name, t.table_name, 'UPDATE')),
+  0,
+  'client roles cannot UPDATE any column of the game state tables'
+);
+
+SELECT is(
+  (SELECT count(*)::int
+     FROM (VALUES ('anon'), ('authenticated')) AS r(role_name)
+     CROSS JOIN (VALUES ('public.game_sessions'), ('public.game_results'),
+                        ('public.player_streaks')) AS t(table_name)
+     CROSS JOIN (VALUES ('DELETE'), ('TRUNCATE'), ('REFERENCES'), ('TRIGGER')) AS p(privilege)
+    WHERE has_table_privilege(r.role_name, t.table_name, p.privilege)),
+  0,
+  'client roles hold no DELETE, TRUNCATE, REFERENCES or TRIGGER on the game state tables'
+);
+
+SELECT ok(
+  CASE WHEN current_setting('server_version_num')::int < 170000 THEN true
+       ELSE NOT EXISTS (
+         SELECT 1 FROM (VALUES ('anon'), ('authenticated')) AS r(role_name)
+         CROSS JOIN (VALUES ('public.game_sessions'), ('public.game_results'),
+                            ('public.player_streaks')) AS t(table_name)
+         WHERE has_table_privilege(r.role_name, t.table_name, 'MAINTAIN'))
+  END,
+  'client roles hold no MAINTAIN on the game state tables (PostgreSQL 17+)'
+);
+
+SELECT ok(
+  has_table_privilege('authenticated', 'public.game_sessions', 'SELECT')
+    AND has_table_privilege('authenticated', 'public.game_results', 'SELECT'),
+  'authenticated keeps SELECT on its own game rows (server actions read them under RLS)'
+);
+
+SELECT ok(
+  has_table_privilege('service_role', 'public.game_sessions', 'INSERT')
+    AND has_table_privilege('service_role', 'public.game_sessions', 'UPDATE')
+    AND has_table_privilege('service_role', 'public.game_results', 'INSERT'),
+  'service_role can write game_sessions and game_results'
 );
 
 SELECT * FROM finish();
