@@ -80,9 +80,7 @@ function renderPyramidNoteWord({
 // eslint-disable-next-line @typescript-eslint/no-shadow -- the named function gives the memoized component its DevTools name
 export const PyramidClues = memo(function PyramidClues() {
   const t = useTranslations("PyramidClues");
-  const { clues, currentAttempt, dailyPerfume, revealLevel, visibleNotes } =
-    useGameState();
-  const notes = visibleNotes;
+  const { clues, currentAttempt, dailyPerfume, revealLevel } = useGameState();
   const { handlePointerDown: handleIconTap, scaled: iconScaled } =
     useScaleOnTap();
 
@@ -295,7 +293,8 @@ export const PyramidClues = memo(function PyramidClues() {
     );
   }
 
-  // TRADITIONAL PYRAMID LOGIC
+  // TRADITIONAL PYRAMID LOGIC: tiers arrive already masked from the server.
+  const notes = clues.notes;
   const levels = [
     { dotClass: "bg-note-top", name: "Top", notes: notes.top },
     { dotClass: "bg-primary", name: "Heart", notes: notes.heart },
@@ -350,7 +349,6 @@ export const PyramidClues = memo(function PyramidClues() {
                     </span>
                   </GameTooltip>
                 ) : (
-                  level.notes &&
                   level.notes.length > 0 &&
                   `(${t("noteCount", { count: level.notes.length })})`
                 )}
@@ -358,7 +356,7 @@ export const PyramidClues = memo(function PyramidClues() {
             </div>
 
             <div>
-              {level.notes && level.notes.length > 0 ? (
+              {level.notes.length > 0 ? (
                 <div className="flex flex-wrap items-start gap-1.5">
                   {level.notes.map((note, noteIndex, array) => {
                     const words = note.split(" ");

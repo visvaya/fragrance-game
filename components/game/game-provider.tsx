@@ -13,7 +13,7 @@ import {
 } from "@/app/actions/game-actions";
 import { captureAnalyticsEvent } from "@/components/providers/posthog-provider";
 import { useRouter } from "@/i18n/routing";
-import { GENERIC_PLACEHOLDER, MAX_GUESSES } from "@/lib/constants";
+import { MAX_GUESSES } from "@/lib/constants";
 import { HIDDEN_CLUES, type RevealedClues } from "@/lib/game/clue-reveal";
 import { getSupabaseClient } from "@/lib/supabase/get-client";
 
@@ -26,6 +26,7 @@ import {
   type Attempt,
   type DailyPerfume,
 } from "./contexts";
+import { SKELETON_PERFUME } from "./contexts/skeleton-perfume";
 
 import type { createClient as CreateClientType } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
@@ -59,15 +60,6 @@ function updateSentryUser(user: User | null): void {
     return null;
   });
 }
-
-// Skeleton / Default for initialization (prevents null checks everywhere)
-const SKELETON_PERFUME: DailyPerfume = {
-  concentration: undefined,
-  id: "skeleton",
-  imageUrl: "/placeholder.svg?height=400&width=400",
-  name: GENERIC_PLACEHOLDER.repeat(5),
-  xsolve: 0,
-};
 
 type GameState = "playing" | "won" | "lost";
 
@@ -120,10 +112,8 @@ export function useGame() {
     getBlurLevel: () => state.blurLevel,
     getPotentialScore: () => state.potentialScore,
     getRevealedBrand: () => state.revealedBrand,
-    getRevealedGender: () => state.revealedGender,
     getRevealedPerfumer: () => state.revealedPerfumer,
     getRevealedYear: () => state.revealedYear,
-    getVisibleNotes: () => state.visibleNotes,
   };
 }
 

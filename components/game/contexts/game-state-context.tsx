@@ -36,30 +36,13 @@ export type DailyPerfume = {
   xsolve: number;
 };
 
-const EMPTY_TIERS: GameStateContextType["visibleNotes"] = {
-  base: [],
-  heart: [],
-  top: [],
-};
-
 /** Maps server clues to the reveal values exposed by useGameState(). */
 function toRevealValues(clues: RevealedClues) {
   return {
-    isBrandRevealed: clues.brandRevealed,
     isGenderRevealed: clues.genderRevealed,
-    isYearRevealed: clues.yearRevealed,
     revealedBrand: clues.brand,
-    revealedGender: clues.gender ?? "Unknown",
     revealedPerfumer: clues.perfumer,
     revealedYear: clues.year,
-    visibleNotes:
-      clues.notes.kind === "pyramid"
-        ? {
-            base: clues.notes.base,
-            heart: clues.notes.heart,
-            top: clues.notes.top,
-          }
-        : EMPTY_TIERS,
   };
 }
 
@@ -75,28 +58,19 @@ type GameStateContextType = {
   dailyPerfume: DailyPerfume;
   gameState: GameState;
   // Boolean flags (derived)
-  isBrandRevealed: boolean;
   isGenderRevealed: boolean;
-  isYearRevealed: boolean;
   loading: boolean;
 
   maxAttempts: number;
   potentialScore: number;
   revealedBrand: string;
 
-  revealedGender: string;
   revealedPerfumer: string;
   revealedYear: string;
   revealLevel: number;
   sessionId: string | null;
   sessionReady: boolean;
   user: User | null;
-  /** Pyramid tiers; empty for linear perfumes (read clues.notes instead). */
-  visibleNotes: {
-    base: string[] | null;
-    heart: string[] | null;
-    top: string[] | null;
-  };
   xsolveScore: number;
 };
 

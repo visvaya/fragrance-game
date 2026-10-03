@@ -100,15 +100,7 @@ describe("GameStateContext", () => {
     expect(result.current.revealedBrand).toBe("D__r");
     expect(result.current.revealedPerfumer).toBe("F_______ D______");
     expect(result.current.revealedYear).toBe("19__");
-    expect(result.current.revealedGender).toBe("Unisex");
-    expect(result.current.isBrandRevealed).toBe(false);
-    expect(result.current.isYearRevealed).toBe(false);
     expect(result.current.isGenderRevealed).toBe(true);
-    expect(result.current.visibleNotes).toEqual({
-      base: ["_______", "____", "_____"],
-      heart: ["____", "_______", "____"],
-      top: ["Bergamot", "Lemon", "Neroli"],
-    });
   });
 
   it("does not derive clues from attempts", () => {
@@ -128,19 +120,18 @@ describe("GameStateContext", () => {
     });
 
     expect(result.current.revealedBrand).toBe("D__r");
-    expect(result.current.isBrandRevealed).toBe(false);
-    expect(result.current.isYearRevealed).toBe(false);
+    expect(result.current.clues.brandRevealed).toBe(false);
+    expect(result.current.clues.yearRevealed).toBe(false);
   });
 
-  it("passes the reveal flags through from the server", () => {
+  it("passes the gender reveal flag through from the server", () => {
     const { result } = renderHook(() => useGameState(), {
       wrapper: createWrapper({
-        clues: { ...SERVER_CLUES, brandRevealed: true, yearRevealed: true },
+        clues: { ...SERVER_CLUES, genderRevealed: false },
       }),
     });
 
-    expect(result.current.isBrandRevealed).toBe(true);
-    expect(result.current.isYearRevealed).toBe(true);
+    expect(result.current.isGenderRevealed).toBe(false);
   });
 
   it("renders with hidden clues and no answer fields", () => {
@@ -150,27 +141,9 @@ describe("GameStateContext", () => {
 
     expect(result.current.revealedBrand).toBe(HIDDEN_CLUES.brand);
     expect(result.current.revealedYear).toBe(HIDDEN_CLUES.year);
-    expect(result.current.revealedGender).toBe("Unknown");
     expect(result.current.isGenderRevealed).toBe(false);
     expect(result.current.dailyPerfume).not.toHaveProperty("brand");
     expect(result.current.dailyPerfume).not.toHaveProperty("notes");
-  });
-
-  it("keeps empty pyramid tiers for linear notes", () => {
-    const { result } = renderHook(() => useGameState(), {
-      wrapper: createWrapper({
-        clues: {
-          ...SERVER_CLUES,
-          notes: { kind: "linear", notes: ["Iris", "____"] },
-        },
-      }),
-    });
-
-    expect(result.current.visibleNotes).toEqual({
-      base: [],
-      heart: [],
-      top: [],
-    });
   });
 
   it("should compute blurLevel progressively", () => {

@@ -28,20 +28,13 @@ import {
   type SubmitGuessResult,
   type SkipAttemptResult,
 } from "@/app/actions/game-actions";
-import { GENERIC_PLACEHOLDER } from "@/lib/constants";
 import { HIDDEN_CLUES, type RevealedClues } from "@/lib/game/clue-reveal";
+
+import { SKELETON_PERFUME } from "./skeleton-perfume";
 
 import type { Attempt, DailyPerfume } from "./game-state-context";
 
 type GameState = "playing" | "won" | "lost";
-
-const SKELETON_PERFUME: DailyPerfume = {
-  concentration: undefined,
-  id: "skeleton",
-  imageUrl: "/placeholder.svg?height=400&width=400",
-  name: GENERIC_PLACEHOLDER.repeat(5),
-  xsolve: 0,
-};
 
 const SKIPPED_ATTEMPT: Attempt = {
   brand: "",

@@ -153,6 +153,42 @@ describe("skipAttempt", () => {
     expect(result.gameStatus).toBe("lost");
   });
 
+  it("fails before saving when the guess history cannot be read", async () => {
+    const session = {
+      ...makeSession(1),
+      guesses: [
+        { isCorrect: false, perfumeId: "g1", timestamp: "t" },
+      ] as never[],
+    };
+    const client = makeClientMock(session);
+    vi.mocked(createClient).mockResolvedValue(client as any);
+
+    const admin = makeAdminMock();
+    vi.mocked(createAdminClient).mockReturnValue({
+      from: vi.fn((table: string) => {
+        const chain = admin.from(table);
+        // The history read is the only query that filters with in(); fail it.
+        return {
+          ...chain,
+          in: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue({
+              data: null,
+              error: { message: "connection reset" },
+            }),
+          }),
+        };
+      }),
+    } as any);
+
+    await expect(skipAttempt(SESSION_ID, NONCE)).rejects.toThrow(
+      "Guess history unavailable",
+    );
+    const sessionChain = client.from.mock.results[0]?.value as {
+      update: ReturnType<typeof vi.fn>;
+    };
+    expect(sessionChain.update).not.toHaveBeenCalled();
+  });
+
   it("throws on nonce mismatch", async () => {
     const session = { ...makeSession(), last_nonce: "DIFFERENT" };
 
