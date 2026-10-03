@@ -9,6 +9,19 @@ import { trackEvent, identifyUser } from "@/lib/analytics-server";
 import { MAX_GUESSES } from "@/lib/constants";
 import { env } from "@/lib/env";
 import {
+  buildSessionClues,
+  enrichGuessHistory,
+  fetchChallengeAnswer,
+  type AttemptFeedback,
+  type GuessHistoryItem,
+  type StoredGuess,
+} from "@/lib/game/challenge-answer";
+import {
+  isGenderMatch,
+  type ClueAnswer,
+  type RevealedClues,
+} from "@/lib/game/clue-reveal";
+import {
   calculateBaseScore,
   calculateFinalScore,
   getRevealPercentages,
@@ -41,21 +54,11 @@ export type DailyChallenge = {
   grace_deadline_at_utc: string;
   id: string;
   mode: string;
+  /** Level-1 clues computed on the server (no guesses yet). */
+  revealed: RevealedClues;
   snapshot_metadata: Record<string, unknown>;
-};
-
-type GuessHistoryItem = {
-  brandName: string;
-  concentration?: string;
-  feedback?: AttemptFeedback;
-  gender?: string;
-  isCorrect: boolean;
-  isSkip?: boolean;
-  perfumeId: string;
-  perfumeName: string;
-  perfumers?: string[];
-  timestamp: string;
-  year?: number;
+  /** Difficulty score of the answer, used for the score multiplier. */
+  xsolve: number;
 };
 
 export type StartGameResponse = {
@@ -65,6 +68,7 @@ export type StartGameResponse = {
   guesses: GuessHistoryItem[];
   imageUrl: string | null;
   nonce: string;
+  revealed: RevealedClues;
   revealState: RevealState;
   sessionId: string;
 };
@@ -72,14 +76,6 @@ export type StartGameResponse = {
 type InitializeGameResponse = {
   challenge: DailyChallenge | null;
   session: StartGameResponse | null;
-};
-
-type AttemptFeedback = {
-  brandMatch: boolean;
-  notesMatch: number; // 0-1 matches
-  perfumerMatch: "full" | "partial" | "none";
-  yearDirection: "higher" | "lower" | "equal";
-  yearMatch: "correct" | "close" | "wrong";
 };
 
 export type SubmitGuessResult = {
@@ -99,6 +95,7 @@ export type SubmitGuessResult = {
   message?: string;
   newNonce: string;
   result: "correct" | "incorrect";
+  revealed: RevealedClues;
   revealState: RevealState;
 };
 
@@ -108,6 +105,7 @@ export type SkipAttemptResult = {
   gameStatus: "active" | "won" | "lost";
   imageUrl?: string | null;
   newNonce: string;
+  revealed: RevealedClues;
 };
 
 // --- Helpers ---
@@ -222,6 +220,42 @@ function generateNonce(): string {
     0,
   );
   return value.toString();
+}
+
+/**
+ * Maps an answer perfume row to the clue source with the same fallbacks as fetchChallengeAnswer.
+ */
+function toClueAnswer(perfume: {
+  base_notes: string[] | null;
+  brands?: { name: string } | null;
+  gender?: string | null;
+  is_linear?: boolean | null;
+  middle_notes: string[] | null;
+  perfumers: string[] | null;
+  release_year: number | null;
+  top_notes: string[] | null;
+}): ClueAnswer {
+  return {
+    brand: perfume.brands?.name ?? "Unknown",
+    gender: perfume.gender || "Unknown",
+    isLinear: perfume.is_linear ?? false,
+    notes: {
+      base: perfume.base_notes ?? [],
+      heart: perfume.middle_notes ?? [],
+      top: perfume.top_notes ?? [],
+    },
+    perfumers: perfume.perfumers ?? [],
+    year: perfume.release_year ?? 0,
+  };
+}
+
+const NEW_SESSION = { attempts_count: 0, status: "active" } as const;
+
+/** Loads the challenge answer or fails; every game response needs it for the clues. */
+async function requireChallengeAnswer(challengeId: string) {
+  const answer = await fetchChallengeAnswer(challengeId);
+  if (!answer) throw new Error("Challenge data missing");
+  return answer;
 }
 
 // --- Actions ---
@@ -357,80 +391,9 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
       xsolve: perfume.xsolve_score, // Now guaranteed to be a number
       year: perfume.release_year ?? 0, // Keep 0 for year - it's checked as !year || year === 0
     },
+    revealed: buildSessionClues(toClueAnswer(perfume), NEW_SESSION, []),
+    xsolve: perfume.xsolve_score,
   } as DailyChallenge;
-}
-
-type RawGuess = {
-  feedback?: AttemptFeedback;
-  isCorrect: boolean;
-  isSkip?: boolean;
-  perfumeId: string;
-  timestamp: string;
-};
-
-async function enrichGuessesWithPerfumeDetails(
-  rawGuesses: RawGuess[],
-): Promise<GuessHistoryItem[]> {
-  if (rawGuesses.length === 0) return [];
-
-  type PerfumeRow = {
-    brands: { name: string } | null;
-    concentrations: { name: string } | null;
-    gender: string | null;
-    id: string;
-    name: string;
-    perfumers: string[] | null;
-    release_year: number | null;
-  };
-
-  const adminSupabase = createAdminClient();
-  const realGuessIds = rawGuesses
-    .filter((g) => !g.isSkip)
-    .map((g) => g.perfumeId);
-
-  const perfumeMap = await (async () => {
-    if (realGuessIds.length === 0) return new Map<string, PerfumeRow>();
-    const { data: perfumes } = (await adminSupabase
-      .from("perfumes")
-      .select(
-        "id, name, brands(name), release_year, concentrations(name), gender, perfumers",
-      )
-      .in("id", realGuessIds)) as { data: PerfumeRow[] | null };
-    return perfumes
-      ? new Map(perfumes.map((p) => [p.id, p]))
-      : new Map<string, PerfumeRow>();
-  })();
-
-  return rawGuesses.flatMap((guess): GuessHistoryItem[] => {
-    if (guess.isSkip) {
-      return [
-        {
-          brandName: "",
-          isCorrect: false,
-          isSkip: true,
-          perfumeId: "",
-          perfumeName: "",
-          timestamp: guess.timestamp,
-        },
-      ];
-    }
-    const p = perfumeMap.get(guess.perfumeId);
-    if (!p) return [];
-    return [
-      {
-        brandName: p.brands?.name ?? "Unknown",
-        concentration: p.concentrations?.name,
-        feedback: guess.feedback,
-        gender: p.gender ?? undefined,
-        isCorrect: guess.isCorrect,
-        perfumeId: guess.perfumeId,
-        perfumeName: p.name,
-        perfumers: p.perfumers ?? [],
-        timestamp: guess.timestamp,
-        year: p.release_year ?? undefined,
-      },
-    ];
-  });
 }
 
 async function createNewGameSession(
@@ -477,6 +440,7 @@ async function createNewGameSession(
   }
 
   const imageUrl = await getImageUrlForStep(session.id);
+  const answer = await requireChallengeAnswer(challengeId);
   const { data: challengeData } = (await createAdminClient()
     .from("daily_challenges_public")
     .select("mode, grace_deadline_at_utc")
@@ -502,6 +466,7 @@ async function createNewGameSession(
     guesses: [],
     imageUrl: imageUrl,
     nonce: nonce,
+    revealed: buildSessionClues(answer.clue, session, []),
     revealState: getRevealPercentages(safeInheritedCount + 1),
     sessionId: session.id,
   };
@@ -542,14 +507,7 @@ export async function startGame(
     .maybeSingle()) as {
     data: {
       attempts_count: number;
-      guesses:
-        | {
-            feedback?: AttemptFeedback;
-            isCorrect: boolean;
-            perfumeId: string;
-            timestamp: string;
-          }[]
-        | null;
+      guesses: StoredGuess[] | null;
       id: string;
       last_nonce: string | number;
       status: string;
@@ -565,7 +523,8 @@ export async function startGame(
 
     const imageUrl = await getImageUrlForStep(existingSession.id);
     const rawGuesses = existingSession.guesses ?? [];
-    const enrichedGuesses = await enrichGuessesWithPerfumeDetails(rawGuesses);
+    const answer = await requireChallengeAnswer(challengeId);
+    const enrichedGuesses = await enrichGuessHistory(rawGuesses, answer.clue);
 
     const { answerConcentration, answerName } = await (async () => {
       if (existingSession.status !== "won" && existingSession.status !== "lost")
@@ -602,6 +561,11 @@ export async function startGame(
       guesses: enrichedGuesses,
       imageUrl: imageUrl,
       nonce: String(existingSession.last_nonce),
+      revealed: buildSessionClues(
+        answer.clue,
+        existingSession,
+        enrichedGuesses,
+      ),
       revealState: getRevealPercentages(existingSession.attempts_count + 1),
       sessionId: existingSession.id,
     };
@@ -721,6 +685,7 @@ async function getImageUrlForStep(sessionId: string): Promise<string | null> {
 type PerfumeForFeedback = {
   base_notes: string[] | null;
   brand_id: string;
+  gender?: string | null;
   middle_notes: string[] | null;
   perfumers: string[] | null;
   release_year: number | null;
@@ -748,6 +713,7 @@ function calculateFeedback(
 
   return {
     brandMatch: guessedPerfume.brand_id === answerPerfume.brand_id,
+    genderMatch: isGenderMatch(guessedPerfume.gender, answerPerfume.gender),
     notesMatch: calculateNotesMatch(
       {
         base: guessedPerfume.base_notes ?? [],
@@ -815,14 +781,7 @@ export async function submitGuess(
     data: {
       attempts_count: number;
       challenge_id: string;
-      guesses:
-        | {
-            feedback?: AttemptFeedback;
-            isCorrect: boolean;
-            perfumeId: string;
-            timestamp: string;
-          }[]
-        | null;
+      guesses: StoredGuess[] | null;
       id: string;
       last_nonce: string | number;
       player_id: string;
@@ -841,9 +800,11 @@ export async function submitGuess(
   }
 
   if (session.status !== "active") {
+    const finishedAnswer = await requireChallengeAnswer(session.challenge_id);
     return {
       feedback: {
         brandMatch: false,
+        genderMatch: false,
         notesMatch: 0,
         perfumerMatch: "none",
         yearDirection: "equal",
@@ -853,6 +814,7 @@ export async function submitGuess(
       hasGuessedNotes: false,
       newNonce: String(session.last_nonce),
       result: "incorrect",
+      revealed: buildSessionClues(finishedAnswer.clue, session, []),
       revealState: getRevealPercentages(6),
     };
   }
@@ -875,9 +837,11 @@ export async function submitGuess(
   type PerfumeData = {
     base_notes: string[] | null;
     brand_id: string;
+    brands?: { name: string } | null;
     concentration_id?: string;
     concentrations: { name: string } | { name: string }[] | null;
     gender?: string | null;
+    is_linear?: boolean | null;
     middle_notes: string[] | null;
     name?: string;
     perfumers: string[] | null; // FIX: Array of strings, not objects
@@ -897,7 +861,7 @@ export async function submitGuess(
     adminSupabase
       .from("perfumes")
       .select(
-        "name, brand_id, release_year, top_notes, middle_notes, base_notes, perfumers, concentrations(name)",
+        "name, brand_id, release_year, top_notes, middle_notes, base_notes, perfumers, concentrations(name), gender, is_linear, brands(name)",
       )
       .eq("id", challenge.perfume_id)
       .limit(1)
@@ -929,12 +893,10 @@ export async function submitGuess(
     return isCorrect ? "won" : "lost";
   })();
 
+  const nextGuesses: StoredGuess[] = [...(session.guesses ?? []), guessEntry];
   const updatePayload = {
     attempts_count: nextAttempts,
-    guesses: [
-      ...((session.guesses ?? []) as unknown as AttemptFeedback[]),
-      guessEntry,
-    ],
+    guesses: nextGuesses,
     last_guess: new Date().toISOString(),
     last_nonce: newNonce,
     status: newStatus,
@@ -1019,6 +981,8 @@ export async function submitGuess(
   })();
 
   const nextImageUrl = await getImageUrlForStep(sessionId);
+  const answerClue = toClueAnswer(answerPerfume);
+  const history = await enrichGuessHistory(nextGuesses, answerClue);
 
   return {
     answerConcentration: isGameOver
@@ -1037,6 +1001,11 @@ export async function submitGuess(
     imageUrl: nextImageUrl,
     newNonce: newNonce,
     result: isCorrect ? "correct" : "incorrect",
+    revealed: buildSessionClues(
+      answerClue,
+      { attempts_count: nextAttempts, status: newStatus },
+      history,
+    ),
     revealState: getRevealPercentages(nextAttempts),
   };
 }
@@ -1162,14 +1131,7 @@ export async function skipAttempt(
     data: {
       attempts_count: number;
       challenge_id: string;
-      guesses:
-        | {
-            isCorrect: boolean;
-            isSkip?: boolean;
-            perfumeId: string | null;
-            timestamp: string;
-          }[]
-        | null;
+      guesses: StoredGuess[] | null;
       id: string;
       last_nonce: string | number;
       player_id: string;
@@ -1185,10 +1147,13 @@ export async function skipAttempt(
     throw new Error(`CONFLICT:${session.last_nonce}`);
   }
 
+  const answer = await requireChallengeAnswer(session.challenge_id);
+
   if (session.status !== "active") {
     return {
       gameStatus: session.status as "active" | "won" | "lost",
       newNonce: String(session.last_nonce),
+      revealed: buildSessionClues(answer.clue, session, []),
     };
   }
 
@@ -1197,18 +1162,19 @@ export async function skipAttempt(
   const newNonce = generateNonce();
   const newStatus: "active" | "lost" = isGameOver ? "lost" : "active";
 
-  const skipEntry = {
+  const skipEntry: StoredGuess = {
     isCorrect: false,
     isSkip: true,
     perfumeId: null,
     timestamp: new Date().toISOString(),
   };
 
+  const nextGuesses = [...(session.guesses ?? []), skipEntry];
   const { error: updateError } = await supabase
     .from("game_sessions")
     .update({
       attempts_count: nextAttempts,
-      guesses: [...(session.guesses ?? []), skipEntry],
+      guesses: nextGuesses,
       last_guess: new Date().toISOString(),
       last_nonce: newNonce,
       status: newStatus,
@@ -1233,6 +1199,7 @@ export async function skipAttempt(
     : { answerConcentration: undefined, answerName: undefined };
 
   const imageUrl = await getImageUrlForStep(sessionId);
+  const history = await enrichGuessHistory(nextGuesses, answer.clue);
 
   return {
     answerConcentration,
@@ -1240,6 +1207,11 @@ export async function skipAttempt(
     gameStatus: newStatus,
     imageUrl,
     newNonce,
+    revealed: buildSessionClues(
+      answer.clue,
+      { attempts_count: nextAttempts, status: newStatus },
+      history,
+    ),
   };
 }
 
@@ -1387,6 +1359,8 @@ export const getDailyChallengeSSR = unstable_cache(
         xsolve: perfume.xsolve_score,
         year: perfume.release_year ?? 0,
       },
+      revealed: buildSessionClues(toClueAnswer(perfume), NEW_SESSION, []),
+      xsolve: perfume.xsolve_score,
     } as DailyChallenge;
   },
   ["daily-challenge-ssr"],

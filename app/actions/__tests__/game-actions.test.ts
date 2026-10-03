@@ -21,6 +21,7 @@ vi.mock("@/lib/analytics-server", () => ({
 }));
 
 // Import after mocks
+import { MASK_CHAR } from "@/lib/constants";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 
 import { createMockChallenge, createMockPerfume } from "../../../vitest.setup";
@@ -752,6 +753,7 @@ describe("game-actions", () => {
             image_key_step_5: "step5.jpg",
             image_key_step_6: "step6.jpg",
           },
+          perfumes: createMockPerfume(),
         });
 
         vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
@@ -871,19 +873,25 @@ describe("game-actions", () => {
 
             switch (table) {
               case "perfumes": {
-                // For enriching guesses
-                chain.in = vi.fn().mockResolvedValue({
-                  data: [
-                    {
-                      brands: { name: "Test Brand" },
-                      concentrations: { name: "EDP" },
-                      gender: "Unisex",
-                      id: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-                      name: "Test Perfume",
-                      release_year: 2020,
-                    },
-                  ],
+                chain.single = vi.fn().mockResolvedValue({
+                  data: createMockPerfume(),
                   error: null,
+                });
+                // For enriching guesses: .in(...).limit(n)
+                chain.in = vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue({
+                    data: [
+                      {
+                        brands: { name: "Test Brand" },
+                        concentrations: { name: "EDP" },
+                        gender: "Unisex",
+                        id: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+                        name: "Test Perfume",
+                        release_year: 2020,
+                      },
+                    ],
+                    error: null,
+                  }),
                 });
 
                 break;
@@ -969,6 +977,7 @@ describe("game-actions", () => {
           from: vi.fn((table: string) => {
             const chain: Record<string, unknown> = {
               eq: vi.fn().mockReturnThis(),
+              in: vi.fn().mockReturnThis(),
               limit: vi.fn().mockReturnThis(),
               maybeSingle: vi
                 .fn()
@@ -1062,6 +1071,7 @@ describe("game-actions", () => {
           const chain = {
             eq: vi.fn().mockReturnThis(),
             in: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
             select: vi.fn().mockReturnThis(),
             single: vi.fn(),
           };
@@ -1387,6 +1397,7 @@ describe("game-actions", () => {
           from: vi.fn((table: string) => {
             const chain: Record<string, unknown> = {
               eq: vi.fn().mockReturnThis(),
+              in: vi.fn().mockReturnThis(),
               limit: vi.fn().mockReturnThis(),
               maybeSingle: vi
                 .fn()
@@ -1546,6 +1557,7 @@ describe("game-actions", () => {
           from: vi.fn((table: string) => {
             const chain: Record<string, unknown> = {
               eq: vi.fn().mockReturnThis(),
+              in: vi.fn().mockReturnThis(),
               limit: vi.fn().mockReturnThis(),
               maybeSingle: vi
                 .fn()
@@ -1767,6 +1779,192 @@ describe("game-actions", () => {
 
         expect(result.gameStatus).toBe("won");
         expect(result.result).toBe("incorrect");
+      });
+    });
+  });
+
+  // ==================== Server-computed clues ====================
+
+  describe("server-computed clues", () => {
+    const SESSION_ID = "123e4567-e89b-12d3-a456-426614174000";
+    const CHALLENGE_ID = "550e8400-e29b-41d4-a716-446655440000";
+    const ANSWER_ID = "a47ac10b-58cc-4372-a567-0e02b2c3d479";
+    const GUESS_ID = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
+    const NONCE = "nonce-1";
+    const USER_ID = "user-clues";
+
+    const answerRow = {
+      base_notes: ["Vanilla"],
+      brand_id: "brand-chanel",
+      brands: { name: "Chanel" },
+      concentrations: { name: "EDP" },
+      gender: "Feminine",
+      id: ANSWER_ID,
+      is_linear: false,
+      middle_notes: ["Rose"],
+      name: "Coco",
+      perfumers: ["Jacques Polge"],
+      release_year: 2001,
+      top_notes: ["Bergamot"],
+      xsolve_score: 0.5,
+    };
+    const guessedRow = {
+      ...answerRow,
+      brand_id: "brand-other",
+      brands: { name: "Dior" },
+      gender: "feminine",
+      id: GUESS_ID,
+      name: "J'adore",
+      perfumers: ["Someone"],
+      release_year: 2010,
+    };
+
+    /** Awaitable chain: every builder method returns the chain, which resolves to `value`. */
+    function thenable(value: unknown) {
+      const p = Promise.resolve(value);
+      const chain: Record<string, unknown> = {};
+      for (const method of ["select", "eq", "in", "limit", "order", "update"]) {
+        chain[method] = vi.fn().mockReturnValue(chain);
+      }
+      chain.insert = vi.fn().mockResolvedValue({ data: null, error: null });
+      chain.single = vi.fn().mockResolvedValue(value);
+      chain.maybeSingle = chain.single;
+      // eslint-disable-next-line unicorn/no-thenable -- necessary for Supabase chain mocking
+      chain.then = p.then.bind(p);
+      return chain;
+    }
+
+    function mockAdmin() {
+      vi.mocked(createAdminClient).mockReturnValue({
+        from: vi.fn((table: string) => {
+          switch (table) {
+            case "daily_challenges": {
+              return thenable({
+                data: {
+                  grace_deadline_at_utc: "2999-01-01T00:00:00Z",
+                  perfume_id: ANSWER_ID,
+                },
+                error: null,
+              });
+            }
+            case "daily_challenges_public": {
+              return thenable({
+                data: { grace_deadline_at_utc: "2999-01-01T00:00:00Z" },
+                error: null,
+              });
+            }
+            case "perfume_assets": {
+              return thenable({
+                data: {
+                  image_key_step_1: "s1.jpg",
+                  image_key_step_6: "s6.jpg",
+                },
+                error: null,
+              });
+            }
+            case "perfumes": {
+              // Awaited list (.in) returns the guessed perfume; .single() is keyed by id.
+              const chain = thenable({ data: [guessedRow], error: null });
+              const eq = vi.fn((_column: string, id: string) => {
+                chain.single = vi.fn().mockResolvedValue({
+                  data: id === GUESS_ID ? guessedRow : answerRow,
+                  error: null,
+                });
+                return chain;
+              });
+              chain.eq = eq;
+              return chain;
+            }
+            default: {
+              return thenable({ data: null, error: null });
+            }
+          }
+        }),
+      } as never);
+    }
+
+    function mockUserClient(session: Record<string, unknown>) {
+      const client = {
+        auth: {
+          getUser: vi.fn().mockResolvedValue({
+            data: { user: { id: USER_ID } },
+            error: null,
+          }),
+        },
+        from: vi.fn((table: string) =>
+          table === "game_sessions"
+            ? thenable({ data: session, error: null })
+            : thenable({ data: null, error: null }),
+        ),
+      };
+      vi.mocked(createClient).mockResolvedValue(client as never);
+    }
+
+    const baseSession = {
+      attempts_count: 0,
+      challenge_id: CHALLENGE_ID,
+      guesses: [],
+      id: SESSION_ID,
+      last_nonce: NONCE,
+      player_id: USER_ID,
+      start_time: new Date().toISOString(),
+      status: "active",
+    };
+
+    it("startGame takes the level from attempts_count for a resumed session", async () => {
+      mockAdmin();
+      mockUserClient({ ...baseSession, attempts_count: 2 });
+
+      const result = await startGame(CHALLENGE_ID);
+
+      expect(result.revealed.year).toBe(`20${MASK_CHAR.repeat(2)}`);
+      expect(result.revealed.gender).toBeNull();
+    });
+
+    it("submitGuess on attempt 1 returns level-2 clues and genderMatch", async () => {
+      mockAdmin();
+      mockUserClient(baseSession);
+
+      const result = await submitGuess(SESSION_ID, GUESS_ID, NONCE);
+
+      expect(result.feedback.genderMatch).toBe(true);
+      expect(result.revealed.year).toBe(`2${MASK_CHAR.repeat(3)}`);
+      expect(result.revealed.brand).not.toBe("Chanel");
+      expect(result.revealed.genderRevealed).toBe(true);
+    });
+
+    it("submitGuess on a finished session returns fully revealed clues", async () => {
+      mockAdmin();
+      mockUserClient({ ...baseSession, attempts_count: 2, status: "lost" });
+
+      const result = await submitGuess(SESSION_ID, GUESS_ID, NONCE);
+
+      expect(result.gameStatus).toBe("lost");
+      expect(result.revealed).toMatchObject({
+        brand: "Chanel",
+        gender: "Feminine",
+        perfumer: "Jacques Polge",
+        year: "2001",
+      });
+    });
+
+    it("a correct guess returns fully revealed clues", async () => {
+      mockAdmin();
+      mockUserClient(baseSession);
+
+      const result = await submitGuess(SESSION_ID, ANSWER_ID, NONCE);
+
+      expect(result.result).toBe("correct");
+      expect(result.revealed).toMatchObject({
+        brand: "Chanel",
+        notes: {
+          base: ["Vanilla"],
+          heart: ["Rose"],
+          kind: "pyramid",
+          top: ["Bergamot"],
+        },
+        perfumer: "Jacques Polge",
+        year: "2001",
       });
     });
   });

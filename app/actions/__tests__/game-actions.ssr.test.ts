@@ -249,6 +249,9 @@ describe("getDailyChallengeSSR", () => {
     expect(result?.clues.brand).toBe("Dior");
     expect(result?.clues.xsolve).toBe(80);
     expect(result?.clues.notes.top).toContain("Bergamot");
+    expect(result?.revealed.brand).toBe("?????");
+    expect(result?.revealed.gender).toBeNull();
+    expect(result?.xsolve).toBe(80);
   });
 });
 

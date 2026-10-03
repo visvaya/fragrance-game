@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import * as gameActions from "@/app/actions/game-actions";
+import { HIDDEN_CLUES } from "@/lib/game/clue-reveal";
 import * as getClientModule from "@/lib/supabase/get-client";
 
 import { UIPreferencesProvider } from "../contexts/ui-preferences-context";
@@ -227,7 +228,9 @@ describe("GameProvider", () => {
       grace_deadline_at_utc: "2026-02-28T00:00:00Z",
       id: VALID_CHALLENGE_ID,
       mode: "standard",
+      revealed: HIDDEN_CLUES,
       snapshot_metadata: {},
+      xsolve: 3,
     };
 
     renderWithProviders(
@@ -305,7 +308,9 @@ describe("GameProvider — initialSession state restoration", () => {
     grace_deadline_at_utc: "2026-02-28T00:00:00Z",
     id: VALID_CHALLENGE_ID,
     mode: "standard",
+    revealed: HIDDEN_CLUES,
     snapshot_metadata: {},
+    xsolve: 3,
   };
 
   const wonGuess = {

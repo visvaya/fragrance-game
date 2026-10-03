@@ -17,6 +17,7 @@ vi.mock("@/lib/analytics-server", () => ({
 }));
 
 import { skipAttempt } from "@/app/actions/game-actions";
+import { MASK_CHAR } from "@/lib/constants";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 const SESSION_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
@@ -59,24 +60,40 @@ function makeClientMock(session: ReturnType<typeof makeSession>) {
   };
 }
 
+const ANSWER_ROW = {
+  base_notes: ["Vanilla"],
+  brands: { name: "Chanel" },
+  gender: "Feminine",
+  is_linear: false,
+  middle_notes: ["Rose"],
+  name: "Coco",
+  perfumers: ["Jacques Polge"],
+  release_year: 2001,
+  top_notes: ["Bergamot"],
+  xsolve_score: 0.5,
+};
+
 function makeAdminMock() {
   return {
-    from: vi.fn().mockReturnValue({
+    from: vi.fn((table: string) => ({
       eq: vi.fn().mockReturnThis(),
       in: vi.fn().mockReturnThis(),
       insert: vi.fn().mockResolvedValue({ error: null }),
+      limit: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({
-        data: {
-          grace_deadline_at_utc: new Date(
-            Date.now() + 86_400_000,
-          ).toISOString(),
-          perfume_id: "p1",
-          xsolve_score: 0.5,
-        },
+        data:
+          table === "perfumes"
+            ? ANSWER_ROW
+            : {
+                grace_deadline_at_utc: new Date(
+                  Date.now() + 86_400_000,
+                ).toISOString(),
+                perfume_id: "p1",
+              },
         error: null,
       }),
-    }),
+    })),
   };
 }
 
@@ -95,6 +112,33 @@ describe("skipAttempt", () => {
     expect(result.gameStatus).toBe("active");
     expect(result.newNonce).toBeDefined();
     expect(result.newNonce).not.toBe(NONCE);
+  });
+
+  it("returns level-2 clues after skipping attempt 1", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeClientMock(makeSession(0)) as any,
+    );
+    vi.mocked(createAdminClient).mockReturnValue(makeAdminMock() as any);
+
+    const result = await skipAttempt(SESSION_ID, NONCE);
+
+    expect(result.revealed.year).toBe(`2${MASK_CHAR.repeat(3)}`);
+    expect(result.revealed.brand).not.toBe("Chanel");
+  });
+
+  it("returns fully revealed clues after the final skip", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeClientMock(makeSession(5)) as any,
+    );
+    vi.mocked(createAdminClient).mockReturnValue(makeAdminMock() as any);
+
+    const result = await skipAttempt(SESSION_ID, NONCE);
+
+    expect(result.revealed).toMatchObject({
+      brand: "Chanel",
+      perfumer: "Jacques Polge",
+      year: "2001",
+    });
   });
 
   it("returns lost when last attempt is skipped (attempts_count = 5)", async () => {
