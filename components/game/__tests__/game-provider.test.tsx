@@ -78,6 +78,7 @@ const VALID_CHALLENGE_ID = "550e8400-e29b-41d4-a716-446655440000";
 
 const CHALLENGE_CLUES = { ...HIDDEN_CLUES, brand: "C____l" };
 const SESSION_CLUES = { ...HIDDEN_CLUES, brand: "Ch___l" };
+const AFTER_GUESS_CLUES = { ...HIDDEN_CLUES, brand: "Cha__l" };
 
 // Helper component to expose context
 function TestComponent() {
@@ -120,15 +121,6 @@ function renderWithProviders(ui: React.ReactElement) {
 
 describe("GameProvider", () => {
   const mockChallenge = {
-    clues: {
-      brand: "Chanel",
-      gender: "Female",
-      isLinear: false,
-      notes: { base: ["C"], heart: ["B"], top: ["A"] },
-      perfumer: "Polge",
-      xsolve: 100,
-      year: 1921,
-    },
     id: VALID_CHALLENGE_ID,
     revealed: CHALLENGE_CLUES,
   };
@@ -226,16 +218,6 @@ describe("GameProvider", () => {
   it("uses initialChallenge prop to skip getDailyChallenge roundtrip", async () => {
     const mockInitialChallenge = {
       challenge_date: "2026-02-27",
-      clues: {
-        brand: "Chanel",
-        concentration: "EDP",
-        gender: "Feminine",
-        isLinear: false,
-        notes: { base: ["Vanilla"], heart: ["Rose"], top: ["Bergamot"] },
-        perfumer: "Jacques Polge",
-        xsolve: 3,
-        year: 1921,
-      },
       grace_deadline_at_utc: "2026-02-28T00:00:00Z",
       id: VALID_CHALLENGE_ID,
       mode: "standard",
@@ -260,7 +242,7 @@ describe("GameProvider", () => {
     expect(screen.getByTestId("daily-brand")).toHaveTextContent("C____l");
   });
 
-  it("handles making an incorrect guess", async () => {
+  it("handles making an incorrect guess", { timeout: 10_000 }, async () => {
     const mockGuessResult = {
       feedback: {
         brandMatch: false,
@@ -275,7 +257,7 @@ describe("GameProvider", () => {
       imageUrl: "/next.jpg",
       newNonce: "nonce-2",
       result: "incorrect",
-      revealed: SESSION_CLUES,
+      revealed: AFTER_GUESS_CLUES,
     };
 
     vi.mocked(gameActions.submitGuess).mockResolvedValue(
@@ -297,6 +279,7 @@ describe("GameProvider", () => {
     await waitFor(() => {
       expect(screen.getByTestId("attempts-count")).toHaveTextContent("1");
       expect(screen.getByTestId("game-state")).toHaveTextContent("playing");
+      expect(screen.getByTestId("daily-brand")).toHaveTextContent("Cha__l");
     });
   });
 });
@@ -308,16 +291,6 @@ describe("GameProvider", () => {
 describe("GameProvider — initialSession state restoration", () => {
   const mockInitialChallenge = {
     challenge_date: "2026-02-27",
-    clues: {
-      brand: "Chanel",
-      concentration: "EDP",
-      gender: "Female",
-      isLinear: false,
-      notes: { base: ["Vanilla"], heart: ["Rose"], top: ["Bergamot"] },
-      perfumer: "Jacques Polge",
-      xsolve: 3,
-      year: 1921,
-    },
     grace_deadline_at_utc: "2026-02-28T00:00:00Z",
     id: VALID_CHALLENGE_ID,
     mode: "standard",

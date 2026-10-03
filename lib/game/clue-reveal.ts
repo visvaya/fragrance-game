@@ -81,7 +81,7 @@ const isKnown = (value: string | null | undefined): value is string =>
 const maskWord = (note: string): string => revealLetters(note, 0);
 
 const maskAllLetters = (note: string): string =>
-  note.replaceAll(/[\p{L}\p{N}]/gu, MASK_CHAR);
+  note.normalize("NFC").replaceAll(/[\p{L}\p{M}\p{N}]/gu, MASK_CHAR);
 
 /** True when both genders are known and equal, ignoring case and surrounding spaces. */
 export function isGenderMatch(

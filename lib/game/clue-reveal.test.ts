@@ -180,6 +180,16 @@ describe("buildRevealedClues", () => {
       );
     });
 
+    it("masks decomposed letters and combining marks at level 2", () => {
+      const decomposed = buildRevealedClues(
+        { ...linear, notes: { base: [], heart: ["Pe\u0301tales"], top: [] } },
+        { guesses: [], isGameOver: false, revealLevel: 2 },
+      ).notes;
+      const masked = decomposed.kind === "linear" ? decomposed.notes : [];
+      expect(masked.join("")).not.toMatch(/[\p{L}\p{M}\p{N}]/u);
+      expect(masked).toEqual([MASK_CHAR.repeat(7)]);
+    });
+
     it("reveals notes from the end: a third at level 3, two thirds at level 4", () => {
       const l3 = lin(3).notes;
       const l4 = lin(4).notes;

@@ -29,6 +29,7 @@ vi.mock("@/lib/env", () => ({
   env: { NEXT_PUBLIC_ASSETS_HOST: "assets.test.com", NODE_ENV: "test" },
 }));
 
+import { GENERIC_PLACEHOLDER, MASK_CHAR } from "@/lib/constants";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 import {
@@ -51,6 +52,10 @@ const SESSION_ID = "22222222-2222-4222-8222-222222222222";
 const ANSWER_ID = "33333333-3333-4333-8333-333333333333";
 const GUESS_ID = "44444444-4444-4444-8444-444444444444";
 const NONCE = "12345";
+
+/** Brand clue at level 1 (placeholder) and level 2 (every letter masked, spaces kept). */
+const BRAND_LEVEL_1 = GENERIC_PLACEHOLDER.repeat(5);
+const BRAND_LEVEL_2 = `${MASK_CHAR.repeat(7)} ${MASK_CHAR.repeat(6)}`;
 
 const ANSWER_ROW = {
   base_notes: ["Snorkelmusk"],
@@ -213,6 +218,7 @@ describe("game responses never contain the unrevealed answer", () => {
     useClients(null);
     const result = await getDailyChallengeSSR("2026-10-03");
     expect(result).not.toBeNull();
+    expect(result?.revealed.brand).toBe(BRAND_LEVEL_1);
     expect(JSON.stringify(result)).not.toMatch(LEAK_PATTERN);
   });
 
@@ -220,18 +226,21 @@ describe("game responses never contain the unrevealed answer", () => {
     useClients(null);
     const result = await getDailyChallenge();
     expect(result).not.toBeNull();
+    expect(result?.revealed.brand).toBe(BRAND_LEVEL_1);
     expect(JSON.stringify(result)).not.toMatch(LEAK_PATTERN);
   });
 
   it("startGame with a new session", async () => {
     useClients(null);
     const result = await startGame(CHALLENGE_ID);
+    expect(result.revealed.brand).toBe(BRAND_LEVEL_1);
     expect(JSON.stringify(result)).not.toMatch(LEAK_PATTERN);
   });
 
   it("startGame with an existing session at attempt 0", async () => {
     useClients(ACTIVE_SESSION);
     const result = await startGame(CHALLENGE_ID);
+    expect(result.revealed.brand).toBe(BRAND_LEVEL_1);
     expect(JSON.stringify(result)).not.toMatch(LEAK_PATTERN);
   });
 
@@ -239,6 +248,7 @@ describe("game responses never contain the unrevealed answer", () => {
     useClients(ACTIVE_SESSION);
     const result = await submitGuess(SESSION_ID, GUESS_ID, NONCE);
     expect(result.gameStatus).toBe("active");
+    expect(result.revealed.brand).toBe(BRAND_LEVEL_2);
     expect(JSON.stringify(result)).not.toMatch(LEAK_PATTERN);
   });
 
@@ -246,6 +256,7 @@ describe("game responses never contain the unrevealed answer", () => {
     useClients(ACTIVE_SESSION);
     const result = await skipAttempt(SESSION_ID, NONCE);
     expect(result.gameStatus).toBe("active");
+    expect(result.revealed.brand).toBe(BRAND_LEVEL_2);
     expect(JSON.stringify(result)).not.toMatch(LEAK_PATTERN);
   });
 });
