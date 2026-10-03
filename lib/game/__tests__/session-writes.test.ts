@@ -145,11 +145,21 @@ describe("session-writes", () => {
   });
 
   it("recordGameResult reports a failure without throwing", async () => {
-    mockAdmin({ data: null, error: { message: "insert failed" } });
+    mockAdmin({
+      data: null,
+      error: { code: "23514", message: "insert failed" },
+    });
 
     await expect(
       recordGameResult(PLAYER_ID, RESULT_VALUES),
     ).resolves.toBeUndefined();
     expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error), {
+      extra: {
+        dbCode: "23514",
+        dbError: "insert failed",
+        sessionId: SESSION_ID,
+      },
+    });
   });
 });

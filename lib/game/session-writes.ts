@@ -104,7 +104,11 @@ export async function recordGameResult(
     .insert({ ...values, player_id: playerId });
   if (error) {
     Sentry.captureException(new Error("Game result insert failed"), {
-      extra: { dbError: error.message, sessionId: values.session_id },
+      extra: {
+        dbCode: error.code,
+        dbError: error.message,
+        sessionId: values.session_id,
+      },
     });
   }
 }
