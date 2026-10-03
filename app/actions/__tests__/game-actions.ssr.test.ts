@@ -246,9 +246,11 @@ describe("getDailyChallengeSSR", () => {
     const result = await getDailyChallengeSSR(TODAY);
 
     expect(result).not.toBeNull();
-    expect(result?.clues.brand).toBe("Dior");
-    expect(result?.clues.xsolve).toBe(80);
-    expect(result?.clues.notes.top).toContain("Bergamot");
+    expect(result).not.toHaveProperty("clues");
+    expect(JSON.stringify(result)).not.toMatch(/Dior|Bergamot|2015/);
+    expect(result?.revealed.brand).toBe("?????");
+    expect(result?.revealed.gender).toBeNull();
+    expect(result?.xsolve).toBe(80);
   });
 });
 

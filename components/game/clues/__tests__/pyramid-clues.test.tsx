@@ -4,13 +4,10 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { GENERIC_PLACEHOLDER } from "@/lib/constants";
+import { buildRevealedClues } from "@/lib/game/clue-reveal";
 import { noop } from "@/lib/utils";
 
-import {
-  GameStateProvider,
-  type DailyPerfume,
-  type GameState,
-} from "../../contexts";
+import { GameStateProvider, type GameState } from "../../contexts";
 import { PyramidClues } from "../pyramid-clues";
 
 // Mock next-intl
@@ -127,40 +124,87 @@ const MOCK_PERFUME_LINEAR = {
   },
 };
 
+type AnswerFixture = typeof MOCK_PERFUME_PYRAMID;
+
+/** Provides game state with clues computed the way the server does. */
+function TestProvider({
+  answer,
+  attemptsCount,
+  children,
+  gameState,
+}: Readonly<{
+  answer: AnswerFixture;
+  attemptsCount: number;
+  children: React.ReactNode;
+  gameState: GameState;
+}>) {
+  const clues = buildRevealedClues(
+    {
+      brand: answer.brand,
+      gender: answer.gender,
+      isLinear: answer.isLinear,
+      notes: answer.notes,
+      perfumers: [answer.perfumer],
+      year: answer.year,
+    },
+    {
+      guesses: [],
+      isGameOver: gameState !== "playing",
+      revealLevel: attemptsCount + 1,
+    },
+  );
+  return (
+    <GameStateProvider
+      attempts={Array.from({ length: attemptsCount }).map(() => ({
+        brand: "Test",
+        feedback: {
+          brandMatch: false,
+          genderMatch: false,
+          notesMatch: 0.1,
+          perfumerMatch: "none",
+          yearDirection: "lower",
+          yearMatch: "wrong",
+        },
+        guess: "Test",
+      }))}
+      clues={clues}
+      dailyPerfume={{
+        concentration: "EDP",
+        id: "test-perfume",
+        imageUrl: "/test.jpg",
+        name: "Chanel No. 5",
+        xsolve: 100,
+      }}
+      gameState={gameState}
+      loading={false}
+      maxAttempts={6}
+      sessionId="test-session"
+      sessionReady
+      user={null}
+    >
+      {children}
+    </GameStateProvider>
+  );
+}
+
 function createTestWrapper({
   currentAttempt = 1,
   dailyPerfume = MOCK_PERFUME_PYRAMID,
   gameState = "playing",
 }: {
   currentAttempt?: number;
-  dailyPerfume?: DailyPerfume;
+  dailyPerfume?: AnswerFixture;
   gameState?: GameState;
 } = {}) {
   return function TestWrapper({ children }: { children: React.ReactNode }) {
     return (
-      <GameStateProvider
-        attempts={Array.from({ length: currentAttempt - 1 }).map(() => ({
-          brand: "Test",
-          feedback: {
-            brandMatch: false,
-            notesMatch: 0.1,
-            perfumerMatch: "none",
-            yearDirection: "lower",
-            yearMatch: "wrong",
-          },
-          guess: "Test",
-        }))}
-        dailyPerfume={dailyPerfume}
-        discoveredPerfumers={new Set()}
+      <TestProvider
+        answer={dailyPerfume}
+        attemptsCount={currentAttempt - 1}
         gameState={gameState}
-        loading={false}
-        maxAttempts={6}
-        sessionId="test-session"
-        sessionReady
-        user={null}
       >
         {children}
-      </GameStateProvider>
+      </TestProvider>
     );
   };
 }
@@ -210,29 +254,13 @@ describe("PyramidClues", () => {
 
       // Mid attempt - Top and Heart
       rerender(
-        <GameStateProvider
-          attempts={Array.from({ length: 3 }).map(() => ({
-            brand: "Test",
-            feedback: {
-              brandMatch: false,
-              notesMatch: 0.1,
-              perfumerMatch: "none",
-              yearDirection: "lower",
-              yearMatch: "wrong",
-            },
-            guess: "Test",
-          }))}
-          dailyPerfume={MOCK_PERFUME_PYRAMID}
-          discoveredPerfumers={new Set()}
+        <TestProvider
+          answer={MOCK_PERFUME_PYRAMID}
+          attemptsCount={3}
           gameState="playing"
-          loading={false}
-          maxAttempts={6}
-          sessionId="test-session"
-          sessionReady
-          user={null}
         >
           <PyramidClues />
-        </GameStateProvider>,
+        </TestProvider>,
       );
 
       expect(screen.getByText(/Top Notes/i)).toBeInTheDocument();
@@ -334,58 +362,26 @@ describe("PyramidClues", () => {
 
       // Level 4: 2/3 revealed
       rerender(
-        <GameStateProvider
-          attempts={Array.from({ length: 3 }).map(() => ({
-            brand: "Test",
-            feedback: {
-              brandMatch: false,
-              notesMatch: 0.1,
-              perfumerMatch: "none",
-              yearDirection: "lower",
-              yearMatch: "wrong",
-            },
-            guess: "Test",
-          }))}
-          dailyPerfume={MOCK_PERFUME_LINEAR}
-          discoveredPerfumers={new Set()}
+        <TestProvider
+          answer={MOCK_PERFUME_LINEAR}
+          attemptsCount={3}
           gameState="playing"
-          loading={false}
-          maxAttempts={6}
-          sessionId="test-session"
-          sessionReady
-          user={null}
         >
           <PyramidClues />
-        </GameStateProvider>,
+        </TestProvider>,
       );
 
       expect(screen.getByText(/Linear Profile/i)).toBeInTheDocument();
 
       // Level 5+: All revealed
       rerender(
-        <GameStateProvider
-          attempts={Array.from({ length: 4 }).map(() => ({
-            brand: "Test",
-            feedback: {
-              brandMatch: false,
-              notesMatch: 0.1,
-              perfumerMatch: "none",
-              yearDirection: "lower",
-              yearMatch: "wrong",
-            },
-            guess: "Test",
-          }))}
-          dailyPerfume={MOCK_PERFUME_LINEAR}
-          discoveredPerfumers={new Set()}
+        <TestProvider
+          answer={MOCK_PERFUME_LINEAR}
+          attemptsCount={4}
           gameState="playing"
-          loading={false}
-          maxAttempts={6}
-          sessionId="test-session"
-          sessionReady
-          user={null}
         >
           <PyramidClues />
-        </GameStateProvider>,
+        </TestProvider>,
       );
 
       expect(screen.getByText(/6 notes/i)).toBeInTheDocument();

@@ -2,19 +2,11 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
-import { MASK_CHAR } from "@/lib/constants";
-import { revealLetters } from "@/lib/game/scoring";
-
+import type { AttemptFeedback } from "@/lib/game/challenge-answer";
+import type { RevealedClues } from "@/lib/game/clue-reveal";
 import type { User } from "@supabase/supabase-js";
 
-// Re-export types from game-provider for convenience
-export type AttemptFeedback = {
-  brandMatch: boolean;
-  notesMatch: number;
-  perfumerMatch: "full" | "partial" | "none";
-  yearDirection: "higher" | "lower" | "equal";
-  yearMatch: "correct" | "close" | "wrong";
-};
+export type { AttemptFeedback } from "@/lib/game/challenge-answer";
 
 export type Attempt = {
   brand: string;
@@ -27,35 +19,49 @@ export type Attempt = {
   isSkipped?: boolean;
   perfumeId?: string;
   perfumers?: string[];
-  snapshot?: {
-    brandRevealed: boolean;
-    genderRevealed: boolean;
-    guessMaskedBrand: string;
-    guessMaskedYear: string;
-    yearRevealed: boolean;
-  };
   year?: number;
 };
 
 export type GameState = "playing" | "won" | "lost";
 
+/**
+ * Public data of the daily perfume. Clue values (brand, notes, year...) live in
+ * RevealedClues, computed on the server; the answer itself never reaches the browser.
+ */
 export type DailyPerfume = {
-  brand: string;
   concentration: string | undefined;
-  gender: string;
   id: string;
   imageUrl: string;
-  isLinear: boolean;
   name: string;
-  notes: {
-    base: string[];
-    heart: string[];
-    top: string[];
-  };
-  perfumer: string;
   xsolve: number;
-  year: string | number;
 };
+
+const EMPTY_TIERS: GameStateContextType["visibleNotes"] = {
+  base: [],
+  heart: [],
+  top: [],
+};
+
+/** Maps server clues to the reveal values exposed by useGameState(). */
+function toRevealValues(clues: RevealedClues) {
+  return {
+    isBrandRevealed: clues.brandRevealed,
+    isGenderRevealed: clues.genderRevealed,
+    isYearRevealed: clues.yearRevealed,
+    revealedBrand: clues.brand,
+    revealedGender: clues.gender ?? "Unknown",
+    revealedPerfumer: clues.perfumer,
+    revealedYear: clues.year,
+    visibleNotes:
+      clues.notes.kind === "pyramid"
+        ? {
+            base: clues.notes.base,
+            heart: clues.notes.heart,
+            top: clues.notes.top,
+          }
+        : EMPTY_TIERS,
+  };
+}
 
 type GameStateContextType = {
   // Core state
@@ -63,6 +69,8 @@ type GameStateContextType = {
   /** True once anonymous auth JWT is ready — guards lazy startGame in game-actions-context */
   authReady: boolean;
   blurLevel: number;
+  /** Clues computed on the server for the current progress. */
+  clues: RevealedClues;
   currentAttempt: number;
   dailyPerfume: DailyPerfume;
   gameState: GameState;
@@ -74,7 +82,6 @@ type GameStateContextType = {
 
   maxAttempts: number;
   potentialScore: number;
-  // Memoized progressive reveal values (CONVERTED from getters)
   revealedBrand: string;
 
   revealedGender: string;
@@ -84,6 +91,7 @@ type GameStateContextType = {
   sessionId: string | null;
   sessionReady: boolean;
   user: User | null;
+  /** Pyramid tiers; empty for linear perfumes (read clues.notes instead). */
   visibleNotes: {
     base: string[] | null;
     heart: string[] | null;
@@ -104,8 +112,8 @@ type GameStateProviderProperties = {
   /** Attempt count inherited from an anonymous session (declined migration). */
   baseAttemptCount?: number;
   children: ReactNode;
+  clues: RevealedClues;
   dailyPerfume: DailyPerfume;
-  discoveredPerfumers: Set<string>;
   gameState: GameState;
   loading: boolean;
   maxAttempts: number;
@@ -115,17 +123,16 @@ type GameStateProviderProperties = {
 };
 
 /**
- * GameStateProvider - Manages core game state with memoized progressive reveal
- * Expensive computations (brand/perfumer/year/notes reveal) are memoized with useMemo
- * to prevent redundant calculations on every render
+ * GameStateProvider - exposes core game state and the server-computed clues.
+ * The provider never masks anything itself: it only passes clues through.
  */
 export function GameStateProvider({
   attempts,
   authReady = false,
   baseAttemptCount = 0,
   children,
+  clues,
   dailyPerfume,
-  discoveredPerfumers,
   gameState,
   loading,
   maxAttempts,
@@ -135,178 +142,6 @@ export function GameStateProvider({
 }: Readonly<GameStateProviderProperties>) {
   const currentAttempt = attempts.length + 1 + baseAttemptCount;
   const revealLevel = Math.min(currentAttempt, maxAttempts);
-
-  // ===== PRIORITY P0: Most Expensive Getters =====
-
-  /**
-   * visibleNotes - O(n) array operations + multiple revealLetters() calls
-   * Memoized to avoid recalculation on every render
-   */
-  const visibleNotes = useMemo(() => {
-    const isGameOver = gameState === "won" || gameState === "lost";
-    const hasPerfectNotes = attempts.some((a) => a.feedback.notesMatch >= 1);
-
-    if (isGameOver || hasPerfectNotes) {
-      return {
-        base: dailyPerfume.notes.base,
-        heart: dailyPerfume.notes.heart,
-        top: dailyPerfume.notes.top,
-      };
-    }
-
-    const mask = (notes: string[]) => notes.map((n) => revealLetters(n, 0));
-
-    if (revealLevel >= 5) {
-      return {
-        base: dailyPerfume.notes.base,
-        heart: dailyPerfume.notes.heart,
-        top: dailyPerfume.notes.top,
-      };
-    }
-
-    if (revealLevel === 4) {
-      return {
-        base: mask(dailyPerfume.notes.base),
-        heart: dailyPerfume.notes.heart,
-        top: dailyPerfume.notes.top,
-      };
-    }
-
-    if (revealLevel === 3) {
-      return {
-        base: mask(dailyPerfume.notes.base),
-        heart: mask(dailyPerfume.notes.heart),
-        top: dailyPerfume.notes.top,
-      };
-    }
-
-    if (revealLevel === 2) {
-      return {
-        base: mask(dailyPerfume.notes.base),
-        heart: mask(dailyPerfume.notes.heart),
-        top: mask(dailyPerfume.notes.top),
-      };
-    }
-
-    // Level 1: Generic placeholders
-    return {
-      base: ["?????", "?????", "?????"],
-      heart: ["?????", "?????", "?????"],
-      top: ["?????", "?????", "?????"],
-    };
-  }, [revealLevel, dailyPerfume.notes, gameState, attempts]);
-
-  /**
-   * revealedPerfumer - String operations + split/map/join
-   * Handles comma-separated perfumers with progressive reveal
-   */
-  const revealedPerfumer = useMemo(() => {
-    const isGameOver = gameState === "won" || gameState === "lost";
-
-    // If perfumer is missing, show "Unknown" immediately (don't mask it)
-    if (dailyPerfume.perfumer === "Unknown") {
-      return "Unknown";
-    }
-
-    if (isGameOver) return dailyPerfume.perfumer;
-
-    const perfumers = dailyPerfume.perfumer.split(",").map((p) => p.trim());
-
-    if (attempts.some((a) => a.feedback.perfumerMatch === "full"))
-      return dailyPerfume.perfumer;
-
-    if (perfumers.every((p) => discoveredPerfumers.has(p)))
-      return dailyPerfume.perfumer;
-
-    if (revealLevel === 1) return "?????";
-
-    return perfumers
-      .map((p) => {
-        if (discoveredPerfumers.has(p)) return p;
-        const percentages = [0, 0, 0.1, 0.3, 0.6, 1];
-        return revealLetters(p, percentages[Math.min(revealLevel - 1, 5)]);
-      })
-      .join(", ");
-  }, [
-    revealLevel,
-    dailyPerfume.perfumer,
-    discoveredPerfumers,
-    attempts,
-    gameState,
-  ]);
-
-  /**
-   * revealedBrand - String operations with revealLetters
-   * Progressive reveal from center outward
-   */
-  const revealedBrand = useMemo(() => {
-    const isGameOver = gameState === "won" || gameState === "lost";
-
-    // If brand is missing, show "Unknown" immediately (don't mask it)
-    if (dailyPerfume.brand === "Unknown") {
-      return "Unknown";
-    }
-
-    if (isGameOver || attempts.some((a) => a.feedback.brandMatch))
-      return dailyPerfume.brand;
-
-    if (revealLevel === 1) return "?????";
-
-    const percentages = [0, 0, 0.15, 0.4, 0.7, 1];
-    return revealLetters(
-      dailyPerfume.brand,
-      percentages[Math.min(revealLevel - 1, 5)],
-    );
-  }, [revealLevel, dailyPerfume.brand, attempts, gameState]);
-
-  // ===== PRIORITY P1: Moderate Cost Getters =====
-
-  /**
-   * revealedYear - String slicing operations
-   * Progressive reveal digit-by-digit
-   */
-  const revealedYear = useMemo(() => {
-    const isGameOver = gameState === "won" || gameState === "lost";
-
-    // If year is missing (0), show "Unknown" instead of masking
-    if (dailyPerfume.year === 0) {
-      return "Unknown";
-    }
-
-    if (isGameOver || attempts.some((a) => a.feedback.yearMatch === "correct"))
-      return dailyPerfume.year.toString();
-
-    const year = dailyPerfume.year.toString();
-
-    if (revealLevel >= 5) return year;
-    if (revealLevel === 4) return year.slice(0, 3) + MASK_CHAR;
-    if (revealLevel === 3) return year.slice(0, 2) + MASK_CHAR.repeat(2);
-    if (revealLevel === 2) return year.slice(0, 1) + MASK_CHAR.repeat(3);
-    return MASK_CHAR.repeat(4);
-  }, [revealLevel, dailyPerfume.year, attempts, gameState]);
-
-  /**
-   * revealedGender - Simple string return
-   * Revealed at game end or when gender discovered
-   */
-  const revealedGender = useMemo(() => {
-    const isGameOver = gameState === "won" || gameState === "lost";
-
-    // If gender is missing, show "Unknown" immediately (don't hide it)
-    if (dailyPerfume.gender === "Unknown") {
-      return "Unknown";
-    }
-
-    const isRevealed = attempts.some(
-      (a) =>
-        a.snapshot?.genderRevealed ??
-        a.gender?.toLowerCase() === dailyPerfume.gender.toLowerCase(),
-    );
-    if (isGameOver || isRevealed) return dailyPerfume.gender;
-    return "Unknown"; // Hidden (not revealed yet)
-  }, [gameState, attempts, dailyPerfume.gender]);
-
-  // ===== PRIORITY P2: Lightweight Getters =====
 
   /**
    * blurLevel - Simple array lookup
@@ -328,81 +163,42 @@ export function GameStateProvider({
     return baseScores[Math.min(currentAttempt - 1, 5)];
   }, [currentAttempt]);
 
-  // ===== Boolean Flags (Derived State) =====
-
-  const isBrandRevealed = useMemo(
-    () =>
-      attempts.some((a) => a.feedback.brandMatch) ||
-      revealedBrand === dailyPerfume.brand,
-    [attempts, revealedBrand, dailyPerfume.brand],
-  );
-
-  const isYearRevealed = useMemo(
-    () =>
-      attempts.some((a) => a.feedback.yearMatch === "correct") ||
-      revealedYear === dailyPerfume.year.toString(),
-    [attempts, revealedYear, dailyPerfume.year],
-  );
-
-  const isGenderRevealed = useMemo(
-    () =>
-      attempts.some(
-        (a) =>
-          a.snapshot?.genderRevealed ??
-          a.gender?.toLowerCase() === dailyPerfume.gender.toLowerCase(),
-      ),
-    [attempts, dailyPerfume.gender],
-  );
-
   // useMemo prevents a new context value object on every render —
   // without it, all useGameState() consumers re-render even when nothing changed.
   const value = useMemo<GameStateContextType>(
     () => ({
+      ...toRevealValues(clues),
       attempts,
       authReady,
       blurLevel,
+      clues,
       currentAttempt,
       dailyPerfume,
       gameState,
-      isBrandRevealed,
-      isGenderRevealed,
-      isYearRevealed,
       loading,
       maxAttempts,
       potentialScore,
-      revealedBrand,
-      revealedGender,
-      revealedPerfumer,
-      revealedYear,
       revealLevel,
       sessionId,
       sessionReady,
       user,
-      visibleNotes,
       xsolveScore: dailyPerfume.xsolve,
     }),
     [
       attempts,
       authReady,
       blurLevel,
+      clues,
       currentAttempt,
       dailyPerfume,
       gameState,
-      isBrandRevealed,
-      isGenderRevealed,
-      isYearRevealed,
       loading,
       maxAttempts,
       potentialScore,
-      revealedBrand,
-      revealedGender,
-      revealedPerfumer,
-      revealedYear,
       revealLevel,
       sessionId,
       sessionReady,
       user,
-      visibleNotes,
     ],
   );
 

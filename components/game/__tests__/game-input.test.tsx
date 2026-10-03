@@ -118,31 +118,19 @@ globalThis.window.HTMLElement.prototype.scrollIntoView = vi.fn();
 // ---------------------------------------------------------------------------
 
 const DAILY_PERFUME: DailyPerfume = {
-  brand: "Dior",
   concentration: "EDP",
-  gender: "Male",
   id: "test-perfume-id",
   imageUrl: "/test.jpg",
-  isLinear: false,
   name: "Sauvage",
-  notes: { base: [], heart: [], top: [] },
-  perfumer: "Creator",
   xsolve: 80,
-  year: 2015,
 };
 
 const SKELETON_PERFUME: DailyPerfume = {
-  brand: "?????",
   concentration: undefined,
-  gender: "?????",
   id: "skeleton",
   imageUrl: "/placeholder.svg",
-  isLinear: false,
   name: "?????",
-  notes: { base: [], heart: [], top: [] },
-  perfumer: "?????",
   xsolve: 0,
-  year: "⎵⎵⎵⎵",
 };
 
 const makeDefaultState = (overrides: Record<string, unknown> = {}) => ({

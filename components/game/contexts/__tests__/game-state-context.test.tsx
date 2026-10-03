@@ -3,30 +3,58 @@ import type { ReactNode } from "react";
 import { renderHook } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 
-import { MASK_CHAR } from "@/lib/constants";
+import { HIDDEN_CLUES, type RevealedClues } from "@/lib/game/clue-reveal";
 
 import {
   GameStateProvider,
   useGameState,
   type Attempt,
+  type DailyPerfume,
 } from "../game-state-context";
 
-const MOCK_PERFUME = {
-  brand: "Dior",
+const MOCK_PERFUME: DailyPerfume = {
   concentration: "EDP",
-  gender: "Unisex",
   id: "test",
   imageUrl: "/test.jpg",
-  isLinear: false,
   name: "Mystery",
+  xsolve: 0.5,
+};
+
+const SERVER_CLUES: RevealedClues = {
+  answerHas: {
+    brand: true,
+    gender: true,
+    notes: true,
+    perfumer: true,
+    year: true,
+  },
+  brand: "D__r",
+  brandRevealed: false,
+  gender: "Unisex",
+  genderRevealed: true,
   notes: {
-    base: ["Vanilla", "Musk", "Amber"],
-    heart: ["Rose", "Jasmine", "Lily"],
+    base: ["_______", "____", "_____"],
+    heart: ["____", "_______", "____"],
+    kind: "pyramid",
     top: ["Bergamot", "Lemon", "Neroli"],
   },
-  perfumer: "François Demachy",
-  xsolve: 0.5,
-  year: 1979,
+  perfumer: "F_______ D______",
+  perfumerCount: 1,
+  year: "19__",
+  yearRevealed: false,
+};
+
+const WRONG_ATTEMPT: Attempt = {
+  brand: "Test",
+  feedback: {
+    brandMatch: false,
+    genderMatch: false,
+    notesMatch: 0,
+    perfumerMatch: "none",
+    yearDirection: "higher",
+    yearMatch: "wrong",
+  },
+  guess: "Test",
 };
 
 const createWrapper = (
@@ -34,8 +62,8 @@ const createWrapper = (
 ) => {
   const defaultProps = {
     attempts: [],
+    clues: SERVER_CLUES,
     dailyPerfume: MOCK_PERFUME,
-    discoveredPerfumers: new Set<string>(),
     gameState: "playing" as const,
     loading: false,
     maxAttempts: 6,
@@ -63,138 +91,86 @@ describe("GameStateContext", () => {
     expect(result.current.revealLevel).toBe(1);
   });
 
-  it("should compute revealedBrand progressively", () => {
-    // Level 1: Masked
-    const { result: level1 } = renderHook(() => useGameState(), {
-      wrapper: createWrapper({ attempts: [] }),
-    });
-    expect(level1.current.revealedBrand).toBe("?????");
-
-    // Level 3: 15% revealed
-    const mockAttempts: Attempt[] = [
-      {
-        brand: "Test",
-        feedback: {
-          brandMatch: false,
-          notesMatch: 0,
-          perfumerMatch: "none",
-          yearDirection: "higher",
-          yearMatch: "wrong",
-        },
-        guess: "Test",
-      },
-      {
-        brand: "Test2",
-        feedback: {
-          brandMatch: false,
-          notesMatch: 0,
-          perfumerMatch: "none",
-          yearDirection: "higher",
-          yearMatch: "wrong",
-        },
-        guess: "Test2",
-      },
-    ];
-    const { result: level3 } = renderHook(() => useGameState(), {
-      wrapper: createWrapper({ attempts: mockAttempts }),
-    });
-    // Should be partially revealed (15%)
-    expect(level3.current.revealedBrand).not.toBe("?????");
-    expect(level3.current.revealedBrand).not.toBe("Dior");
-  });
-
-  it("should reveal brand on correct guess", () => {
-    const mockAttempts: Attempt[] = [
-      {
-        brand: "Dior",
-        feedback: {
-          brandMatch: true,
-          notesMatch: 0,
-          perfumerMatch: "none",
-          yearDirection: "higher",
-          yearMatch: "wrong",
-        },
-        guess: "Test",
-      },
-    ];
+  it("returns the server clues exactly as received", () => {
     const { result } = renderHook(() => useGameState(), {
-      wrapper: createWrapper({ attempts: mockAttempts }),
+      wrapper: createWrapper(),
     });
-    expect(result.current.revealedBrand).toBe("Dior");
+
+    expect(result.current.clues).toBe(SERVER_CLUES);
+    expect(result.current.revealedBrand).toBe("D__r");
+    expect(result.current.revealedPerfumer).toBe("F_______ D______");
+    expect(result.current.revealedYear).toBe("19__");
+    expect(result.current.revealedGender).toBe("Unisex");
+    expect(result.current.isBrandRevealed).toBe(false);
+    expect(result.current.isYearRevealed).toBe(false);
+    expect(result.current.isGenderRevealed).toBe(true);
+    expect(result.current.visibleNotes).toEqual({
+      base: ["_______", "____", "_____"],
+      heart: ["____", "_______", "____"],
+      top: ["Bergamot", "Lemon", "Neroli"],
+    });
   });
 
-  it("should compute revealedYear progressively", () => {
-    // Level 1: MASK_CHAR * 4
-    const { result: level1 } = renderHook(() => useGameState(), {
-      wrapper: createWrapper({ attempts: [] }),
+  it("does not derive clues from attempts", () => {
+    const { result } = renderHook(() => useGameState(), {
+      wrapper: createWrapper({
+        attempts: [
+          {
+            ...WRONG_ATTEMPT,
+            feedback: {
+              ...WRONG_ATTEMPT.feedback,
+              brandMatch: true,
+              yearMatch: "correct",
+            },
+          },
+        ],
+      }),
     });
-    expect(level1.current.revealedYear).toBe(MASK_CHAR.repeat(4));
 
-    // Level 2: 1 + MASK_CHAR * 3
-    const mockAttempts1: Attempt[] = [
-      {
-        brand: "Test",
-        feedback: {
-          brandMatch: false,
-          notesMatch: 0,
-          perfumerMatch: "none",
-          yearDirection: "higher",
-          yearMatch: "wrong",
-        },
-        guess: "Test",
-      },
-    ];
-    const { result: level2 } = renderHook(() => useGameState(), {
-      wrapper: createWrapper({ attempts: mockAttempts1 }),
-    });
-    expect(level2.current.revealedYear).toBe(`1${MASK_CHAR.repeat(3)}`);
+    expect(result.current.revealedBrand).toBe("D__r");
+    expect(result.current.isBrandRevealed).toBe(false);
+    expect(result.current.isYearRevealed).toBe(false);
   });
 
-  it("should compute visibleNotes progressively", () => {
-    // Level 1: Placeholders
-    const { result: level1 } = renderHook(() => useGameState(), {
-      wrapper: createWrapper({ attempts: [] }),
+  it("passes the reveal flags through from the server", () => {
+    const { result } = renderHook(() => useGameState(), {
+      wrapper: createWrapper({
+        clues: { ...SERVER_CLUES, brandRevealed: true, yearRevealed: true },
+      }),
     });
-    expect(level1.current.visibleNotes.top).toEqual([
-      "?????",
-      "?????",
-      "?????",
-    ]);
 
-    // Level 3: Top revealed, others masked
-    const mockAttempts: Attempt[] = [
-      {
-        brand: "Test",
-        feedback: {
-          brandMatch: false,
-          notesMatch: 0,
-          perfumerMatch: "none",
-          yearDirection: "higher",
-          yearMatch: "wrong",
-        },
-        guess: "Test",
-      },
-      {
-        brand: "Test2",
-        feedback: {
-          brandMatch: false,
-          notesMatch: 0,
-          perfumerMatch: "none",
-          yearDirection: "higher",
-          yearMatch: "wrong",
-        },
-        guess: "Test2",
-      },
-    ];
-    const { result: level3 } = renderHook(() => useGameState(), {
-      wrapper: createWrapper({ attempts: mockAttempts }),
+    expect(result.current.isBrandRevealed).toBe(true);
+    expect(result.current.isYearRevealed).toBe(true);
+  });
+
+  it("renders with hidden clues and no answer fields", () => {
+    const { result } = renderHook(() => useGameState(), {
+      wrapper: createWrapper({ clues: HIDDEN_CLUES }),
     });
-    expect(level3.current.visibleNotes.top).toEqual([
-      "Bergamot",
-      "Lemon",
-      "Neroli",
-    ]);
-    expect(level3.current.visibleNotes.heart?.[0]).toContain(MASK_CHAR); // Masked
+
+    expect(result.current.revealedBrand).toBe(HIDDEN_CLUES.brand);
+    expect(result.current.revealedYear).toBe(HIDDEN_CLUES.year);
+    expect(result.current.revealedGender).toBe("Unknown");
+    expect(result.current.isGenderRevealed).toBe(false);
+    expect(result.current.dailyPerfume).not.toHaveProperty("brand");
+    expect(result.current.dailyPerfume).not.toHaveProperty("notes");
+  });
+
+  it("keeps empty pyramid tiers for linear notes", () => {
+    const { result } = renderHook(() => useGameState(), {
+      wrapper: createWrapper({
+        clues: {
+          ...SERVER_CLUES,
+          notes: { kind: "linear", notes: ["Iris", "____"] },
+        },
+      }),
+    });
+
+    expect(result.current.visibleNotes).toEqual({
+      base: [],
+      heart: [],
+      top: [],
+    });
   });
 
   it("should compute blurLevel progressively", () => {
@@ -203,7 +179,6 @@ describe("GameStateContext", () => {
     });
     expect(level1.current.blurLevel).toBe(10);
 
-    // Game over: blur = 0
     const { result: won } = renderHook(() => useGameState(), {
       wrapper: createWrapper({ gameState: "won" }),
     });
@@ -216,129 +191,15 @@ describe("GameStateContext", () => {
     });
     expect(attempt1.current.potentialScore).toBe(1000);
 
-    const mockAttempts: Attempt[] = [
-      {
-        brand: "Test",
-        feedback: {
-          brandMatch: false,
-          notesMatch: 0,
-          perfumerMatch: "none",
-          yearDirection: "higher",
-          yearMatch: "wrong",
-        },
-        guess: "Test",
-      },
-    ];
     const { result: attempt2 } = renderHook(() => useGameState(), {
-      wrapper: createWrapper({ attempts: mockAttempts }),
+      wrapper: createWrapper({ attempts: [WRONG_ATTEMPT] }),
     });
     expect(attempt2.current.potentialScore).toBe(700);
-  });
-
-  it("should set boolean flags correctly", () => {
-    const mockAttempts: Attempt[] = [
-      {
-        brand: "Dior",
-        feedback: {
-          brandMatch: true,
-          notesMatch: 0,
-          perfumerMatch: "none",
-          yearDirection: "equal",
-          yearMatch: "correct",
-        },
-        guess: "Test",
-        year: 1979,
-      },
-    ];
-    const { result } = renderHook(() => useGameState(), {
-      wrapper: createWrapper({ attempts: mockAttempts }),
-    });
-    expect(result.current.isBrandRevealed).toBe(true);
-    expect(result.current.isYearRevealed).toBe(true);
   });
 
   it("should throw error when used outside provider", () => {
     expect(() => {
       renderHook(() => useGameState());
     }).toThrow("useGameState must be used within GameStateProvider");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Edge cases: "Unknown" fields and discoveredPerfumers
-// ---------------------------------------------------------------------------
-
-describe("GameStateContext — Unknown fields and discoveredPerfumers", () => {
-  it("returns 'Unknown' for brand when brand is 'Unknown'", () => {
-    const { result } = renderHook(() => useGameState(), {
-      wrapper: createWrapper({
-        dailyPerfume: { ...MOCK_PERFUME, brand: "Unknown" },
-      }),
-    });
-    expect(result.current.revealedBrand).toBe("Unknown");
-  });
-
-  it("returns 'Unknown' for year when year is 0", () => {
-    const { result } = renderHook(() => useGameState(), {
-      wrapper: createWrapper({
-        dailyPerfume: { ...MOCK_PERFUME, year: 0 },
-      }),
-    });
-    expect(result.current.revealedYear).toBe("Unknown");
-  });
-
-  it("returns 'Unknown' for gender when gender is 'Unknown'", () => {
-    const { result } = renderHook(() => useGameState(), {
-      wrapper: createWrapper({
-        dailyPerfume: { ...MOCK_PERFUME, gender: "Unknown" },
-      }),
-    });
-    expect(result.current.revealedGender).toBe("Unknown");
-  });
-
-  it("returns full perfumer when all perfumers are in discoveredPerfumers set", () => {
-    const { result } = renderHook(() => useGameState(), {
-      wrapper: createWrapper({
-        dailyPerfume: { ...MOCK_PERFUME, perfumer: "François Demachy" },
-        discoveredPerfumers: new Set(["François Demachy"]),
-      }),
-    });
-    expect(result.current.revealedPerfumer).toBe("François Demachy");
-  });
-
-  it("reveals individual discovered perfumer in multi-perfumer scenario", () => {
-    const { result } = renderHook(() => useGameState(), {
-      wrapper: createWrapper({
-        attempts: [
-          {
-            brand: "X",
-            feedback: {
-              brandMatch: false,
-              notesMatch: 0,
-              perfumerMatch: "none",
-              yearDirection: "higher",
-              yearMatch: "wrong",
-            },
-            guess: "X",
-          },
-          {
-            brand: "Y",
-            feedback: {
-              brandMatch: false,
-              notesMatch: 0,
-              perfumerMatch: "none",
-              yearDirection: "higher",
-              yearMatch: "wrong",
-            },
-            guess: "Y",
-          },
-        ],
-        dailyPerfume: { ...MOCK_PERFUME, perfumer: "Polge, Beaux" },
-        discoveredPerfumers: new Set(["Polge"]),
-      }),
-    });
-    // Polge should be fully shown, Beaux partially
-    const revealed = result.current.revealedPerfumer;
-    expect(revealed).toContain("Polge");
   });
 });

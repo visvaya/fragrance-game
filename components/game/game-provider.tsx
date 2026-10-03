@@ -1,6 +1,6 @@
 "use client";
 
-// eslint-disable-next-line no-restricted-imports -- subscription: onAuthStateChange listener; orchestration: async auth+challenge+session init; derived state: discoveredPerfumers
+// eslint-disable-next-line no-restricted-imports -- subscription: onAuthStateChange listener; orchestration: async auth+challenge+session init
 import { useState, useEffect, useMemo, type ReactNode } from "react";
 
 import dynamic from "next/dynamic";
@@ -13,7 +13,8 @@ import {
 } from "@/app/actions/game-actions";
 import { captureAnalyticsEvent } from "@/components/providers/posthog-provider";
 import { useRouter } from "@/i18n/routing";
-import { GENERIC_PLACEHOLDER, MASK_CHAR, MAX_GUESSES } from "@/lib/constants";
+import { GENERIC_PLACEHOLDER, MAX_GUESSES } from "@/lib/constants";
+import { HIDDEN_CLUES, type RevealedClues } from "@/lib/game/clue-reveal";
 import { getSupabaseClient } from "@/lib/supabase/get-client";
 
 import {
@@ -23,6 +24,7 @@ import {
   useGameActions,
   useUIPreferences,
   type Attempt,
+  type DailyPerfume,
 } from "./contexts";
 
 import type { createClient as CreateClientType } from "@/lib/supabase/client";
@@ -59,179 +61,45 @@ function updateSentryUser(user: User | null): void {
 }
 
 // Skeleton / Default for initialization (prevents null checks everywhere)
-const SKELETON_PERFUME = {
-  brand: GENERIC_PLACEHOLDER.repeat(5),
-  concentration: undefined as string | undefined,
-  gender: GENERIC_PLACEHOLDER.repeat(5),
+const SKELETON_PERFUME: DailyPerfume = {
+  concentration: undefined,
   id: "skeleton",
   imageUrl: "/placeholder.svg?height=400&width=400",
-  isLinear: false,
   name: GENERIC_PLACEHOLDER.repeat(5),
-  notes: {
-    // Realistic note counts to avoid layout shift when real data loads
-    base: [
-      GENERIC_PLACEHOLDER.repeat(5),
-      GENERIC_PLACEHOLDER.repeat(5),
-      GENERIC_PLACEHOLDER.repeat(5),
-    ],
-    heart: [
-      GENERIC_PLACEHOLDER.repeat(5),
-      GENERIC_PLACEHOLDER.repeat(5),
-      GENERIC_PLACEHOLDER.repeat(5),
-    ],
-    top: [
-      GENERIC_PLACEHOLDER.repeat(5),
-      GENERIC_PLACEHOLDER.repeat(5),
-      GENERIC_PLACEHOLDER.repeat(5),
-    ],
-  },
-  perfumer: GENERIC_PLACEHOLDER.repeat(5),
-  xsolve: 0 as number,
-  year: MASK_CHAR.repeat(4) as string | number,
+  xsolve: 0,
 };
 
 type GameState = "playing" | "won" | "lost";
 
-/** Returns the masked year string for a given reveal level. */
-function getYearMask(level: number, yearString: string): string {
-  if (level >= 5) return yearString;
-  if (level === 4) return yearString.slice(0, 3) + MASK_CHAR;
-  if (level === 3) return yearString.slice(0, 2) + MASK_CHAR.repeat(2);
-  if (level >= 2) return yearString.slice(0, 1) + MASK_CHAR.repeat(3);
-  return MASK_CHAR.repeat(4);
-}
-
 /**
- * Helper function to calculate masked values for snapshots (used during hydration)
- */
-function calculateMaskedValues(
-  level: number,
-  targetBrand: string,
-  targetYear: number | string,
-) {
-  // Simplified reveal for hydration - actual logic in contexts/game-state-context.tsx
-  const guessMaskedBrand =
-    level === 1 ? GENERIC_PLACEHOLDER.repeat(3) : targetBrand;
-  const guessMaskedYear =
-    targetYear !== 0 && targetYear !== ""
-      ? getYearMask(level, targetYear.toString())
-      : MASK_CHAR.repeat(4);
-
-  return { guessMaskedBrand, guessMaskedYear };
-}
-
-function getYearMatch(
-  isCorrect: boolean,
-  yearMatchDiff: number,
-): "correct" | "close" | "wrong" {
-  if (isCorrect || yearMatchDiff === 0) return "correct";
-  if (Math.abs(yearMatchDiff) <= 3) return "close";
-  return "wrong";
-}
-
-function getYearDirection(yearMatchDiff: number): "lower" | "higher" | "equal" {
-  if (yearMatchDiff > 0) return "lower";
-  if (yearMatchDiff < 0) return "higher";
-  return "equal";
-}
-
-/**
- * Pure function: reconstructs Attempt[] from raw server guesses + challenge data.
- * Called synchronously in useState lazy initializer so attempts are ready on first render.
- * Also reused in initGame to avoid code duplication.
+ * Maps the server guess history to attempts. Feedback comes from the server as is,
+ * so the browser never compares guesses with the answer.
  */
 function hydrateAttempts(
   guesses: StartGameResponse["guesses"] | undefined,
-  challenge: DailyChallenge | null | undefined,
 ): Attempt[] {
-  if (!guesses || guesses.length === 0 || !challenge) return [];
-
-  const enrichedAttempts: Attempt[] = [];
-
-  for (const [index, g] of guesses.entries()) {
-    if ((g as { isSkip?: boolean }).isSkip) {
-      // eslint-disable-next-line fp/no-mutating-methods -- accumulator with lookback: each iteration reads enrichedAttempts.some() to check prior results
-      enrichedAttempts.push({
-        brand: "",
-        feedback: {
-          brandMatch: false,
-          notesMatch: 0,
-          perfumerMatch: "none",
-          yearDirection: "equal",
-          yearMatch: "wrong",
+  if (!guesses) return [];
+  return guesses.map((g) =>
+    g.isSkip
+      ? {
+          brand: "",
+          feedback: g.feedback,
+          guess: "",
+          isCorrect: false,
+          isSkipped: true,
+        }
+      : {
+          brand: g.brandName,
+          concentration: g.concentration,
+          feedback: g.feedback,
+          gender: g.gender,
+          guess: g.perfumeName,
+          isCorrect: g.isCorrect,
+          perfumeId: g.perfumeId,
+          perfumers: g.perfumers,
+          year: g.year,
         },
-        guess: "",
-        isCorrect: false,
-        isSkipped: true,
-      });
-      continue;
-    }
-
-    const currentLevel = index + 1;
-    const isCorrect = g.isCorrect;
-    const brandMatch =
-      g.brandName.toLowerCase() === challenge.clues.brand.toLowerCase();
-    const yearMatchDiff = (g.year ?? 0) - challenge.clues.year;
-    const yearMatch = getYearMatch(isCorrect, yearMatchDiff);
-
-    const anyBrandMatch =
-      enrichedAttempts.some((a) => a.feedback.brandMatch) || brandMatch;
-    const anyYearMatch =
-      enrichedAttempts.some((a) => a.feedback.yearMatch === "correct") ||
-      yearMatch === "correct";
-
-    const { guessMaskedBrand, guessMaskedYear } = calculateMaskedValues(
-      currentLevel,
-      g.brandName,
-      g.year ?? 0,
-    );
-    const {
-      guessMaskedBrand: answerClueBrand,
-      guessMaskedYear: answerClueYear,
-    } = calculateMaskedValues(
-      currentLevel,
-      challenge.clues.brand,
-      challenge.clues.year,
-    );
-
-    const brandRevealedByLevel = answerClueBrand === challenge.clues.brand;
-    const yearRevealedByLevel =
-      answerClueYear === challenge.clues.year.toString();
-    const genderMatch =
-      g.gender?.toLowerCase() === challenge.clues.gender.toLowerCase();
-    const anyGenderMatch =
-      enrichedAttempts.some((a) => a.snapshot?.genderRevealed) || genderMatch;
-
-    const yearDirection = getYearDirection(yearMatchDiff);
-
-    // eslint-disable-next-line fp/no-mutating-methods -- accumulator with lookback: each iteration reads enrichedAttempts.some() to check prior results
-    enrichedAttempts.push({
-      brand: g.brandName,
-      concentration: g.concentration,
-      feedback: g.feedback ?? {
-        brandMatch,
-        notesMatch: isCorrect ? 1 : 0,
-        perfumerMatch: isCorrect ? "full" : "none",
-        yearDirection,
-        yearMatch,
-      },
-      gender: g.gender,
-      guess: g.perfumeName,
-      isCorrect: g.isCorrect,
-      perfumeId: g.perfumeId,
-      perfumers: g.perfumers,
-      snapshot: {
-        brandRevealed: anyBrandMatch || brandRevealedByLevel,
-        genderRevealed: anyGenderMatch,
-        guessMaskedBrand,
-        guessMaskedYear,
-        yearRevealed: anyYearMatch || yearRevealedByLevel,
-      },
-      year: g.year,
-    });
-  }
-
-  return enrichedAttempts;
+  );
 }
 
 /**
@@ -257,15 +125,6 @@ export function useGame() {
     getRevealedYear: () => state.revealedYear,
     getVisibleNotes: () => state.visibleNotes,
   };
-}
-
-// Export Attempt type for backward compatibility
-
-// Helper to calculate revealed brand (needed for actions context)
-function getRevealedBrandHelper(brand: string, level: number) {
-  if (level === 1) return "?????";
-  // Simplified - full logic in GameStateContext
-  return brand; // Placeholder
 }
 
 /**
@@ -337,35 +196,6 @@ async function fetchChallengeAndSession(
 }
 
 /**
- * Computes the set of perfumer names (original casing) that have been
- * revealed across the current attempt history.
- */
-function computeDiscoveredPerfumers(
-  attempts: Attempt[],
-  perfumerString: string,
-): Set<string> {
-  const perfumersList = perfumerString.split(",").map((p) => p.trim());
-  const answerSet = new Set(perfumersList.map((p) => p.toLowerCase()));
-  const discovered = attempts
-    .filter(
-      (a) =>
-        a.feedback.perfumerMatch === "full" ||
-        a.feedback.perfumerMatch === "partial",
-    )
-    .flatMap((attempt) => {
-      if (attempt.feedback.perfumerMatch === "full") return perfumersList;
-      return (attempt.perfumers ?? []).flatMap((p) => {
-        if (!answerSet.has(p.trim().toLowerCase())) return [];
-        const original = perfumersList.find(
-          (n) => n.toLowerCase() === p.trim().toLowerCase(),
-        );
-        return original == null ? [] : [original];
-      });
-    });
-  return new Set(discovered);
-}
-
-/**
  * GameProvider - Main orchestrator that manages state and coordinates contexts
  * All state lives here as single source of truth
  * Contexts receive state and setters as props
@@ -385,7 +215,7 @@ export function GameProvider({
   // Lazy initializers let us synchronously populate state from initialSession on the very
   // first render — no empty-state flash, no extra useEffect re-render cycle.
   const [attempts, setAttempts] = useState<Attempt[]>(() =>
-    hydrateAttempts(initialSession?.guesses, initialChallenge),
+    hydrateAttempts(initialSession?.guesses),
   );
   const [gameState, setGameState] = useState<GameState>(() => {
     if (!initialSession) return "playing";
@@ -411,28 +241,22 @@ export function GameProvider({
   const [sessionId, setSessionId] = useState<string | null>(
     initialSession?.sessionId ?? null,
   );
-  const [dailyPerfume, setDailyPerfume] = useState<typeof SKELETON_PERFUME>(
+  const [dailyPerfume, setDailyPerfume] = useState<DailyPerfume>(
     // Use real data when initialChallenge is present (SSR-provided clues).
     // sessionReady controls interactivity — the game board is shown immediately
     // from SSR data while auth runs in the background (Gate 5 Optimistic UI).
-    initialChallenge?.clues
+    initialChallenge
       ? {
-          brand: initialChallenge.clues.brand,
-          concentration: initialChallenge.clues.concentration,
-          gender: initialChallenge.clues.gender,
+          concentration: initialSession?.answerConcentration,
           id: "daily",
           imageUrl: initialImageUrl ?? "/placeholder.svg?height=400&width=400",
-          isLinear: initialChallenge.clues.isLinear,
           name: initialSession?.answerName ?? "Mystery Perfume",
-          notes: initialChallenge.clues.notes,
-          perfumer: initialChallenge.clues.perfumer,
-          xsolve: initialChallenge.clues.xsolve,
-          year: initialChallenge.clues.year,
+          xsolve: initialChallenge.xsolve,
         }
       : SKELETON_PERFUME,
   );
-  const [discoveredPerfumers, setDiscoveredPerfumers] = useState<Set<string>>(
-    new Set(),
+  const [clues, setClues] = useState<RevealedClues>(
+    initialSession?.revealed ?? initialChallenge?.revealed ?? HIDDEN_CLUES,
   );
   const [nonce, setNonce] = useState<string>(initialSession?.nonce ?? "");
   const [isCaptchaRequired, setIsCaptchaRequired] = useState(false);
@@ -676,18 +500,13 @@ export function GameProvider({
           });
 
           setDailyPerfume({
-            brand: challenge.clues.brand,
-            concentration: challenge.clues.concentration,
-            gender: challenge.clues.gender,
+            concentration: undefined,
             id: "daily",
             imageUrl: "/placeholder.svg", // Will be overwritten by session
-            isLinear: challenge.clues.isLinear,
             name: "Mystery Perfume", // Name is secret!
-            notes: challenge.clues.notes,
-            perfumer: challenge.clues.perfumer,
-            xsolve: challenge.clues.xsolve,
-            year: challenge.clues.year,
+            xsolve: challenge.xsolve,
           });
+          setClues(session.revealed);
 
           setSessionId(session.sessionId);
           setNonce(session.nonce);
@@ -708,11 +527,7 @@ export function GameProvider({
           }
 
           if (session.guesses.length > 0) {
-            const enrichedAttempts = hydrateAttempts(
-              session.guesses,
-              challenge,
-            );
-            setAttempts(enrichedAttempts);
+            setAttempts(hydrateAttempts(session.guesses));
 
             const lastGuess = session.guesses.at(-1);
             if (lastGuess?.isCorrect) setGameState("won");
@@ -736,13 +551,6 @@ export function GameProvider({
     // initGame is defined inside this effect and only needs to run once on mount
   }, [initialChallenge, initialSession, maxAttempts]);
 
-  // Track discovered perfumers
-  useEffect(() => {
-    setDiscoveredPerfumers(
-      computeDiscoveredPerfumers(attempts, dailyPerfume.perfumer),
-    );
-  }, [attempts, dailyPerfume.perfumer]);
-
   // Merge dynamic image into the daily perfume object.
   // useMemo keeps the reference stable so GameStateProvider and GameActionsProvider
   // do not see a "changed" dailyPerfume prop on every GameProvider re-render.
@@ -751,26 +559,13 @@ export function GameProvider({
     [dailyPerfume, imageUrl],
   );
 
-  // Calculate helper flags needed by GameActionsProvider
-  const currentAttempt = attempts.length + 1 + baseAttemptCount;
-  const revealLevel = Math.min(currentAttempt, maxAttempts);
-
-  const isBrandRevealed =
-    attempts.some((a) => a.feedback.brandMatch) ||
-    getRevealedBrandHelper(dailyPerfume.brand, revealLevel) ===
-      dailyPerfume.brand;
-
-  const isYearRevealed = attempts.some(
-    (a) => a.feedback.yearMatch === "correct",
-  );
-
   return (
     <GameStateProvider
       attempts={attempts}
       authReady={authReady}
       baseAttemptCount={baseAttemptCount}
+      clues={clues}
       dailyPerfume={activePerfume}
-      discoveredPerfumers={discoveredPerfumers}
       gameState={gameState}
       loading={loading}
       maxAttempts={maxAttempts}
@@ -783,17 +578,14 @@ export function GameProvider({
         authReady={authReady}
         baseAttemptCount={baseAttemptCount}
         challengeId={initialChallenge?.id ?? null}
-        dailyPerfume={activePerfume}
         gameState={gameState}
-        isBrandRevealed={isBrandRevealed}
-        isYearRevealed={isYearRevealed}
         maxAttempts={maxAttempts}
         nonce={nonce}
         sessionId={sessionId}
         setAttempts={setAttempts}
         setBaseAttemptCount={setBaseAttemptCount}
+        setClues={setClues}
         setDailyPerfume={setDailyPerfume}
-        setDiscoveredPerfumers={setDiscoveredPerfumers}
         setGameState={setGameState}
         setImageUrl={setImageUrl}
         setLoading={setLoading}

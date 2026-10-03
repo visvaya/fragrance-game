@@ -45,7 +45,21 @@ vi.mock("@/components/game/scrollable-row", () => ({
 }));
 
 vi.mock("@/components/game/game-tooltip", () => ({
-  GameTooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  GameTooltip: ({
+    children,
+    content,
+  }: {
+    children: React.ReactNode;
+    content: React.ReactNode;
+  }) => (
+    <div
+      data-testid={
+        typeof content === "string" ? `tooltip-${content}` : undefined
+      }
+    >
+      {children}
+    </div>
+  ),
 }));
 
 vi.mock("@/components/providers/smooth-scroll-provider", () => ({
@@ -72,6 +86,7 @@ vi.mock("@/lib/hooks/use-mount-effect", () => ({
 }));
 
 import { lenisScrollTo } from "@/components/providers/smooth-scroll-provider";
+import { HIDDEN_CLUES } from "@/lib/game/clue-reveal";
 
 import { AttemptLog } from "../attempt-log";
 
@@ -128,35 +143,24 @@ const MESSAGES = {
 };
 
 const SKELETON_PERFUME: DailyPerfume = {
-  brand: "?????",
   concentration: undefined,
-  gender: "?????",
   id: "skeleton",
   imageUrl: "/placeholder.svg",
-  isLinear: false,
   name: "?????",
-  notes: { base: [], heart: [], top: [] },
-  perfumer: "?????",
   xsolve: 0,
-  year: "⎵⎵⎵⎵",
 };
 
 const DAILY_PERFUME: DailyPerfume = {
-  brand: "Dior",
   concentration: "EDP",
-  gender: "Male",
   id: "daily",
   imageUrl: "/dior.jpg",
-  isLinear: false,
   name: "Sauvage",
-  notes: { base: ["Vanilla"], heart: ["Jasmine"], top: ["Bergamot"] },
-  perfumer: "Creator",
   xsolve: 80,
-  year: 2015,
 };
 
 const DEFAULT_FEEDBACK = {
   brandMatch: false,
+  genderMatch: false,
   notesMatch: 0,
   perfumerMatch: "none" as const,
   yearDirection: "higher" as const,
@@ -179,6 +183,7 @@ function defaultGameState(
 ) {
   return {
     attempts: [],
+    clues: HIDDEN_CLUES,
     dailyPerfume: DAILY_PERFUME,
     gameState: "playing" as GameState,
     loading: false,
@@ -363,17 +368,27 @@ describe("AttemptLog — perfumer column header", () => {
     mockUIPreferences.mockReturnValue(defaultUIPrefs());
   });
 
-  it("renders without crash when perfume has multiple perfumers and there are attempts", () => {
-    const multiPerfumer = { ...DAILY_PERFUME, perfumer: "Polge, Beaux" };
+  it("shows the multi-perfumer icon when the server reports several perfumers", () => {
     mockGameState.mockReturnValue(
       defaultGameState({
         attempts: [makeAttempt()],
-        dailyPerfume: multiPerfumer,
+        clues: { ...HIDDEN_CLUES, perfumerCount: 2 },
       }),
     );
 
     renderAttemptLog();
     expect(screen.getByText("Investigation Log")).toBeInTheDocument();
+    expect(screen.getByTestId("tooltip-Perfumers")).toBeInTheDocument();
+  });
+
+  it("shows the single-perfumer icon for one perfumer", () => {
+    mockGameState.mockReturnValue(
+      defaultGameState({ attempts: [makeAttempt()] }),
+    );
+
+    renderAttemptLog();
+    expect(screen.getByTestId("tooltip-Perfumer")).toBeInTheDocument();
+    expect(screen.queryByTestId("tooltip-Perfumers")).not.toBeInTheDocument();
   });
 });
 

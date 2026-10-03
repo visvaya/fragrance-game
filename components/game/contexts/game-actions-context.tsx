@@ -28,29 +28,34 @@ import {
   type SubmitGuessResult,
   type SkipAttemptResult,
 } from "@/app/actions/game-actions";
-import { GENERIC_PLACEHOLDER, MASK_CHAR } from "@/lib/constants";
-import { revealLetters } from "@/lib/game/scoring";
+import { GENERIC_PLACEHOLDER } from "@/lib/constants";
+import { HIDDEN_CLUES, type RevealedClues } from "@/lib/game/clue-reveal";
 
-import type { Attempt } from "./game-state-context";
+import type { Attempt, DailyPerfume } from "./game-state-context";
 
 type GameState = "playing" | "won" | "lost";
 
-type DailyPerfume = {
-  brand: string;
-  concentration: string | undefined;
-  gender: string;
-  id: string;
-  imageUrl: string;
-  isLinear: boolean;
-  name: string;
-  notes: {
-    base: string[];
-    heart: string[];
-    top: string[];
-  };
-  perfumer: string;
-  xsolve: number;
-  year: string | number;
+const SKELETON_PERFUME: DailyPerfume = {
+  concentration: undefined,
+  id: "skeleton",
+  imageUrl: "/placeholder.svg?height=400&width=400",
+  name: GENERIC_PLACEHOLDER.repeat(5),
+  xsolve: 0,
+};
+
+const SKIPPED_ATTEMPT: Attempt = {
+  brand: "",
+  feedback: {
+    brandMatch: false,
+    genderMatch: false,
+    notesMatch: 0,
+    perfumerMatch: "none",
+    yearDirection: "equal",
+    yearMatch: "wrong",
+  },
+  guess: "",
+  isCorrect: false,
+  isSkipped: true,
 };
 
 type GameActionsContextType = {
@@ -78,19 +83,15 @@ type GameActionsProviderProperties = {
   /** Challenge ID needed for lazy startGame on first guess/skip */
   challengeId?: string | null;
   children: ReactNode;
-  dailyPerfume: DailyPerfume;
   gameState: GameState;
-  // Helper flags
-  isBrandRevealed: boolean;
-  isYearRevealed: boolean;
   maxAttempts: number;
   nonce: string;
   sessionId: string | null;
   // State setters from parent
   setAttempts: Dispatch<SetStateAction<Attempt[]>>;
   setBaseAttemptCount: Dispatch<SetStateAction<number>>;
+  setClues: Dispatch<SetStateAction<RevealedClues>>;
   setDailyPerfume: Dispatch<SetStateAction<DailyPerfume>>;
-  setDiscoveredPerfumers: Dispatch<SetStateAction<Set<string>>>;
   setGameState: Dispatch<SetStateAction<GameState>>;
   setImageUrl: Dispatch<SetStateAction<string>>;
   setLoading: Dispatch<SetStateAction<boolean>>;
@@ -179,46 +180,6 @@ async function resolveSkip(
 }
 
 /**
- * Helper function to calculate masked values for snapshots
- * Extracted from game-provider for DRY
- */
-function calculateMaskedValues(
-  level: number,
-  targetBrand: string,
-  targetYear: number | string,
-) {
-  // Brand
-  const brandPercentages = [0, 0, 0.15, 0.4, 0.7, 1];
-  const guessMaskedBrand =
-    level === 1
-      ? GENERIC_PLACEHOLDER.repeat(3)
-      : revealLetters(targetBrand, brandPercentages[Math.min(level - 1, 5)]);
-
-  // Year
-  const guessMaskedYear = (() => {
-    if (targetYear === 0 || targetYear === "") return MASK_CHAR.repeat(4);
-    const yearString = targetYear.toString();
-    if (level >= 5) return yearString;
-    switch (level) {
-      case 4: {
-        return yearString.slice(0, 3) + MASK_CHAR;
-      }
-      case 3: {
-        return yearString.slice(0, 2) + MASK_CHAR.repeat(2);
-      }
-      case 2: {
-        return yearString.slice(0, 1) + MASK_CHAR.repeat(3);
-      }
-      default: {
-        return MASK_CHAR.repeat(4);
-      }
-    }
-  })();
-
-  return { guessMaskedBrand, guessMaskedYear };
-}
-
-/**
  * GameActionsProvider - Manages game mutation operations
  * Isolated to prevent re-renders when state changes
  */
@@ -228,17 +189,14 @@ export function GameActionsProvider({
   baseAttemptCount = 0,
   challengeId = null,
   children,
-  dailyPerfume,
   gameState,
-  isBrandRevealed,
-  isYearRevealed,
   maxAttempts,
   nonce,
   sessionId,
   setAttempts,
   setBaseAttemptCount,
+  setClues,
   setDailyPerfume,
-  setDiscoveredPerfumers,
   setGameState,
   setImageUrl,
   setLoading,
@@ -306,69 +264,21 @@ export function GameActionsProvider({
           setNonce(result.newNonce);
         }
 
-        const feedback = result.feedback;
-
-        // Calculate snapshot state
-        const thisBrandRevealed =
-          brand.toLowerCase() === dailyPerfume.brand.toLowerCase();
-        const thisYearRevealed =
-          String(result.guessedPerfumeDetails?.year ?? "") ===
-          String(dailyPerfume.year);
-
-        const wasGenderRevealed = attempts.some((a) => {
-          return a.snapshot?.genderRevealed;
-        });
-
-        const nextAttemptsCount = attempts.length + 1 + baseAttemptCount;
-
-        const { guessMaskedBrand, guessMaskedYear } = calculateMaskedValues(
-          nextAttemptsCount,
-          brand,
-          result.guessedPerfumeDetails?.year ?? 0,
-        );
-
-        const {
-          guessMaskedBrand: answerClueBrand,
-          guessMaskedYear: answerClueYear,
-        } = calculateMaskedValues(
-          nextAttemptsCount,
-          dailyPerfume.brand,
-          dailyPerfume.year,
-        );
-
-        const brandRevealedByLevel = answerClueBrand === dailyPerfume.brand;
-        const yearRevealedByLevel =
-          answerClueYear === dailyPerfume.year.toString();
-
-        const guessGender = result.guessedPerfumeDetails?.gender;
-        const matchedGender =
-          guessGender?.toLowerCase() === dailyPerfume.gender.toLowerCase();
-
-        const newSnapshot = {
-          brandRevealed:
-            isBrandRevealed || thisBrandRevealed || brandRevealedByLevel,
-          genderRevealed: wasGenderRevealed || matchedGender,
-          guessMaskedBrand,
-          guessMaskedYear,
-          yearRevealed:
-            isYearRevealed || thisYearRevealed || yearRevealedByLevel,
-        };
-
         const newAttempt: Attempt = {
           brand,
           concentration: result.guessedPerfumeDetails?.concentration,
-          feedback,
+          feedback: result.feedback,
           gender: result.guessedPerfumeDetails?.gender,
           guess: perfumeName,
           hasGuessedNotes: result.hasGuessedNotes,
           isCorrect: result.result === "correct",
           perfumeId: perfumeId,
           perfumers: result.guessedPerfumers,
-          snapshot: newSnapshot,
           year: result.guessedPerfumeDetails?.year,
         };
 
         setAttempts((previous) => [...previous, newAttempt]);
+        setClues(result.revealed);
 
         // Fire haptic synced with row highlight (after setAttempts, not before)
         if (result.gameStatus === "won") {
@@ -424,11 +334,9 @@ export function GameActionsProvider({
       maxAttempts,
       sessionId,
       nonce,
-      dailyPerfume,
-      isBrandRevealed,
-      isYearRevealed,
       handleRateLimit,
       setAttempts,
+      setClues,
       setGameState,
       setImageUrl,
       setLoading,
@@ -464,22 +372,8 @@ export function GameActionsProvider({
       if (result.newNonce) setNonce(result.newNonce);
       if (result.imageUrl) setImageUrl(result.imageUrl);
 
-      setAttempts((previous) => [
-        ...previous,
-        {
-          brand: "",
-          feedback: {
-            brandMatch: false,
-            notesMatch: 0,
-            perfumerMatch: "none",
-            yearDirection: "equal",
-            yearMatch: "wrong",
-          },
-          guess: "",
-          isCorrect: false,
-          isSkipped: true,
-        },
-      ]);
+      setAttempts((previous) => [...previous, SKIPPED_ATTEMPT]);
+      setClues(result.revealed);
 
       if (result.gameStatus === "lost") {
         // Game over — stronger double-pulse haptic synced with row highlight + lost state
@@ -520,6 +414,7 @@ export function GameActionsProvider({
     sessionId,
     handleRateLimit,
     setAttempts,
+    setClues,
     setDailyPerfume,
     setGameState,
     setImageUrl,
@@ -547,37 +442,9 @@ export function GameActionsProvider({
         setGameState("playing");
         setNonce("");
         setSessionId(null);
-        setDailyPerfume({
-          brand: GENERIC_PLACEHOLDER.repeat(5),
-          concentration: undefined,
-          gender: GENERIC_PLACEHOLDER.repeat(5),
-          id: "skeleton",
-          imageUrl: "/placeholder.svg?height=400&width=400",
-          isLinear: false,
-          name: GENERIC_PLACEHOLDER.repeat(5),
-          notes: {
-            base: [
-              GENERIC_PLACEHOLDER.repeat(5),
-              GENERIC_PLACEHOLDER.repeat(5),
-              GENERIC_PLACEHOLDER.repeat(5),
-            ],
-            heart: [
-              GENERIC_PLACEHOLDER.repeat(5),
-              GENERIC_PLACEHOLDER.repeat(5),
-              GENERIC_PLACEHOLDER.repeat(5),
-            ],
-            top: [
-              GENERIC_PLACEHOLDER.repeat(5),
-              GENERIC_PLACEHOLDER.repeat(5),
-              GENERIC_PLACEHOLDER.repeat(5),
-            ],
-          },
-          perfumer: GENERIC_PLACEHOLDER.repeat(5),
-          xsolve: 0,
-          year: MASK_CHAR.repeat(4) as string | number,
-        });
+        setDailyPerfume(SKELETON_PERFUME);
+        setClues(HIDDEN_CLUES);
         setImageUrl("/placeholder.svg");
-        setDiscoveredPerfumers(new Set());
 
         // Allow React to process state clear
         await new Promise((resolve) => setTimeout(resolve, 150));
@@ -587,18 +454,13 @@ export function GameActionsProvider({
 
         if (challenge && session) {
           setDailyPerfume({
-            brand: challenge.clues.brand,
-            concentration: challenge.clues.concentration,
-            gender: challenge.clues.gender,
+            concentration: undefined,
             id: "daily",
             imageUrl: "/placeholder.svg",
-            isLinear: challenge.clues.isLinear,
             name: "Mystery Perfume",
-            notes: challenge.clues.notes,
-            perfumer: challenge.clues.perfumer,
-            xsolve: challenge.clues.xsolve,
-            year: challenge.clues.year,
+            xsolve: challenge.xsolve,
           });
+          setClues(session.revealed);
 
           setSessionId(session.sessionId);
           setNonce(session.nonce);
@@ -625,9 +487,9 @@ export function GameActionsProvider({
     setGameState,
     setNonce,
     setSessionId,
+    setClues,
     setDailyPerfume,
     setImageUrl,
-    setDiscoveredPerfumers,
   ]);
 
   // useMemo prevents a new context value object on every render —

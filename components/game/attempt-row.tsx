@@ -16,7 +16,8 @@ import { DotFiller } from "./dot-filler";
 import { GameTooltip } from "./game-tooltip";
 import { IconCell, iconInnerVariants } from "./icon-cell";
 
-import type { Attempt, DailyPerfume } from "./contexts";
+import type { Attempt } from "./contexts";
+import type { RevealedClues } from "@/lib/game/clue-reveal";
 
 type RowCellProperties = HTMLAttributes<HTMLDivElement> & {
   isActive: boolean;
@@ -47,7 +48,7 @@ function RowCell({
 type AttemptRowProperties = Readonly<{
   activeRowIndex: number | null;
   attempt: Attempt;
-  dailyPerfume: DailyPerfume;
+  clues: RevealedClues;
   handleClick: (e: MouseEvent) => void;
   handlePointerDown: (e: PointerEvent) => void;
   index: number;
@@ -61,7 +62,7 @@ type AttemptRowProperties = Readonly<{
  * @param props - Component properties.
  * @param props.activeRowIndex - Index of the currently active row.
  * @param props.attempt - The attempt data to display.
- * @param props.dailyPerfume - The target perfume data.
+ * @param props.clues - Server clues; answerHas tells which answer fields exist.
  * @param props.handleClick - Mouse click handler.
  * @param props.handlePointerDown - Pointer down handler.
  * @param props.index - Index of the row.
@@ -72,7 +73,7 @@ type AttemptRowProperties = Readonly<{
 export function AttemptRow({
   activeRowIndex,
   attempt,
-  dailyPerfume,
+  clues,
   handleClick,
   handlePointerDown,
   index,
@@ -316,8 +317,7 @@ export function AttemptRow({
         {/* Brand */}
         <div className="flex h-full items-center justify-center">
           {(() => {
-            const targetMissing =
-              !dailyPerfume.brand || dailyPerfume.brand === "Unknown";
+            const targetMissing = !clues.answerHas.brand;
             const guessMissing = !attempt.brand || attempt.brand === "Unknown";
 
             if (targetMissing || guessMissing) {
@@ -379,8 +379,7 @@ export function AttemptRow({
         {/* Perfumer */}
         <div className="flex h-full items-center justify-center">
           {(() => {
-            const targetMissing =
-              !dailyPerfume.perfumer || dailyPerfume.perfumer === "Unknown";
+            const targetMissing = !clues.answerHas.perfumer;
             const guessMissing =
               !attempt.perfumers || attempt.perfumers.length === 0;
             if (targetMissing || guessMissing) {
@@ -459,7 +458,7 @@ export function AttemptRow({
         {/* Year */}
         <div className="flex h-full items-center justify-center">
           {(() => {
-            const targetMissing = dailyPerfume.year === 0;
+            const targetMissing = !clues.answerHas.year;
             const guessMissing = attempt.year === 0;
             if (targetMissing || guessMissing) {
               return (
@@ -549,10 +548,9 @@ export function AttemptRow({
         {/* Gender */}
         <div className="flex h-full items-center justify-center">
           {(() => {
-            const guessGender = attempt.gender?.toLowerCase() || "unknown";
-            const targetGender = dailyPerfume.gender.toLowerCase() || "unknown";
-
-            const targetMissing = targetGender === "unknown";
+            const guessGender =
+              attempt.gender?.trim().toLowerCase() || "unknown";
+            const targetMissing = !clues.answerHas.gender;
             const guessMissing = guessGender === "unknown";
 
             if (targetMissing || guessMissing) {
@@ -577,7 +575,7 @@ export function AttemptRow({
               );
             }
 
-            if (guessGender === targetGender) {
+            if (attempt.feedback.genderMatch) {
               return (
                 <GameTooltip
                   className="size-7 items-center justify-center sm:size-8"
@@ -614,13 +612,8 @@ export function AttemptRow({
         {/* Notes */}
         <div className="flex h-full items-center justify-center">
           {(() => {
-            const answerHasNotes =
-              dailyPerfume.notes.top.length > 0 ||
-              dailyPerfume.notes.heart.length > 0 ||
-              dailyPerfume.notes.base.length > 0;
-
             const isMissing =
-              !answerHasNotes || attempt.hasGuessedNotes === false;
+              !clues.answerHas.notes || attempt.hasGuessedNotes === false;
 
             if (isMissing) {
               return (

@@ -32,8 +32,9 @@ import { InfoPopover } from "./info-popover";
  */
 // eslint-disable-next-line @typescript-eslint/no-shadow -- the named function gives the memoized component its DevTools name
 export const AttemptLog = memo(function AttemptLog() {
-  const { attempts, dailyPerfume, gameState, loading, maxAttempts } =
+  const { attempts, clues, dailyPerfume, gameState, loading, maxAttempts } =
     useGameState();
+  const hasMultiplePerfumers = attempts.length > 0 && clues.perfumerCount > 1;
   const { uiPreferences } = useUIPreferences();
   const t = useTranslations("AttemptLog");
   const { handlePointerDown: handleIconTap, scaled: iconScaled } =
@@ -200,13 +201,13 @@ export const AttemptLog = memo(function AttemptLog() {
           <GameTooltip
             className="size-8 items-center justify-center rounded-sm transition-colors hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0"
             content={
-              attempts.length > 0 && dailyPerfume.perfumer.includes(",")
+              hasMultiplePerfumers
                 ? t("columns.perfumersTooltip")
                 : t("columns.perfumerTooltip")
             }
           >
             <span className="flex cursor-help justify-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-              {attempts.length > 0 && dailyPerfume.perfumer.includes(",") ? (
+              {hasMultiplePerfumers ? (
                 <Users className="size-4" />
               ) : (
                 <User className="size-4" />
@@ -262,7 +263,7 @@ export const AttemptLog = memo(function AttemptLog() {
             <AttemptRow
               activeRowIndex={activeRowIndex}
               attempt={attempt}
-              dailyPerfume={dailyPerfume}
+              clues={clues}
               handleClick={handleClick}
               handlePointerDown={handlePointerDown}
               index={index}
