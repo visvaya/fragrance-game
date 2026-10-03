@@ -76,6 +76,9 @@ const messages = {
 const VALID_SESSION_ID = "123e4567-e89b-12d3-a456-426614174000";
 const VALID_CHALLENGE_ID = "550e8400-e29b-41d4-a716-446655440000";
 
+const CHALLENGE_CLUES = { ...HIDDEN_CLUES, brand: "C____l" };
+const SESSION_CLUES = { ...HIDDEN_CLUES, brand: "Ch___l" };
+
 // Helper component to expose context
 function TestComponent() {
   const game = useGame();
@@ -83,7 +86,10 @@ function TestComponent() {
     <div>
       <div data-testid="game-state">{game.gameState}</div>
       <div data-testid="attempts-count">{game.attempts.length}</div>
-      <div data-testid="daily-brand">{game.dailyPerfume.brand}</div>
+      <div data-testid="daily-brand">{game.revealedBrand}</div>
+      <div data-testid="gender-matches">
+        {game.attempts.map((a) => String(a.feedback.genderMatch)).join(",")}
+      </div>
       <button
         onClick={async () =>
           game.makeGuess(
@@ -124,12 +130,14 @@ describe("GameProvider", () => {
       year: 1921,
     },
     id: VALID_CHALLENGE_ID,
+    revealed: CHALLENGE_CLUES,
   };
 
   const mockSession = {
     guesses: [],
     imageUrl: "/test.jpg",
     nonce: "nonce-1",
+    revealed: SESSION_CLUES,
     sessionId: VALID_SESSION_ID,
   };
 
@@ -167,7 +175,7 @@ describe("GameProvider", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("daily-brand")).toHaveTextContent("Chanel");
+      expect(screen.getByTestId("daily-brand")).toHaveTextContent("Ch___l");
     });
 
     expect(gameActions.initializeGame).toHaveBeenCalled();
@@ -178,6 +186,7 @@ describe("GameProvider", () => {
       answerName: "N°5",
       feedback: {
         brandMatch: true,
+        genderMatch: true,
         notesMatch: 1,
         perfumerMatch: "full",
         yearDirection: "equal",
@@ -189,6 +198,7 @@ describe("GameProvider", () => {
       imageUrl: "/win.jpg",
       newNonce: "nonce-2",
       result: "correct",
+      revealed: { ...HIDDEN_CLUES, brand: "Chanel" },
     };
 
     vi.mocked(gameActions.submitGuess).mockResolvedValue(
@@ -202,7 +212,7 @@ describe("GameProvider", () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByTestId("daily-brand")).toHaveTextContent("Chanel"),
+      expect(screen.getByTestId("daily-brand")).toHaveTextContent("Ch___l"),
     );
 
     await userEvent.setup().click(screen.getByText("Guess"));
@@ -210,6 +220,7 @@ describe("GameProvider", () => {
     await waitFor(() => {
       expect(screen.getByTestId("game-state")).toHaveTextContent("won");
     });
+    expect(screen.getByTestId("daily-brand")).toHaveTextContent("Chanel");
   });
 
   it("uses initialChallenge prop to skip getDailyChallenge roundtrip", async () => {
@@ -228,7 +239,7 @@ describe("GameProvider", () => {
       grace_deadline_at_utc: "2026-02-28T00:00:00Z",
       id: VALID_CHALLENGE_ID,
       mode: "standard",
-      revealed: HIDDEN_CLUES,
+      revealed: CHALLENGE_CLUES,
       snapshot_metadata: {},
       xsolve: 3,
     };
@@ -246,13 +257,14 @@ describe("GameProvider", () => {
       expect(gameActions.startGame).not.toHaveBeenCalled();
     });
 
-    expect(screen.getByTestId("daily-brand")).toHaveTextContent("Chanel");
+    expect(screen.getByTestId("daily-brand")).toHaveTextContent("C____l");
   });
 
   it("handles making an incorrect guess", async () => {
     const mockGuessResult = {
       feedback: {
         brandMatch: false,
+        genderMatch: false,
         notesMatch: 0,
         perfumerMatch: "none",
         yearDirection: "higher",
@@ -263,6 +275,7 @@ describe("GameProvider", () => {
       imageUrl: "/next.jpg",
       newNonce: "nonce-2",
       result: "incorrect",
+      revealed: SESSION_CLUES,
     };
 
     vi.mocked(gameActions.submitGuess).mockResolvedValue(
@@ -276,7 +289,7 @@ describe("GameProvider", () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByTestId("daily-brand")).toHaveTextContent("Chanel"),
+      expect(screen.getByTestId("daily-brand")).toHaveTextContent("Ch___l"),
     );
 
     await userEvent.setup().click(screen.getByText("Guess"));
@@ -308,15 +321,24 @@ describe("GameProvider — initialSession state restoration", () => {
     grace_deadline_at_utc: "2026-02-28T00:00:00Z",
     id: VALID_CHALLENGE_ID,
     mode: "standard",
-    revealed: HIDDEN_CLUES,
+    revealed: CHALLENGE_CLUES,
     snapshot_metadata: {},
     xsolve: 3,
+  };
+
+  const SERVER_FEEDBACK = {
+    brandMatch: false,
+    genderMatch: true,
+    notesMatch: 0,
+    perfumerMatch: "none",
+    yearDirection: "higher",
+    yearMatch: "wrong",
   };
 
   const wonGuess = {
     brandName: "Chanel",
     concentration: "EDP",
-    feedback: null,
+    feedback: { ...SERVER_FEEDBACK, brandMatch: true, yearMatch: "correct" },
     gender: "Female",
     isCorrect: true,
     perfumeId: "perfume-5",
@@ -328,7 +350,7 @@ describe("GameProvider — initialSession state restoration", () => {
   const lostGuess = {
     brandName: "SomeBrand",
     concentration: "EDT",
-    feedback: null,
+    feedback: SERVER_FEEDBACK,
     gender: "Male",
     isCorrect: false,
     perfumeId: "perfume-x",
@@ -419,6 +441,38 @@ describe("GameProvider — initialSession state restoration", () => {
 
     // Synchronous: lazy useState initializer calls hydrateAttempts
     expect(screen.getByTestId("attempts-count")).toHaveTextContent("2");
+    expect(screen.getByTestId("gender-matches")).toHaveTextContent("true,true");
+  });
+
+  it("prefers the session clues over the challenge clues", () => {
+    const session = {
+      guesses: [lostGuess],
+      imageUrl: "/test.jpg",
+      nonce: "nonce-3",
+      revealed: SESSION_CLUES,
+      sessionId: VALID_SESSION_ID,
+    };
+
+    renderWithProviders(
+      <GameProvider
+        initialChallenge={mockInitialChallenge}
+        initialSession={session as any}
+      >
+        <TestComponent />
+      </GameProvider>,
+    );
+
+    expect(screen.getByTestId("daily-brand")).toHaveTextContent("Ch___l");
+  });
+
+  it("falls back to the challenge clues without a session", () => {
+    renderWithProviders(
+      <GameProvider initialChallenge={mockInitialChallenge}>
+        <TestComponent />
+      </GameProvider>,
+    );
+
+    expect(screen.getByTestId("daily-brand")).toHaveTextContent("C____l");
   });
 });
 

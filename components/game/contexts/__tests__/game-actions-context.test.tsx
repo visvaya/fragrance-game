@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+import { HIDDEN_CLUES, type RevealedClues } from "@/lib/game/clue-reveal";
+
 import { GameActionsProvider, useGameActions } from "../game-actions-context";
 
 import type { Attempt } from "../game-state-context";
@@ -68,21 +70,17 @@ vi.mock("@/app/actions/game-actions", () => ({
 }));
 
 const MOCK_PERFUME = {
-  brand: "Dior",
   concentration: "EDP",
-  gender: "Unisex",
   id: "test",
   imageUrl: "/test.jpg",
-  isLinear: false,
   name: "Mystery",
-  notes: {
-    base: ["Vanilla", "Musk", "Amber"],
-    heart: ["Rose", "Jasmine", "Lily"],
-    top: ["Bergamot", "Lemon", "Neroli"],
-  },
-  perfumer: "François Demachy",
   xsolve: 0.5,
-  year: 1979,
+};
+
+const LEVEL_2_CLUES: RevealedClues = {
+  ...HIDDEN_CLUES,
+  brand: "D__r",
+  year: "1___",
 };
 
 const createWrapper = (
@@ -92,15 +90,13 @@ const createWrapper = (
     attempts: [],
     dailyPerfume: MOCK_PERFUME,
     gameState: "playing" as const,
-    isBrandRevealed: false,
-    isYearRevealed: false,
     maxAttempts: 6,
     nonce: "test-nonce",
     sessionId: "test-session",
     setAttempts: vi.fn(),
     setBaseAttemptCount: vi.fn(),
+    setClues: vi.fn(),
     setDailyPerfume: vi.fn(),
-    setDiscoveredPerfumers: vi.fn(),
     setGameState: vi.fn(),
     setImageUrl: vi.fn(),
     setLoading: vi.fn(),
@@ -167,6 +163,7 @@ describe("GameActionsContext", () => {
       brand: "Test",
       feedback: {
         brandMatch: false,
+        genderMatch: false,
         notesMatch: 0,
         perfumerMatch: "none",
         yearDirection: "higher",
@@ -223,6 +220,7 @@ const SUCCESS_GUESS_RESULT = {
   answerName: undefined,
   feedback: {
     brandMatch: false,
+    genderMatch: false,
     notesMatch: 0,
     perfumerMatch: "none" as const,
     yearDirection: "higher" as const,
@@ -235,6 +233,7 @@ const SUCCESS_GUESS_RESULT = {
   imageUrl: null,
   newNonce: "nonce-2",
   result: "wrong" as const,
+  revealed: LEVEL_2_CLUES,
 };
 
 function createAuthWrapper(
@@ -269,6 +268,31 @@ describe("makeGuess — successful paths", () => {
     expect(setAttempts).toHaveBeenCalled();
     expect(setLoading).toHaveBeenCalledWith(true);
     expect(setLoading).toHaveBeenCalledWith(false);
+  });
+
+  it("stores the server clues and feedback from the guess result", async () => {
+    mockSubmitGuess.mockResolvedValueOnce({
+      ...SUCCESS_GUESS_RESULT,
+      feedback: { ...SUCCESS_GUESS_RESULT.feedback, genderMatch: true },
+    });
+    const setAttempts = vi.fn();
+    const setClues = vi.fn();
+
+    const { result } = renderHook(() => useGameActions(), {
+      wrapper: createAuthWrapper({ setAttempts, setClues }),
+    });
+
+    await act(async () => {
+      await result.current.makeGuess("Sauvage", "Dior", VALID_PERFUME_ID);
+    });
+
+    expect(setClues).toHaveBeenCalledWith(LEVEL_2_CLUES);
+    const update = setAttempts.mock.calls[0]?.[0] as (
+      previous: Attempt[],
+    ) => Attempt[];
+    const [added] = update([]);
+    expect(added.feedback.genderMatch).toBe(true);
+    expect(added).not.toHaveProperty("snapshot");
   });
 
   it("sets gameState to 'won' when result is 'won'", async () => {
@@ -455,6 +479,7 @@ const SKIP_RESULT = {
   gameStatus: "playing" as const,
   imageUrl: null,
   newNonce: "skip-nonce",
+  revealed: LEVEL_2_CLUES,
 };
 
 describe("skipAttempt — successful paths", () => {
@@ -466,9 +491,10 @@ describe("skipAttempt — successful paths", () => {
     mockSkipAttempt.mockResolvedValueOnce(SKIP_RESULT);
     const setAttempts = vi.fn();
     const setLoading = vi.fn();
+    const setClues = vi.fn();
 
     const { result } = renderHook(() => useGameActions(), {
-      wrapper: createAuthWrapper({ setAttempts, setLoading }),
+      wrapper: createAuthWrapper({ setAttempts, setClues, setLoading }),
     });
 
     await act(async () => {
@@ -477,6 +503,7 @@ describe("skipAttempt — successful paths", () => {
 
     expect(mockSkipAttempt).toHaveBeenCalledWith("test-session", "test-nonce");
     expect(setAttempts).toHaveBeenCalled();
+    expect(setClues).toHaveBeenCalledWith(LEVEL_2_CLUES);
     expect(setLoading).toHaveBeenCalledWith(false);
   });
 
@@ -570,21 +597,14 @@ describe("resetGame — successful paths", () => {
     mockResetGame.mockResolvedValueOnce({ success: true });
     mockInitializeGame.mockResolvedValueOnce({
       challenge: {
-        clues: {
-          brand: "Dior",
-          concentration: "EDP",
-          gender: "Male",
-          isLinear: false,
-          notes: { base: ["X"], heart: ["Y"], top: ["Z"] },
-          perfumer: "Creator",
-          xsolve: 90,
-          year: 2000,
-        },
         id: "550e8400-e29b-41d4-a716-446655440000",
+        revealed: HIDDEN_CLUES,
+        xsolve: 90,
       },
       session: {
         imageUrl: "/fresh.jpg",
         nonce: "fresh-nonce",
+        revealed: LEVEL_2_CLUES,
         sessionId: "fresh-session",
       },
     });
@@ -592,10 +612,12 @@ describe("resetGame — successful paths", () => {
     const setAttempts = vi.fn();
     const setGameState = vi.fn();
     const setLoading = vi.fn();
+    const setClues = vi.fn();
 
     const { result } = renderHook(() => useGameActions(), {
       wrapper: createWrapper({
         setAttempts,
+        setClues,
         setGameState,
         setLoading,
       }),
@@ -608,6 +630,8 @@ describe("resetGame — successful paths", () => {
     expect(mockResetGame).toHaveBeenCalledWith("test-session");
     expect(setAttempts).toHaveBeenCalledWith([]);
     expect(setGameState).toHaveBeenCalledWith("playing");
+    expect(setClues).toHaveBeenCalledWith(HIDDEN_CLUES);
+    expect(setClues).toHaveBeenLastCalledWith(LEVEL_2_CLUES);
     expect(setLoading).toHaveBeenCalledWith(false);
   });
 

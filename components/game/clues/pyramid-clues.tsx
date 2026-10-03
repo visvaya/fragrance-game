@@ -80,10 +80,9 @@ function renderPyramidNoteWord({
 // eslint-disable-next-line @typescript-eslint/no-shadow -- the named function gives the memoized component its DevTools name
 export const PyramidClues = memo(function PyramidClues() {
   const t = useTranslations("PyramidClues");
-  const { currentAttempt, dailyPerfume, gameState, revealLevel, visibleNotes } =
-    useGameState(); // isLinear is accessible via dailyPerfume.isLinear
+  const { clues, currentAttempt, dailyPerfume, revealLevel, visibleNotes } =
+    useGameState();
   const notes = visibleNotes;
-  const isLinear = dailyPerfume.isLinear;
   const { handlePointerDown: handleIconTap, scaled: iconScaled } =
     useScaleOnTap();
 
@@ -92,57 +91,9 @@ export const PyramidClues = memo(function PyramidClues() {
     return <PyramidCluesSkeleton t={t} />;
   }
 
-  // LINEAR PERFUME LOGIC
-  if (isLinear) {
-    const mergedNotes = [
-      ...dailyPerfume.notes.top,
-      ...dailyPerfume.notes.heart,
-      ...dailyPerfume.notes.base,
-    ].filter(Boolean);
-
-    // Progressive reveal logic
-    // Level 1: Generic placeholders (???, ???, ???)
-    // Level 2: Masked notes (all notes, but masked e.g. ⎵⎵⎵⎵⎵)
-    // Level 3: 1/3 notes revealed (from end)
-    // Level 4: 2/3 notes revealed (from end)
-    // Level 5+: All notes revealed
-
-    const isGameOver = gameState === "won" || gameState === "lost";
-
-    const displayNotes = (() => {
-      if (isGameOver || revealLevel >= 5) return mergedNotes;
-      switch (revealLevel) {
-        case 1: {
-          return [
-            GENERIC_PLACEHOLDER.repeat(5),
-            GENERIC_PLACEHOLDER.repeat(5),
-            GENERIC_PLACEHOLDER.repeat(5),
-          ];
-        }
-        case 2: {
-          return mergedNotes.map((n) => n.replaceAll(/[a-z0-9]/gi, MASK_CHAR));
-        }
-        case 3: {
-          const count = Math.ceil(mergedNotes.length * (1 / 3));
-          return mergedNotes.map((n, i) =>
-            i >= mergedNotes.length - count
-              ? n
-              : n.replaceAll(/[a-z0-9]/gi, MASK_CHAR),
-          );
-        }
-        case 4: {
-          const count = Math.ceil(mergedNotes.length * (2 / 3));
-          return mergedNotes.map((n, i) =>
-            i >= mergedNotes.length - count
-              ? n
-              : n.replaceAll(/[a-z0-9]/gi, MASK_CHAR),
-          );
-        }
-        default: {
-          return [];
-        }
-      }
-    })();
+  // LINEAR PERFUME: notes arrive already masked from the server, in display order.
+  if (clues.notes.kind === "linear") {
+    const displayNotes = clues.notes.notes;
 
     return (
       <div className="panel-standard">
@@ -194,7 +145,7 @@ export const PyramidClues = memo(function PyramidClues() {
                     </span>
                   </GameTooltip>
                 ) : (
-                  `(${t("noteCount", { count: mergedNotes.length })})`
+                  `(${t("noteCount", { count: displayNotes.length })})`
                 )}
               </span>
             </div>

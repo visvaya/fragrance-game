@@ -22,16 +22,14 @@ import { MaskedWord } from "./masked-word";
 // eslint-disable-next-line @typescript-eslint/no-shadow -- the named function gives the memoized component its DevTools name
 export const MetaClues = memo(function MetaClues() {
   const {
+    clues: serverClues,
     currentAttempt,
     dailyPerfume,
-    gameState,
-    isGenderRevealed,
     revealedBrand,
     revealedPerfumer,
     revealedYear,
-    revealLevel,
   } = useGameState();
-  const hasMultiplePerfumers = dailyPerfume.perfumer.includes(",");
+  const hasMultiplePerfumers = serverClues.perfumerCount > 1;
   const t = useTranslations("MetaClues");
   const { handlePointerDown: handleIconTap, scaled: iconScaled } =
     useScaleOnTap();
@@ -47,13 +45,7 @@ export const MetaClues = memo(function MetaClues() {
     { key: "year", value: revealedYear },
     {
       key: "gender",
-      value:
-        revealLevel >= 5 ||
-        isGenderRevealed ||
-        gameState === "won" ||
-        gameState === "lost"
-          ? dailyPerfume.gender
-          : GENERIC_PLACEHOLDER.repeat(5),
+      value: serverClues.gender ?? GENERIC_PLACEHOLDER.repeat(5),
     },
   ];
 
