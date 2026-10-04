@@ -73,6 +73,23 @@ const ANSWER_ROW = {
   xsolve_score: 0.5,
 };
 
+const SESSION_ROW = {
+  attempts_count: 1,
+  id: SESSION_ID,
+  last_nonce: "67890",
+  status: "active",
+};
+
+/** Row the admin double returns from `.single()` for each table. */
+function adminRow(table: string) {
+  if (table === "perfumes") return ANSWER_ROW;
+  if (table === "game_sessions") return SESSION_ROW;
+  return {
+    grace_deadline_at_utc: new Date(Date.now() + 86_400_000).toISOString(),
+    perfume_id: "p1",
+  };
+}
+
 function makeAdminMock() {
   return {
     from: vi.fn((table: string) => ({
@@ -81,18 +98,7 @@ function makeAdminMock() {
       insert: vi.fn().mockResolvedValue({ error: null }),
       limit: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({
-        data:
-          table === "perfumes"
-            ? ANSWER_ROW
-            : {
-                grace_deadline_at_utc: new Date(
-                  Date.now() + 86_400_000,
-                ).toISOString(),
-                perfume_id: "p1",
-              },
-        error: null,
-      }),
+      single: vi.fn().mockResolvedValue({ data: adminRow(table), error: null }),
       update: vi.fn().mockReturnThis(),
     })),
   };
