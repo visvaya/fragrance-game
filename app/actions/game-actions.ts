@@ -369,8 +369,10 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
  * @param challengeId - The challenge the player wants to start.
  */
 async function assertChallengeStartable(challengeId: string): Promise<void> {
+  // The base table, not daily_challenges_public: the view may be limited to a window
+  // of recent days, which would hide tomorrow's challenge and report it as missing.
   const { data: challenge, error } = (await createAdminClient()
-    .from("daily_challenges_public")
+    .from("daily_challenges")
     .select("challenge_date")
     .eq("id", challengeId)
     .maybeSingle()) as {

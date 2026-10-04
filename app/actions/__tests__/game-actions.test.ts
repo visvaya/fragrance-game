@@ -137,6 +137,10 @@ function createAdminClientMock(config: {
             data: config.dailyChallenges ?? null,
             error: config.dailyChallenges ? null : { message: "Not found" },
           });
+          chain.maybeSingle = vi.fn().mockResolvedValue({
+            data: config.dailyChallenges ?? null,
+            error: null,
+          });
 
           break;
         }
@@ -861,10 +865,9 @@ describe("game-actions", () => {
         vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
         vi.mocked(createAdminClient).mockReturnValue(
           withGameWrites(
-            withPublicView(
-              { from: vi.fn() },
-              createPublicViewChain({ challenge_date: "2026-02-12" }),
-            ),
+            createAdminClientMock({
+              dailyChallenges: { challenge_date: "2026-02-12" },
+            }),
             { data: null, error: { message: "Insert failed" } },
           ) as never,
         );
@@ -1132,6 +1135,7 @@ describe("game-actions", () => {
             eq: vi.fn().mockReturnThis(),
             in: vi.fn().mockReturnThis(),
             limit: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn(),
             select: vi.fn().mockReturnThis(),
             single: vi.fn(),
           };
@@ -1140,6 +1144,10 @@ describe("game-actions", () => {
             case "daily_challenges": {
               chain.single.mockResolvedValue({
                 data: { perfume_id: "f47ac10b-58cc-4372-a567-0e02b2c3d479" },
+                error: null,
+              });
+              chain.maybeSingle.mockResolvedValue({
+                data: { challenge_date: "2026-02-12" },
                 error: null,
               });
 

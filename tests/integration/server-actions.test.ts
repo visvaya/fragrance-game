@@ -80,7 +80,7 @@ describe("Game Actions Integration (Mocked)", () => {
 
       // 1. Session check (none) and the challenge's day (an earlier day, so it can start)
       mockSupabase.maybeSingle.mockImplementation(() =>
-        (mockSupabase as any)._lastTable === "daily_challenges_public"
+        (mockSupabase as any)._lastTable === "daily_challenges"
           ? {
               data: { challenge_date: "2000-01-01" },
               error: null,

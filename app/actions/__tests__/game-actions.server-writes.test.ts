@@ -182,18 +182,13 @@ function userResolver(db: SharedRows) {
 }
 
 /**
- * The public challenge view: the availability check reads only `challenge_date`
- * (today unless overridden), every other read gets the deadline and mode.
+ * The availability check reads `challenge_date` from the base table (today unless
+ * overridden). The public view never answers that read, so a check that went back
+ * to the view would see no challenge.
  */
-function readPublicChallenge(columns: string, options: AdminOptions): Result {
-  if (columns === "challenge_date" && options.challengeReadFails === true) {
+function readChallengeDate(options: AdminOptions): Result {
+  if (options.challengeReadFails === true) {
     return { data: null, error: STATEMENT_TIMEOUT };
-  }
-  if (columns !== "challenge_date") {
-    return {
-      data: { grace_deadline_at_utc: FAR_DEADLINE, mode: "daily" },
-      error: null,
-    };
   }
   const challengeDate =
     options.challengeDate === undefined ? TODAY : options.challengeDate;
@@ -203,18 +198,28 @@ function readPublicChallenge(columns: string, options: AdminOptions): Result {
   };
 }
 
+/** The public view: no row for a `challenge_date` read, else deadline and mode. */
+function readPublicChallenge(columns: string): Result {
+  if (columns === "challenge_date") return { data: null, error: null };
+  return {
+    data: { grace_deadline_at_utc: FAR_DEADLINE, mode: "daily" },
+    error: null,
+  };
+}
+
 /** The service role reads the catalog and applies session writes to the shared rows. */
 function adminResolver(db: SharedRows, options: AdminOptions) {
   return ({ columns, op, table, values }: Query): Result => {
     switch (table) {
       case "daily_challenges": {
+        if (columns === "challenge_date") return readChallengeDate(options);
         return {
           data: { grace_deadline_at_utc: FAR_DEADLINE, perfume_id: ANSWER_ID },
           error: null,
         };
       }
       case "daily_challenges_public": {
-        return readPublicChallenge(columns, options);
+        return readPublicChallenge(columns);
       }
       case "game_results": {
         return options.failResultInsert === true
