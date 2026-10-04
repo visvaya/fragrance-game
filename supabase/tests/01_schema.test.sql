@@ -5,7 +5,7 @@
 -- with the correct structure. Does NOT test data or permissions.
 
 BEGIN;
-SELECT plan(58);
+SELECT plan(62);
 
 -- ============================================================
 -- TABLES — core game
@@ -166,6 +166,36 @@ SELECT ok(
 SELECT ok(
   has_table_privilege('anon', 'public.daily_challenges_public', 'SELECT'),
   'anon can SELECT from daily_challenges_public view'
+);
+
+-- ============================================================
+-- ACCOUNT DELETION CASCADE
+-- ============================================================
+
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_constraint
+          WHERE conname = 'players_id_fkey' AND conrelid = 'public.players'::regclass
+            AND confrelid = 'auth.users'::regclass AND confdeltype = 'c'),
+  'players.id references auth.users with ON DELETE CASCADE'
+);
+
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_constraint
+          WHERE conname = 'game_results_player_id_fkey' AND confdeltype = 'c'),
+  'game_results.player_id cascades on player delete'
+);
+
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_constraint
+          WHERE conname = 'game_results_session_id_fkey' AND confdeltype = 'c'),
+  'game_results.session_id cascades on session delete'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.players AS p
+   WHERE NOT EXISTS (SELECT 1 FROM auth.users AS u WHERE u.id = p.id)),
+  0,
+  'every player has an auth account'
 );
 
 SELECT * FROM finish();
