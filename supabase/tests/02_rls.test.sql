@@ -368,9 +368,9 @@ SELECT ok(
     SELECT 1 FROM pg_policies
     WHERE schemaname = 'public'
       AND tablename IN ('game_sessions', 'game_results', 'player_streaks')
-      AND cmd IN ('INSERT', 'UPDATE', 'ALL')
+      AND cmd IN ('INSERT', 'UPDATE', 'DELETE', 'ALL')
   ),
-  'game_sessions, game_results and player_streaks have no INSERT or UPDATE policy'
+  'game_sessions, game_results and player_streaks have no INSERT, UPDATE or DELETE policy'
 );
 
 SELECT is(
