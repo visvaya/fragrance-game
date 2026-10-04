@@ -44,6 +44,10 @@ const ANSWER_ID = "33333333-3333-4333-8333-333333333333";
 const GUESS_ID = "44444444-4444-4444-8444-444444444444";
 const NONCE = "12345";
 const FAR_DEADLINE = "2099-01-01T00:00:00Z";
+const STATEMENT_TIMEOUT = {
+  code: "57014",
+  message: "canceling statement due to statement timeout",
+};
 
 const PERFUME_ROW = {
   base_notes: ["Vanilla"],
@@ -72,6 +76,7 @@ type Query = {
 type Write = Query & { op: "insert" | "update" };
 type AdminOptions = {
   failResultInsert?: boolean;
+  updateFails?: boolean;
   updateMatchesNoRow?: boolean;
 };
 /** Rows both clients see: the session found by the resume lookup and the current one. */
@@ -140,12 +145,10 @@ function makeClient(resolve: (query: Query) => Result, writes: Write[] | null) {
       chain.single = settle;
       chain.maybeSingle = settle;
       // eslint-disable-next-line unicorn/no-thenable -- the chain is awaited directly like a Supabase query
-      chain.then = (
+      chain.then = async (
         onFulfilled: (value: Result) => unknown,
         onRejected?: (reason: unknown) => unknown,
-      ) => {
-        void settle().then(onFulfilled, onRejected);
-      };
+      ) => await settle().then(onFulfilled, onRejected);
       return chain;
     },
   };
@@ -186,6 +189,9 @@ function adminResolver(db: SharedRows, options: AdminOptions) {
       case "game_sessions": {
         if (op === "update" && options.updateMatchesNoRow === true) {
           return { data: null, error: { code: "PGRST116", message: "0 rows" } };
+        }
+        if (op === "update" && options.updateFails === true) {
+          return { data: null, error: STATEMENT_TIMEOUT };
         }
         db.session = { ...db.session, ...values };
         if (op === "insert") db.existing = db.session;
@@ -329,6 +335,44 @@ describe("game state writes go through the service role", () => {
     await expect(skipAttempt(SESSION_ID, NONCE)).rejects.toThrow(
       `CONFLICT:${NONCE}`,
     );
+  });
+
+  it("reports a conflict when the nonce changed before the guess was written", async () => {
+    useClients({
+      admin: { updateMatchesNoRow: true },
+      session: makeSession(1),
+    });
+
+    await expect(submitGuess(SESSION_ID, GUESS_ID, NONCE)).rejects.toThrow(
+      `CONFLICT:${NONCE}`,
+    );
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it("reports a failed guess write to Sentry instead of a conflict", async () => {
+    useClients({ admin: { updateFails: true }, session: makeSession(1) });
+
+    const move = submitGuess(SESSION_ID, GUESS_ID, NONCE);
+
+    await expect(move).rejects.toThrow("Game session update failed");
+    await expect(move).rejects.not.toThrow("CONFLICT:");
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error), {
+      extra: expect.objectContaining({ dbCode: "57014" }),
+    });
+  });
+
+  it("reports a failed skip write to Sentry instead of a conflict", async () => {
+    useClients({ admin: { updateFails: true }, session: makeSession(1) });
+
+    const move = skipAttempt(SESSION_ID, NONCE);
+
+    await expect(move).rejects.toThrow("Game session update failed");
+    await expect(move).rejects.not.toThrow("CONFLICT:");
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error), {
+      extra: expect.objectContaining({ dbCode: "57014" }),
+    });
   });
 
   it("returns the move and reports to Sentry when the result insert fails", async () => {

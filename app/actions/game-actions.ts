@@ -28,7 +28,9 @@ import {
 } from "@/lib/game/scoring";
 import {
   insertGameSession,
+  isNoRowMatched,
   recordGameResult,
+  type SessionWriteResult,
   updateGameSession,
 } from "@/lib/game/session-writes";
 import { checkRateLimit } from "@/lib/redis";
@@ -192,6 +194,29 @@ function calculatePerfumerMatch(
     return "full";
   if (matchCount > 0) return "partial";
   return "none";
+}
+
+/**
+ * Turns the error of a move write into the error the action throws. No row matched
+ * means another move changed the session first: a `CONFLICT:` error carrying the
+ * current nonce. Any other database error is reported to Sentry and thrown without
+ * that prefix, so error filters do not drop it.
+ * @param error - Database error from the session update, or null when it succeeded.
+ * @param sessionId - Session the move was written to.
+ * @param currentNonce - Nonce of the session as the action read it.
+ */
+function throwIfMoveNotWritten(
+  error: SessionWriteResult["error"],
+  sessionId: string,
+  currentNonce: number | string,
+): void {
+  if (!error) return;
+  if (isNoRowMatched(error)) throw new Error(`CONFLICT:${currentNonce}`);
+  const failure = new Error("Game session update failed");
+  Sentry.captureException(failure, {
+    extra: { dbCode: error.code, dbError: error.message, sessionId },
+  });
+  throw failure;
 }
 
 /**
@@ -861,9 +886,8 @@ export async function submitGuess(
     updatePayload,
   );
 
-  if (updateError || !updatedSession) {
-    throw new Error(`CONFLICT:${session.last_nonce}`);
-  }
+  throwIfMoveNotWritten(updateError, sessionId, session.last_nonce);
+  if (!updatedSession) throw new Error(`CONFLICT:${session.last_nonce}`);
 
   await trackEvent(
     "guess_submitted",
@@ -1123,7 +1147,7 @@ export async function skipAttempt(
     },
   );
 
-  if (updateError) throw new Error(`CONFLICT:${session.last_nonce}`);
+  throwIfMoveNotWritten(updateError, sessionId, session.last_nonce);
 
   await trackEvent(
     "attempt_skipped",
