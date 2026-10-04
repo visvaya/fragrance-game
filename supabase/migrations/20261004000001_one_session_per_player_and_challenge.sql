@@ -10,7 +10,10 @@
 
 BEGIN;
 
+-- Sessions cannot be created while duplicates are removed, and results cannot be recorded
+-- for a session while duplicates are removed.
 LOCK TABLE public.game_sessions IN SHARE ROW EXCLUSIVE MODE;
+LOCK TABLE public.game_results IN SHARE MODE;
 
 WITH ranked AS (
   SELECT
@@ -19,7 +22,7 @@ WITH ranked AS (
       PARTITION BY gs.player_id, gs.challenge_id
       ORDER BY
         EXISTS (SELECT 1 FROM public.game_results AS gr WHERE gr.session_id = gs.id) DESC,
-        (gs.status IN ('won', 'lost')) DESC,
+        COALESCE(gs.status IN ('won', 'lost'), false) DESC,
         CASE WHEN gs.status IN ('won', 'lost') THEN NULL ELSE gs.attempts_count END
           DESC NULLS LAST,
         gs.start_time ASC,
