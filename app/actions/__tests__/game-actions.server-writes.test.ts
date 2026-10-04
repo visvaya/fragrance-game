@@ -3,7 +3,7 @@
  * its session rows but never writes them, and every write names the signed-in player.
  */
 import * as Sentry from "@sentry/nextjs";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
@@ -78,13 +78,17 @@ type Write = Query & { op: "insert" | "update" };
 type AdminOptions = {
   /** `challenge_date` of the requested challenge; `null` means no such challenge. */
   challengeDate?: string | null;
+  /** The `challenge_date` read fails with a database error. */
+  challengeReadFails?: boolean;
   failResultInsert?: boolean;
   updateFails?: boolean;
   updateMatchesNoRow?: boolean;
 };
-const DAY_MS = 24 * 60 * 60 * 1000;
-const utcDate = (offsetDays: number) =>
-  new Date(Date.now() + offsetDays * DAY_MS).toISOString().slice(0, 10);
+/** The tests pin the clock to midday UTC of TODAY, so no date crosses a day boundary. */
+const NOW = new Date("2026-10-04T12:00:00Z");
+const TODAY = "2026-10-04";
+const FUTURE_DATE = "2999-01-01";
+const PAST_DATE = "2000-01-01";
 
 /** Rows both clients see: the session found by the resume lookup and the current one. */
 type SharedRows = { existing: unknown; session: Record<string, unknown> };
@@ -182,6 +186,9 @@ function userResolver(db: SharedRows) {
  * (today unless overridden), every other read gets the deadline and mode.
  */
 function readPublicChallenge(columns: string, options: AdminOptions): Result {
+  if (columns === "challenge_date" && options.challengeReadFails === true) {
+    return { data: null, error: STATEMENT_TIMEOUT };
+  }
   if (columns !== "challenge_date") {
     return {
       data: { grace_deadline_at_utc: FAR_DEADLINE, mode: "daily" },
@@ -189,7 +196,7 @@ function readPublicChallenge(columns: string, options: AdminOptions): Result {
     };
   }
   const challengeDate =
-    options.challengeDate === undefined ? utcDate(0) : options.challengeDate;
+    options.challengeDate === undefined ? TODAY : options.challengeDate;
   return {
     data: challengeDate === null ? null : { challenge_date: challengeDate },
     error: null,
@@ -281,7 +288,14 @@ const OWNER_AND_NONCE = {
 };
 
 describe("game state writes go through the service role", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it("creates a new session for the signed-in player", async () => {
     const writes = useClients({ session: makeSession(0) });
@@ -434,7 +448,7 @@ describe("game state writes go through the service role", () => {
 
   it("refuses to start tomorrow's challenge and writes nothing", async () => {
     const writes = useClients({
-      admin: { challengeDate: utcDate(1) },
+      admin: { challengeDate: FUTURE_DATE },
       session: makeSession(0),
     });
 
@@ -458,7 +472,7 @@ describe("game state writes go through the service role", () => {
 
   it("refuses the first guess on tomorrow's challenge before any write", async () => {
     const writes = useClients({
-      admin: { challengeDate: utcDate(1) },
+      admin: { challengeDate: FUTURE_DATE },
       session: makeSession(0),
     });
 
@@ -470,7 +484,7 @@ describe("game state writes go through the service role", () => {
 
   it("still starts a challenge from an earlier day", async () => {
     const writes = useClients({
-      admin: { challengeDate: utcDate(-1) },
+      admin: { challengeDate: PAST_DATE },
       session: makeSession(0),
     });
 
@@ -484,7 +498,7 @@ describe("game state writes go through the service role", () => {
   it("resumes an existing session without checking the challenge date", async () => {
     const existing = makeSession(1);
     const writes = useClients({
-      admin: { challengeDate: utcDate(1) },
+      admin: { challengeDate: FUTURE_DATE },
       existing,
       session: existing,
     });
@@ -492,6 +506,18 @@ describe("game state writes go through the service role", () => {
     const result = await startGame(CHALLENGE_ID);
 
     expect(result.sessionId).toBe(SESSION_ID);
+    expect(writes).toEqual([]);
+  });
+
+  it("reports a failed challenge read instead of a missing challenge", async () => {
+    const writes = useClients({
+      admin: { challengeReadFails: true },
+      session: makeSession(0),
+    });
+
+    await expect(startGame(CHALLENGE_ID)).rejects.toThrow(
+      "Failed to load challenge",
+    );
     expect(writes).toEqual([]);
   });
 });

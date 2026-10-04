@@ -369,12 +369,19 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
  * @param challengeId - The challenge the player wants to start.
  */
 async function assertChallengeStartable(challengeId: string): Promise<void> {
-  const { data: challenge } = (await createAdminClient()
+  const { data: challenge, error } = (await createAdminClient()
     .from("daily_challenges_public")
     .select("challenge_date")
     .eq("id", challengeId)
-    .maybeSingle()) as { data: { challenge_date: string } | null };
+    .maybeSingle()) as {
+    data: { challenge_date: string } | null;
+    error: unknown;
+  };
 
+  if (error) {
+    console.error("Error loading challenge before start:", error);
+    throw new Error("Failed to load challenge");
+  }
   if (!challenge) {
     throw new Error("Challenge not found");
   }
