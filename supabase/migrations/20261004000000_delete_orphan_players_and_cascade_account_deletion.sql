@@ -10,10 +10,14 @@
 -- 2. Results are deleted with their player and with their session.
 -- 3. players.id references auth.users, so deleting an account deletes its game data.
 --
--- The migration runs in a single transaction, so the lock below holds until it ends.
+-- The file runs in one explicit transaction, so the locks below hold until COMMIT.
+
+BEGIN;
 
 -- Keep a concurrent account deletion from creating a new orphan between the cleanup and
--- the new foreign key. New sign-ups wait for the lock (the migration takes milliseconds).
+-- the new foreign key. Both tables stay locked until COMMIT, so sign-ups, sign-ins that
+-- update auth.users and account deletions wait for the few milliseconds the migration takes.
+LOCK TABLE auth.users IN SHARE ROW EXCLUSIVE MODE;
 LOCK TABLE public.players IN SHARE ROW EXCLUSIVE MODE;
 
 DELETE FROM public.game_results AS gr
@@ -37,3 +41,5 @@ ALTER TABLE public.game_results
 ALTER TABLE public.players
   ADD CONSTRAINT players_id_fkey
     FOREIGN KEY (id) REFERENCES auth.users (id) ON DELETE CASCADE;
+
+COMMIT;

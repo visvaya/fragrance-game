@@ -181,13 +181,15 @@ SELECT ok(
 
 SELECT ok(
   EXISTS (SELECT 1 FROM pg_constraint
-          WHERE conname = 'game_results_player_id_fkey' AND confdeltype = 'c'),
+          WHERE conname = 'game_results_player_id_fkey' AND confdeltype = 'c'
+            AND conrelid = 'public.game_results'::regclass),
   'game_results.player_id cascades on player delete'
 );
 
 SELECT ok(
   EXISTS (SELECT 1 FROM pg_constraint
-          WHERE conname = 'game_results_session_id_fkey' AND confdeltype = 'c'),
+          WHERE conname = 'game_results_session_id_fkey' AND confdeltype = 'c'
+            AND conrelid = 'public.game_results'::regclass),
   'game_results.session_id cascades on session delete'
 );
 
