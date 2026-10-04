@@ -43,6 +43,22 @@ export function isNoRowMatched(error: { code?: string } | null): boolean {
   return error?.code === NO_ROW_MATCHED_CODE;
 }
 
+/**
+ * Postgres code for a unique-constraint violation. On a session insert it means another
+ * request already created the player's session for the same puzzle.
+ */
+export const UNIQUE_VIOLATION_CODE = "23505";
+
+/**
+ * Tells a session that already exists (a parallel start won the insert) apart from a
+ * real failure.
+ * @param error - Error from a session write, or null when the write succeeded.
+ * @returns True only when the error is the unique-violation code.
+ */
+export function isUniqueViolation(error: { code?: string } | null): boolean {
+  return error?.code === UNIQUE_VIOLATION_CODE;
+}
+
 /** Values of a new session; the owner always comes from the caller's verified identity. */
 export type NewSessionValues = Omit<
   Tables["game_sessions"]["Insert"],

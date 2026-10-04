@@ -33,6 +33,7 @@ import {
 import {
   insertGameSession,
   isNoRowMatched,
+  isUniqueViolation,
   recordGameResult,
   type SessionWriteResult,
   updateGameSession,
@@ -392,7 +393,94 @@ async function assertChallengeStartable(challengeId: string): Promise<void> {
   }
 }
 
+type ExistingSession = {
+  attempts_count: number;
+  guesses: StoredGuess[] | null;
+  id: string;
+  last_nonce: string | number;
+  status: string;
+};
+
+type UserClient = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Reads the player's latest session for the challenge with the player's own client.
+ * The ordering keeps the read safe while older duplicate sessions still exist.
+ */
+async function loadPlayerSession(
+  supabase: UserClient,
+  playerId: string,
+  challengeId: string,
+): Promise<ExistingSession | null> {
+  const { data } = (await supabase
+    .from("game_sessions")
+    .select("id, last_nonce, attempts_count, guesses, status")
+    .eq("player_id", playerId)
+    .eq("challenge_id", challengeId)
+    .order("start_time", { ascending: false })
+    .limit(1)
+    .maybeSingle()) as { data: ExistingSession | null };
+  return data;
+}
+
+/** Builds the start response for a session that already exists, finished or not. */
+async function resumeGameSession(
+  challengeId: string,
+  session: ExistingSession,
+): Promise<StartGameResponse> {
+  const { data: graceQuery } = (await createAdminClient()
+    .from("daily_challenges_public")
+    .select("grace_deadline_at_utc")
+    .eq("id", challengeId)
+    .single()) as { data: { grace_deadline_at_utc: string } | null };
+
+  const imageUrl = await getImageUrlForStep(session.id);
+  const rawGuesses = session.guesses ?? [];
+  const answer = await requireChallengeAnswer(challengeId);
+  const enrichedGuesses = await enrichGuessHistory(rawGuesses, answer.clue);
+
+  const { answerConcentration, answerName } = await (async () => {
+    if (session.status !== "won" && session.status !== "lost")
+      return { answerConcentration: undefined, answerName: undefined };
+    const adminSupabase = createAdminClient();
+    const { data: challenge } = await adminSupabase
+      .from("daily_challenges")
+      .select("perfume_id")
+      .eq("id", challengeId)
+      .single();
+    if (!challenge)
+      return { answerConcentration: undefined, answerName: undefined };
+    const { data: p } = (await adminSupabase
+      .from("perfumes")
+      .select("name, concentrations(name)")
+      .eq("id", challenge.perfume_id)
+      .single()) as {
+      data: {
+        concentrations: { name: string } | null;
+        name: string;
+      } | null;
+    };
+    return {
+      answerConcentration: (p?.concentrations as { name: string } | null)?.name,
+      answerName: p?.name,
+    };
+  })();
+
+  return {
+    answerConcentration,
+    answerName,
+    graceDeadline: graceQuery?.grace_deadline_at_utc ?? "",
+    guesses: enrichedGuesses,
+    imageUrl: imageUrl,
+    nonce: String(session.last_nonce),
+    revealed: buildSessionClues(answer.clue, session, enrichedGuesses),
+    revealState: getRevealPercentages(session.attempts_count + 1),
+    sessionId: session.id,
+  };
+}
+
 async function createNewGameSession(
+  supabase: UserClient,
   challengeId: string,
   safeInheritedCount: number,
   userId: string,
@@ -413,6 +501,13 @@ async function createNewGameSession(
       status: "active",
     },
   );
+
+  if (isUniqueViolation(insertError)) {
+    const stored = await loadPlayerSession(supabase, userId, challengeId);
+    if (stored) {
+      return resumeGameSession(challengeId, stored);
+    }
+  }
 
   if (insertError || !session) {
     console.error("Error starting game:", insertError);
@@ -477,82 +572,18 @@ export async function startGame(
     throw new Error("Unauthorized");
   }
 
-  const { data: existingSession } = (await supabase
-    .from("game_sessions")
-    .select("id, last_nonce, attempts_count, guesses, status")
-    .eq("player_id", user.id)
-    .eq("challenge_id", challengeId)
-    .order("start_time", { ascending: false })
-    .limit(1)
-    .maybeSingle()) as {
-    data: {
-      attempts_count: number;
-      guesses: StoredGuess[] | null;
-      id: string;
-      last_nonce: string | number;
-      status: string;
-    } | null;
-  };
-
-  if (existingSession) {
-    const { data: graceQuery } = (await createAdminClient()
-      .from("daily_challenges_public")
-      .select("grace_deadline_at_utc")
-      .eq("id", challengeId)
-      .single()) as { data: { grace_deadline_at_utc: string } | null };
-
-    const imageUrl = await getImageUrlForStep(existingSession.id);
-    const rawGuesses = existingSession.guesses ?? [];
-    const answer = await requireChallengeAnswer(challengeId);
-    const enrichedGuesses = await enrichGuessHistory(rawGuesses, answer.clue);
-
-    const { answerConcentration, answerName } = await (async () => {
-      if (existingSession.status !== "won" && existingSession.status !== "lost")
-        return { answerConcentration: undefined, answerName: undefined };
-      const adminSupabase = createAdminClient();
-      const { data: challenge } = await adminSupabase
-        .from("daily_challenges")
-        .select("perfume_id")
-        .eq("id", challengeId)
-        .single();
-      if (!challenge)
-        return { answerConcentration: undefined, answerName: undefined };
-      const { data: p } = (await adminSupabase
-        .from("perfumes")
-        .select("name, concentrations(name)")
-        .eq("id", challenge.perfume_id)
-        .single()) as {
-        data: {
-          concentrations: { name: string } | null;
-          name: string;
-        } | null;
-      };
-      return {
-        answerConcentration: (p?.concentrations as { name: string } | null)
-          ?.name,
-        answerName: p?.name,
-      };
-    })();
-
-    return {
-      answerConcentration,
-      answerName,
-      graceDeadline: graceQuery?.grace_deadline_at_utc ?? "",
-      guesses: enrichedGuesses,
-      imageUrl: imageUrl,
-      nonce: String(existingSession.last_nonce),
-      revealed: buildSessionClues(
-        answer.clue,
-        existingSession,
-        enrichedGuesses,
-      ),
-      revealState: getRevealPercentages(existingSession.attempts_count + 1),
-      sessionId: existingSession.id,
-    };
+  const existing = await loadPlayerSession(supabase, user.id, challengeId);
+  if (existing) {
+    return resumeGameSession(challengeId, existing);
   }
 
   // Rate limiting: only applies to creating NEW sessions, not resuming existing ones
-  return createNewGameSession(challengeId, safeInheritedCount, user.id);
+  return createNewGameSession(
+    supabase,
+    challengeId,
+    safeInheritedCount,
+    user.id,
+  );
 }
 
 /**

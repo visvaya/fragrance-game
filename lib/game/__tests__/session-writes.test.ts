@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   insertGameSession,
   isNoRowMatched,
+  isUniqueViolation,
   recordGameResult,
   updateGameSession,
 } from "@/lib/game/session-writes";
@@ -173,5 +174,12 @@ describe("session-writes", () => {
     expect(isNoRowMatched({ code: "57014" })).toBe(false);
     expect(isNoRowMatched({})).toBe(false);
     expect(isNoRowMatched(null)).toBe(false);
+  });
+
+  it("isUniqueViolation recognises only the unique-violation code", () => {
+    expect(isUniqueViolation({ code: "23505" })).toBe(true);
+    expect(isUniqueViolation({ code: "PGRST116" })).toBe(false);
+    expect(isUniqueViolation({})).toBe(false);
+    expect(isUniqueViolation(null)).toBe(false);
   });
 });

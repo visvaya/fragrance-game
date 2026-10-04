@@ -81,6 +81,10 @@ type AdminOptions = {
   /** The `challenge_date` read fails with a database error. */
   challengeReadFails?: boolean;
   failResultInsert?: boolean;
+  /** The session insert fails with this error and writes no row. */
+  insertError?: { code: string; message: string };
+  /** Row a parallel start stored before the failed insert; the resume lookup then finds it. */
+  storedByParallelStart?: Record<string, unknown> | null;
   updateFails?: boolean;
   updateMatchesNoRow?: boolean;
 };
@@ -207,6 +211,28 @@ function readPublicChallenge(columns: string): Result {
   };
 }
 
+/** Applies a session insert or update to the shared rows, or returns the configured error. */
+function writeSession(
+  db: SharedRows,
+  options: AdminOptions,
+  op: string,
+  values: Record<string, unknown>,
+): Result {
+  if (op === "update" && options.updateMatchesNoRow === true) {
+    return { data: null, error: { code: "PGRST116", message: "0 rows" } };
+  }
+  if (op === "update" && options.updateFails === true) {
+    return { data: null, error: STATEMENT_TIMEOUT };
+  }
+  if (op === "insert" && options.insertError !== undefined) {
+    db.existing = options.storedByParallelStart ?? null;
+    return { data: null, error: options.insertError };
+  }
+  db.session = { ...db.session, ...values };
+  if (op === "insert") db.existing = db.session;
+  return { data: db.session, error: null };
+}
+
 /** The service role reads the catalog and applies session writes to the shared rows. */
 function adminResolver(db: SharedRows, options: AdminOptions) {
   return ({ columns, op, table, values }: Query): Result => {
@@ -227,15 +253,7 @@ function adminResolver(db: SharedRows, options: AdminOptions) {
           : { data: null, error: null };
       }
       case "game_sessions": {
-        if (op === "update" && options.updateMatchesNoRow === true) {
-          return { data: null, error: { code: "PGRST116", message: "0 rows" } };
-        }
-        if (op === "update" && options.updateFails === true) {
-          return { data: null, error: STATEMENT_TIMEOUT };
-        }
-        db.session = { ...db.session, ...values };
-        if (op === "insert") db.existing = db.session;
-        return { data: db.session, error: null };
+        return writeSession(db, options, op, values);
       }
       case "perfume_assets": {
         return {
@@ -524,5 +542,76 @@ describe("game state writes go through the service role", () => {
       "Failed to load challenge",
     );
     expect(writes).toEqual([]);
+  });
+
+  describe("a parallel start already created the session", () => {
+    const UNIQUE_VIOLATION = {
+      code: "23505",
+      message: "duplicate key value violates unique constraint",
+    };
+    const parallelSession = (status: string) => ({
+      attempts_count: 1,
+      guesses: [],
+      id: SESSION_ID,
+      last_nonce: "n1",
+      status,
+    });
+
+    it("resumes the stored active session instead of failing", async () => {
+      const writes = useClients({
+        admin: {
+          insertError: UNIQUE_VIOLATION,
+          storedByParallelStart: parallelSession("active"),
+        },
+        session: makeSession(0),
+      });
+
+      const result = await startGame(CHALLENGE_ID);
+
+      expect(result.sessionId).toBe(SESSION_ID);
+      expect(result.nonce).toBe("n1");
+      expect(result.answerName).toBeUndefined();
+      expect(writes.filter(({ op }) => op === "insert")).toHaveLength(1);
+    });
+
+    it("resumes a stored finished game with the answer", async () => {
+      useClients({
+        admin: {
+          insertError: UNIQUE_VIOLATION,
+          storedByParallelStart: parallelSession("won"),
+        },
+        session: makeSession(0),
+      });
+
+      const result = await startGame(CHALLENGE_ID);
+
+      expect(result.sessionId).toBe(SESSION_ID);
+      expect(result.answerName).toBe("Coco");
+    });
+
+    it("fails when the conflicting session cannot be read back", async () => {
+      useClients({
+        admin: { insertError: UNIQUE_VIOLATION, storedByParallelStart: null },
+        session: makeSession(0),
+      });
+
+      await expect(startGame(CHALLENGE_ID)).rejects.toThrow(
+        "Failed to create session",
+      );
+    });
+
+    it("keeps failing on other insert errors", async () => {
+      useClients({
+        admin: {
+          insertError: { code: "XX000", message: "internal error" },
+          storedByParallelStart: parallelSession("active"),
+        },
+        session: makeSession(0),
+      });
+
+      await expect(startGame(CHALLENGE_ID)).rejects.toThrow(
+        "Failed to create session",
+      );
+    });
   });
 });
