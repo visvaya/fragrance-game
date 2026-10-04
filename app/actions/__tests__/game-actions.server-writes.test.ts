@@ -68,6 +68,7 @@ const PERFUME_ROW = {
 type Session = ReturnType<typeof makeSession>;
 type Result = { data: unknown; error: unknown };
 type Query = {
+  columns: string;
   eqs: Record<string, unknown>;
   op: string;
   table: string;
@@ -75,10 +76,16 @@ type Query = {
 };
 type Write = Query & { op: "insert" | "update" };
 type AdminOptions = {
+  /** `challenge_date` of the requested challenge; `null` means no such challenge. */
+  challengeDate?: string | null;
   failResultInsert?: boolean;
   updateFails?: boolean;
   updateMatchesNoRow?: boolean;
 };
+const DAY_MS = 24 * 60 * 60 * 1000;
+const utcDate = (offsetDays: number) =>
+  new Date(Date.now() + offsetDays * DAY_MS).toISOString().slice(0, 10);
+
 /** Rows both clients see: the session found by the resume lookup and the current one. */
 type SharedRows = { existing: unknown; session: Record<string, unknown> };
 
@@ -109,11 +116,12 @@ function makeClient(resolve: (query: Query) => Result, writes: Write[] | null) {
     },
     from: (table: string) => {
       const eqs: Record<string, unknown> = {};
+      let columns = "";
       let op = "select";
       let values: Record<string, unknown> = {};
       const chain: Record<string, unknown> = {};
       const settle = async () =>
-        await Promise.resolve(resolve({ eqs, op, table, values }));
+        await Promise.resolve(resolve({ columns, eqs, op, table, values }));
       const write =
         (kind: "insert" | "update") => (payload: Record<string, unknown>) => {
           if (writes === null) {
@@ -121,13 +129,17 @@ function makeClient(resolve: (query: Query) => Result, writes: Write[] | null) {
           }
           op = kind;
           values = payload;
-          writes.push({ eqs, op: kind, table, values: payload });
+          writes.push({ columns, eqs, op: kind, table, values: payload });
           return chain;
         };
       const forbidden = (kind: string) => () => {
         throw new Error(`unexpected ${kind} on ${table}`);
       };
-      for (const method of ["select", "limit", "order"]) {
+      chain.select = (selected?: string) => {
+        if (op === "select") columns = selected ?? "";
+        return chain;
+      };
+      for (const method of ["limit", "order"]) {
         chain[method] = () => chain;
       }
       chain.insert = write("insert");
@@ -165,9 +177,28 @@ function userResolver(db: SharedRows) {
   };
 }
 
+/**
+ * The public challenge view: the availability check reads only `challenge_date`
+ * (today unless overridden), every other read gets the deadline and mode.
+ */
+function readPublicChallenge(columns: string, options: AdminOptions): Result {
+  if (columns !== "challenge_date") {
+    return {
+      data: { grace_deadline_at_utc: FAR_DEADLINE, mode: "daily" },
+      error: null,
+    };
+  }
+  const challengeDate =
+    options.challengeDate === undefined ? utcDate(0) : options.challengeDate;
+  return {
+    data: challengeDate === null ? null : { challenge_date: challengeDate },
+    error: null,
+  };
+}
+
 /** The service role reads the catalog and applies session writes to the shared rows. */
 function adminResolver(db: SharedRows, options: AdminOptions) {
-  return ({ op, table, values }: Query): Result => {
+  return ({ columns, op, table, values }: Query): Result => {
     switch (table) {
       case "daily_challenges": {
         return {
@@ -176,10 +207,7 @@ function adminResolver(db: SharedRows, options: AdminOptions) {
         };
       }
       case "daily_challenges_public": {
-        return {
-          data: { grace_deadline_at_utc: FAR_DEADLINE, mode: "daily" },
-          error: null,
-        };
+        return readPublicChallenge(columns, options);
       }
       case "game_results": {
         return options.failResultInsert === true
@@ -402,5 +430,68 @@ describe("game state writes go through the service role", () => {
       last_nonce: writes[0]?.values.last_nonce,
       player_id: USER_ID,
     });
+  });
+
+  it("refuses to start tomorrow's challenge and writes nothing", async () => {
+    const writes = useClients({
+      admin: { challengeDate: utcDate(1) },
+      session: makeSession(0),
+    });
+
+    await expect(startGame(CHALLENGE_ID)).rejects.toThrow(
+      "Challenge not available yet",
+    );
+    expect(writes).toEqual([]);
+  });
+
+  it("refuses to start an unknown challenge and writes nothing", async () => {
+    const writes = useClients({
+      admin: { challengeDate: null },
+      session: makeSession(0),
+    });
+
+    await expect(startGame(CHALLENGE_ID)).rejects.toThrow(
+      "Challenge not found",
+    );
+    expect(writes).toEqual([]);
+  });
+
+  it("refuses the first guess on tomorrow's challenge before any write", async () => {
+    const writes = useClients({
+      admin: { challengeDate: utcDate(1) },
+      session: makeSession(0),
+    });
+
+    await expect(initializeAndGuess(CHALLENGE_ID, GUESS_ID, 0)).rejects.toThrow(
+      "Challenge not available yet",
+    );
+    expect(writes).toEqual([]);
+  });
+
+  it("still starts a challenge from an earlier day", async () => {
+    const writes = useClients({
+      admin: { challengeDate: utcDate(-1) },
+      session: makeSession(0),
+    });
+
+    await startGame(CHALLENGE_ID);
+
+    expect(writes.map(({ op, table }) => `${op} ${table}`)).toEqual([
+      "insert game_sessions",
+    ]);
+  });
+
+  it("resumes an existing session without checking the challenge date", async () => {
+    const existing = makeSession(1);
+    const writes = useClients({
+      admin: { challengeDate: utcDate(1) },
+      existing,
+      session: existing,
+    });
+
+    const result = await startGame(CHALLENGE_ID);
+
+    expect(result.sessionId).toBe(SESSION_ID);
+    expect(writes).toEqual([]);
   });
 });

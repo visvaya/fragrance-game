@@ -228,8 +228,9 @@ function withGameWrites<T extends { from: (table: string) => unknown }>(
 }
 
 /**
- * Builds the mock chain for the daily_challenges_public view query used by
- * getDailyChallenge()/getDailyChallengeSSR()/startGame(): select().eq().limit().single().
+ * Builds the mock chain for the daily_challenges_public view queries used by
+ * getDailyChallenge()/getDailyChallengeSSR()/startGame(): select().eq().limit().single(),
+ * and select().eq().maybeSingle() for the availability check before a new session.
  */
 function createPublicViewChain(
   data: Record<string, unknown> | null,
@@ -238,6 +239,7 @@ function createPublicViewChain(
   return {
     eq: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({ data, error }),
     select: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue({ data, error }),
   };
@@ -788,15 +790,25 @@ describe("game-actions", () => {
         vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
 
         vi.mocked(createAdminClient).mockReturnValue(
-          withGameWrites(mockAdminClient, {
-            data: {
-              attempts_count: 0,
-              id: "123e4567-e89b-12d3-a456-426614174000",
-              last_nonce: mockNonce,
-              status: "active",
+          withGameWrites(
+            withPublicView(
+              mockAdminClient,
+              createPublicViewChain({
+                challenge_date: "2026-02-12",
+                grace_deadline_at_utc: "2026-02-13T00:00:00Z",
+                mode: "daily",
+              }),
+            ),
+            {
+              data: {
+                attempts_count: 0,
+                id: "123e4567-e89b-12d3-a456-426614174000",
+                last_nonce: mockNonce,
+                status: "active",
+              },
+              error: null,
             },
-            error: null,
-          }) as never,
+          ) as never,
         );
 
         const result = await startGame(mockChallengeId);
@@ -849,7 +861,10 @@ describe("game-actions", () => {
         vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
         vi.mocked(createAdminClient).mockReturnValue(
           withGameWrites(
-            { from: vi.fn() },
+            withPublicView(
+              { from: vi.fn() },
+              createPublicViewChain({ challenge_date: "2026-02-12" }),
+            ),
             { data: null, error: { message: "Insert failed" } },
           ) as never,
         );
