@@ -77,7 +77,7 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 ## Migrations do not reproduce the production schema
 
 - **Where:** `supabase/migrations/` versus the production database (checked 2026-10-01).
-- **Shortcut:** several objects were created by hand and exist only in production: the functions `handle_new_user`, `auto_create_player`, `delete_auth_session` and `refresh_autocomplete_cache`, the triggers on `auth.users` and `auth.sessions`, the `user_sessions` table, several RLS policies, and view columns that differ from the migration definitions. `perfume_asset_sources` has two conflicting `IF NOT EXISTS` definitions, and the `eligible_perfumes` view exists only in migrations.
+- **Shortcut:** several objects were created by hand and exist only in production: the functions `handle_new_user`, `auto_create_player`, `delete_auth_session` and `refresh_autocomplete_cache`, the triggers on `auth.users` and `auth.sessions`, the `user_sessions` table, the RLS policies on `user_sessions`, and view columns that differ from the migration definitions. `perfume_asset_sources` has two conflicting `IF NOT EXISTS` definitions, and the `eligible_perfumes` view exists only in migrations. The local development stack now runs the same PostgreSQL major version as production (17).
 - **Risk:** a fresh database (staging, local, a future self-hosted server) does not match production; pgTAP in CI runs against production only.
 - **Done when:** `supabase db diff` against production is empty and a database rebuilt from migrations passes `pnpm test:db`.
 
