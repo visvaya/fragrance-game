@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   insertGameSession,
+  isNoRowMatched,
   recordGameResult,
   updateGameSession,
 } from "@/lib/game/session-writes";
@@ -36,9 +37,10 @@ function mockAdmin(result: Result) {
   }
   chain.single = async () => await Promise.resolve(result);
   // eslint-disable-next-line unicorn/no-thenable -- the insert chain is awaited directly like a Supabase query
-  chain.then = (onFulfilled: (value: Result) => unknown) => {
-    void Promise.resolve(result).then(onFulfilled);
-  };
+  chain.then = async (
+    onFulfilled: (value: Result) => unknown,
+    onRejected?: (reason: unknown) => unknown,
+  ) => await Promise.resolve(result).then(onFulfilled, onRejected);
   vi.mocked(createAdminClient).mockReturnValue({
     from: (table: string) => {
       tables.push(table);
@@ -154,12 +156,22 @@ describe("session-writes", () => {
       recordGameResult(PLAYER_ID, RESULT_VALUES),
     ).resolves.toBeUndefined();
     expect(Sentry.captureException).toHaveBeenCalledTimes(1);
-    expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error), {
-      extra: {
-        dbCode: "23514",
-        dbError: "insert failed",
-        sessionId: SESSION_ID,
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Game result insert failed" }),
+      {
+        extra: {
+          dbCode: "23514",
+          dbError: "insert failed",
+          sessionId: SESSION_ID,
+        },
       },
-    });
+    );
+  });
+
+  it("isNoRowMatched recognises only the no-row-matched code", () => {
+    expect(isNoRowMatched({ code: "PGRST116" })).toBe(true);
+    expect(isNoRowMatched({ code: "57014" })).toBe(false);
+    expect(isNoRowMatched({})).toBe(false);
+    expect(isNoRowMatched(null)).toBe(false);
   });
 });

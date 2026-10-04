@@ -19,11 +19,29 @@ export type GameSessionRow = {
   status: string;
 };
 
-/** Outcome of a session write: the stored row, or the database error. */
+/**
+ * PostgREST code for a `.single()` query that matched no row. After an update filtered
+ * by the expected nonce it means another move changed the session first.
+ */
+export const NO_ROW_MATCHED_CODE = "PGRST116";
+
+/**
+ * Outcome of a session write: the stored row, or the database error. `code` is the
+ * PostgREST or Postgres error code when the database returned one.
+ */
 export type SessionWriteResult = {
   data: GameSessionRow | null;
-  error: { message: string } | null;
+  error: { code?: string; message: string } | null;
 };
+
+/**
+ * Tells a concurrent move (no row matched the nonce filter) apart from a real failure.
+ * @param error - Error from a session write, or null when the write succeeded.
+ * @returns True only when the error is the no-row-matched code.
+ */
+export function isNoRowMatched(error: { code?: string } | null): boolean {
+  return error?.code === NO_ROW_MATCHED_CODE;
+}
 
 /** Values of a new session; the owner always comes from the caller's verified identity. */
 export type NewSessionValues = Omit<
