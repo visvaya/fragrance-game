@@ -5,7 +5,7 @@
 -- with the correct structure. Does NOT test data or permissions.
 
 BEGIN;
-SELECT plan(62);
+SELECT plan(63);
 
 -- ============================================================
 -- TABLES — core game
@@ -198,6 +198,13 @@ SELECT is(
    WHERE NOT EXISTS (SELECT 1 FROM auth.users AS u WHERE u.id = p.id)),
   0,
   'every player has an auth account'
+);
+
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_constraint
+          WHERE conname = 'game_sessions_player_id_challenge_id_key'
+            AND conrelid = 'public.game_sessions'::regclass AND contype = 'u'),
+  'game_sessions has one row per player and challenge'
 );
 
 SELECT * FROM finish();

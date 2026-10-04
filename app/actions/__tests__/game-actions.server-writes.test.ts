@@ -147,8 +147,15 @@ function makeClient(resolve: (query: Query) => Result, writes: Write[] | null) {
         if (op === "select") columns = selected ?? "";
         return chain;
       };
+      // One session per player and challenge: the player's lookup by player id takes the
+      // only row, so it neither orders nor limits.
+      const playerLookup = () =>
+        writes === null && table === "game_sessions" && "player_id" in eqs;
       for (const method of ["limit", "order"]) {
-        chain[method] = () => chain;
+        chain[method] = () => {
+          if (playerLookup()) forbidden(method)();
+          return chain;
+        };
       }
       chain.insert = write("insert");
       chain.update = write("update");
@@ -516,6 +523,15 @@ describe("game state writes go through the service role", () => {
     expect(writes.map(({ op, table }) => `${op} ${table}`)).toEqual([
       "insert game_sessions",
     ]);
+  });
+
+  it("reads the only stored session without ordering or limiting", async () => {
+    const existing = makeSession(2);
+    useClients({ existing, session: existing });
+
+    const result = await startGame(CHALLENGE_ID);
+
+    expect(result.sessionId).toBe(SESSION_ID);
   });
 
   it("resumes an existing session without checking the challenge date", async () => {
