@@ -78,8 +78,15 @@ describe("Game Actions Integration (Mocked)", () => {
         error: null,
       });
 
-      // 1. Session check
-      mockSupabase.maybeSingle.mockResolvedValue({ data: null, error: null });
+      // 1. Session check (none) and the challenge's day (an earlier day, so it can start)
+      mockSupabase.maybeSingle.mockImplementation(() =>
+        (mockSupabase as any)._lastTable === "daily_challenges"
+          ? {
+              data: { challenge_date: "2000-01-01" },
+              error: null,
+            }
+          : { data: null, error: null },
+      );
 
       // 2. Insert session
       mockSupabase.insert.mockReturnValue(mockSupabase);

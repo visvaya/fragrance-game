@@ -3,7 +3,7 @@
  * its session rows but never writes them, and every write names the signed-in player.
  */
 import * as Sentry from "@sentry/nextjs";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
@@ -68,6 +68,7 @@ const PERFUME_ROW = {
 type Session = ReturnType<typeof makeSession>;
 type Result = { data: unknown; error: unknown };
 type Query = {
+  columns: string;
   eqs: Record<string, unknown>;
   op: string;
   table: string;
@@ -75,10 +76,20 @@ type Query = {
 };
 type Write = Query & { op: "insert" | "update" };
 type AdminOptions = {
+  /** `challenge_date` of the requested challenge; `null` means no such challenge. */
+  challengeDate?: string | null;
+  /** The `challenge_date` read fails with a database error. */
+  challengeReadFails?: boolean;
   failResultInsert?: boolean;
   updateFails?: boolean;
   updateMatchesNoRow?: boolean;
 };
+/** The tests pin the clock to midday UTC of TODAY, so no date crosses a day boundary. */
+const NOW = new Date("2026-10-04T12:00:00Z");
+const TODAY = "2026-10-04";
+const FUTURE_DATE = "2999-01-01";
+const PAST_DATE = "2000-01-01";
+
 /** Rows both clients see: the session found by the resume lookup and the current one. */
 type SharedRows = { existing: unknown; session: Record<string, unknown> };
 
@@ -109,11 +120,12 @@ function makeClient(resolve: (query: Query) => Result, writes: Write[] | null) {
     },
     from: (table: string) => {
       const eqs: Record<string, unknown> = {};
+      let columns = "";
       let op = "select";
       let values: Record<string, unknown> = {};
       const chain: Record<string, unknown> = {};
       const settle = async () =>
-        await Promise.resolve(resolve({ eqs, op, table, values }));
+        await Promise.resolve(resolve({ columns, eqs, op, table, values }));
       const write =
         (kind: "insert" | "update") => (payload: Record<string, unknown>) => {
           if (writes === null) {
@@ -121,13 +133,17 @@ function makeClient(resolve: (query: Query) => Result, writes: Write[] | null) {
           }
           op = kind;
           values = payload;
-          writes.push({ eqs, op: kind, table, values: payload });
+          writes.push({ columns, eqs, op: kind, table, values: payload });
           return chain;
         };
       const forbidden = (kind: string) => () => {
         throw new Error(`unexpected ${kind} on ${table}`);
       };
-      for (const method of ["select", "limit", "order"]) {
+      chain.select = (selected?: string) => {
+        if (op === "select") columns = selected ?? "";
+        return chain;
+      };
+      for (const method of ["limit", "order"]) {
         chain[method] = () => chain;
       }
       chain.insert = write("insert");
@@ -165,21 +181,45 @@ function userResolver(db: SharedRows) {
   };
 }
 
+/**
+ * The availability check reads `challenge_date` from the base table (today unless
+ * overridden). The public view never answers that read, so a check that went back
+ * to the view would see no challenge.
+ */
+function readChallengeDate(options: AdminOptions): Result {
+  if (options.challengeReadFails === true) {
+    return { data: null, error: STATEMENT_TIMEOUT };
+  }
+  const challengeDate =
+    options.challengeDate === undefined ? TODAY : options.challengeDate;
+  return {
+    data: challengeDate === null ? null : { challenge_date: challengeDate },
+    error: null,
+  };
+}
+
+/** The public view: no row for a `challenge_date` read, else deadline and mode. */
+function readPublicChallenge(columns: string): Result {
+  if (columns === "challenge_date") return { data: null, error: null };
+  return {
+    data: { grace_deadline_at_utc: FAR_DEADLINE, mode: "daily" },
+    error: null,
+  };
+}
+
 /** The service role reads the catalog and applies session writes to the shared rows. */
 function adminResolver(db: SharedRows, options: AdminOptions) {
-  return ({ op, table, values }: Query): Result => {
+  return ({ columns, op, table, values }: Query): Result => {
     switch (table) {
       case "daily_challenges": {
+        if (columns === "challenge_date") return readChallengeDate(options);
         return {
           data: { grace_deadline_at_utc: FAR_DEADLINE, perfume_id: ANSWER_ID },
           error: null,
         };
       }
       case "daily_challenges_public": {
-        return {
-          data: { grace_deadline_at_utc: FAR_DEADLINE, mode: "daily" },
-          error: null,
-        };
+        return readPublicChallenge(columns);
       }
       case "game_results": {
         return options.failResultInsert === true
@@ -253,7 +293,14 @@ const OWNER_AND_NONCE = {
 };
 
 describe("game state writes go through the service role", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it("creates a new session for the signed-in player", async () => {
     const writes = useClients({ session: makeSession(0) });
@@ -402,5 +449,80 @@ describe("game state writes go through the service role", () => {
       last_nonce: writes[0]?.values.last_nonce,
       player_id: USER_ID,
     });
+  });
+
+  it("refuses to start tomorrow's challenge and writes nothing", async () => {
+    const writes = useClients({
+      admin: { challengeDate: FUTURE_DATE },
+      session: makeSession(0),
+    });
+
+    await expect(startGame(CHALLENGE_ID)).rejects.toThrow(
+      "Challenge not available yet",
+    );
+    expect(writes).toEqual([]);
+  });
+
+  it("refuses to start an unknown challenge and writes nothing", async () => {
+    const writes = useClients({
+      admin: { challengeDate: null },
+      session: makeSession(0),
+    });
+
+    await expect(startGame(CHALLENGE_ID)).rejects.toThrow(
+      "Challenge not found",
+    );
+    expect(writes).toEqual([]);
+  });
+
+  it("refuses the first guess on tomorrow's challenge before any write", async () => {
+    const writes = useClients({
+      admin: { challengeDate: FUTURE_DATE },
+      session: makeSession(0),
+    });
+
+    await expect(initializeAndGuess(CHALLENGE_ID, GUESS_ID, 0)).rejects.toThrow(
+      "Challenge not available yet",
+    );
+    expect(writes).toEqual([]);
+  });
+
+  it("still starts a challenge from an earlier day", async () => {
+    const writes = useClients({
+      admin: { challengeDate: PAST_DATE },
+      session: makeSession(0),
+    });
+
+    await startGame(CHALLENGE_ID);
+
+    expect(writes.map(({ op, table }) => `${op} ${table}`)).toEqual([
+      "insert game_sessions",
+    ]);
+  });
+
+  it("resumes an existing session without checking the challenge date", async () => {
+    const existing = makeSession(1);
+    const writes = useClients({
+      admin: { challengeDate: FUTURE_DATE },
+      existing,
+      session: existing,
+    });
+
+    const result = await startGame(CHALLENGE_ID);
+
+    expect(result.sessionId).toBe(SESSION_ID);
+    expect(writes).toEqual([]);
+  });
+
+  it("reports a failed challenge read instead of a missing challenge", async () => {
+    const writes = useClients({
+      admin: { challengeReadFails: true },
+      session: makeSession(0),
+    });
+
+    await expect(startGame(CHALLENGE_ID)).rejects.toThrow(
+      "Failed to load challenge",
+    );
+    expect(writes).toEqual([]);
   });
 });

@@ -19,6 +19,10 @@ import {
   type StoredGuess,
   UNKNOWN_VALUE,
 } from "@/lib/game/challenge-answer";
+import {
+  isChallengeAvailable,
+  toUtcDateString,
+} from "@/lib/game/challenge-availability";
 import { isGenderMatch, type RevealedClues } from "@/lib/game/clue-reveal";
 import {
   calculateBaseScore,
@@ -267,7 +271,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     // Continue even if rate limit check fails
   }
 
-  const targetDate = new Date().toISOString().split("T")[0];
+  const targetDate = toUtcDateString(new Date());
 
   const { data, error } = await createAdminClient()
     .from("daily_challenges_public")
@@ -360,12 +364,41 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
   } as DailyChallenge;
 }
 
+/**
+ * Refuses to start a challenge that does not exist or whose UTC day has not begun.
+ * @param challengeId - The challenge the player wants to start.
+ */
+async function assertChallengeStartable(challengeId: string): Promise<void> {
+  // The base table, not daily_challenges_public: the view may be limited to a window
+  // of recent days, which would hide tomorrow's challenge and report it as missing.
+  const { data: challenge, error } = (await createAdminClient()
+    .from("daily_challenges")
+    .select("challenge_date")
+    .eq("id", challengeId)
+    .maybeSingle()) as {
+    data: { challenge_date: string } | null;
+    error: unknown;
+  };
+
+  if (error) {
+    console.error("Error loading challenge before start:", error);
+    throw new Error("Failed to load challenge");
+  }
+  if (!challenge) {
+    throw new Error("Challenge not found");
+  }
+  if (!isChallengeAvailable(challenge.challenge_date, new Date())) {
+    throw new Error("Challenge not available yet");
+  }
+}
+
 async function createNewGameSession(
   challengeId: string,
   safeInheritedCount: number,
   userId: string,
 ): Promise<StartGameResponse> {
   await checkRateLimit("startGame", userId);
+  await assertChallengeStartable(challengeId);
 
   const nonce = generateNonce();
   const { data: session, error: insertError } = await insertGameSession(

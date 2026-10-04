@@ -120,6 +120,7 @@ function resolveQuery(
     case "daily_challenges": {
       return {
         data: {
+          challenge_date: PUBLIC_CHALLENGE.challenge_date,
           grace_deadline_at_utc: PUBLIC_CHALLENGE.grace_deadline_at_utc,
           perfume_id: ANSWER_ID,
         },
