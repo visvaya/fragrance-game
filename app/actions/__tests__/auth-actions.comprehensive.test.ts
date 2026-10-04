@@ -558,6 +558,81 @@ describe("migrateAnonymousPlayer", () => {
 
     expect(result).toEqual({ success: true });
   });
+
+  /**
+   * Admin client mock for a merge where the signed-in account already played
+   * challenge "challenge-c"; records every delete and update as "table:op".
+   */
+  function makeRecordingAdmin(deleteError: { message: string } | null): {
+    calls: string[];
+    client: unknown;
+  } {
+    const calls: string[] = [];
+    // eslint-disable-next-line @typescript-eslint/promise-function-async -- mocks return thenable chains
+    const from = vi.fn().mockImplementation((table: string) => {
+      const chain = makeChain({ data: null, error: null });
+      chain.select = vi
+        .fn()
+        .mockReturnValue(
+          makeChain({ data: [{ challenge_id: "challenge-c" }], error: null }),
+        );
+      // eslint-disable-next-line @typescript-eslint/promise-function-async -- mocks return thenable chains
+      chain.delete = vi.fn().mockImplementation(() => {
+        calls.push(`${table}:delete`);
+        return makeChain({ data: null, error: deleteError });
+      });
+      // eslint-disable-next-line @typescript-eslint/promise-function-async -- mocks return thenable chains
+      chain.update = vi.fn().mockImplementation(() => {
+        calls.push(`${table}:update`);
+        return makeChain({ data: null, error: null });
+      });
+      return chain;
+    });
+    return {
+      calls,
+      client: { auth: makeAdminAuth({ isAnonymous: true }), from },
+    };
+  }
+
+  function mockSignedInUser(): void {
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-abc" } },
+          error: null,
+        }),
+      },
+    } as never);
+  }
+
+  it("deletes duplicate anonymous results before their sessions", async () => {
+    mockSignedInUser();
+    const { calls, client } = makeRecordingAdmin(null);
+    vi.mocked(createAdminClient).mockReturnValue(client as never);
+
+    const result = await migrateAnonymousPlayer(VALID_UUID_2);
+
+    expect(result).toEqual({ success: true });
+    expect(calls.slice(0, 2)).toEqual([
+      "game_results:delete",
+      "game_sessions:delete",
+    ]);
+  });
+
+  it("stops the merge when the duplicate cleanup fails", async () => {
+    mockSignedInUser();
+    const { calls, client } = makeRecordingAdmin({ message: "fk violation" });
+    vi.mocked(createAdminClient).mockReturnValue(client as never);
+
+    const result = await migrateAnonymousPlayer(VALID_UUID_2);
+
+    expect(result).toEqual({ error: "Failed to migrate sessions" });
+    expect(calls).toEqual(["game_results:delete"]);
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      new Error("Migration: Duplicate cleanup failed"),
+      { extra: { dbError: "fk violation" } },
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
