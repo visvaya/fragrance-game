@@ -132,6 +132,40 @@ export async function revokeSession(
 }
 
 /**
+ * Deletes the anonymous player's games for challenges the signed-in account already
+ * played (anti-cheat: prevents a re-roll). Results go first, because
+ * game_results.session_id references game_sessions without a delete rule.
+ * Returns false (after reporting to Sentry) when either delete fails.
+ */
+async function deleteDuplicateAnonGames(
+  adminSupabase: ReturnType<typeof createAdminClient>,
+  anonPlayerId: string,
+  challengeIds: readonly string[],
+): Promise<boolean> {
+  if (challengeIds.length === 0) {
+    return true;
+  }
+  for (const table of ["game_results", "game_sessions"] as const) {
+    const { error } = await adminSupabase
+      .from(table)
+      .delete()
+      .eq("player_id", anonPlayerId)
+      .in("challenge_id", [...challengeIds]);
+
+    if (error) {
+      Sentry.captureException(
+        new Error("Migration: Duplicate cleanup failed"),
+        {
+          extra: { dbError: error.message },
+        },
+      );
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Migrates data from an anonymous player to the currently authenticated user.
  * MOVES: game_sessions, game_results
  * MERGES: player_streaks (takes best)
@@ -188,19 +222,13 @@ export async function migrateAnonymousPlayer(
     userSessions?.map((s) => String(s.challenge_id)),
   );
 
-  // Delete anonymous sessions for challenges the user already played (anti-cheat: prevent re-roll)
-  if (userChallengeIds.size > 0) {
-    await adminSupabase
-      .from("game_sessions")
-      .delete()
-      .eq("player_id", validatedAnonPlayerId)
-      .in("challenge_id", [...userChallengeIds]);
-
-    await adminSupabase
-      .from("game_results")
-      .delete()
-      .eq("player_id", validatedAnonPlayerId)
-      .in("challenge_id", [...userChallengeIds]);
+  const cleanedUp = await deleteDuplicateAnonGames(
+    adminSupabase,
+    validatedAnonPlayerId,
+    [...userChallengeIds],
+  );
+  if (!cleanedUp) {
+    return { error: "Failed to migrate sessions" };
   }
 
   // Now safely migrate the rest
