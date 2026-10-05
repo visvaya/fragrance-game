@@ -24,6 +24,7 @@ vi.mock("@/lib/env", () => ({
 describe("resolveSiteUrl", () => {
   it("prefers the explicit site URL", () => {
     const url = resolveSiteUrl({
+      isProduction: true,
       platformProductionHost: "app.vercel.app",
       siteUrl: "https://eauxle.example",
     });
@@ -33,6 +34,7 @@ describe("resolveSiteUrl", () => {
 
   it("falls back to the platform host over HTTPS when the site URL is empty", () => {
     const url = resolveSiteUrl({
+      isProduction: true,
       platformProductionHost: "app.vercel.app",
       siteUrl: "",
     });
@@ -40,8 +42,16 @@ describe("resolveSiteUrl", () => {
     expect(url.origin).toBe("https://app.vercel.app");
   });
 
-  it("falls back to localhost when nothing is set", () => {
-    expect(resolveSiteUrl({}).origin).toBe("http://localhost:3000");
+  it("falls back to localhost outside production when nothing is set", () => {
+    expect(resolveSiteUrl({ isProduction: false }).origin).toBe(
+      "http://localhost:3000",
+    );
+  });
+
+  it("refuses to publish localhost links in production", () => {
+    expect(() =>
+      resolveSiteUrl({ isProduction: true, platformProductionHost: "" }),
+    ).toThrow(/SITE_URL is not set/);
   });
 });
 

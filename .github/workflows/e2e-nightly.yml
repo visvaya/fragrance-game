@@ -10,6 +10,8 @@ on:
 
 env:
   TZ: Europe/Warsaw
+  # Production builds require a public origin; CI serves the app on localhost.
+  SITE_URL: http://localhost:3000
 
 permissions:
   contents: read

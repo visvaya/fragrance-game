@@ -4,12 +4,14 @@ import type { Metadata } from "next";
 
 /**
  * Keeps sign-in, registration, password and session pages out of search
- * results and drops the canonical link inherited from the locale layout,
- * which points at the home page.
+ * results and drops the canonical link and link-preview tags inherited from
+ * the locale layout, which describe the home page.
  */
 export const metadata: Metadata = {
   alternates: null,
+  openGraph: null,
   robots: { follow: false, index: false },
+  twitter: null,
 };
 
 /** Pass-through layout that only scopes the metadata above to `/auth/*`. */
