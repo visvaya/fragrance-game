@@ -17,7 +17,10 @@ const REPO_ROOT = path.resolve(
 );
 
 /** Variables Node or the platform always provides — never documented as user input. */
-const PLATFORM_PROVIDED = new Set(["NODE_ENV"]);
+const PLATFORM_PROVIDED = new Set([
+  "NODE_ENV",
+  "VERCEL_PROJECT_PRODUCTION_URL",
+]);
 
 /** Reads a repo-relative file as an array of lines. */
 function readLines(...segments: readonly string[]): readonly string[] {

@@ -15,8 +15,15 @@ import { SmoothScrollProvider } from "@/components/providers/smooth-scroll-provi
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { routing } from "@/i18n/routing";
 import { env } from "@/lib/env";
+import {
+  alternateOpenGraphLocales,
+  buildAlternates,
+  localizedPath,
+  openGraphLocale,
+} from "@/lib/seo/alternates";
+import { getSiteUrl } from "@/lib/seo/site-url";
 
-import type { Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import "@/app/globals.css";
 
 const geistSans = Geist({
@@ -55,11 +62,12 @@ export async function generateMetadata({
   params,
 }: {
   params: Promise<{ locale: string }>;
-}) {
+}): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "Metadata" });
 
   return {
+    alternates: buildAlternates(locale),
     description: t("description"),
     icons: {
       apple: "/apple-icon.png",
@@ -79,7 +87,22 @@ export async function generateMetadata({
       ],
     },
     keywords: ["perfume", "fragrance", "game", "wordle", "puzzle", "olfactory"], // Keywords often kept English or hybrid, but could be localized too
+    metadataBase: getSiteUrl(),
+    openGraph: {
+      alternateLocale: [...alternateOpenGraphLocales(locale)],
+      description: t("description"),
+      locale: openGraphLocale(locale),
+      siteName: "Eauxle",
+      title: t("title"),
+      type: "website",
+      url: localizedPath(locale),
+    },
     title: t("title"),
+    twitter: {
+      card: "summary",
+      description: t("description"),
+      title: t("title"),
+    },
   };
 }
 
