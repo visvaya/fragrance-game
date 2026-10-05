@@ -81,6 +81,8 @@ type AdminOptions = {
   /** The `challenge_date` read fails with a database error. */
   challengeReadFails?: boolean;
   failResultInsert?: boolean;
+  /** `grace_deadline_at_utc` of the challenge row; far in the future unless set. */
+  graceDeadline?: string;
   /** The session insert fails with this error and writes no row. */
   insertError?: { code: string; message: string };
   /** Row a parallel start stored before the failed insert; the resume lookup then finds it. */
@@ -97,7 +99,10 @@ const PAST_DATE = "2000-01-01";
 /** Rows both clients see: the session found by the resume lookup and the current one. */
 type SharedRows = { existing: unknown; session: Record<string, unknown> };
 
-function makeSession(attemptsCount: number) {
+function makeSession(
+  attemptsCount: number,
+  startTime = "2026-10-03T00:00:00Z",
+) {
   return {
     attempts_count: attemptsCount,
     challenge_id: CHALLENGE_ID,
@@ -106,7 +111,7 @@ function makeSession(attemptsCount: number) {
     last_guess: null,
     last_nonce: NONCE,
     player_id: USER_ID,
-    start_time: "2026-10-03T00:00:00Z",
+    start_time: startTime,
     status: "active",
   };
 }
@@ -240,7 +245,10 @@ function adminResolver(db: SharedRows, options: AdminOptions) {
       case "daily_challenges": {
         if (columns === "challenge_date") return readChallengeDate(options);
         return {
-          data: { grace_deadline_at_utc: FAR_DEADLINE, perfume_id: ANSWER_ID },
+          data: {
+            grace_deadline_at_utc: options.graceDeadline ?? FAR_DEADLINE,
+            perfume_id: ANSWER_ID,
+          },
           error: null,
         };
       }
@@ -389,6 +397,46 @@ describe("game state writes go through the service role", () => {
         }),
       }),
     ]);
+  });
+
+  describe("ranking follows when the session started", () => {
+    /** End of the session's puzzle day, already past at `NOW`. */
+    const PASSED_DEADLINE = "2026-10-04T00:00:00Z";
+    const rankedFlag = (writes: Write[]) =>
+      writes.find(({ table }) => table === "game_results")?.values.is_ranked;
+
+    it("ranks a game started before the deadline and won after it", async () => {
+      const writes = useClients({
+        admin: { graceDeadline: PASSED_DEADLINE },
+        session: makeSession(2, "2026-10-03T23:50:00Z"),
+      });
+
+      await submitGuess(SESSION_ID, ANSWER_ID, NONCE);
+
+      expect(rankedFlag(writes)).toBe(true);
+    });
+
+    it("ranks a game started before the deadline and lost by a skip after it", async () => {
+      const writes = useClients({
+        admin: { graceDeadline: PASSED_DEADLINE },
+        session: makeSession(5, "2026-10-03T23:50:00Z"),
+      });
+
+      await skipAttempt(SESSION_ID, NONCE);
+
+      expect(rankedFlag(writes)).toBe(true);
+    });
+
+    it("does not rank a game started after the deadline", async () => {
+      const writes = useClients({
+        admin: { graceDeadline: PASSED_DEADLINE },
+        session: makeSession(2, "2026-10-04T08:00:00Z"),
+      });
+
+      await submitGuess(SESSION_ID, ANSWER_ID, NONCE);
+
+      expect(rankedFlag(writes)).toBe(false);
+    });
   });
 
   it("reports a conflict when the nonce changed before the skip was written", async () => {

@@ -21,6 +21,7 @@ import {
 } from "@/lib/game/challenge-answer";
 import {
   isChallengeAvailable,
+  isRankedStart,
   toUtcDateString,
 } from "@/lib/game/challenge-availability";
 import { isGenderMatch, type RevealedClues } from "@/lib/game/clue-reveal";
@@ -978,7 +979,10 @@ export async function submitGuess(
     const score = isCorrect ? calculateFinalScore(baseScore, xScore) : 0;
 
     const now = new Date();
-    const isRanked = now <= new Date(challenge.grace_deadline_at_utc);
+    const isRanked = isRankedStart(
+      new Date(session.start_time),
+      new Date(challenge.grace_deadline_at_utc),
+    );
 
     await recordGameResult(user.id, {
       attempts: nextAttempts,
@@ -1079,7 +1083,10 @@ async function recordSkipLoss(
     return { answerConcentration: undefined, answerName: undefined };
 
   const now = new Date();
-  const isRanked = now <= new Date(challenge.grace_deadline_at_utc);
+  const isRanked = isRankedStart(
+    new Date(session.start_time),
+    new Date(challenge.grace_deadline_at_utc),
+  );
   await recordGameResult(playerId, {
     attempts: attemptCount,
     challenge_id: session.challenge_id,
