@@ -6,8 +6,9 @@
 -- results behind, and those rows count in statistics. Anonymous accounts that were merged
 -- into a signed-in account keep their auth user, so they are not affected.
 --
--- 1. Delete players whose auth user no longer exists, with their results and sessions.
--- 2. Results are deleted with their player and with their session.
+-- 1. Results are deleted with their player and with their session.
+-- 2. Delete players whose auth user no longer exists; the cascades remove their sessions
+--    and results, including results that point to such a session under another player_id.
 -- 3. players.id references auth.users, so deleting an account deletes its game data.
 --
 -- The file runs in one explicit transaction, so the locks below hold until COMMIT.
@@ -20,14 +21,6 @@ BEGIN;
 LOCK TABLE auth.users IN SHARE ROW EXCLUSIVE MODE;
 LOCK TABLE public.players IN SHARE ROW EXCLUSIVE MODE;
 
-DELETE FROM public.game_results AS gr
-USING public.players AS p
-WHERE gr.player_id = p.id
-  AND NOT EXISTS (SELECT 1 FROM auth.users AS u WHERE u.id = p.id);
-
-DELETE FROM public.players AS p
-WHERE NOT EXISTS (SELECT 1 FROM auth.users AS u WHERE u.id = p.id);
-
 ALTER TABLE public.game_results
   DROP CONSTRAINT game_results_player_id_fkey,
   ADD CONSTRAINT game_results_player_id_fkey
@@ -37,6 +30,9 @@ ALTER TABLE public.game_results
   DROP CONSTRAINT game_results_session_id_fkey,
   ADD CONSTRAINT game_results_session_id_fkey
     FOREIGN KEY (session_id) REFERENCES public.game_sessions (id) ON DELETE CASCADE;
+
+DELETE FROM public.players AS p
+WHERE NOT EXISTS (SELECT 1 FROM auth.users AS u WHERE u.id = p.id);
 
 ALTER TABLE public.players
   ADD CONSTRAINT players_id_fkey
