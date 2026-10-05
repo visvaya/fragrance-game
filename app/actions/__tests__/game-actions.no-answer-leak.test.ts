@@ -43,8 +43,9 @@ import {
 /** Cache keys registered at import time, captured before mocks are cleared. */
 const cacheKeys = vi.mocked(unstable_cache).mock.calls.map(([, key]) => key);
 
+// The year needs digit boundaries: responses carry a numeric nonce that can contain it.
 const LEAK_PATTERN =
-  /Zyxwvut|Qwertyuiop|1987|Feminine|Unobtainium|Plughwood|Snorkelmusk/;
+  /Zyxwvut|Qwertyuiop|(?<!\d)1987(?!\d)|Feminine|Unobtainium|Plughwood|Snorkelmusk/;
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const CHALLENGE_ID = "550e8400-e29b-41d4-a716-446655440000";
@@ -209,6 +210,15 @@ function useClients(existingSession: unknown) {
   vi.mocked(createClient).mockResolvedValue(client as never);
   vi.mocked(createAdminClient).mockReturnValue(client as never);
 }
+
+describe("LEAK_PATTERN", () => {
+  it("ignores the year inside a numeric nonce but catches the year itself", () => {
+    expect(JSON.stringify({ nonce: "185198782111260" })).not.toMatch(
+      LEAK_PATTERN,
+    );
+    expect(JSON.stringify({ year: 1987 })).toMatch(LEAK_PATTERN);
+  });
+});
 
 describe("game responses never contain the unrevealed answer", () => {
   beforeEach(() => {
