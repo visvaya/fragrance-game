@@ -175,7 +175,10 @@ SELECT ok(
 SELECT ok(
   EXISTS (SELECT 1 FROM pg_constraint
           WHERE conname = 'players_id_fkey' AND conrelid = 'public.players'::regclass
-            AND confrelid = 'auth.users'::regclass AND confdeltype = 'c'),
+            AND confrelid = (SELECT c.oid FROM pg_class AS c
+                             JOIN pg_namespace AS n ON n.oid = c.relnamespace
+                             WHERE n.nspname = 'auth' AND c.relname = 'users')
+            AND confdeltype = 'c'),
   'players.id references auth.users with ON DELETE CASCADE'
 );
 
@@ -193,11 +196,11 @@ SELECT ok(
   'game_results.session_id cascades on session delete'
 );
 
-SELECT is(
-  (SELECT count(*)::int FROM public.players AS p
-   WHERE NOT EXISTS (SELECT 1 FROM auth.users AS u WHERE u.id = p.id)),
-  0,
-  'every player has an auth account'
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_constraint
+          WHERE conname = 'players_id_fkey' AND conrelid = 'public.players'::regclass
+            AND convalidated),
+  'players_id_fkey is validated, so every player has an auth account'
 );
 
 SELECT ok(
