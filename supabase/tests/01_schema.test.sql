@@ -5,7 +5,7 @@
 -- with the correct structure. Does NOT test data or permissions.
 
 BEGIN;
-SELECT plan(63);
+SELECT plan(64);
 
 -- ============================================================
 -- TABLES — core game
@@ -209,6 +209,8 @@ SELECT ok(
             AND conrelid = 'public.game_sessions'::regclass AND contype = 'u'),
   'game_sessions has one row per player and challenge'
 );
+
+SELECT has_index('public', 'game_results', 'idx_game_results_session_id', ARRAY['session_id'], 'game_results has an index on session_id');
 
 SELECT * FROM finish();
 ROLLBACK;
