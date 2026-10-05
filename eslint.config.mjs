@@ -679,6 +679,8 @@ export default tseslint.config(
       "app/**/default.tsx",
       "app/**/opengraph-image.tsx",
       "app/**/icon.tsx",
+      "app/robots.ts",
+      "app/sitemap.ts",
       "middleware.ts",
       "proxy.ts",
       "instrumentation.ts",

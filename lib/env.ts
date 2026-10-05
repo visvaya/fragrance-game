@@ -40,9 +40,11 @@ export const env = createEnv({
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
     NODE_ENV: process.env.NODE_ENV,
+    SITE_URL: process.env.SITE_URL,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+    VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL,
   },
 
   /**
@@ -54,9 +56,11 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
+    SITE_URL: z.union([z.url(), z.literal("")]).optional(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
     UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
     UPSTASH_REDIS_REST_URL: z.url(),
+    VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(),
   },
 
   /**
