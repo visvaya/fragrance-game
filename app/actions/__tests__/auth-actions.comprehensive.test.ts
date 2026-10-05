@@ -630,7 +630,7 @@ describe("migrateAnonymousPlayer", () => {
     expect(calls).toEqual(["game_results:delete"]);
     expect(Sentry.captureException).toHaveBeenCalledWith(
       new Error("Migration: Duplicate cleanup failed"),
-      { extra: { dbError: "fk violation" } },
+      { extra: { dbError: "fk violation", table: "game_results" } },
     );
   });
 });

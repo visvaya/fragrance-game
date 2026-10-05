@@ -147,8 +147,15 @@ function makeClient(resolve: (query: Query) => Result, writes: Write[] | null) {
         if (op === "select") columns = selected ?? "";
         return chain;
       };
+      // One session per player and challenge: the player's lookup by player id takes the
+      // only row, so it neither orders nor limits.
+      const playerLookup = () =>
+        writes === null && table === "game_sessions" && "player_id" in eqs;
       for (const method of ["limit", "order"]) {
-        chain[method] = () => chain;
+        chain[method] = () => {
+          if (playerLookup()) forbidden(method)();
+          return chain;
+        };
       }
       chain.insert = write("insert");
       chain.update = write("update");
@@ -513,6 +520,39 @@ describe("game state writes go through the service role", () => {
 
     await startGame(CHALLENGE_ID);
 
+    expect(writes.map(({ op, table }) => `${op} ${table}`)).toEqual([
+      "insert game_sessions",
+    ]);
+  });
+
+  it("reads the only stored session without ordering or limiting", async () => {
+    const existing = makeSession(2);
+    useClients({ existing, session: existing });
+
+    const result = await startGame(CHALLENGE_ID);
+
+    expect(result.sessionId).toBe(SESSION_ID);
+  });
+
+  it("reports a failed session lookup to Sentry and starts a new session", async () => {
+    const writes = useClients({ session: makeSession(0) });
+    const lookupError = { code: "57014", message: "statement timeout" };
+    vi.mocked(createClient).mockResolvedValue(
+      makeClient(
+        ({ eqs }) =>
+          "player_id" in eqs
+            ? { data: null, error: lookupError }
+            : { data: makeSession(0), error: null },
+        null,
+      ) as never,
+    );
+
+    await startGame(CHALLENGE_ID);
+
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      new Error("Session lookup failed"),
+      { extra: { dbCode: "57014", dbError: "statement timeout" } },
+    );
     expect(writes.map(({ op, table }) => `${op} ${table}`)).toEqual([
       "insert game_sessions",
     ]);

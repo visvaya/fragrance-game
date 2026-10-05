@@ -404,22 +404,30 @@ type ExistingSession = {
 type UserClient = Awaited<ReturnType<typeof createClient>>;
 
 /**
- * Reads the player's latest session for the challenge with the player's own client.
- * The ordering keeps the read safe while older duplicate sessions still exist.
+ * Reads the player's session for the challenge with the player's own client.
+ * Returns null when the player has not started this challenge yet.
  */
 async function loadPlayerSession(
   supabase: UserClient,
   playerId: string,
   challengeId: string,
 ): Promise<ExistingSession | null> {
-  const { data } = (await supabase
+  const { data, error } = (await supabase
     .from("game_sessions")
     .select("id, last_nonce, attempts_count, guesses, status")
     .eq("player_id", playerId)
     .eq("challenge_id", challengeId)
-    .order("start_time", { ascending: false })
-    .limit(1)
-    .maybeSingle()) as { data: ExistingSession | null };
+    // The unique (player_id, challenge_id) constraint guarantees at most one row.
+    .maybeSingle()) as {
+    data: ExistingSession | null;
+    error: { code: string; message: string } | null;
+  };
+  if (error) {
+    Sentry.captureException(new Error("Session lookup failed"), {
+      extra: { dbCode: error.code, dbError: error.message },
+    });
+    return null;
+  }
   return data;
 }
 
