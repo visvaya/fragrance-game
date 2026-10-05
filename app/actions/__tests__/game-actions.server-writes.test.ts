@@ -534,6 +534,30 @@ describe("game state writes go through the service role", () => {
     expect(result.sessionId).toBe(SESSION_ID);
   });
 
+  it("reports a failed session lookup to Sentry and starts a new session", async () => {
+    const writes = useClients({ session: makeSession(0) });
+    const lookupError = { code: "57014", message: "statement timeout" };
+    vi.mocked(createClient).mockResolvedValue(
+      makeClient(
+        ({ eqs }) =>
+          "player_id" in eqs
+            ? { data: null, error: lookupError }
+            : { data: makeSession(0), error: null },
+        null,
+      ) as never,
+    );
+
+    await startGame(CHALLENGE_ID);
+
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      new Error("Session lookup failed"),
+      { extra: { dbCode: "57014", dbError: "statement timeout" } },
+    );
+    expect(writes.map(({ op, table }) => `${op} ${table}`)).toEqual([
+      "insert game_sessions",
+    ]);
+  });
+
   it("resumes an existing session without checking the challenge date", async () => {
     const existing = makeSession(1);
     const writes = useClients({

@@ -412,13 +412,22 @@ async function loadPlayerSession(
   playerId: string,
   challengeId: string,
 ): Promise<ExistingSession | null> {
-  const { data } = (await supabase
+  const { data, error } = (await supabase
     .from("game_sessions")
     .select("id, last_nonce, attempts_count, guesses, status")
     .eq("player_id", playerId)
     .eq("challenge_id", challengeId)
     // The unique (player_id, challenge_id) constraint guarantees at most one row.
-    .maybeSingle()) as { data: ExistingSession | null };
+    .maybeSingle()) as {
+    data: ExistingSession | null;
+    error: { code: string; message: string } | null;
+  };
+  if (error) {
+    Sentry.captureException(new Error("Session lookup failed"), {
+      extra: { dbCode: error.code, dbError: error.message },
+    });
+    return null;
+  }
   return data;
 }
 

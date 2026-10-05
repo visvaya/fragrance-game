@@ -156,7 +156,7 @@ async function deleteDuplicateAnonGames(
       Sentry.captureException(
         new Error("Migration: Duplicate cleanup failed"),
         {
-          extra: { dbError: error.message },
+          extra: { dbError: error.message, table },
         },
       );
       return false;
