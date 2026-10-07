@@ -35,7 +35,7 @@ jobs:
       - name: Asset pipeline unit tests
         run: |
           python -m pip install --require-hashes -r scripts/assets/requirements-ci.txt
-          python -m pytest tests/python/test_asset_keys.py tests/python/test_asset_publish.py -q
+          python -m pytest tests/python/test_asset_keys.py tests/python/test_asset_publish.py tests/python/test_rekey_plan.py -q
 
   unit-tests:
     name: Unit tests & coverage

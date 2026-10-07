@@ -57,4 +57,21 @@ Use an R2 API token limited to object read and write on this one bucket.
 
 ## Re-keying existing assets
 
-`rekey_assets.py` commands: to be documented.
+`scripts/assets/rekey_assets.py` moves published images to new keys in the format above. Run the
+commands in this order (each reads `.env.local`):
+
+1. `backup --out DIR` downloads every object under `a/` into an empty `DIR` and writes
+   `DIR/manifest.json` with the SHA-256 and size of each object.
+2. `plan --out FILE` reads `perfume_assets` and the bucket listing and writes a plan with new
+   ids and keys for every row plus the objects no row references.
+3. `copy --plan FILE` copies each object to its new key with the current content type and cache
+   headers; objects already copied are skipped, so it can be re-run.
+4. `verify --plan FILE` fetches old and new keys over HTTPS and fails on a status, content or
+   header mismatch.
+5. `sql --plan FILE --out DIR` writes `apply.sql` (the database swap, one checked block) and
+   `rollback.sql` (the reverse swap) for review before they are applied.
+6. `cleanup --plan FILE` lists old and orphaned objects the database no longer references and
+   refuses to run before the swap; with `--execute` it deletes them and writes
+   `purged-sources.txt` next to the plan with their public URLs for a cache purge.
+
+`copy` and `cleanup` are dry runs that only print what they would do unless `--execute` is given.
