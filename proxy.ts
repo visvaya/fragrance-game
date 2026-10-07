@@ -5,6 +5,7 @@ import { Redis } from "@upstash/redis";
 import createMiddleware from "next-intl/middleware";
 
 import { env } from "@/lib/env";
+import { resolveAssetsHost } from "@/lib/game/asset-url";
 
 import { routing } from "./i18n/routing";
 
@@ -94,9 +95,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Content Security Policy
-  const assetsHost =
-    env.NEXT_PUBLIC_ASSETS_HOST ??
-    "pub-2c37ff9f03ea40878492e7f72ef83fe3.r2.dev";
+  const assetsHost = resolveAssetsHost(env.NEXT_PUBLIC_ASSETS_HOST);
 
   response.headers.set(
     "Content-Security-Policy",

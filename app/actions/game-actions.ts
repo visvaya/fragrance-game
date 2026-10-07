@@ -9,6 +9,7 @@ import { trackEvent, identifyUser } from "@/lib/analytics-server";
 import { ensureGuestTicket } from "@/lib/auth/guest-ticket-cookie";
 import { MAX_GUESSES } from "@/lib/constants";
 import { env } from "@/lib/env";
+import { assetUrl } from "@/lib/game/asset-url";
 import {
   buildSessionClues,
   enrichGuessHistory,
@@ -681,8 +682,7 @@ async function getImageUrlForStep(sessionId: string): Promise<string | null> {
     : Math.min(session.attempts_count + 1, MAX_GUESSES);
   const key = (assets as Record<string, string>)[`image_key_step_${step}`];
 
-  const assetsHost = env.NEXT_PUBLIC_ASSETS_HOST ?? "assets.eauxle.com";
-  return `https://${assetsHost}/${key}`;
+  return assetUrl(key, env.NEXT_PUBLIC_ASSETS_HOST);
 }
 
 type PerfumeForFeedback = {
@@ -1414,8 +1414,7 @@ export const getDailyStep1ImageUrl = unstable_cache(
 
       if (!assets?.image_key_step_1) return null;
 
-      const assetsHost = env.NEXT_PUBLIC_ASSETS_HOST ?? "assets.eauxle.com";
-      return `https://${assetsHost}/${assets.image_key_step_1}`;
+      return assetUrl(assets.image_key_step_1, env.NEXT_PUBLIC_ASSETS_HOST);
     } catch {
       return null; // graceful fallback
     }

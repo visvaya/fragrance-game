@@ -176,12 +176,6 @@ export default async function RootLayout({
           href={env.NEXT_PUBLIC_SUPABASE_URL}
           rel="preconnect"
         />
-        {/* R2 CDN assets — Next.js proxies through /_next/image, browser never
-            connects directly to R2. dns-prefetch is enough for the proxy's internal use. */}
-        <link
-          href={`https://${env.NEXT_PUBLIC_ASSETS_HOST ?? "assets.eauxle.com"}`}
-          rel="dns-prefetch"
-        />
         {/* Sentry CDN — dns-prefetch wystarczy (SDK ładowany na idle) */}
         <link href="https://browser.sentry-cdn.com" rel="dns-prefetch" />
       </head>
