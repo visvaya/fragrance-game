@@ -16,13 +16,16 @@ AS $$
     LIMIT 1
   )
   SELECT jsonb_build_object(
-    'guest_games', (SELECT count(*) FROM public.game_sessions s WHERE s.player_id = p_guest_id),
+    'guest_games', (
+      SELECT count(*) FROM public.game_sessions s
+      WHERE s.player_id = p_guest_id AND s.attempts_count > 0
+    ),
     'today_moves', EXISTS (
       SELECT 1 FROM public.game_sessions s, today t
-      WHERE s.player_id = p_guest_id AND s.challenge_id = t.id
+      WHERE s.player_id = p_guest_id AND s.challenge_id = t.id AND s.attempts_count > 0
         AND NOT EXISTS (
           SELECT 1 FROM public.game_sessions a
-          WHERE a.player_id = p_account_id AND a.challenge_id = t.id
+          WHERE a.player_id = p_account_id AND a.challenge_id = t.id AND a.attempts_count > 0
         )
     )
   );
@@ -53,7 +56,10 @@ BEGIN
     RAISE EXCEPTION 'target is not a registered account' USING ERRCODE = '22023';
   END IF;
 
-  -- Serialize concurrent merges of the same pair; the second call finds nothing to move.
+  -- Lock the players rows that exist (a guest may have none). Correctness of concurrent calls
+  -- does not rest on this lock: the statements below lock the session rows they change, and the
+  -- unique (player_id, challenge_id) constraint rejects a duplicate, so a second call either waits
+  -- and then finds nothing to move or fails as a whole.
   PERFORM 1 FROM public.players p
   WHERE p.id IN (p_guest_id, p_account_id)
   ORDER BY p.id
@@ -64,7 +70,22 @@ BEGIN
   WHERE dc.challenge_date = (now() AT TIME ZONE 'utc')::date
   LIMIT 1;
 
-  -- The account's own game wins; results go with their sessions (ON DELETE CASCADE).
+  -- A session "has moves" when attempts_count > 0 (the column is nullable; NULL means none).
+  -- Results go with their sessions (ON DELETE CASCADE); a session without moves has no result.
+
+  -- 1. A guest game with moves replaces an account session without moves (for example one the
+  --    page created on the first render after sign-in). Under READ COMMITTED the WHERE clause is
+  --    re-checked on a row changed concurrently, so a session that just got its first move stays.
+  DELETE FROM public.game_sessions a
+  WHERE a.player_id = p_account_id
+    AND COALESCE(a.attempts_count, 0) = 0
+    AND (p_mode = 'merge' OR a.challenge_id = v_today)
+    AND a.challenge_id IN (
+      SELECT g.challenge_id FROM public.game_sessions g
+      WHERE g.player_id = p_guest_id AND g.attempts_count > 0
+    );
+
+  -- 2. Otherwise the account's game wins: it has moves, or both sessions are empty.
   DELETE FROM public.game_sessions s
   WHERE s.player_id = p_guest_id
     AND (p_mode = 'merge' OR s.challenge_id = v_today)
@@ -72,6 +93,13 @@ BEGIN
       SELECT a.challenge_id FROM public.game_sessions a WHERE a.player_id = p_account_id
     );
 
+  -- 3. Guest sessions without moves carry nothing worth keeping.
+  DELETE FROM public.game_sessions s
+  WHERE s.player_id = p_guest_id
+    AND COALESCE(s.attempts_count, 0) = 0
+    AND (p_mode = 'merge' OR s.challenge_id = v_today);
+
+  -- 4. Move the rest.
   UPDATE public.game_sessions s
   SET player_id = p_account_id,
       metadata = COALESCE(s.metadata, '{}'::jsonb) || '{"started_as_guest": true}'::jsonb
