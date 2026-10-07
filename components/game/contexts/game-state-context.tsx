@@ -83,8 +83,6 @@ type GameStateProviderProperties = {
   attempts: Attempt[];
   /** True once anonymous auth JWT is ready — guards lazy startGame in game-actions-context */
   authReady?: boolean;
-  /** Attempt count inherited from an anonymous session (declined migration). */
-  baseAttemptCount?: number;
   children: ReactNode;
   clues: RevealedClues;
   dailyPerfume: DailyPerfume;
@@ -103,7 +101,6 @@ type GameStateProviderProperties = {
 export function GameStateProvider({
   attempts,
   authReady = false,
-  baseAttemptCount = 0,
   children,
   clues,
   dailyPerfume,
@@ -114,7 +111,7 @@ export function GameStateProvider({
   sessionReady,
   user,
 }: Readonly<GameStateProviderProperties>) {
-  const currentAttempt = attempts.length + 1 + baseAttemptCount;
+  const currentAttempt = attempts.length + 1;
   const revealLevel = Math.min(currentAttempt, maxAttempts);
 
   /**

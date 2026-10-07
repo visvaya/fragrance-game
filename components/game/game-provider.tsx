@@ -249,12 +249,6 @@ export function GameProvider({
   );
   const [nonce, setNonce] = useState<string>(initialSession?.nonce ?? "");
   const [isCaptchaRequired, setIsCaptchaRequired] = useState(false);
-  /**
-   * Attempt count inherited from a declined anonymous-session migration.
-   * When a player plays as anon and then declines migration, this carries over
-   * their used attempts so they cannot start fresh with an informational advantage.
-   */
-  const [baseAttemptCount, setBaseAttemptCount] = useState(0);
   const maxAttempts = MAX_GUESSES;
 
   const handleCaptchaVerify = async (token: string) => {
@@ -369,12 +363,12 @@ export function GameProvider({
           setUser(existingSession.user);
         }
 
-        // Track Anonymous Session for future migration (if existing)
-        if (existingSession?.user.is_anonymous) {
-          localStorage.setItem(
-            "eauxle_anon_player_id",
-            existingSession.user.id,
-          );
+        // One-time cleanup of keys from the former client-side guest tracking.
+        try {
+          localStorage.removeItem("eauxle_anon_player_id");
+          sessionStorage.removeItem("eauxle_declined_anon_attempts");
+        } catch {
+          // Storage can be unavailable (private mode); nothing to clean then.
         }
 
         if (!existingSession) {
@@ -424,10 +418,6 @@ export function GameProvider({
           );
 
           if (verifiedUser != null) {
-            // Track Anonymous Session for future migration
-            if (verifiedUser.is_anonymous) {
-              localStorage.setItem("eauxle_anon_player_id", verifiedUser.id);
-            }
             setUser(verifiedUser);
           }
           if (!verified) {
@@ -529,7 +519,6 @@ export function GameProvider({
     <GameStateProvider
       attempts={attempts}
       authReady={authReady}
-      baseAttemptCount={baseAttemptCount}
       clues={clues}
       dailyPerfume={activePerfume}
       gameState={gameState}
@@ -542,14 +531,12 @@ export function GameProvider({
       <GameActionsProvider
         attempts={attempts}
         authReady={authReady}
-        baseAttemptCount={baseAttemptCount}
         challengeId={initialChallenge?.id ?? null}
         gameState={gameState}
         maxAttempts={maxAttempts}
         nonce={nonce}
         sessionId={sessionId}
         setAttempts={setAttempts}
-        setBaseAttemptCount={setBaseAttemptCount}
         setClues={setClues}
         setDailyPerfume={setDailyPerfume}
         setGameState={setGameState}

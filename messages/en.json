@@ -336,15 +336,14 @@
     "code": "en"
   },
   "Migration": {
-    "title": "Anonymous Session Detected",
-    "description": "We found anonymous game history on this device. Do you want to attach it to your account? It will be merged with your current history (game results on your account take priority).",
-    "warning": "Important: Choosing 'Skip' means permanently abandoning your anonymous results. Only the history from your account will be loaded.",
-    "cancel": "Skip (Abandon anonymous)",
-    "cancelConfirm": "Are you sure you want to abandon your anonymous history? This action cannot be undone.",
-    "exitConfirm": "Do you want to abort? You will be logged out and returned to your saved anonymous game progress.",
-    "abortHelp": "You can close this window (X) to abort login and return to anonymous play without losing data.",
-    "confirm": "Yes, Merge Progress",
-    "success": "Progress merged successfully!",
-    "error": "Failed to merge progress. Please try again."
+    "title": "You have games played without an account",
+    "description": "This device has games played without signing in. You can add them to your account: they will count towards your statistics and streak. If a puzzle was already played on the account, the account's result stays.",
+    "today": "Today's puzzle stays with you whichever you choose: your account will show the attempts made so far, and you will not start it over.",
+    "confirm": "Add to my account",
+    "cancel": "Don't add",
+    "cancelConfirm": "Games from earlier days played without an account will be lost and cannot be recovered. Today's puzzle stays on your account with your attempts. Continue?",
+    "success": "Games added to your account.",
+    "error": "Could not add the games. Please try again.",
+    "declineError": "Could not save your choice. Please try again."
   }
 }

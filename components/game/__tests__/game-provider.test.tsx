@@ -64,16 +64,15 @@ const messages = {
     },
   },
   Migration: {
-    abortHelp: "Close to abort.",
     cancel: "Skip",
     cancelConfirm: "Are you sure?",
     confirm: "Yes, Merge",
+    declineError: "Not saved.",
     description: "Migrate your progress?",
     error: "Failed.",
-    exitConfirm: "Abort?",
     success: "Merged!",
     title: "Anonymous Session Detected",
-    warning: "Skipping will abandon anonymous results.",
+    today: "Today stays.",
   },
 };
 

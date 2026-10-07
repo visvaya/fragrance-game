@@ -71,8 +71,6 @@ type GameActionsProviderProperties = {
   attempts: Attempt[];
   /** True once anonymous auth JWT is ready — enables lazy startGame on first action */
   authReady?: boolean;
-  /** Attempt count inherited from an anonymous session (declined migration). */
-  baseAttemptCount?: number;
   /** Challenge ID needed for lazy startGame on first guess/skip */
   challengeId?: string | null;
   children: ReactNode;
@@ -82,7 +80,6 @@ type GameActionsProviderProperties = {
   sessionId: string | null;
   // State setters from parent
   setAttempts: Dispatch<SetStateAction<Attempt[]>>;
-  setBaseAttemptCount: Dispatch<SetStateAction<number>>;
   setClues: Dispatch<SetStateAction<RevealedClues>>;
   setDailyPerfume: Dispatch<SetStateAction<DailyPerfume>>;
   setGameState: Dispatch<SetStateAction<GameState>>;
@@ -160,7 +157,6 @@ async function resolveSkip(
 export function GameActionsProvider({
   attempts,
   authReady = false,
-  baseAttemptCount = 0,
   challengeId = null,
   children,
   gameState,
@@ -168,7 +164,6 @@ export function GameActionsProvider({
   nonce,
   sessionId,
   setAttempts,
-  setBaseAttemptCount,
   setClues,
   setDailyPerfume,
   setGameState,
@@ -211,7 +206,7 @@ export function GameActionsProvider({
       if (
         isProcessingReference.current ||
         gameState !== "playing" ||
-        attempts.length + baseAttemptCount >= maxAttempts ||
+        attempts.length >= maxAttempts ||
         !authReady
       )
         return;
@@ -282,7 +277,7 @@ export function GameActionsProvider({
           }
         } else if (
           result.gameStatus === "lost" ||
-          attempts.length + 1 + baseAttemptCount >= maxAttempts
+          attempts.length + 1 >= maxAttempts
         ) {
           setGameState("lost");
         }
@@ -301,7 +296,6 @@ export function GameActionsProvider({
     [
       attempts,
       authReady,
-      baseAttemptCount,
       challengeId,
       gameState,
       haptic,
@@ -326,7 +320,7 @@ export function GameActionsProvider({
     if (
       isProcessingReference.current ||
       gameState !== "playing" ||
-      attempts.length + baseAttemptCount >= maxAttempts ||
+      attempts.length >= maxAttempts ||
       !authReady
     )
       return;
@@ -379,7 +373,6 @@ export function GameActionsProvider({
   }, [
     attempts,
     authReady,
-    baseAttemptCount,
     challengeId,
     gameState,
     haptic,
@@ -410,9 +403,8 @@ export function GameActionsProvider({
       const result = await resetGame(sessionId);
 
       if (result.success) {
-        // Clear all local state (including inherited anon attempt count)
+        // Clear all local state
         setAttempts([]);
-        setBaseAttemptCount(0);
         setGameState("playing");
         setNonce("");
         setSessionId(null);
@@ -457,7 +449,6 @@ export function GameActionsProvider({
     sessionId,
     setLoading,
     setAttempts,
-    setBaseAttemptCount,
     setGameState,
     setNonce,
     setSessionId,

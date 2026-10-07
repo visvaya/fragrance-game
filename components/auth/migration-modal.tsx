@@ -1,9 +1,7 @@
 "use client";
 
-// eslint-disable-next-line no-restricted-imports -- subscription: listens to localStorage anon player ID to trigger migration modal
+// eslint-disable-next-line no-restricted-imports -- DATA_FETCH: asks the server whether this browser holds guest games after sign-in
 import { useEffect, useState } from "react";
-
-import { useRouter } from "next/navigation";
 
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -11,6 +9,7 @@ import { toast } from "sonner";
 
 import {
   declineGuestMerge,
+  getPendingGuestMerge,
   mergeGuestGames,
 } from "@/app/actions/guest-merge-actions";
 import { useGameState } from "@/components/game/contexts/game-state-context";
@@ -23,108 +22,82 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { createClient } from "@/lib/supabase/client";
+import { GUEST_TICKET_CONFIG } from "@/lib/auth/guest-ticket-config";
 
-/** Moves only today's guest game; failures leave a normal fresh start. */
-async function declineQuietly(): Promise<void> {
-  try {
-    await declineGuestMerge();
-  } catch {
-    // Non-critical: the ticket stays and the player can decide on the next visit.
-  }
+/** True when the readable hint cookie says this browser played as a guest. */
+function hasGuestHint(): boolean {
+  const expected = `${GUEST_TICKET_CONFIG.hintCookieName}=1`;
+  return document.cookie.split(";").some((part) => part.trim() === expected);
 }
 
 /**
- * Modal shown to users who have just registered/logged in but have
- * an anonymous session history stored in localStorage.
+ * Shown after sign-in when this browser holds games played without an
+ * account. The player either adds them to the account or drops the earlier
+ * days; today's puzzle stays on the account either way (server side).
  */
 export function MigrationModal() {
   const t = useTranslations("Migration");
   const [isOpen, setIsOpen] = useState(false);
+  const [todayMoves, setTodayMoves] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
   const { user } = useGameState();
 
   useEffect(() => {
-    const checkMigration = () => {
-      // 1. Check if we have an anonymous player ID stored
-      const anonId = localStorage.getItem("eauxle_anon_player_id");
-      if (!anonId) return;
-
-      if (user && !user.is_anonymous && user.id !== anonId) {
-        // We have a registered user and a DIFFERENT anonymous ID.
-        // This suggests we just registered or logged in after playing anonymously.
+    if (!user || user.is_anonymous || !hasGuestHint()) return;
+    const checkPending = async () => {
+      try {
+        const result = await getPendingGuestMerge();
+        if (!result.pending) return;
+        setTodayMoves(result.todayMoves);
         setIsOpen(true);
+      } catch (error) {
+        // Non-critical: without an answer the modal stays closed this visit.
+        console.error("[MigrationModal] Pending check failed:", error);
       }
     };
-
-    checkMigration();
+    void checkPending();
   }, [user]);
 
-  // Track if a legitimate choice (Merge or Skip) was made
-  const [choiceMade, setChoiceMade] = useState(false);
-
-  // If modal closes WITHOUT a choice (e.g. X button, Esc, outside click),
-  // we warn the user and log them out if they confirm.
-  const handleOpenChange = async (open: boolean) => {
-    if (open || choiceMade) {
-      setIsOpen(open);
-      return;
-    }
-
-    if (!globalThis.confirm(t("exitConfirm"))) {
-      return;
-    }
-
-    // Same as handleCancel: today's guest game moves to the account first, so
-    // dismissing via X/Esc cannot be used to start today's puzzle afresh.
-    setIsLoading(true);
-    await declineQuietly();
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    globalThis.location.reload();
-  };
-
   const handleMerge = async () => {
-    const anonId = localStorage.getItem("eauxle_anon_player_id");
-    if (!anonId) return;
-
-    setChoiceMade(true);
     setIsLoading(true);
     try {
       const result = await mergeGuestGames();
-      if ("error" in result && result.error) {
+      if ("error" in result) {
         toast.error(t("error"));
-        console.error(result.error);
-        setChoiceMade(false); // Enable exit guard again on error?
         setIsLoading(false);
-      } else {
-        toast.success(t("success"));
-        // Clear storage so we don't ask again
-        localStorage.removeItem("eauxle_anon_player_id");
-        setIsOpen(false);
-        router.refresh();
-        setIsLoading(false);
+        return;
       }
+      toast.success(t("success"));
+      globalThis.location.reload();
     } catch (error) {
-      console.error("Migration failed:", error);
+      console.error("[MigrationModal] Merge failed:", error);
       toast.error(t("error"));
-      setChoiceMade(false);
       setIsLoading(false);
     }
   };
 
-  const handleCancel = async () => {
-    // User declined migration: today's guest game still moves to the account,
-    // so it cannot start today's puzzle afresh with clues already seen.
-    await declineQuietly();
+  const handleDecline = async () => {
+    if (isLoading || !globalThis.confirm(t("cancelConfirm"))) return;
+    setIsLoading(true);
+    try {
+      const result = await declineGuestMerge();
+      if ("error" in result) {
+        toast.error(t("declineError"));
+        setIsLoading(false);
+        return;
+      }
+      globalThis.location.reload();
+    } catch (error) {
+      console.error("[MigrationModal] Decline failed:", error);
+      toast.error(t("declineError"));
+      setIsLoading(false);
+    }
+  };
 
-    setChoiceMade(true);
-    localStorage.removeItem("eauxle_anon_player_id");
-    setIsOpen(false);
-    // Reload so GameProvider reinitializes as the authenticated user
-    // and picks up today's moved game.
-    globalThis.location.reload();
+  // Close button, Escape and outside click take the same path as "cancel".
+  const handleOpenChange = async (open: boolean) => {
+    if (open) return;
+    await handleDecline();
   };
 
   return (
@@ -136,31 +109,20 @@ export function MigrationModal() {
           <DialogDescription asChild>
             <div className="space-y-2 text-sm text-muted-foreground">
               <p>{t("description")}</p>
-              <p className="font-medium text-amber-600 dark:text-amber-500">
-                {t("warning")}
-              </p>
+              {todayMoves ? <p className="font-medium">{t("today")}</p> : null}
             </div>
           </DialogDescription>
-          <p className="mt-4 text-center text-xs text-muted-foreground">
-            {t("abortHelp")}
-          </p>
         </DialogHeader>
         <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button
-            className="text-muted-foreground hover:text-destructive"
-            disabled={isLoading}
-            onClick={async () => {
-              if (globalThis.confirm(t("cancelConfirm"))) {
-                await handleCancel();
-              }
-            }}
-            variant="ghost"
-          >
+          <Button disabled={isLoading} onClick={handleDecline} variant="ghost">
             {t("cancel")}
           </Button>
           <Button disabled={isLoading} onClick={handleMerge}>
             {isLoading ? (
-              <Loader2 className="mr-2 size-4 animate-spin" />
+              <Loader2
+                aria-hidden="true"
+                className="mr-2 size-4 animate-spin"
+              />
             ) : null}
             {t("confirm")}
           </Button>
