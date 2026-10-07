@@ -10,9 +10,9 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import {
-  getAnonSessionAttemptCount,
-  migrateAnonymousPlayer,
-} from "@/app/actions/auth-actions";
+  declineGuestMerge,
+  mergeGuestGames,
+} from "@/app/actions/guest-merge-actions";
 import { useGameState } from "@/components/game/contexts/game-state-context";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,23 +25,12 @@ import {
 } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
 
-async function inheritAnonAttempts(
-  anonId: string,
-  sessionId: string,
-): Promise<void> {
+/** Moves only today's guest game; failures leave a normal fresh start. */
+async function declineQuietly(): Promise<void> {
   try {
-    const { attemptCount } = await getAnonSessionAttemptCount(
-      anonId,
-      sessionId,
-    );
-    if (attemptCount > 0) {
-      sessionStorage.setItem(
-        "eauxle_declined_anon_attempts",
-        String(attemptCount),
-      );
-    }
+    await declineGuestMerge();
   } catch {
-    // Non-critical: if this fails, the player gets a normal fresh start
+    // Non-critical: the ticket stays and the player can decide on the next visit.
   }
 }
 
@@ -54,7 +43,7 @@ export function MigrationModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { sessionId, user } = useGameState();
+  const { user } = useGameState();
 
   useEffect(() => {
     const checkMigration = () => {
@@ -87,14 +76,10 @@ export function MigrationModal() {
       return;
     }
 
-    // Inherit attempt count before signing out — same logic as handleCancel.
-    // Without this, the player could dismiss via X/Esc to get a fresh anonymous
-    // session and bypass the anti-cheat inherited-attempt mechanism.
+    // Same as handleCancel: today's guest game moves to the account first, so
+    // dismissing via X/Esc cannot be used to start today's puzzle afresh.
     setIsLoading(true);
-    const anonId = localStorage.getItem("eauxle_anon_player_id");
-    if (anonId != null && sessionId != null) {
-      await inheritAnonAttempts(anonId, sessionId);
-    }
+    await declineQuietly();
     const supabase = createClient();
     await supabase.auth.signOut();
     globalThis.location.reload();
@@ -107,7 +92,7 @@ export function MigrationModal() {
     setChoiceMade(true);
     setIsLoading(true);
     try {
-      const result = await migrateAnonymousPlayer(anonId);
+      const result = await mergeGuestGames();
       if ("error" in result && result.error) {
         toast.error(t("error"));
         console.error(result.error);
@@ -130,20 +115,15 @@ export function MigrationModal() {
   };
 
   const handleCancel = async () => {
-    // User declined migration.
-    // Fetch the anonymous session's attempt count BEFORE clearing storage,
-    // so the new authenticated session inherits it and cannot start fresh
-    // with an informational advantage from clues already seen.
-    const anonId = localStorage.getItem("eauxle_anon_player_id");
-    if (anonId != null && sessionId != null) {
-      await inheritAnonAttempts(anonId, sessionId);
-    }
+    // User declined migration: today's guest game still moves to the account,
+    // so it cannot start today's puzzle afresh with clues already seen.
+    await declineQuietly();
 
     setChoiceMade(true);
     localStorage.removeItem("eauxle_anon_player_id");
     setIsOpen(false);
     // Reload so GameProvider reinitializes as the authenticated user
-    // and picks up the inherited attempt count from sessionStorage.
+    // and picks up today's moved game.
     globalThis.location.reload();
   };
 
