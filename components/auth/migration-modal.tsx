@@ -78,7 +78,8 @@ export function MigrationModal() {
   };
 
   const handleDecline = async () => {
-    if (isLoading || !globalThis.confirm(t("cancelConfirm"))) return;
+    const prompt = todayMoves ? t("cancelConfirmToday") : t("cancelConfirm");
+    if (isLoading || !globalThis.confirm(prompt)) return;
     setIsLoading(true);
     try {
       const result = await declineGuestMerge();

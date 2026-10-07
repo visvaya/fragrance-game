@@ -155,6 +155,25 @@ describe("MigrationModal", () => {
       expect(screen.getByRole("dialog")).toBeTruthy();
     });
 
+    it("asks without the today sentence when today's game does not move", async () => {
+      await openPendingModal();
+      confirmSpy.mockReturnValue(false);
+      await userEvent.click(screen.getByRole("button", { name: "cancel" }));
+      expect(confirmSpy).toHaveBeenCalledWith("cancelConfirm");
+    });
+
+    it("asks with the today sentence when today's game moves", async () => {
+      setHintCookie(true);
+      mockGetPending.mockResolvedValue({ pending: true, todayMoves: true });
+      await renderModal(registered);
+      await screen.findByRole("dialog");
+      confirmSpy.mockReturnValue(false);
+      await userEvent.keyboard("{Escape}");
+      expect(confirmSpy).toHaveBeenCalledWith("cancelConfirmToday");
+      await userEvent.click(screen.getByRole("button", { name: "cancel" }));
+      expect(confirmSpy).toHaveBeenLastCalledWith("cancelConfirmToday");
+    });
+
     it("declines and reloads when the confirmation is accepted", async () => {
       await openPendingModal();
       confirmSpy.mockReturnValue(true);

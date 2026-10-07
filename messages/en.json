@@ -341,7 +341,8 @@
     "today": "Today's puzzle stays with you whichever you choose: your account will show the attempts made so far, and you will not start it over.",
     "confirm": "Add to my account",
     "cancel": "Don't add",
-    "cancelConfirm": "Games from earlier days played without an account will be lost and cannot be recovered. Today's puzzle stays on your account with your attempts. Continue?",
+    "cancelConfirm": "Games from earlier days played without an account will be lost and cannot be recovered. Continue?",
+    "cancelConfirmToday": "Games from earlier days played without an account will be lost and cannot be recovered. Today's puzzle stays on your account with your attempts. Continue?",
     "success": "Games added to your account.",
     "error": "Could not add the games. Please try again.",
     "declineError": "Could not save your choice. Please try again."

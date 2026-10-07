@@ -341,7 +341,8 @@
     "today": "Dzisiejsza zagadka zostaje z tobą bez względu na wybór: na koncie zobaczysz swoje dotychczasowe próby i nie zaczniesz jej od nowa.",
     "confirm": "Dołącz do konta",
     "cancel": "Nie dołączaj",
-    "cancelConfirm": "Gry z wcześniejszych dni rozegrane bez konta przepadną i nie da się ich odzyskać. Dzisiejsza zagadka zostaje na koncie z twoimi próbami. Kontynuować?",
+    "cancelConfirm": "Gry z wcześniejszych dni rozegrane bez konta przepadną i nie da się ich odzyskać. Kontynuować?",
+    "cancelConfirmToday": "Gry z wcześniejszych dni rozegrane bez konta przepadną i nie da się ich odzyskać. Dzisiejsza zagadka zostaje na koncie z twoimi próbami. Kontynuować?",
     "success": "Gry dołączone do konta.",
     "error": "Nie udało się dołączyć gier. Spróbuj ponownie.",
     "declineError": "Nie udało się zapisać wyboru. Spróbuj ponownie."
