@@ -176,6 +176,32 @@ describe("MigrationModal", () => {
       expect(screen.getByRole("dialog")).toBeTruthy();
     });
 
+    it("closes on Escape after a failed decline without declining again", async () => {
+      await openPendingModal();
+      confirmSpy.mockReturnValue(true);
+      mockDecline.mockResolvedValue({ error: "boom" });
+      await userEvent.click(screen.getByRole("button", { name: "cancel" }));
+      await userEvent.keyboard("{Escape}");
+      expect(mockDecline).toHaveBeenCalledTimes(1);
+      expect(confirmSpy).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog")).toBeNull();
+      });
+    });
+
+    it("closes on Escape after a decline that throws", async () => {
+      await openPendingModal();
+      confirmSpy.mockReturnValue(true);
+      mockDecline.mockRejectedValue(new Error("Too many requests"));
+      await userEvent.keyboard("{Escape}");
+      expect(mockToast.error).toHaveBeenCalledWith("declineError");
+      await userEvent.keyboard("{Escape}");
+      expect(mockDecline).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog")).toBeNull();
+      });
+    });
+
     it("treats Escape like cancel", async () => {
       await openPendingModal();
       confirmSpy.mockReturnValue(true);

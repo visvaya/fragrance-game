@@ -40,6 +40,7 @@ export function MigrationModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [todayMoves, setTodayMoves] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [declineFailed, setDeclineFailed] = useState(false);
   const { user } = useGameState();
 
   useEffect(() => {
@@ -83,6 +84,7 @@ export function MigrationModal() {
       const result = await declineGuestMerge();
       if ("error" in result) {
         toast.error(t("declineError"));
+        setDeclineFailed(true);
         setIsLoading(false);
         return;
       }
@@ -90,13 +92,20 @@ export function MigrationModal() {
     } catch (error) {
       console.error("[MigrationModal] Decline failed:", error);
       toast.error(t("declineError"));
+      setDeclineFailed(true);
       setIsLoading(false);
     }
   };
 
-  // Close button, Escape and outside click take the same path as "cancel".
+  // Close button, Escape and outside click take the same path as "cancel". After a failed
+  // decline they just close the dialog for this page view: the ticket stays, so the
+  // question comes back on the next visit instead of trapping the player.
   const handleOpenChange = async (open: boolean) => {
     if (open) return;
+    if (declineFailed) {
+      setIsOpen(false);
+      return;
+    }
     await handleDecline();
   };
 

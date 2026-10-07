@@ -12,6 +12,9 @@ import {
 import { checkRateLimit } from "@/lib/redis";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
+/** Postgres "invalid parameter value": the transfer can never succeed for this ticket. */
+const INVALID_INPUT_CODE = "22023";
+
 type MergeResult = { error: string } | { success: true };
 type TransferMode = "merge" | "today_only";
 
@@ -48,6 +51,8 @@ export async function getPendingGuestMerge(): Promise<
   }
   const ticket = await readGuestTicket();
   if (ticket === null) {
+    // A stale hint would otherwise make every page load ask again.
+    await clearGuestTicket();
     return { pending: false };
   }
 
@@ -92,7 +97,11 @@ async function transferGuestGames(mode: TransferMode): Promise<MergeResult> {
     Sentry.captureException(new Error("Guest merge failed"), {
       extra: { dbCode: error.code, mode },
     });
-    // The ticket stays so the player can retry.
+    // Source not a guest, target anonymous or the same player: retrying cannot succeed.
+    // Any other error keeps the ticket so the player can retry.
+    if (error.code === INVALID_INPUT_CODE) {
+      await clearGuestTicket();
+    }
     return { error: "Transfer failed" };
   }
 

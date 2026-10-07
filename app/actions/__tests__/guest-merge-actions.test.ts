@@ -76,10 +76,11 @@ describe.each([
 });
 
 describe("getPendingGuestMerge", () => {
-  it("returns nothing pending without a valid ticket", async () => {
+  it("returns nothing pending without a valid ticket and clears the stale hint", async () => {
     vi.mocked(readGuestTicket).mockResolvedValue(null);
     await expect(getPendingGuestMerge()).resolves.toEqual({ pending: false });
     expect(rpc).not.toHaveBeenCalled();
+    expect(clearGuestTicket).toHaveBeenCalledTimes(1);
   });
 
   it("clears the ticket when the guest has no games", async () => {
@@ -150,6 +151,16 @@ describe.each([
     await expect(action()).resolves.toEqual({ error: "Transfer failed" });
     expect(Sentry.captureException).toHaveBeenCalledTimes(1);
     expect(clearGuestTicket).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("clears the ticket when the transfer rejects its input", async () => {
+    rpc.mockResolvedValue({
+      data: null,
+      error: { code: "22023", message: "source is not a guest account" },
+    });
+    await expect(action()).resolves.toEqual({ error: "Transfer failed" });
+    expect(clearGuestTicket).toHaveBeenCalledTimes(1);
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 
