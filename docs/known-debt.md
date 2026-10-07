@@ -109,12 +109,6 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 - **Where:** `app/actions/auth-actions.ts`, `getSessions` (query on `user_sessions` without `.limit()`).
 - **Done when:** the query has a limit, as the project rules require for every `select()`.
 
-## Account merge is not transactional
-
-- **Where:** `app/actions/auth-actions.ts`, `migrateAnonymousPlayer` (separate deletes and updates through the service role).
-- **Risk:** a failure halfway leaves a player's history split between two accounts.
-- **Done when:** the merge runs in one database function inside a transaction.
-
 ## ETL does not record import runs
 
 - **Where:** `scripts/etl_v5.py`.
@@ -139,10 +133,10 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 - **Where:** `lib/game/scoring.ts` (`yearMask` templates, correct only for years starting with 1 and read only by tests) and `lib/game/clue-reveal.ts` (letter reveal fractions repeated instead of read from `getRevealPercentages()`).
 - **Done when:** one reveal table drives the clue masking and the score data, and unused fields are gone.
 
-## Loose validation and limits in auth actions
+## No rate limit on the password safety check
 
-- **Where:** `app/actions/auth-actions.ts`, `getAnonSessionAttemptCount` (ids validated as plain strings, not UUIDs); `app/actions/security-actions.ts`, `validatePasswordSafety` (no rate limit).
-- **Done when:** both ids use `z.uuid()` and the password check has a per-IP limit in `lib/redis.ts`.
+- **Where:** `app/actions/security-actions.ts`, `validatePasswordSafety` (no rate limit).
+- **Done when:** the password check has a per-IP limit in `lib/redis.ts`.
 
 ## No privacy policy or consent choice
 

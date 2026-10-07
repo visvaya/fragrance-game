@@ -94,7 +94,6 @@ const createWrapper = (
     nonce: "test-nonce",
     sessionId: "test-session",
     setAttempts: vi.fn(),
-    setBaseAttemptCount: vi.fn(),
     setClues: vi.fn(),
     setDailyPerfume: vi.fn(),
     setGameState: vi.fn(),

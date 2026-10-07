@@ -31,10 +31,16 @@ export const limiters = {
     prefix: "ratelimit:getDailyChallenge",
     redis,
   }),
+  // 10 requests per 10 minutes per user (own budget, so merge attempts cannot block declining)
+  guestDecline: new Ratelimit({
+    limiter: Ratelimit.slidingWindow(10, "10 m"),
+    prefix: "ratelimit:guestDecline",
+    redis,
+  }),
   // 3 requests per 10 minutes per user (rare operation, prevent account-takeover loops)
-  migrateAnonymousPlayer: new Ratelimit({
+  guestMerge: new Ratelimit({
     limiter: Ratelimit.slidingWindow(3, "10 m"),
-    prefix: "ratelimit:migrateAnonymousPlayer",
+    prefix: "ratelimit:guestMerge",
     redis,
   }),
   // 3 requests per 10 minutes per user (rare destructive operation)

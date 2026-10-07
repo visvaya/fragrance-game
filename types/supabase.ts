@@ -1386,6 +1386,10 @@ export type Database = {
         | { Args: { "": string }; Returns: string };
       findfuncs: { Args: { "": string }; Returns: string[] };
       finish: { Args: { exception_on_failure?: boolean }; Returns: string[] };
+      guest_merge_preview: {
+        Args: { p_account_id: string; p_guest_id: string };
+        Returns: Json;
+      };
       has_unique: { Args: { "": string }; Returns: string };
       in_todo: { Args: never; Returns: boolean };
       is_empty: { Args: { "": string }; Returns: string };
@@ -1435,6 +1439,10 @@ export type Database = {
       todo_start:
         | { Args: never; Returns: boolean[] }
         | { Args: { "": string }; Returns: boolean[] };
+      transfer_guest_games: {
+        Args: { p_account_id: string; p_guest_id: string; p_mode: string };
+        Returns: Json;
+      };
     };
     Enums: {
       [_ in never]: never;

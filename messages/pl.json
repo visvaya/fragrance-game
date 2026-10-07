@@ -336,15 +336,15 @@
     "code": "pl"
   },
   "Migration": {
-    "title": "Wykryto anonimową sesję",
-    "description": "Na tym urządzeniu znaleziono historię gier anonimowego gracza. Czy chcesz dołączyć ją do swojego konta? Zostanie ona dodana do twojej obecnej historii. Wyniki już obecne na koncie mają pierwszeństwo przed wynikami anonimowymi.",
-    "warning": "Ważne: Opcja 'Pomiń' oznacza trwałe porzucenie obecnych anonimowych wyników.",
-    "cancel": "Pomiń (Porzuć anonimowe)",
-    "cancelConfirm": "Czy na pewno chcesz zrezygnować z dotychczasowej anonimowej historii? Tej operacji nie można cofnąć.",
-    "exitConfirm": "Czy chcesz przerwać? Zostaniesz wylogowany i powrócisz do zachowanego anonimowego postępu gry.",
-    "abortHelp": "Możesz zamknąć to okno (X), aby przerwać logowanie i powrócić do gry anonimowej bez utraty danych.",
-    "confirm": "Tak, połącz postęp",
-    "success": "Pomyślnie połączono postępy!",
-    "error": "Nie udało się połączyć postępów. Spróbuj ponownie."
+    "title": "Masz gry rozegrane bez konta",
+    "description": "Na tym urządzeniu są gry rozegrane bez logowania. Możesz dołączyć je do swojego konta: trafią do statystyk i serii. Jeśli jakąś zagadkę rozegrano już na koncie, zostaje wynik z konta.",
+    "today": "Dzisiejsza zagadka zostaje z tobą bez względu na wybór: na koncie zobaczysz swoje dotychczasowe próby i nie zaczniesz jej od nowa.",
+    "confirm": "Dołącz do konta",
+    "cancel": "Nie dołączaj",
+    "cancelConfirm": "Gry z wcześniejszych dni rozegrane bez konta przepadną i nie da się ich odzyskać. Kontynuować?",
+    "cancelConfirmToday": "Gry z wcześniejszych dni rozegrane bez konta przepadną i nie da się ich odzyskać. Dzisiejsza zagadka zostaje na koncie z twoimi próbami. Kontynuować?",
+    "success": "Gry dołączone do konta.",
+    "error": "Nie udało się dołączyć gier. Spróbuj ponownie.",
+    "declineError": "Nie udało się zapisać wyboru. Spróbuj ponownie."
   }
 }

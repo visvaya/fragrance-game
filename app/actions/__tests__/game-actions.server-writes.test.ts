@@ -5,7 +5,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 
 import {
   initializeAndGuess,
@@ -13,6 +13,22 @@ import {
   startGame,
   submitGuess,
 } from "../game-actions";
+
+import {
+  ANSWER_ID,
+  CHALLENGE_ID,
+  FUTURE_DATE,
+  GUESS_ID,
+  makeClient,
+  makeSession,
+  NONCE,
+  NOW,
+  OWNER_AND_NONCE,
+  PAST_DATE,
+  SESSION_ID,
+  USER_ID,
+  useClients,
+} from "./helpers/game-db-double";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -36,286 +52,6 @@ vi.mock("@sentry/nextjs", () => ({
   captureException: vi.fn(),
   setUser: vi.fn(),
 }));
-
-const USER_ID = "11111111-1111-4111-8111-111111111111";
-const CHALLENGE_ID = "550e8400-e29b-41d4-a716-446655440000";
-const SESSION_ID = "22222222-2222-4222-8222-222222222222";
-const ANSWER_ID = "33333333-3333-4333-8333-333333333333";
-const GUESS_ID = "44444444-4444-4444-8444-444444444444";
-const NONCE = "12345";
-const FAR_DEADLINE = "2099-01-01T00:00:00Z";
-const STATEMENT_TIMEOUT = {
-  code: "57014",
-  message: "canceling statement due to statement timeout",
-};
-
-const PERFUME_ROW = {
-  base_notes: ["Vanilla"],
-  brand_id: "brand-1",
-  brands: { name: "Chanel" },
-  concentration_id: "c1",
-  concentrations: { name: "Eau de Parfum" },
-  gender: "Feminine",
-  is_linear: false,
-  middle_notes: ["Rose"],
-  name: "Coco",
-  perfumers: ["Jacques Polge"],
-  release_year: 2001,
-  top_notes: ["Bergamot"],
-  xsolve_score: 0.5,
-};
-
-type Session = ReturnType<typeof makeSession>;
-type Result = { data: unknown; error: unknown };
-type Query = {
-  columns: string;
-  eqs: Record<string, unknown>;
-  op: string;
-  table: string;
-  values: Record<string, unknown>;
-};
-type Write = Query & { op: "insert" | "update" };
-type AdminOptions = {
-  /** `challenge_date` of the requested challenge; `null` means no such challenge. */
-  challengeDate?: string | null;
-  /** The `challenge_date` read fails with a database error. */
-  challengeReadFails?: boolean;
-  failResultInsert?: boolean;
-  /** The session insert fails with this error and writes no row. */
-  insertError?: { code: string; message: string };
-  /** Row a parallel start stored before the failed insert; the resume lookup then finds it. */
-  storedByParallelStart?: Record<string, unknown> | null;
-  updateFails?: boolean;
-  updateMatchesNoRow?: boolean;
-};
-/** The tests pin the clock to midday UTC of TODAY, so no date crosses a day boundary. */
-const NOW = new Date("2026-10-04T12:00:00Z");
-const TODAY = "2026-10-04";
-const FUTURE_DATE = "2999-01-01";
-const PAST_DATE = "2000-01-01";
-
-/** Rows both clients see: the session found by the resume lookup and the current one. */
-type SharedRows = { existing: unknown; session: Record<string, unknown> };
-
-function makeSession(attemptsCount: number) {
-  return {
-    attempts_count: attemptsCount,
-    challenge_id: CHALLENGE_ID,
-    guesses: [],
-    id: SESSION_ID,
-    last_guess: null,
-    last_nonce: NONCE,
-    player_id: USER_ID,
-    start_time: "2026-10-03T00:00:00Z",
-    status: "active",
-  };
-}
-
-/**
- * Supabase client double. With `writes === null` it is the player's client and any
- * write throws; otherwise every insert and update is recorded in `writes`.
- */
-function makeClient(resolve: (query: Query) => Result, writes: Write[] | null) {
-  return {
-    auth: {
-      getUser: vi
-        .fn()
-        .mockResolvedValue({ data: { user: { id: USER_ID } }, error: null }),
-    },
-    from: (table: string) => {
-      const eqs: Record<string, unknown> = {};
-      let columns = "";
-      let op = "select";
-      let values: Record<string, unknown> = {};
-      const chain: Record<string, unknown> = {};
-      const settle = async () =>
-        await Promise.resolve(resolve({ columns, eqs, op, table, values }));
-      const write =
-        (kind: "insert" | "update") => (payload: Record<string, unknown>) => {
-          if (writes === null) {
-            throw new Error(`user client must not ${kind} ${table}`);
-          }
-          op = kind;
-          values = payload;
-          writes.push({ columns, eqs, op: kind, table, values: payload });
-          return chain;
-        };
-      const forbidden = (kind: string) => () => {
-        throw new Error(`unexpected ${kind} on ${table}`);
-      };
-      chain.select = (selected?: string) => {
-        if (op === "select") columns = selected ?? "";
-        return chain;
-      };
-      // One session per player and challenge: the player's lookup by player id takes the
-      // only row, so it neither orders nor limits.
-      const playerLookup = () =>
-        writes === null && table === "game_sessions" && "player_id" in eqs;
-      for (const method of ["limit", "order"]) {
-        chain[method] = () => {
-          if (playerLookup()) forbidden(method)();
-          return chain;
-        };
-      }
-      chain.insert = write("insert");
-      chain.update = write("update");
-      chain.upsert = forbidden("upsert");
-      chain.delete = forbidden("delete");
-      chain.in = () => {
-        if (op === "select") op = "in";
-        return chain;
-      };
-      chain.eq = (column: string, value: unknown) => {
-        eqs[column] = value;
-        return chain;
-      };
-      chain.single = settle;
-      chain.maybeSingle = settle;
-      // eslint-disable-next-line unicorn/no-thenable -- the chain is awaited directly like a Supabase query
-      chain.then = async (
-        onFulfilled: (value: Result) => unknown,
-        onRejected?: (reason: unknown) => unknown,
-      ) => await settle().then(onFulfilled, onRejected);
-      return chain;
-    },
-  };
-}
-
-/** The player's client reads only game_sessions: by player (resume lookup) or by id. */
-function userResolver(db: SharedRows) {
-  return ({ eqs, table }: Query): Result => {
-    if (table !== "game_sessions") {
-      return { data: null, error: { message: `unexpected read of ${table}` } };
-    }
-    if ("player_id" in eqs) return { data: db.existing, error: null };
-    return { data: db.session, error: null };
-  };
-}
-
-/**
- * The availability check reads `challenge_date` from the base table (today unless
- * overridden). The public view never answers that read, so a check that went back
- * to the view would see no challenge.
- */
-function readChallengeDate(options: AdminOptions): Result {
-  if (options.challengeReadFails === true) {
-    return { data: null, error: STATEMENT_TIMEOUT };
-  }
-  const challengeDate =
-    options.challengeDate === undefined ? TODAY : options.challengeDate;
-  return {
-    data: challengeDate === null ? null : { challenge_date: challengeDate },
-    error: null,
-  };
-}
-
-/** The public view: no row for a `challenge_date` read, else deadline and mode. */
-function readPublicChallenge(columns: string): Result {
-  if (columns === "challenge_date") return { data: null, error: null };
-  return {
-    data: { grace_deadline_at_utc: FAR_DEADLINE, mode: "daily" },
-    error: null,
-  };
-}
-
-/** Applies a session insert or update to the shared rows, or returns the configured error. */
-function writeSession(
-  db: SharedRows,
-  options: AdminOptions,
-  op: string,
-  values: Record<string, unknown>,
-): Result {
-  if (op === "update" && options.updateMatchesNoRow === true) {
-    return { data: null, error: { code: "PGRST116", message: "0 rows" } };
-  }
-  if (op === "update" && options.updateFails === true) {
-    return { data: null, error: STATEMENT_TIMEOUT };
-  }
-  if (op === "insert" && options.insertError !== undefined) {
-    db.existing = options.storedByParallelStart ?? null;
-    return { data: null, error: options.insertError };
-  }
-  db.session = { ...db.session, ...values };
-  if (op === "insert") db.existing = db.session;
-  return { data: db.session, error: null };
-}
-
-/** The service role reads the catalog and applies session writes to the shared rows. */
-function adminResolver(db: SharedRows, options: AdminOptions) {
-  return ({ columns, op, table, values }: Query): Result => {
-    switch (table) {
-      case "daily_challenges": {
-        if (columns === "challenge_date") return readChallengeDate(options);
-        return {
-          data: { grace_deadline_at_utc: FAR_DEADLINE, perfume_id: ANSWER_ID },
-          error: null,
-        };
-      }
-      case "daily_challenges_public": {
-        return readPublicChallenge(columns);
-      }
-      case "game_results": {
-        return options.failResultInsert === true
-          ? { data: null, error: { message: "insert failed" } }
-          : { data: null, error: null };
-      }
-      case "game_sessions": {
-        return writeSession(db, options, op, values);
-      }
-      case "perfume_assets": {
-        return {
-          data: Object.fromEntries(
-            [1, 2, 3, 4, 5, 6].map((step) => [
-              `image_key_step_${step}`,
-              `a/${step}.avif`,
-            ]),
-          ),
-          error: null,
-        };
-      }
-      case "perfumes": {
-        return op === "in"
-          ? { data: [{ ...PERFUME_ROW, id: GUESS_ID }], error: null }
-          : { data: PERFUME_ROW, error: null };
-      }
-      default: {
-        return {
-          data: null,
-          error: { message: `unexpected read of ${table}` },
-        };
-      }
-    }
-  };
-}
-
-/**
- * Wires both client doubles to one in-memory session. A new session (`existing`
- * omitted) starts from `session` and takes the inserted values, nonce included.
- */
-function useClients(setup: {
-  admin?: AdminOptions;
-  existing?: Session;
-  session: Session;
-}): Write[] {
-  const db: SharedRows = {
-    existing: setup.existing ?? null,
-    session: setup.session,
-  };
-  const writes: Write[] = [];
-  vi.mocked(createClient).mockResolvedValue(
-    makeClient(userResolver(db), null) as never,
-  );
-  vi.mocked(createAdminClient).mockReturnValue(
-    makeClient(adminResolver(db, setup.admin ?? {}), writes) as never,
-  );
-  return writes;
-}
-
-const OWNER_AND_NONCE = {
-  id: SESSION_ID,
-  last_nonce: NONCE,
-  player_id: USER_ID,
-};
 
 describe("game state writes go through the service role", () => {
   beforeEach(() => {
@@ -398,6 +134,46 @@ describe("game state writes go through the service role", () => {
     ]);
   });
 
+  it("keeps a won game started as a guest out of the ranking", async () => {
+    const writes = useClients({
+      session: { ...makeSession(2), metadata: { started_as_guest: true } },
+    });
+
+    await submitGuess(SESSION_ID, ANSWER_ID, NONCE);
+
+    expect(writes).toContainEqual(
+      expect.objectContaining({
+        op: "insert",
+        table: "game_results",
+        values: expect.objectContaining({
+          is_ranked: false,
+          ranked_reason: "started_as_guest",
+          status: "won",
+        }),
+      }),
+    );
+  });
+
+  it("keeps a lost game started as a guest out of the ranking", async () => {
+    const writes = useClients({
+      session: { ...makeSession(5), metadata: { started_as_guest: true } },
+    });
+
+    await skipAttempt(SESSION_ID, NONCE);
+
+    expect(writes).toContainEqual(
+      expect.objectContaining({
+        op: "insert",
+        table: "game_results",
+        values: expect.objectContaining({
+          is_ranked: false,
+          ranked_reason: "started_as_guest",
+          status: "lost",
+        }),
+      }),
+    );
+  });
+
   it("reports a conflict when the nonce changed before the skip was written", async () => {
     useClients({
       admin: { updateMatchesNoRow: true },
@@ -463,7 +239,7 @@ describe("game state writes go through the service role", () => {
   it("creates the session and applies the first guess without client writes", async () => {
     const writes = useClients({ session: makeSession(0) });
 
-    await initializeAndGuess(CHALLENGE_ID, GUESS_ID, 0);
+    await initializeAndGuess(CHALLENGE_ID, GUESS_ID);
 
     expect(writes.map(({ op, table }) => `${op} ${table}`)).toEqual([
       "insert game_sessions",
@@ -506,7 +282,7 @@ describe("game state writes go through the service role", () => {
       session: makeSession(0),
     });
 
-    await expect(initializeAndGuess(CHALLENGE_ID, GUESS_ID, 0)).rejects.toThrow(
+    await expect(initializeAndGuess(CHALLENGE_ID, GUESS_ID)).rejects.toThrow(
       "Challenge not available yet",
     );
     expect(writes).toEqual([]);

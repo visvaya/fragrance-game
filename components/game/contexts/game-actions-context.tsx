@@ -71,8 +71,6 @@ type GameActionsProviderProperties = {
   attempts: Attempt[];
   /** True once anonymous auth JWT is ready — enables lazy startGame on first action */
   authReady?: boolean;
-  /** Attempt count inherited from an anonymous session (declined migration). */
-  baseAttemptCount?: number;
   /** Challenge ID needed for lazy startGame on first guess/skip */
   challengeId?: string | null;
   children: ReactNode;
@@ -82,7 +80,6 @@ type GameActionsProviderProperties = {
   sessionId: string | null;
   // State setters from parent
   setAttempts: Dispatch<SetStateAction<Attempt[]>>;
-  setBaseAttemptCount: Dispatch<SetStateAction<number>>;
   setClues: Dispatch<SetStateAction<RevealedClues>>;
   setDailyPerfume: Dispatch<SetStateAction<DailyPerfume>>;
   setGameState: Dispatch<SetStateAction<GameState>>;
@@ -105,18 +102,6 @@ function defaultSetSessionReady(_value: SetStateAction<boolean>): void {
 }
 
 /**
- * Reads and clears the inherited attempt count stored in sessionStorage
- * when a player declined anonymous session migration.
- */
-function readAndClearInheritedCount(): number {
-  const stored = sessionStorage.getItem("eauxle_declined_anon_attempts");
-  if (stored !== null)
-    sessionStorage.removeItem("eauxle_declined_anon_attempts");
-  const parsed = Number.parseInt(stored ?? "0", 10);
-  return Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
-}
-
-/**
  * Resolves a guess: submits to an existing session, or lazily creates a session
  * and submits in one roundtrip (Gate 6 deferred startGame).
  * On lazy init path also updates sessionId, nonce, imageUrl, and sessionReady.
@@ -133,11 +118,7 @@ async function resolveGuess(
 ): Promise<SubmitGuessResult> {
   if (sessionId) return submitGuess(sessionId, perfumeId, nonce);
   if (!challengeId) throw new Error("challengeId missing for lazy game init");
-  const init = await initializeAndGuess(
-    challengeId,
-    perfumeId,
-    readAndClearInheritedCount(),
-  );
+  const init = await initializeAndGuess(challengeId, perfumeId);
   setSessionId(init.sessionId);
   setNonce(init.nonce);
   if (init.imageUrl) setImageUrl(init.imageUrl);
@@ -161,10 +142,7 @@ async function resolveSkip(
 ): Promise<SkipAttemptResult> {
   if (sessionId) return skipAttempt(sessionId, nonce);
   if (!challengeId) throw new Error("challengeId missing for lazy game init");
-  const init = await initializeAndSkip(
-    challengeId,
-    readAndClearInheritedCount(),
-  );
+  const init = await initializeAndSkip(challengeId);
   setSessionId(init.sessionId);
   setNonce(init.nonce);
   if (init.imageUrl) setImageUrl(init.imageUrl);
@@ -179,7 +157,6 @@ async function resolveSkip(
 export function GameActionsProvider({
   attempts,
   authReady = false,
-  baseAttemptCount = 0,
   challengeId = null,
   children,
   gameState,
@@ -187,7 +164,6 @@ export function GameActionsProvider({
   nonce,
   sessionId,
   setAttempts,
-  setBaseAttemptCount,
   setClues,
   setDailyPerfume,
   setGameState,
@@ -230,7 +206,7 @@ export function GameActionsProvider({
       if (
         isProcessingReference.current ||
         gameState !== "playing" ||
-        attempts.length + baseAttemptCount >= maxAttempts ||
+        attempts.length >= maxAttempts ||
         !authReady
       )
         return;
@@ -301,7 +277,7 @@ export function GameActionsProvider({
           }
         } else if (
           result.gameStatus === "lost" ||
-          attempts.length + 1 + baseAttemptCount >= maxAttempts
+          attempts.length + 1 >= maxAttempts
         ) {
           setGameState("lost");
         }
@@ -320,7 +296,6 @@ export function GameActionsProvider({
     [
       attempts,
       authReady,
-      baseAttemptCount,
       challengeId,
       gameState,
       haptic,
@@ -345,7 +320,7 @@ export function GameActionsProvider({
     if (
       isProcessingReference.current ||
       gameState !== "playing" ||
-      attempts.length + baseAttemptCount >= maxAttempts ||
+      attempts.length >= maxAttempts ||
       !authReady
     )
       return;
@@ -398,7 +373,6 @@ export function GameActionsProvider({
   }, [
     attempts,
     authReady,
-    baseAttemptCount,
     challengeId,
     gameState,
     haptic,
@@ -429,9 +403,8 @@ export function GameActionsProvider({
       const result = await resetGame(sessionId);
 
       if (result.success) {
-        // Clear all local state (including inherited anon attempt count)
+        // Clear all local state
         setAttempts([]);
-        setBaseAttemptCount(0);
         setGameState("playing");
         setNonce("");
         setSessionId(null);
@@ -476,7 +449,6 @@ export function GameActionsProvider({
     sessionId,
     setLoading,
     setAttempts,
-    setBaseAttemptCount,
     setGameState,
     setNonce,
     setSessionId,

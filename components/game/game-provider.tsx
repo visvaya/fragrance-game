@@ -13,6 +13,7 @@ import {
 } from "@/app/actions/game-actions";
 import { captureAnalyticsEvent } from "@/components/providers/posthog-provider";
 import { useRouter } from "@/i18n/routing";
+import { shouldReloadOnAuthChange } from "@/lib/auth/auth-change-reload";
 import { MAX_GUESSES } from "@/lib/constants";
 import { HIDDEN_CLUES, type RevealedClues } from "@/lib/game/clue-reveal";
 import { getSupabaseClient } from "@/lib/supabase/get-client";
@@ -144,9 +145,8 @@ async function verifyAuthSession(
  * Includes one automatic retry when challenge arrives but session fails.
  */
 async function fetchChallengeAndSession(
-  initialChallenge: DailyChallenge | undefined,
-  initialSession: StartGameResponse | null | undefined,
-  inheritedCount: number,
+  initialChallenge?: DailyChallenge,
+  initialSession?: StartGameResponse | null,
 ): Promise<{
   challenge: DailyChallenge | null;
   session: StartGameResponse | null;
@@ -154,7 +154,7 @@ async function fetchChallengeAndSession(
   if (initialChallenge) {
     if (initialSession)
       return { challenge: initialChallenge, session: initialSession };
-    const session = await startGame(initialChallenge.id, inheritedCount).catch(
+    const session = await startGame(initialChallenge.id).catch(
       (error: unknown) => {
         console.error(
           "[GameProvider] startGame with SSR challenge failed:",
@@ -166,7 +166,7 @@ async function fetchChallengeAndSession(
     return { challenge: initialChallenge, session };
   }
 
-  const { challenge, session } = await initializeGame(inheritedCount);
+  const { challenge, session } = await initializeGame();
 
   // Retry if challenge arrived but session failed (cookies not yet processed)
   if (challenge && session == null) {
@@ -174,7 +174,7 @@ async function fetchChallengeAndSession(
       "[GameProvider] Got challenge but no session. Retrying session creation...",
     );
     await new Promise((resolve) => setTimeout(resolve, 200));
-    const retrySession = await startGame(challenge.id, inheritedCount).catch(
+    const retrySession = await startGame(challenge.id).catch(
       (error: unknown) => {
         console.error("[GameProvider] Retry startGame failed:", error);
         return null;
@@ -250,12 +250,6 @@ export function GameProvider({
   );
   const [nonce, setNonce] = useState<string>(initialSession?.nonce ?? "");
   const [isCaptchaRequired, setIsCaptchaRequired] = useState(false);
-  /**
-   * Attempt count inherited from a declined anonymous-session migration.
-   * When a player plays as anon and then declines migration, this carries over
-   * their used attempts so they cannot start fresh with an informational advantage.
-   */
-  const [baseAttemptCount, setBaseAttemptCount] = useState(0);
   const maxAttempts = MAX_GUESSES;
 
   const handleCaptchaVerify = async (token: string) => {
@@ -301,6 +295,8 @@ export function GameProvider({
       current: null as { unsubscribe: () => void } | null,
     };
     let cancelled = false;
+    // Id of the user the client currently plays as; a sign-in as someone else needs a reload.
+    let knownUserId: string | null = null;
 
     void getSupabaseClient().then((supabase) => {
       if (cancelled) return;
@@ -310,15 +306,25 @@ export function GameProvider({
         // INITIAL_SESSION fires synchronously when getSession() is first called —
         // initGame already reads it and sets user state there. Calling setUser here
         // would cause a duplicate re-render on every page load.
-        if (_event === "INITIAL_SESSION") return;
-
         const newUser = session?.user ?? null;
+        const previousUserId = knownUserId;
+        // eslint-disable-next-line fp/no-mutation -- reassigning let tracker to remember the current user across auth events
+        knownUserId = newUser?.id ?? null;
+
+        if (_event === "INITIAL_SESSION") return;
 
         // Anonymous SIGNED_IN is handled by initGame (verifyAuthSession sets user there).
         // Calling setUser here would duplicate the re-render triggered by initGame.
         const isAnonymousSignIn =
           _event === "SIGNED_IN" && newUser?.is_anonymous === true;
         if (isAnonymousSignIn) return;
+
+        // Signing in as a different user (typically from a guest session): a soft
+        // refresh would keep the previous user's game state, so reload the page.
+        if (shouldReloadOnAuthChange(previousUserId, _event, newUser)) {
+          globalThis.location.reload();
+          return;
+        }
 
         setUser(newUser);
         // Lazy fire-and-forget: Sentry user metadata — not time-sensitive.
@@ -370,12 +376,12 @@ export function GameProvider({
           setUser(existingSession.user);
         }
 
-        // Track Anonymous Session for future migration (if existing)
-        if (existingSession?.user.is_anonymous) {
-          localStorage.setItem(
-            "eauxle_anon_player_id",
-            existingSession.user.id,
-          );
+        // One-time cleanup of keys from the former client-side guest tracking.
+        try {
+          localStorage.removeItem("eauxle_anon_player_id");
+          sessionStorage.removeItem("eauxle_declined_anon_attempts");
+        } catch {
+          // Storage can be unavailable (private mode); nothing to clean then.
         }
 
         if (!existingSession) {
@@ -425,10 +431,6 @@ export function GameProvider({
           );
 
           if (verifiedUser != null) {
-            // Track Anonymous Session for future migration
-            if (verifiedUser.is_anonymous) {
-              localStorage.setItem("eauxle_anon_player_id", verifiedUser.id);
-            }
             setUser(verifiedUser);
           }
           if (!verified) {
@@ -455,28 +457,10 @@ export function GameProvider({
           return;
         }
 
-        // No SSR challenge: old flow — read inherited count, fetch challenge + start game.
-        const storedInherited = sessionStorage.getItem(
-          "eauxle_declined_anon_attempts",
-        );
-        const parsedStored =
-          storedInherited === null ? 0 : Number.parseInt(storedInherited, 10);
-        const inheritedCount = Math.max(
-          0,
-          Math.min(5, Number.isNaN(parsedStored) ? 0 : parsedStored),
-        );
-        if (inheritedCount > 0) {
-          sessionStorage.removeItem("eauxle_declined_anon_attempts");
-        }
-
         // No SSR → initializeGame (2 roundtrips). Includes automatic retry on
         // challenge-without-session (timing issue with cookie propagation).
         performance.mark("eauxle:game_fetch_start");
-        const { challenge, session } = await fetchChallengeAndSession(
-          undefined,
-          undefined,
-          inheritedCount,
-        );
+        const { challenge, session } = await fetchChallengeAndSession();
         performance.mark("eauxle:game_fetch_end");
         performance.measure(
           "eauxle.game_fetch",
@@ -501,11 +485,6 @@ export function GameProvider({
           setSessionId(session.sessionId);
           setNonce(session.nonce);
           if (session.imageUrl) setImageUrl(session.imageUrl);
-
-          // Restore baseAttemptCount for new sessions with no guess history
-          if (inheritedCount > 0 && session.guesses.length === 0) {
-            setBaseAttemptCount(inheritedCount);
-          }
 
           // If session returned answer (game over), update dailyPerfume
           if (session.answerName) {
@@ -553,7 +532,6 @@ export function GameProvider({
     <GameStateProvider
       attempts={attempts}
       authReady={authReady}
-      baseAttemptCount={baseAttemptCount}
       clues={clues}
       dailyPerfume={activePerfume}
       gameState={gameState}
@@ -566,14 +544,12 @@ export function GameProvider({
       <GameActionsProvider
         attempts={attempts}
         authReady={authReady}
-        baseAttemptCount={baseAttemptCount}
         challengeId={initialChallenge?.id ?? null}
         gameState={gameState}
         maxAttempts={maxAttempts}
         nonce={nonce}
         sessionId={sessionId}
         setAttempts={setAttempts}
-        setBaseAttemptCount={setBaseAttemptCount}
         setClues={setClues}
         setDailyPerfume={setDailyPerfume}
         setGameState={setGameState}
