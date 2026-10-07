@@ -13,6 +13,7 @@ import {
 } from "@/app/actions/game-actions";
 import { captureAnalyticsEvent } from "@/components/providers/posthog-provider";
 import { useRouter } from "@/i18n/routing";
+import { shouldReloadOnAuthChange } from "@/lib/auth/auth-change-reload";
 import { MAX_GUESSES } from "@/lib/constants";
 import { HIDDEN_CLUES, type RevealedClues } from "@/lib/game/clue-reveal";
 import { getSupabaseClient } from "@/lib/supabase/get-client";
@@ -294,6 +295,8 @@ export function GameProvider({
       current: null as { unsubscribe: () => void } | null,
     };
     let cancelled = false;
+    // Id of the user the client currently plays as; a sign-in as someone else needs a reload.
+    let knownUserId: string | null = null;
 
     void getSupabaseClient().then((supabase) => {
       if (cancelled) return;
@@ -303,15 +306,25 @@ export function GameProvider({
         // INITIAL_SESSION fires synchronously when getSession() is first called —
         // initGame already reads it and sets user state there. Calling setUser here
         // would cause a duplicate re-render on every page load.
-        if (_event === "INITIAL_SESSION") return;
-
         const newUser = session?.user ?? null;
+        const previousUserId = knownUserId;
+        // eslint-disable-next-line fp/no-mutation -- reassigning let tracker to remember the current user across auth events
+        knownUserId = newUser?.id ?? null;
+
+        if (_event === "INITIAL_SESSION") return;
 
         // Anonymous SIGNED_IN is handled by initGame (verifyAuthSession sets user there).
         // Calling setUser here would duplicate the re-render triggered by initGame.
         const isAnonymousSignIn =
           _event === "SIGNED_IN" && newUser?.is_anonymous === true;
         if (isAnonymousSignIn) return;
+
+        // Signing in as a different user (typically from a guest session): a soft
+        // refresh would keep the previous user's game state, so reload the page.
+        if (shouldReloadOnAuthChange(previousUserId, _event, newUser)) {
+          globalThis.location.reload();
+          return;
+        }
 
         setUser(newUser);
         // Lazy fire-and-forget: Sentry user metadata — not time-sensitive.
