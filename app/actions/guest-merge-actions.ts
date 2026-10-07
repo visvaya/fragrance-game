@@ -81,7 +81,10 @@ async function transferGuestGames(mode: TransferMode): Promise<MergeResult> {
   if (accountId === null) {
     return { error: "Not signed in" };
   }
-  await checkRateLimit("guestMerge", accountId);
+  await checkRateLimit(
+    mode === "merge" ? "guestMerge" : "guestDecline",
+    accountId,
+  );
 
   const ticket = await readGuestTicket();
   if (ticket === null) {

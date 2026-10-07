@@ -195,7 +195,7 @@ describe("MigrationModal", () => {
       expect(screen.getByRole("dialog")).toBeTruthy();
     });
 
-    it("closes on Escape after a failed decline without declining again", async () => {
+    it("reloads on Escape after a failed decline without declining again", async () => {
       await openPendingModal();
       confirmSpy.mockReturnValue(true);
       mockDecline.mockResolvedValue({ error: "boom" });
@@ -203,22 +203,19 @@ describe("MigrationModal", () => {
       await userEvent.keyboard("{Escape}");
       expect(mockDecline).toHaveBeenCalledTimes(1);
       expect(confirmSpy).toHaveBeenCalledTimes(1);
-      await waitFor(() => {
-        expect(screen.queryByRole("dialog")).toBeNull();
-      });
+      expect(reload).toHaveBeenCalledTimes(1);
     });
 
-    it("closes on Escape after a decline that throws", async () => {
+    it("reloads on Escape after a decline that throws", async () => {
       await openPendingModal();
       confirmSpy.mockReturnValue(true);
       mockDecline.mockRejectedValue(new Error("Too many requests"));
       await userEvent.keyboard("{Escape}");
       expect(mockToast.error).toHaveBeenCalledWith("declineError");
+      expect(reload).not.toHaveBeenCalled();
       await userEvent.keyboard("{Escape}");
       expect(mockDecline).toHaveBeenCalledTimes(1);
-      await waitFor(() => {
-        expect(screen.queryByRole("dialog")).toBeNull();
-      });
+      expect(reload).toHaveBeenCalledTimes(1);
     });
 
     it("treats Escape like cancel", async () => {

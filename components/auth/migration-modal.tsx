@@ -99,12 +99,12 @@ export function MigrationModal() {
   };
 
   // Close button, Escape and outside click take the same path as "cancel". After a failed
-  // decline they just close the dialog for this page view: the ticket stays, so the
-  // question comes back on the next visit instead of trapping the player.
+  // decline they reload instead: the page may still hold the guest session, and the
+  // ticket is still valid, so the reloaded page asks again with consistent state.
   const handleOpenChange = async (open: boolean) => {
     if (open) return;
     if (declineFailed) {
-      setIsOpen(false);
+      globalThis.location.reload();
       return;
     }
     await handleDecline();

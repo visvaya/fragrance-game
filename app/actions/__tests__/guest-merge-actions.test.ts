@@ -127,13 +127,13 @@ describe("getPendingGuestMerge", () => {
 });
 
 describe.each([
-  ["mergeGuestGames", mergeGuestGames, "merge"],
-  ["declineGuestMerge", declineGuestMerge, "today_only"],
-] as const)("%s", (_name, action, mode) => {
+  ["mergeGuestGames", mergeGuestGames, "merge", "guestMerge"],
+  ["declineGuestMerge", declineGuestMerge, "today_only", "guestDecline"],
+] as const)("%s", (_name, action, mode, limiter) => {
   it("transfers with the ticket's guest id and clears the ticket", async () => {
     rpc.mockResolvedValue({ data: { moved_sessions: 3 }, error: null });
     await expect(action()).resolves.toEqual({ success: true });
-    expect(checkRateLimit).toHaveBeenCalledWith("guestMerge", ACCOUNT_ID);
+    expect(checkRateLimit).toHaveBeenCalledWith(limiter, ACCOUNT_ID);
     expect(rpc).toHaveBeenCalledWith("transfer_guest_games", {
       p_account_id: ACCOUNT_ID,
       p_guest_id: GUEST_ID,
