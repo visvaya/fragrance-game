@@ -37,11 +37,12 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "https",
+        // Default must match DEFAULT_ASSETS_HOST in lib/game/asset-url.ts.
         hostname:
           process.env.NEXT_PUBLIC_ASSETS_HOST ||
           "pub-2c37ff9f03ea40878492e7f72ef83fe3.r2.dev",
         port: "",
-        pathname: "/**",
+        pathname: "/a/**",
       },
       {
         protocol: "https",

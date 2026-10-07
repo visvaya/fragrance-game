@@ -16,12 +16,31 @@
  * To run: pnpm vitest run app/api/cron/generate-daily/__tests__/algorithm.integration.test.ts
  */
 
+import { randomBytes } from "node:crypto";
+
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { createAdminClient } from "@/lib/supabase/server";
 
 import type { Database } from "@/types/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
+
+const randomHex = (): string => randomBytes(16).toString("hex");
+
+/** Asset id and six distinct step keys that satisfy the perfume_assets CHECK constraints. */
+const validAssetKeys = () => {
+  const assetId = randomHex();
+  const key = () => `a/${assetId}/${randomHex()}.avif`;
+  return {
+    asset_random_id: assetId,
+    image_key_step_1: key(),
+    image_key_step_2: key(),
+    image_key_step_3: key(),
+    image_key_step_4: key(),
+    image_key_step_5: key(),
+    image_key_step_6: key(),
+  };
+};
 
 // Skip all tests if test database not configured
 const TEST_DB_CONFIGURED =
@@ -105,23 +124,11 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
         // Create assets for both perfumes
         await supabase.from("perfume_assets").insert([
           {
-            asset_random_id: crypto.randomUUID(),
-            image_key_step_1: "test-image-1.1.jpg",
-            image_key_step_2: "test-image-1.2.jpg",
-            image_key_step_3: "test-image-1.3.jpg",
-            image_key_step_4: "test-image-1.4.jpg",
-            image_key_step_5: "test-image-1.5.jpg",
-            image_key_step_6: "test-image-1.6.jpg",
+            ...validAssetKeys(),
             perfume_id: perfume1.id,
           },
           {
-            asset_random_id: crypto.randomUUID(),
-            image_key_step_1: "test-image-2.1.jpg",
-            image_key_step_2: "test-image-2.2.jpg",
-            image_key_step_3: "test-image-2.3.jpg",
-            image_key_step_4: "test-image-2.4.jpg",
-            image_key_step_5: "test-image-2.5.jpg",
-            image_key_step_6: "test-image-2.6.jpg",
+            ...validAssetKeys(),
             perfume_id: perfume2.id,
           },
         ]);
@@ -192,13 +199,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
         }
 
         await supabase.from("perfume_assets").insert({
-          asset_random_id: crypto.randomUUID(),
-          image_key_step_1: "first-image.1.jpg",
-          image_key_step_2: "first-image.2.jpg",
-          image_key_step_3: "first-image.3.jpg",
-          image_key_step_4: "first-image.4.jpg",
-          image_key_step_5: "first-image.5.jpg",
-          image_key_step_6: "first-image.6.jpg",
+          ...validAssetKeys(),
           perfume_id: perfume.id,
         });
 
@@ -259,23 +260,11 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
         // Create assets
         await supabase.from("perfume_assets").insert([
           {
-            asset_random_id: crypto.randomUUID(),
-            image_key_step_1: "old-image.1.jpg",
-            image_key_step_2: "old-image.2.jpg",
-            image_key_step_3: "old-image.3.jpg",
-            image_key_step_4: "old-image.4.jpg",
-            image_key_step_5: "old-image.5.jpg",
-            image_key_step_6: "old-image.6.jpg",
+            ...validAssetKeys(),
             perfume_id: perfumeOld.id,
           },
           {
-            asset_random_id: crypto.randomUUID(),
-            image_key_step_1: "recent-image.1.jpg",
-            image_key_step_2: "recent-image.2.jpg",
-            image_key_step_3: "recent-image.3.jpg",
-            image_key_step_4: "recent-image.4.jpg",
-            image_key_step_5: "recent-image.5.jpg",
-            image_key_step_6: "recent-image.6.jpg",
+            ...validAssetKeys(),
             perfume_id: perfumeRecent.id,
           },
         ]);
@@ -336,13 +325,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
         }
 
         await supabase.from("perfume_assets").insert({
-          asset_random_id: crypto.randomUUID(),
-          image_key_step_1: "seq-image.1.jpg",
-          image_key_step_2: "seq-image.2.jpg",
-          image_key_step_3: "seq-image.3.jpg",
-          image_key_step_4: "seq-image.4.jpg",
-          image_key_step_5: "seq-image.5.jpg",
-          image_key_step_6: "seq-image.6.jpg",
+          ...validAssetKeys(),
           perfume_id: perfume.id,
         });
 
@@ -463,13 +446,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
 
         // Only create asset for first perfume
         await supabase.from("perfume_assets").insert({
-          asset_random_id: crypto.randomUUID(),
-          image_key_step_1: "asset-test.1.jpg",
-          image_key_step_2: "asset-test.2.jpg",
-          image_key_step_3: "asset-test.3.jpg",
-          image_key_step_4: "asset-test.4.jpg",
-          image_key_step_5: "asset-test.5.jpg",
-          image_key_step_6: "asset-test.6.jpg",
+          ...validAssetKeys(),
           perfume_id: perfumeWithAsset.id,
         });
 
@@ -525,23 +502,11 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
         // Create assets for both
         await supabase.from("perfume_assets").insert([
           {
-            asset_random_id: crypto.randomUUID(),
-            image_key_step_1: "certain-image.1.jpg",
-            image_key_step_2: "certain-image.2.jpg",
-            image_key_step_3: "certain-image.3.jpg",
-            image_key_step_4: "certain-image.4.jpg",
-            image_key_step_5: "certain-image.5.jpg",
-            image_key_step_6: "certain-image.6.jpg",
+            ...validAssetKeys(),
             perfume_id: certainPerfume.id,
           },
           {
-            asset_random_id: crypto.randomUUID(),
-            image_key_step_1: "uncertain-image.1.jpg",
-            image_key_step_2: "uncertain-image.2.jpg",
-            image_key_step_3: "uncertain-image.3.jpg",
-            image_key_step_4: "uncertain-image.4.jpg",
-            image_key_step_5: "uncertain-image.5.jpg",
-            image_key_step_6: "uncertain-image.6.jpg",
+            ...validAssetKeys(),
             perfume_id: uncertainPerfume.id,
           },
         ]);
@@ -583,13 +548,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
         }
 
         await supabase.from("perfume_assets").insert({
-          asset_random_id: crypto.randomUUID(),
-          image_key_step_1: "dup-image.1.jpg",
-          image_key_step_2: "dup-image.2.jpg",
-          image_key_step_3: "dup-image.3.jpg",
-          image_key_step_4: "dup-image.4.jpg",
-          image_key_step_5: "dup-image.5.jpg",
-          image_key_step_6: "dup-image.6.jpg",
+          ...validAssetKeys(),
           perfume_id: perfume.id,
         });
 

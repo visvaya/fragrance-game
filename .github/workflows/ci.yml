@@ -29,6 +29,13 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint:strict
       - run: pnpm format:check
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Asset pipeline unit tests
+        run: |
+          python -m pip install --require-hashes -r scripts/assets/requirements-ci.txt
+          python -m pytest tests/python/test_asset_keys.py tests/python/test_asset_publish.py tests/python/test_rekey_plan.py -q
 
   unit-tests:
     name: Unit tests & coverage

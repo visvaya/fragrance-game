@@ -81,17 +81,12 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 - **Risk:** a fresh database (staging, local, a future self-hosted server) does not match production; pgTAP in CI runs against production only.
 - **Done when:** `supabase db diff` against production is empty and a database rebuilt from migrations passes `pnpm test:db`.
 
-## Image pipeline lives outside version control
+## Illustration prompt lives outside version control
 
-- **Where:** `img/bottles/` (git-ignored): `scripts/process_game_assets.py`, `generate_asset_list.py`, `preprocess_assets.py`, the prompt and the readme.
-- **Shortcut:** the scripts that produce and upload every game image exist on one machine only; the readme describes old directory names and thresholds, and `scripts/requirements.txt` does not list Pillow or the AVIF plugin.
-- **Risk:** losing the machine loses the pipeline; changes cannot be reviewed.
-- **Done when:** the scripts and prompt are tracked under `scripts/assets/` (photos stay outside the repository), with dependencies listed and a secret scan passed.
-
-## `asset_random_id` is not unique
-
-- **Where:** `supabase/migrations/20260120100000_perfume_assets.sql` (plain index only).
-- **Done when:** a `UNIQUE` constraint replaces the index.
+- **Where:** the prompt for the manual illustration step, kept outside the repository on one machine (the scripts are tracked in `scripts/assets/`).
+- **Shortcut:** the prompt is not stored in any backed-up place.
+- **Risk:** losing the machine loses the prompt, so new illustrations no longer match the existing style.
+- **Done when:** the prompt is stored in a backed-up place.
 
 ## Daily puzzle cron is unbounded and reads live difficulty
 

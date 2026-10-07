@@ -1,0 +1,5 @@
+Pillow>=11.3
+numpy>=2.5.3
+boto3
+supabase
+python-dotenv
