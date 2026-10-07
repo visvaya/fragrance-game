@@ -36,6 +36,7 @@ import {
 } from "../guest-ticket-cookie";
 
 const GUEST = "6f1c1d2e-3b4a-4c5d-8e9f-0a1b2c3d4e5f";
+const DAY_MS = 86_400_000;
 const OTHER_GUEST = "7a2d3e4f-5b6c-4d7e-9f80-1a2b3c4d5e6f";
 
 describe("guest ticket cookie", () => {
@@ -103,6 +104,35 @@ describe("guest ticket cookie", () => {
     store.set.mockClear();
     await ensureGuestTicket(GUEST);
     expect(store.set).not.toHaveBeenCalled();
+  });
+
+  it("leaves a same-guest ticket younger than the refresh threshold alone", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      await issueGuestTicket(GUEST);
+      vi.setSystemTime(Date.now() + 6 * DAY_MS);
+      store.set.mockClear();
+      await ensureGuestTicket(GUEST);
+      expect(store.set).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("issues again a same-guest ticket older than the refresh threshold", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      await issueGuestTicket(GUEST);
+      const issuedAt = Date.now();
+      vi.setSystemTime(issuedAt + 8 * DAY_MS);
+      store.set.mockClear();
+      await ensureGuestTicket(GUEST);
+      expect(store.set).toHaveBeenCalledTimes(2);
+      const ticket = await readGuestTicket();
+      expect(ticket?.issuedAtMs).toBeGreaterThan(issuedAt);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("replaces a ticket that names another guest", async () => {

@@ -60,14 +60,21 @@ export async function readGuestTicket(): Promise<{
 }
 
 /**
- * Issues the ticket only when this browser has none for this guest. Setting a cookie in a
- * server action makes Next.js render the page again, so a valid ticket is left alone; it
- * expires a fixed time after issue and the next move after that issues a new one.
+ * Issues the ticket only when this browser has none for this guest or the one it has is
+ * older than the refresh threshold. Setting a cookie in a server action makes Next.js
+ * render the page again, so this writes at most once per threshold per guest, and the
+ * merge offer stays valid for the ticket lifetime minus the threshold after the last move.
  * @param guestId - Anonymous user id from `auth.getUser()`, after a move was written.
  */
 export async function ensureGuestTicket(guestId: string): Promise<void> {
   const current = await readGuestTicket();
-  if (current?.guestId === guestId) return;
+  const refreshAfterMs = GUEST_TICKET_CONFIG.refreshAfterSeconds * 1000;
+  if (
+    current?.guestId === guestId &&
+    Date.now() - current.issuedAtMs < refreshAfterMs
+  ) {
+    return;
+  }
   await issueGuestTicket(guestId);
 }
 
