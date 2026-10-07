@@ -134,6 +134,46 @@ describe("game state writes go through the service role", () => {
     ]);
   });
 
+  it("keeps a won game started as a guest out of the ranking", async () => {
+    const writes = useClients({
+      session: { ...makeSession(2), metadata: { started_as_guest: true } },
+    });
+
+    await submitGuess(SESSION_ID, ANSWER_ID, NONCE);
+
+    expect(writes).toContainEqual(
+      expect.objectContaining({
+        op: "insert",
+        table: "game_results",
+        values: expect.objectContaining({
+          is_ranked: false,
+          ranked_reason: "started_as_guest",
+          status: "won",
+        }),
+      }),
+    );
+  });
+
+  it("keeps a lost game started as a guest out of the ranking", async () => {
+    const writes = useClients({
+      session: { ...makeSession(5), metadata: { started_as_guest: true } },
+    });
+
+    await skipAttempt(SESSION_ID, NONCE);
+
+    expect(writes).toContainEqual(
+      expect.objectContaining({
+        op: "insert",
+        table: "game_results",
+        values: expect.objectContaining({
+          is_ranked: false,
+          ranked_reason: "started_as_guest",
+          status: "lost",
+        }),
+      }),
+    );
+  });
+
   it("reports a conflict when the nonce changed before the skip was written", async () => {
     useClients({
       admin: { updateMatchesNoRow: true },

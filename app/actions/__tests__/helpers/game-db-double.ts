@@ -43,6 +43,7 @@ export type Session = {
   id: string;
   last_guess: null;
   last_nonce: string;
+  metadata?: unknown;
   player_id: string;
   start_time: string;
   status: string;

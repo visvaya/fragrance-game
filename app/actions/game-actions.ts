@@ -25,6 +25,7 @@ import {
   toUtcDateString,
 } from "@/lib/game/challenge-availability";
 import { isGenderMatch, type RevealedClues } from "@/lib/game/clue-reveal";
+import { rankingForResult } from "@/lib/game/ranking";
 import {
   calculateBaseScore,
   calculateFinalScore,
@@ -775,7 +776,7 @@ export async function submitGuess(
   const { data: session, error: sessionError } = (await supabase
     .from("game_sessions")
     .select(
-      "id, last_nonce, status, attempts_count, challenge_id, player_id, guesses, start_time",
+      "id, last_nonce, status, attempts_count, challenge_id, player_id, guesses, start_time, metadata",
     )
     .eq("id", sessionId)
     .limit(1)
@@ -786,6 +787,7 @@ export async function submitGuess(
       guesses: StoredGuess[] | null;
       id: string;
       last_nonce: string | number;
+      metadata: unknown;
       player_id: string;
       start_time: string;
       status: string;
@@ -977,12 +979,16 @@ export async function submitGuess(
     const score = isCorrect ? calculateFinalScore(baseScore, xScore) : 0;
 
     const now = new Date();
-    const isRanked = now <= new Date(challenge.grace_deadline_at_utc);
+    const ranking = rankingForResult({
+      graceDeadline: challenge.grace_deadline_at_utc,
+      metadata: session.metadata,
+      now,
+    });
 
     await recordGameResult(user.id, {
+      ...ranking,
       attempts: nextAttempts,
       challenge_id: session.challenge_id,
-      is_ranked: isRanked,
       score,
       score_raw: baseScore,
       scoring_version: 1,
@@ -1062,7 +1068,7 @@ function mapPerfumeDetails(perfume: {
  * Records a loss in game_results and fetches the answer perfume name for reveal.
  */
 async function recordSkipLoss(
-  session: { challenge_id: string; start_time: string },
+  session: { challenge_id: string; metadata: unknown; start_time: string },
   sessionId: string,
   playerId: string,
   attemptCount: number,
@@ -1078,11 +1084,15 @@ async function recordSkipLoss(
     return { answerConcentration: undefined, answerName: undefined };
 
   const now = new Date();
-  const isRanked = now <= new Date(challenge.grace_deadline_at_utc);
+  const ranking = rankingForResult({
+    graceDeadline: challenge.grace_deadline_at_utc,
+    metadata: session.metadata,
+    now,
+  });
   await recordGameResult(playerId, {
+    ...ranking,
     attempts: attemptCount,
     challenge_id: session.challenge_id,
-    is_ranked: isRanked,
     score: 0,
     score_raw: 0,
     scoring_version: 1,
@@ -1140,7 +1150,7 @@ export async function skipAttempt(
   const { data: session, error: sessionError } = (await supabase
     .from("game_sessions")
     .select(
-      "id, last_nonce, status, attempts_count, challenge_id, player_id, guesses, start_time",
+      "id, last_nonce, status, attempts_count, challenge_id, player_id, guesses, start_time, metadata",
     )
     .eq("id", sessionId)
     .limit(1)
@@ -1151,6 +1161,7 @@ export async function skipAttempt(
       guesses: StoredGuess[] | null;
       id: string;
       last_nonce: string | number;
+      metadata: unknown;
       player_id: string;
       start_time: string;
       status: string;
