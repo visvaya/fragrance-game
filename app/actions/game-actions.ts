@@ -6,7 +6,7 @@ import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 
 import { trackEvent, identifyUser } from "@/lib/analytics-server";
-import { issueGuestTicket } from "@/lib/auth/guest-ticket-cookie";
+import { ensureGuestTicket } from "@/lib/auth/guest-ticket-cookie";
 import { MAX_GUESSES } from "@/lib/constants";
 import { env } from "@/lib/env";
 import {
@@ -771,9 +771,6 @@ export async function submitGuess(
 
   // Rate limiting
   await checkRateLimit("submitGuess", user.id);
-  if (user.is_anonymous === true) {
-    await issueGuestTicket(user.id);
-  }
 
   const { data: session, error: sessionError } = (await supabase
     .from("game_sessions")
@@ -951,6 +948,9 @@ export async function submitGuess(
 
   throwIfMoveNotWritten(updateError, sessionId, session.last_nonce);
   if (!updatedSession) throw new Error(`CONFLICT:${session.last_nonce}`);
+  if (user.is_anonymous === true) {
+    await ensureGuestTicket(user.id);
+  }
 
   await trackEvent(
     "guess_submitted",
@@ -1136,9 +1136,6 @@ export async function skipAttempt(
   }
 
   await checkRateLimit("skipAttempt", user.id);
-  if (user.is_anonymous === true) {
-    await issueGuestTicket(user.id);
-  }
 
   const { data: session, error: sessionError } = (await supabase
     .from("game_sessions")
@@ -1214,6 +1211,9 @@ export async function skipAttempt(
   );
 
   throwIfMoveNotWritten(updateError, sessionId, session.last_nonce);
+  if (user.is_anonymous === true) {
+    await ensureGuestTicket(user.id);
+  }
 
   await trackEvent(
     "attempt_skipped",

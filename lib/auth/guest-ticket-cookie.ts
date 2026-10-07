@@ -59,6 +59,18 @@ export async function readGuestTicket(): Promise<{
     : verifyGuestTicket(value, ticketKey(), Date.now());
 }
 
+/**
+ * Issues the ticket only when this browser has none for this guest. Setting a cookie in a
+ * server action makes Next.js render the page again, so a valid ticket is left alone; it
+ * expires a fixed time after issue and the next move after that issues a new one.
+ * @param guestId - Anonymous user id from `auth.getUser()`, after a move was written.
+ */
+export async function ensureGuestTicket(guestId: string): Promise<void> {
+  const current = await readGuestTicket();
+  if (current?.guestId === guestId) return;
+  await issueGuestTicket(guestId);
+}
+
 /** Removes the ticket and the hint, after a merge decision or when nothing is left to merge. */
 export async function clearGuestTicket(): Promise<void> {
   const store = await cookies();

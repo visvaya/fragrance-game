@@ -30,11 +30,13 @@ vi.mock("@/lib/env", () => ({
 
 import {
   clearGuestTicket,
+  ensureGuestTicket,
   issueGuestTicket,
   readGuestTicket,
 } from "../guest-ticket-cookie";
 
 const GUEST = "6f1c1d2e-3b4a-4c5d-8e9f-0a1b2c3d4e5f";
+const OTHER_GUEST = "7a2d3e4f-5b6c-4d7e-9f80-1a2b3c4d5e6f";
 
 describe("guest ticket cookie", () => {
   beforeEach(() => {
@@ -88,5 +90,34 @@ describe("guest ticket cookie", () => {
     expect(store.delete).toHaveBeenCalledWith("eauxle_guest_ticket");
     expect(store.delete).toHaveBeenCalledWith("eauxle_guest_hint");
     expect(store.values.size).toBe(0);
+  });
+
+  it("issues a ticket when none exists", async () => {
+    await ensureGuestTicket(GUEST);
+    const ticket = await readGuestTicket();
+    expect(ticket?.guestId).toBe(GUEST);
+  });
+
+  it("leaves a valid ticket for the same guest alone", async () => {
+    await issueGuestTicket(GUEST);
+    store.set.mockClear();
+    await ensureGuestTicket(GUEST);
+    expect(store.set).not.toHaveBeenCalled();
+  });
+
+  it("replaces a ticket that names another guest", async () => {
+    await issueGuestTicket(OTHER_GUEST);
+    store.set.mockClear();
+    await ensureGuestTicket(GUEST);
+    expect(store.set).toHaveBeenCalledTimes(2);
+    const ticket = await readGuestTicket();
+    expect(ticket?.guestId).toBe(GUEST);
+  });
+
+  it("replaces an invalid ticket", async () => {
+    store.values.set("eauxle_guest_ticket", "garbage");
+    await ensureGuestTicket(GUEST);
+    const ticket = await readGuestTicket();
+    expect(ticket?.guestId).toBe(GUEST);
   });
 });

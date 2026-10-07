@@ -1,11 +1,11 @@
 /**
- * A guest proves its play with a signed ticket: every accepted move by an anonymous
- * player issues one, a signed-in account never gets one, and the client cannot
- * choose how many attempts a new session starts with.
+ * A guest proves its play with a signed ticket: an anonymous player's move makes sure
+ * one exists only after the move was written, a signed-in account never gets one, and
+ * the client cannot choose how many attempts a new session starts with.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { issueGuestTicket } from "@/lib/auth/guest-ticket-cookie";
+import { ensureGuestTicket } from "@/lib/auth/guest-ticket-cookie";
 import { checkRateLimit } from "@/lib/redis";
 
 import { initializeAndGuess, skipAttempt, submitGuess } from "../game-actions";
@@ -33,7 +33,7 @@ vi.mock("@/lib/redis", () => ({
   checkRateLimit: vi.fn().mockResolvedValue(true),
 }));
 vi.mock("@/lib/auth/guest-ticket-cookie", () => ({
-  issueGuestTicket: vi.fn().mockResolvedValue(undefined),
+  ensureGuestTicket: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("@/lib/analytics-server", () => ({
   identifyUser: vi.fn(),
@@ -65,8 +65,8 @@ describe("guest ticket on moves", () => {
 
     await submitGuess(SESSION_ID, GUESS_ID, NONCE);
 
-    expect(issueGuestTicket).toHaveBeenCalledTimes(1);
-    expect(issueGuestTicket).toHaveBeenCalledWith(USER_ID);
+    expect(ensureGuestTicket).toHaveBeenCalledTimes(1);
+    expect(ensureGuestTicket).toHaveBeenCalledWith(USER_ID);
   });
 
   it("issues no ticket when an account submits a guess", async () => {
@@ -74,7 +74,7 @@ describe("guest ticket on moves", () => {
 
     await submitGuess(SESSION_ID, GUESS_ID, NONCE);
 
-    expect(issueGuestTicket).not.toHaveBeenCalled();
+    expect(ensureGuestTicket).not.toHaveBeenCalled();
   });
 
   it("issues a ticket when a guest skips", async () => {
@@ -82,8 +82,8 @@ describe("guest ticket on moves", () => {
 
     await skipAttempt(SESSION_ID, NONCE);
 
-    expect(issueGuestTicket).toHaveBeenCalledTimes(1);
-    expect(issueGuestTicket).toHaveBeenCalledWith(USER_ID);
+    expect(ensureGuestTicket).toHaveBeenCalledTimes(1);
+    expect(ensureGuestTicket).toHaveBeenCalledWith(USER_ID);
   });
 
   it("issues no ticket when an account skips", async () => {
@@ -91,7 +91,38 @@ describe("guest ticket on moves", () => {
 
     await skipAttempt(SESSION_ID, NONCE);
 
-    expect(issueGuestTicket).not.toHaveBeenCalled();
+    expect(ensureGuestTicket).not.toHaveBeenCalled();
+  });
+
+  it("issues no ticket when the guess hits a nonce conflict", async () => {
+    useClients({ session: makeSession(0), user: GUEST });
+
+    await expect(submitGuess(SESSION_ID, GUESS_ID, "99999")).rejects.toThrow(
+      "CONFLICT",
+    );
+    expect(ensureGuestTicket).not.toHaveBeenCalled();
+  });
+
+  it("issues no ticket when the guess write matches no row", async () => {
+    useClients({
+      admin: { updateMatchesNoRow: true },
+      session: makeSession(0),
+      user: GUEST,
+    });
+
+    await expect(submitGuess(SESSION_ID, GUESS_ID, NONCE)).rejects.toThrow();
+    expect(ensureGuestTicket).not.toHaveBeenCalled();
+  });
+
+  it("issues no ticket when the skip write fails", async () => {
+    useClients({
+      admin: { updateFails: true },
+      session: makeSession(0),
+      user: GUEST,
+    });
+
+    await expect(skipAttempt(SESSION_ID, NONCE)).rejects.toThrow();
+    expect(ensureGuestTicket).not.toHaveBeenCalled();
   });
 
   it("issues no ticket when the rate limiter rejects the guess", async () => {
@@ -103,7 +134,7 @@ describe("guest ticket on moves", () => {
     await expect(submitGuess(SESSION_ID, GUESS_ID, NONCE)).rejects.toThrow(
       "Rate limit exceeded",
     );
-    expect(issueGuestTicket).not.toHaveBeenCalled();
+    expect(ensureGuestTicket).not.toHaveBeenCalled();
   });
 
   it("starts a new session at zero attempts when an old client sends a count", async () => {
