@@ -30,6 +30,10 @@ Publishing order: the new files are uploaded first, then the database row is swi
 and only then is the old asset directory removed. A failure before the switch removes the
 partial upload and keeps the old asset.
 
+Warning: re-publishing (`--force`) the perfume of today's puzzle deletes its old directory at once,
+while the server may keep serving the cached step-1 URL until the midnight cron. Re-publish only
+perfumes that are not today's puzzle, or revalidate the `daily-challenge` cache tag afterwards.
+
 ## Key format
 
 Each perfume asset lives under `a/<32 hex asset id>/` and each step file has its own name of
