@@ -257,3 +257,8 @@ def select_deletions(
 def needs_copy(old_etag: str | None, new_etag: str | None) -> bool:
     """A copy is needed unless the new object already exists with the old object's ETag."""
     return new_etag is None or new_etag != old_etag
+
+
+def merge_purge_list(existing: Sequence[str], new: Sequence[str]) -> tuple[str, ...]:
+    """Union of purge-list URLs already recorded and new ones, deduplicated and sorted."""
+    return tuple(sorted({u for u in (*existing, *new) if u}))

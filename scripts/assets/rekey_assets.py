@@ -25,6 +25,7 @@ from rekey_plan import (
     AssetRow,
     RekeyPlan,
     build_rekey_plan,
+    merge_purge_list,
     needs_copy,
     plan_from_json,
     plan_to_json,
@@ -240,11 +241,15 @@ def cmd_cleanup(args: argparse.Namespace) -> int:
     if not args.execute:
         print(f"Dry run: {len(deletions)} objects; pass --execute to delete")
         return 0
-    make_r2_io(s3, bucket)["delete_keys"](deletions)
     host = assets_host()
     purge_list = Path(args.plan).resolve().parent / REKEY_CONFIG.purge_list_name
-    purge_list.write_text("".join(f"https://{host}/{k}\n" for k in deletions), encoding="utf-8")
-    print(f"Deleted {len(deletions)} objects; purge list written to {purge_list}")
+    existing = purge_list.read_text(encoding="utf-8").splitlines() if purge_list.exists() else []
+    urls = merge_purge_list(existing, [f"https://{host}/{k}" for k in deletions])
+    # Written before deleting so a partial failure never loses keys that were already removed.
+    purge_list.write_text("".join(f"{u}\n" for u in urls), encoding="utf-8")
+    print(f"Purge list ({len(urls)} URLs) written to {purge_list}")
+    make_r2_io(s3, bucket)["delete_keys"](deletions)
+    print(f"Deleted {len(deletions)} objects")
     return 0
 
 

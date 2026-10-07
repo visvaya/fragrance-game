@@ -9,6 +9,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../scripts/assets"))
 from rekey_plan import (  # noqa: E402
     AssetRow,
     build_rekey_plan,
+    merge_purge_list,
     needs_copy,
     plan_from_json,
     plan_to_json,
@@ -101,3 +102,15 @@ def test_cleanup_deletes_old_and_orphans_but_never_a_referenced_key():
 def test_copy_is_skipped_only_when_the_new_object_matches():
     assert needs_copy("x", None) is True
     assert needs_copy("x", "x") is False
+
+
+def test_merge_purge_list_dedupes_and_sorts():
+    existing = ("https://h/a/2", "https://h/a/1")
+    new = ["https://h/a/3", "https://h/a/1"]
+    assert merge_purge_list(existing, new) == ("https://h/a/1", "https://h/a/2", "https://h/a/3")
+
+
+def test_merge_purge_list_keeps_inputs_and_drops_blanks():
+    existing = ["https://h/a/1", ""]
+    assert merge_purge_list(existing, []) == ("https://h/a/1",)
+    assert existing == ["https://h/a/1", ""]
