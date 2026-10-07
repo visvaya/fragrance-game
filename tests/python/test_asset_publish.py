@@ -88,3 +88,39 @@ def test_rejects_incomplete_step_set():
     _, io = make_io()
     with pytest.raises(ValueError):
         publish_asset(PERFUME, {1: b"x"}, old_asset_id=None, **io)
+
+
+class FakeS3:
+    def __init__(self, response):
+        self.response = response
+        self.deleted = []
+
+    def delete_objects(self, Bucket, Delete):
+        self.deleted.append(Delete["Objects"])
+        return self.response
+
+    def get_paginator(self, name):
+        class Paginator:
+            def paginate(self, Bucket, Prefix):
+                return [{"Contents": [{"Key": f"{Prefix}x.avif"}]}]
+
+        return Paginator()
+
+
+def test_r2_delete_raises_on_per_key_errors():
+    from r2_client import make_r2_io
+
+    errors = {"Errors": [{"Key": "a/x/y.avif", "Code": "AccessDenied"}]}
+    r2_io = make_r2_io(FakeS3(errors), "bucket")
+    with pytest.raises(RuntimeError, match="AccessDenied"):
+        r2_io["delete_keys"](["a/x/y.avif"])
+    with pytest.raises(RuntimeError):
+        r2_io["delete_prefix"]("a/x/")
+
+
+def test_r2_delete_passes_when_no_errors():
+    client = FakeS3({"Deleted": [{"Key": "a/x/y.avif"}]})
+    from r2_client import make_r2_io
+
+    make_r2_io(client, "bucket")["delete_prefix"]("a/x/")
+    assert client.deleted == [[{"Key": "a/x/x.avif"}]]

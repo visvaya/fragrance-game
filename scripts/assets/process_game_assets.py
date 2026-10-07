@@ -8,16 +8,15 @@ asset_publish.publish_asset; --local writes the files to the debug directory ins
 import argparse
 import io
 import logging
-from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
-from asset_config import ASSET_CONFIG, load_env, local_dirs
+from asset_config import load_env, local_dirs
 from asset_publish import publish_asset
-from r2_client import bucket_name, make_s3_client, make_supabase
+from r2_client import bucket_name, make_r2_io, make_s3_client, make_supabase
 
 # Optional AVIF plugin for older Pillow builds
 try:
@@ -27,8 +26,6 @@ except Exception:
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
-DELETE_BATCH_SIZE = 1000  # S3 DeleteObjects accepts at most 1000 keys per request
 
 # --- Optimization Functions ---
 
@@ -349,36 +346,6 @@ def build_step_images(master_img: Image.Image, no_compression: bool = False) -> 
 
         images[step_num] = img_data
     return images
-
-
-def make_r2_io(s3_client: Any, bucket: str) -> dict[str, Any]:
-    """I/O callables for publish_asset backed by an S3-compatible client."""
-
-    def put_object(key: str, body: bytes) -> None:
-        s3_client.put_object(
-            Bucket=bucket,
-            Key=key,
-            Body=body,
-            ContentType=ASSET_CONFIG.content_type,
-            CacheControl=ASSET_CONFIG.cache_control,
-        )
-
-    def delete_keys(keys: Sequence[str]) -> None:
-        for i in range(0, len(keys), DELETE_BATCH_SIZE):
-            batch = [{'Key': key} for key in keys[i:i + DELETE_BATCH_SIZE]]
-            s3_client.delete_objects(Bucket=bucket, Delete={'Objects': batch})
-
-    def delete_prefix(prefix: str) -> None:
-        paginator = s3_client.get_paginator('list_objects_v2')
-        keys = [
-            obj['Key']
-            for page in paginator.paginate(Bucket=bucket, Prefix=prefix)
-            for obj in page.get('Contents', [])
-        ]
-        delete_keys(keys)
-        logger.info(f"  Deleted {len(keys)} old files under {prefix}")
-
-    return {'put_object': put_object, 'delete_keys': delete_keys, 'delete_prefix': delete_prefix}
 
 
 def find_existing_asset_id(supabase: Any, perfume_id: str) -> Optional[str]:
