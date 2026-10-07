@@ -6,6 +6,7 @@ import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 
 import { trackEvent, identifyUser } from "@/lib/analytics-server";
+import { issueGuestTicket } from "@/lib/auth/guest-ticket-cookie";
 import { MAX_GUESSES } from "@/lib/constants";
 import { env } from "@/lib/env";
 import {
@@ -490,7 +491,6 @@ async function resumeGameSession(
 async function createNewGameSession(
   supabase: UserClient,
   challengeId: string,
-  safeInheritedCount: number,
   userId: string,
 ): Promise<StartGameResponse> {
   await checkRateLimit("startGame", userId);
@@ -500,7 +500,7 @@ async function createNewGameSession(
   const { data: session, error: insertError } = await insertGameSession(
     userId,
     {
-      attempts_count: safeInheritedCount,
+      attempts_count: NEW_SESSION.attempts_count,
       challenge_id: challengeId,
       guesses: [],
       last_guess: null,
@@ -550,22 +550,19 @@ async function createNewGameSession(
     imageUrl: imageUrl,
     nonce: nonce,
     revealed: buildSessionClues(answer.clue, session, []),
-    revealState: getRevealPercentages(safeInheritedCount + 1),
+    revealState: getRevealPercentages(1),
     sessionId: session.id,
   };
 }
 
 /**
- * Rozpoczyna nową sesję gry lub wznawia istniejącą.
+ * Rozpoczyna nową sesję gry lub wznawia istniejącą. Nowa sesja zawsze startuje od
+ * zera prób: liczby prób nie ustala klient.
  */
 export async function startGame(
   challengeId: string,
-  inheritedAttemptCount = 0,
 ): Promise<StartGameResponse> {
   z.uuid().parse(challengeId);
-  z.number().int().min(0).max(5).parse(inheritedAttemptCount);
-  // Clamp to a safe range: 0–5 (6 would mean the game is already over)
-  const safeInheritedCount = Math.max(0, Math.min(5, inheritedAttemptCount));
   const supabase = await createClient();
   const {
     data: { user },
@@ -586,27 +583,18 @@ export async function startGame(
   }
 
   // Rate limiting: only applies to creating NEW sessions, not resuming existing ones
-  return createNewGameSession(
-    supabase,
-    challengeId,
-    safeInheritedCount,
-    user.id,
-  );
+  return createNewGameSession(supabase, challengeId, user.id);
 }
 
 /**
  * Inicjalizuje grę, pobierając wyzwanie i rozpoczynając sesję.
  */
-export async function initializeGame(
-  inheritedAttemptCount = 0,
-): Promise<InitializeGameResponse> {
-  z.number().int().min(0).max(5).parse(inheritedAttemptCount);
-
+export async function initializeGame(): Promise<InitializeGameResponse> {
   const challenge = await getDailyChallenge().catch(() => null);
   if (!challenge) return { challenge: null, session: null };
 
   try {
-    const session = await startGame(challenge.id, inheritedAttemptCount);
+    const session = await startGame(challenge.id);
     return { challenge, session };
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
@@ -783,6 +771,9 @@ export async function submitGuess(
 
   // Rate limiting
   await checkRateLimit("submitGuess", user.id);
+  if (user.is_anonymous === true) {
+    await issueGuestTicket(user.id);
+  }
 
   const { data: session, error: sessionError } = (await supabase
     .from("game_sessions")
@@ -1145,6 +1136,9 @@ export async function skipAttempt(
   }
 
   await checkRateLimit("skipAttempt", user.id);
+  if (user.is_anonymous === true) {
+    await issueGuestTicket(user.id);
+  }
 
   const { data: session, error: sessionError } = (await supabase
     .from("game_sessions")
@@ -1450,7 +1444,7 @@ export async function getPlayerDailySession(
 
     // Fetch or create session (startGame handles both paths)
     // For existing sessions it returns immediately without creating a new one
-    return await startGame(challengeId, 0);
+    return await startGame(challengeId);
   } catch {
     // Graceful degradation: if anything fails, GameProvider falls back to client-side init
     return null;
@@ -1465,7 +1459,6 @@ export async function getPlayerDailySession(
 export async function initializeAndGuess(
   challengeId: string,
   perfumeId: string,
-  inheritedCount: number,
 ): Promise<{
   guessResult: SubmitGuessResult;
   imageUrl: string | null;
@@ -1474,11 +1467,7 @@ export async function initializeAndGuess(
 }> {
   const validatedChallengeId = uuidSchema.parse(challengeId);
   const validatedPerfumeId = uuidSchema.parse(perfumeId);
-  const validatedInheritedCount = z.number().int().min(0).parse(inheritedCount);
-  const session = await startGame(
-    validatedChallengeId,
-    validatedInheritedCount,
-  );
+  const session = await startGame(validatedChallengeId);
   const guessResult = await submitGuess(
     session.sessionId,
     validatedPerfumeId,
@@ -1497,21 +1486,14 @@ export async function initializeAndGuess(
  * Called when the user skips before a session exists (deferred startGame).
  * Combines startGame + skipAttempt into a single server roundtrip.
  */
-export async function initializeAndSkip(
-  challengeId: string,
-  inheritedCount: number,
-): Promise<{
+export async function initializeAndSkip(challengeId: string): Promise<{
   imageUrl: string | null;
   nonce: string;
   sessionId: string;
   skipResult: SkipAttemptResult;
 }> {
   const validatedChallengeId = uuidSchema.parse(challengeId);
-  const validatedInheritedCount = z.number().int().min(0).parse(inheritedCount);
-  const session = await startGame(
-    validatedChallengeId,
-    validatedInheritedCount,
-  );
+  const session = await startGame(validatedChallengeId);
   const skipResult = await skipAttempt(session.sessionId, session.nonce);
   return {
     imageUrl: skipResult.imageUrl ?? session.imageUrl ?? null,

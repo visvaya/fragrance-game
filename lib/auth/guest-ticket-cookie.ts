@@ -15,12 +15,15 @@ function ticketKey(): Buffer {
   return deriveGuestTicketKey(env.SUPABASE_SERVICE_ROLE_KEY);
 }
 
-const BASE_OPTIONS = {
-  maxAge: GUEST_TICKET_CONFIG.maxAgeSeconds,
-  path: "/",
-  sameSite: "lax",
-  secure: env.NODE_ENV === "production",
-} as const;
+/** Read when a cookie is set, not at import, so importing modules never touch env. */
+function baseOptions() {
+  return {
+    maxAge: GUEST_TICKET_CONFIG.maxAgeSeconds,
+    path: "/",
+    sameSite: "lax",
+    secure: env.NODE_ENV === "production",
+  } as const;
+}
 
 /**
  * Stores proof that this browser played as the given guest. Call only from a server
@@ -32,11 +35,11 @@ export async function issueGuestTicket(guestId: string): Promise<void> {
   store.set(
     GUEST_TICKET_CONFIG.ticketCookieName,
     createGuestTicket(guestId, Date.now(), ticketKey()),
-    { ...BASE_OPTIONS, httpOnly: true },
+    { ...baseOptions(), httpOnly: true },
   );
   // The hint carries no id: it only tells the client that asking the server is worthwhile.
   store.set(GUEST_TICKET_CONFIG.hintCookieName, "1", {
-    ...BASE_OPTIONS,
+    ...baseOptions(),
     httpOnly: false,
   });
 }

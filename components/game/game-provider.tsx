@@ -144,9 +144,8 @@ async function verifyAuthSession(
  * Includes one automatic retry when challenge arrives but session fails.
  */
 async function fetchChallengeAndSession(
-  initialChallenge: DailyChallenge | undefined,
-  initialSession: StartGameResponse | null | undefined,
-  inheritedCount: number,
+  initialChallenge?: DailyChallenge,
+  initialSession?: StartGameResponse | null,
 ): Promise<{
   challenge: DailyChallenge | null;
   session: StartGameResponse | null;
@@ -154,7 +153,7 @@ async function fetchChallengeAndSession(
   if (initialChallenge) {
     if (initialSession)
       return { challenge: initialChallenge, session: initialSession };
-    const session = await startGame(initialChallenge.id, inheritedCount).catch(
+    const session = await startGame(initialChallenge.id).catch(
       (error: unknown) => {
         console.error(
           "[GameProvider] startGame with SSR challenge failed:",
@@ -166,7 +165,7 @@ async function fetchChallengeAndSession(
     return { challenge: initialChallenge, session };
   }
 
-  const { challenge, session } = await initializeGame(inheritedCount);
+  const { challenge, session } = await initializeGame();
 
   // Retry if challenge arrived but session failed (cookies not yet processed)
   if (challenge && session == null) {
@@ -174,7 +173,7 @@ async function fetchChallengeAndSession(
       "[GameProvider] Got challenge but no session. Retrying session creation...",
     );
     await new Promise((resolve) => setTimeout(resolve, 200));
-    const retrySession = await startGame(challenge.id, inheritedCount).catch(
+    const retrySession = await startGame(challenge.id).catch(
       (error: unknown) => {
         console.error("[GameProvider] Retry startGame failed:", error);
         return null;
@@ -455,28 +454,10 @@ export function GameProvider({
           return;
         }
 
-        // No SSR challenge: old flow — read inherited count, fetch challenge + start game.
-        const storedInherited = sessionStorage.getItem(
-          "eauxle_declined_anon_attempts",
-        );
-        const parsedStored =
-          storedInherited === null ? 0 : Number.parseInt(storedInherited, 10);
-        const inheritedCount = Math.max(
-          0,
-          Math.min(5, Number.isNaN(parsedStored) ? 0 : parsedStored),
-        );
-        if (inheritedCount > 0) {
-          sessionStorage.removeItem("eauxle_declined_anon_attempts");
-        }
-
         // No SSR → initializeGame (2 roundtrips). Includes automatic retry on
         // challenge-without-session (timing issue with cookie propagation).
         performance.mark("eauxle:game_fetch_start");
-        const { challenge, session } = await fetchChallengeAndSession(
-          undefined,
-          undefined,
-          inheritedCount,
-        );
+        const { challenge, session } = await fetchChallengeAndSession();
         performance.mark("eauxle:game_fetch_end");
         performance.measure(
           "eauxle.game_fetch",
@@ -501,11 +482,6 @@ export function GameProvider({
           setSessionId(session.sessionId);
           setNonce(session.nonce);
           if (session.imageUrl) setImageUrl(session.imageUrl);
-
-          // Restore baseAttemptCount for new sessions with no guess history
-          if (inheritedCount > 0 && session.guesses.length === 0) {
-            setBaseAttemptCount(inheritedCount);
-          }
 
           // If session returned answer (game over), update dailyPerfume
           if (session.answerName) {

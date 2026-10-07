@@ -392,29 +392,19 @@ describe("getPlayerDailySession", () => {
 describe("initializeAndGuess — Zod validation", () => {
   it("throws ZodError for invalid challengeId", async () => {
     await expect(
-      initializeAndGuess("not-uuid", VALID_PERFUME_ID, 0),
+      initializeAndGuess("not-uuid", VALID_PERFUME_ID),
     ).rejects.toThrow();
   });
 
   it("throws ZodError for invalid perfumeId", async () => {
     await expect(
-      initializeAndGuess(VALID_CHALLENGE_ID, "not-uuid", 0),
-    ).rejects.toThrow();
-  });
-
-  it("throws ZodError for negative inheritedCount", async () => {
-    await expect(
-      initializeAndGuess(VALID_CHALLENGE_ID, VALID_PERFUME_ID, -1),
+      initializeAndGuess(VALID_CHALLENGE_ID, "not-uuid"),
     ).rejects.toThrow();
   });
 });
 
 describe("initializeAndSkip — Zod validation", () => {
   it("throws ZodError for invalid challengeId", async () => {
-    await expect(initializeAndSkip("not-uuid", 0)).rejects.toThrow();
-  });
-
-  it("throws ZodError for negative inheritedCount", async () => {
-    await expect(initializeAndSkip(VALID_CHALLENGE_ID, -1)).rejects.toThrow();
+    await expect(initializeAndSkip("not-uuid")).rejects.toThrow();
   });
 });

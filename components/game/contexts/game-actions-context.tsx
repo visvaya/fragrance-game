@@ -105,18 +105,6 @@ function defaultSetSessionReady(_value: SetStateAction<boolean>): void {
 }
 
 /**
- * Reads and clears the inherited attempt count stored in sessionStorage
- * when a player declined anonymous session migration.
- */
-function readAndClearInheritedCount(): number {
-  const stored = sessionStorage.getItem("eauxle_declined_anon_attempts");
-  if (stored !== null)
-    sessionStorage.removeItem("eauxle_declined_anon_attempts");
-  const parsed = Number.parseInt(stored ?? "0", 10);
-  return Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
-}
-
-/**
  * Resolves a guess: submits to an existing session, or lazily creates a session
  * and submits in one roundtrip (Gate 6 deferred startGame).
  * On lazy init path also updates sessionId, nonce, imageUrl, and sessionReady.
@@ -133,11 +121,7 @@ async function resolveGuess(
 ): Promise<SubmitGuessResult> {
   if (sessionId) return submitGuess(sessionId, perfumeId, nonce);
   if (!challengeId) throw new Error("challengeId missing for lazy game init");
-  const init = await initializeAndGuess(
-    challengeId,
-    perfumeId,
-    readAndClearInheritedCount(),
-  );
+  const init = await initializeAndGuess(challengeId, perfumeId);
   setSessionId(init.sessionId);
   setNonce(init.nonce);
   if (init.imageUrl) setImageUrl(init.imageUrl);
@@ -161,10 +145,7 @@ async function resolveSkip(
 ): Promise<SkipAttemptResult> {
   if (sessionId) return skipAttempt(sessionId, nonce);
   if (!challengeId) throw new Error("challengeId missing for lazy game init");
-  const init = await initializeAndSkip(
-    challengeId,
-    readAndClearInheritedCount(),
-  );
+  const init = await initializeAndSkip(challengeId);
   setSessionId(init.sessionId);
   setNonce(init.nonce);
   if (init.imageUrl) setImageUrl(init.imageUrl);

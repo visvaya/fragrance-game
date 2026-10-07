@@ -8,6 +8,9 @@ vi.mock("@/lib/supabase/server", () => ({
   createAdminClient: vi.fn(),
   createClient: vi.fn(),
 }));
+vi.mock("@/lib/auth/guest-ticket-cookie", () => ({
+  issueGuestTicket: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock("@/lib/redis", () => ({
   checkRateLimit: vi.fn().mockResolvedValue(true),
 }));
