@@ -311,7 +311,16 @@ CREATE TABLE public.perfume_assets (
   CONSTRAINT perfume_assets_perfume_id_fkey FOREIGN KEY (perfume_id) REFERENCES public.perfumes(id) ON DELETE CASCADE,
   CONSTRAINT perfume_assets_asset_random_id_key UNIQUE (asset_random_id),
   CONSTRAINT perfume_assets_asset_random_id_format CHECK ((asset_random_id ~ '^[0-9a-f]{32}$'::text)),
-  CONSTRAINT perfume_assets_step_keys_distinct CHECK (((((((image_key_step_1 <> image_key_step_2) AND (image_key_step_1 <> image_key_step_3)) AND (image_key_step_1 <> image_key_step_4)) AND (image_key_step_1 <> image_key_step_5)) AND (image_key_step_1 <> image_key_step_6)) AND ((((image_key_step_2 <> image_key_step_3) AND (image_key_step_2 <> image_key_step_4)) AND (image_key_step_2 <> image_key_step_5)) AND (image_key_step_2 <> image_key_step_6)) AND (((image_key_step_3 <> image_key_step_4) AND (image_key_step_3 <> image_key_step_5)) AND (image_key_step_3 <> image_key_step_6)) AND ((image_key_step_4 <> image_key_step_5) AND (image_key_step_4 <> image_key_step_6)) AND (image_key_step_5 <> image_key_step_6))),
+  -- Written as in the migration that added it: NOT IN keeps the nested form production stores.
+  CONSTRAINT perfume_assets_step_keys_distinct CHECK (
+    image_key_step_1 NOT IN (image_key_step_2, image_key_step_3, image_key_step_4,
+                             image_key_step_5, image_key_step_6)
+    AND image_key_step_2 NOT IN (image_key_step_3, image_key_step_4, image_key_step_5,
+                                 image_key_step_6)
+    AND image_key_step_3 NOT IN (image_key_step_4, image_key_step_5, image_key_step_6)
+    AND image_key_step_4 NOT IN (image_key_step_5, image_key_step_6)
+    AND image_key_step_5 <> image_key_step_6
+  ),
   CONSTRAINT perfume_assets_step_keys_format CHECK (((image_key_step_1 ~ (('^a/'::text || asset_random_id) || '/[0-9a-f]{32}\.avif$'::text)) AND (image_key_step_2 ~ (('^a/'::text || asset_random_id) || '/[0-9a-f]{32}\.avif$'::text)) AND (image_key_step_3 ~ (('^a/'::text || asset_random_id) || '/[0-9a-f]{32}\.avif$'::text)) AND (image_key_step_4 ~ (('^a/'::text || asset_random_id) || '/[0-9a-f]{32}\.avif$'::text)) AND (image_key_step_5 ~ (('^a/'::text || asset_random_id) || '/[0-9a-f]{32}\.avif$'::text)) AND (image_key_step_6 ~ (('^a/'::text || asset_random_id) || '/[0-9a-f]{32}\.avif$'::text))))
 );
 
