@@ -12,6 +12,8 @@ updates:
       day: monday
       timezone: Europe/Warsaw
     open-pull-requests-limit: 5
+    # Direct dependencies are pinned exactly; raise the pin to the new version.
+    versioning-strategy: increase
     cooldown:
       default-days: 7
     commit-message:
