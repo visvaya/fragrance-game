@@ -1,8 +1,40 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { validatePasswordSafety } from "@/app/actions/security-actions";
+import { checkRateLimit } from "@/lib/redis";
+
+vi.mock("next/headers", () => ({
+  headers: vi
+    .fn()
+    .mockResolvedValue(
+      new Headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1" }),
+    ),
+}));
+
+vi.mock("@/lib/redis", () => ({
+  checkRateLimit: vi.fn().mockResolvedValue(undefined),
+}));
 
 describe("validatePasswordSafety", () => {
+  describe("rate limit", () => {
+    it("counts each check against the client IP", async () => {
+      await validatePasswordSafety("Eauxle!Fragrance2024$");
+      expect(checkRateLimit).toHaveBeenCalledWith(
+        "passwordCheck",
+        "203.0.113.7",
+      );
+    });
+
+    it("rejects without an answer once the limit is exceeded", async () => {
+      vi.mocked(checkRateLimit).mockRejectedValueOnce(
+        new Error("Rate limit exceeded"),
+      );
+      await expect(validatePasswordSafety("Passw0rd")).rejects.toThrow(
+        "Rate limit exceeded",
+      );
+    });
+  });
+
   describe("safe passwords", () => {
     it("returns isSafe: true for a strong password", async () => {
       const result = await validatePasswordSafety("Eauxle!Fragrance2024$");
