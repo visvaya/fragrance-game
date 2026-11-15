@@ -21,7 +21,7 @@ pnpm typecheck && pnpm lint:strict && pnpm format:check && pnpm test
 For a change to the interface, also run the end-to-end tests in one browser:
 
 ```bash
-pnpm test:e2e -- --project=chromium
+pnpm test:e2e --project=chromium
 ```
 
 Conventions that review looks for beyond what the linters enforce:
