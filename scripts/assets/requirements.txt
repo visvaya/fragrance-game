@@ -1,5 +1,5 @@
 Pillow>=13.0.0
-numpy>=2.5.3
+numpy>=2.5.4
 boto3
 supabase
 python-dotenv
