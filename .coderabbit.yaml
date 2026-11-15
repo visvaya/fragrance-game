@@ -1,0 +1,105 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+tone_instructions: >-
+  Plain, direct English without emoji. Name the file and line, the defect and its effect on
+  players, their data or the daily puzzle.
+reviews:
+  profile: chill
+  high_level_summary_in_walkthrough: true
+  poem: false
+  in_progress_fortune: false
+  suggested_reviewers: false
+  sequence_diagrams: false
+  commit_status: true
+  fail_commit_status: true
+  auto_review:
+    enabled: true
+    auto_pause_after_reviewed_commits: 0
+  path_filters:
+    - "!**/pnpm-lock.yaml"
+    - "!types/supabase.ts"
+    - "!lib/validations/supabase.schema.ts"
+  pre_merge_checks:
+    title:
+      mode: warning
+      requirements: >-
+        Conventional Commits: type(optional scope): subject in English, imperative mood, lower
+        case, no trailing period, at most 72 characters. The title becomes the squash commit.
+  tools:
+    # The CI gate already runs these with the project's own configuration.
+    eslint:
+      enabled: false
+    gitleaks:
+      enabled: false
+    semgrep:
+      enabled: false
+    # Polish UI text and notes are deliberate; spelling suggestions are noise here.
+    languagetool:
+      enabled: false
+  path_instructions:
+    - path: "**"
+      instructions: >-
+        Eauxle is a public daily perfume guessing game (Next.js 16 App Router, React 19,
+        Supabase, Tailwind v4, next-intl). Prefix a comment about a problem this pull request
+        did not cause with "Pre-existing:". Do not comment on what the CI gate enforces:
+        TypeScript (pnpm typecheck), ESLint with the project's rules (pnpm lint:strict: no
+        useEffect without a named hook, kebab-case file names, JSDoc on exports, no any),
+        Prettier (pnpm format:check), Vitest coverage thresholds, pgTAP, Semgrep, gitleaks and
+        the Supabase security advisor. Prefer lean code: reuse existing helpers, no option or
+        abstraction without a current user, remove dead code in the same change. Never
+        Math.random(), Date.now(), window or document during render (hydration mismatch).
+        Supabase queries never use select('*'), and every select() ends with .limit(),
+        .single() or .maybeSingle(). External data is parsed with Zod (v4 API).
+    - path: "app/actions/**"
+      instructions: >-
+        Every export of a "use server" file is a public endpoint anyone can call with any
+        arguments: validate input with Zod, identify the player only with auth.getUser() on
+        the server, never trust a player id, session id or score sent by the client, and do
+        not export helpers from these files. The browser must never receive the answer
+        (name, concentration) before the game ends, nor clues beyond the current attempt.
+    - path: "lib/game/**"
+      instructions: >-
+        Game state (game_sessions, game_results, player_streaks) is written only by the server
+        with the service key through lib/game/session-writes.ts. Client roles may only read
+        their own rows under RLS. Scoring and reveal rules must stay pure and tested.
+    - path: "lib/auth/**"
+      instructions: >-
+        Guest game transfer requires proof of guest ownership (signed httpOnly cookie), never
+        an id from localStorage or a request body. Moving games from a guest to an account
+        must stay atomic (one SQL function).
+    - path: "scripts/assets/**"
+      instructions: >-
+        Image keys must not be guessable: a/{32 hex}/{32 hex}.avif from asset_keys.py. The
+        server hands out only the current step's URL. Publishing order: upload the files,
+        write the perfume_assets row, only then delete the old directory. Python 3.12+, type
+        hints, PEP 8, no mutation of inputs.
+    - path: "supabase/migrations/**"
+      instructions: >-
+        Every table has RLS. Supabase grants anon and authenticated full rights on new tables
+        and EXECUTE on new functions in public by default: a migration revokes them explicitly
+        and grants only what the client needs. New foreign keys get an index. Columns in a
+        UNIQUE constraint are NOT NULL or use NULLS NOT DISTINCT. Extension functions are
+        schema-qualified (extensions.similarity()). Views for the client use
+        security_invoker and expose no spoiler columns. Each privilege change has a pgTAP
+        assertion in supabase/tests. Migrations are applied to production by hand, one file
+        at a time, so a migration must be safe to apply on its own.
+    - path: "**/*.tsx"
+      instructions: >-
+        All UI text goes through next-intl and exists in both messages/en.json and
+        messages/pl.json. Sizes and spacing in rem, not px (the "Large text" option scales
+        the root font size). Colours only from the OKLCH theme tokens; fonts Playfair
+        Display, Geist Sans and Caveat as the theme defines. Keyboard access, ARIA names and
+        WCAG AA contrast for every interactive element. Server Components by default.
+    - path: "messages/**"
+      instructions: >-
+        Every key exists in both en.json and pl.json. In Polish, "perfumy" is plural only
+        ("te same perfumy", never "perfuma"). No em dash (U+2014) in UI text.
+    - path: "docs/**"
+      instructions: >-
+        Public documentation in English. docs/known-debt.md lists accepted shortcuts: an
+        entry describes the shortcut, its risk and the condition for removing it.
+chat:
+  art: false
+knowledge_base:
+  learnings:
+    scope: local
