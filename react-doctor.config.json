@@ -1,8 +1,0 @@
-{
-  "ignore": {
-    "files": ["lib/validations/supabase.schema.ts", "types/supabase.ts"]
-  },
-  "verbose": true,
-  "diff": false,
-  "ami": false
-}

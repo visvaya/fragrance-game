@@ -62,7 +62,6 @@
     "test:db": "pnpm supabase test db",
     "test:db:lint": "pnpm supabase db lint --level warning",
     "generate:zod": "tsx scripts/generate-zod.ts --input types/supabase.ts --output lib/validations/supabase.schema.ts",
-    "audit:react": "pnpm dlx react-doctor@latest . --verbose --offline --no-ami --yes",
     "lint:circular": "madge --circular .",
     "lint:duplicates": "jscpd app lib components",
     "lint:arch": "depcruise .",
