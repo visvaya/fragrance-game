@@ -4,6 +4,10 @@ A daily puzzle for perfume lovers, inspired by Wordle. Guess the mystery perfume
 
 Play at [eauxle.vercel.app](https://eauxle.vercel.app).
 
+## Status
+
+The game is live with a new puzzle every day, in English and Polish; you can play without an account. The latest release is [0.9.0](https://github.com/visvaya/fragrance-game/releases/tag/v0.9.0) (2026-09-27); the project is under active development, so gameplay and interface may still change before 1.0. Only the deployed version built from `main` receives fixes (see [docs/SECURITY.md](./docs/SECURITY.md)).
+
 ## How it works
 
 **Eauxle** (pronounced "oksle") has one new perfume per day and six attempts. Each wrong guess or skip reveals more:
@@ -40,6 +44,8 @@ pnpm format:check
 pnpm test            # unit and component tests (Vitest)
 pnpm test:e2e        # end-to-end tests (Playwright)
 ```
+
+Contributions are welcome: see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Tech stack
 
