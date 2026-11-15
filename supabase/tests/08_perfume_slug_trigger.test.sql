@@ -14,8 +14,8 @@ SELECT lives_ok(
 
 SELECT lives_ok(
   $$INSERT INTO public.perfumes (brand_id, name, source_record_slug)
-    SELECT id, 'Pgtap Slug Probe', 'pgtap-slug-probe-2' FROM public.brands WHERE slug IS NOT NULL ORDER BY id LIMIT 1$$,
-  'a second perfume with the same brand and name inserts too'
+    SELECT id, 'pgtap slug probe', 'pgtap-slug-probe-2' FROM public.brands WHERE slug IS NOT NULL ORDER BY id LIMIT 1$$,
+  'a second perfume whose name gives the same base slug inserts too'
 );
 
 SELECT is(
