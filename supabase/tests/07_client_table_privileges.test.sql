@@ -33,9 +33,11 @@ SELECT is(
 );
 
 SELECT is(
-  (SELECT count(*)::int FROM pg_default_acl d JOIN pg_namespace n ON n.oid = d.defaclnamespace,
-     aclexplode(d.defaclacl) a
-   WHERE n.nspname = 'public' AND d.defaclobjtype = 'r' AND d.defaclrole = 'postgres'::regrole
+  -- Schema-level defaults for public plus global ones (defaclnamespace = 0), which a schema-level
+  -- revoke cannot remove.
+  (SELECT count(*)::int FROM pg_default_acl d, aclexplode(d.defaclacl) a
+   WHERE (d.defaclnamespace = 0 OR d.defaclnamespace = 'public'::regnamespace)
+     AND d.defaclobjtype = 'r' AND d.defaclrole = 'postgres'::regrole
      AND a.grantee IN ('anon'::regrole, 'authenticated'::regrole)
      AND a.privilege_type IN ('TRUNCATE', 'TRIGGER', 'REFERENCES', 'MAINTAIN')),
   0,
