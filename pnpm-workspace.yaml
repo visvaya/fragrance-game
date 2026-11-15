@@ -1,6 +1,14 @@
 packages:
   - "."
 
+# Direct dependencies are pinned to exact versions; `pnpm add` keeps it that way.
+# The lockfile pins the rest, and every change arrives as a reviewed update pull request.
+savePrefix: ""
+
+# Install only versions published at least 3 days ago (minutes), so a compromised release
+# has time to be noticed and pulled before it reaches this project.
+minimumReleaseAge: 4320
+
 # pnpm 11 reads allowBuilds; pnpm 9/10 (Vercel picks pnpm from lockfileVersion) read onlyBuiltDependencies.
 allowBuilds:
   "@parcel/watcher": true
@@ -48,8 +56,6 @@ overrides:
   "flatted@<3.4.0": ">=3.4.0"
   "undici@>=7.0.0 <7.24.0": ">=7.24.0"
   "undici@>=7.17.0 <7.24.0": ">=7.24.0"
-  "next@>=16.0.0-beta.0 <16.1.7": ">=16.1.7"
-  "next@>=16.0.1 <16.1.7": ">=16.1.7"
   "socket.io-parser@>=4.0.0 <4.2.6": ">=4.2.6"
   "fast-xml-parser@>=5.0.0 <5.5.6": ">=5.5.6"
   "flatted@<=3.4.1": ">=3.4.2"
@@ -67,11 +73,9 @@ overrides:
   "yaml@>=1.0.0 <1.10.3": ">=1.10.3"
   "dompurify@>=3.1.3 <=3.3.1": ">=3.3.2"
   "picomatch": ">=4.0.4"
-  "minimatch": ">=10.2.3"
+  "minimatch": ">=10.2.3 <11"
   "lodash@>=4.0.0 <=4.17.23": ">=4.18.0"
   "lodash@<=4.17.23": ">=4.18.0"
-  "next@>=16.0.0-beta.0 <16.2.3": ">=16.2.3"
-  "next-intl@<4.9.1": ">=4.9.1"
   "depcheck>minimatch": "^7.4.6"
   "fast-uri@<3.1.6": ">=3.1.6 <4"
   "brace-expansion@>=5.0.0 <5.0.9": ">=5.0.9 <6"
