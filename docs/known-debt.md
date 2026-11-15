@@ -110,12 +110,6 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 - **Shortcut:** the `import_runs` and `import_conflicts` tables are never written; duplicates are dropped keep-first instead of merged.
 - **Done when:** each import writes a run record and its conflicts.
 
-## Client IP taken from `x-forwarded-for`
-
-- **Where:** `proxy.ts` and `app/actions/autocomplete.ts` (per-IP rate limits).
-- **Shortcut:** the first value of the header is trusted. Vercel sets the header itself, so this is safe there; behind a self-hosted reverse proxy that appends to the header, clients could choose their own IP and bypass per-IP limits.
-- **Done when:** before moving off Vercel, the IP is taken from the hop added by the trusted proxy.
-
 ## Local and production migration histories are disjoint
 
 - **Where:** `supabase/migrations/` versus `supabase_migrations.schema_migrations` in production.
@@ -127,11 +121,6 @@ Deliberate shortcuts that are safe for now but should be paid off. Each entry sa
 
 - **Where:** `lib/game/scoring.ts` (`yearMask` templates, correct only for years starting with 1 and read only by tests) and `lib/game/clue-reveal.ts` (letter reveal fractions repeated instead of read from `getRevealPercentages()`).
 - **Done when:** one reveal table drives the clue masking and the score data, and unused fields are gone.
-
-## No rate limit on the password safety check
-
-- **Where:** `app/actions/security-actions.ts`, `validatePasswordSafety` (no rate limit).
-- **Done when:** the password check has a per-IP limit in `lib/redis.ts`.
 
 ## No privacy policy or consent choice
 
