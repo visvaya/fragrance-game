@@ -83,6 +83,11 @@ overrides:
   "tar@<7.5.21": ">=7.5.21 <8"
   "ws@>=7.0.0 <7.5.11": ">=7.5.11 <8"
   "@humanfs/node@<0.16.8": ">=0.16.8 <0.17"
+  # GHSA-3g3m-2fjr-6pw4 (glob) and GHSA-g3hv-75wg-m249 (minimatch through glob): Sentry's
+  # bundler plugins ask for glob ^13; remove both entries once they depend on glob >=14.0.2.
+  "@sentry/bundler-plugin-core>glob": "14.0.5"
+  "@sentry/bundler-plugins>glob": "14.0.5"
+  "glob@14>minimatch": "11.0.8"
 
 peerDependencyRules:
   "ignoreMissing":
