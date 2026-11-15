@@ -5,6 +5,10 @@ packages:
 # The lockfile pins the rest, and every change arrives as a reviewed update pull request.
 savePrefix: ""
 
+# Install only versions published at least 3 days ago (minutes), so a compromised release
+# has time to be noticed and pulled before it reaches this project.
+minimumReleaseAge: 4320
+
 # pnpm 11 reads allowBuilds; pnpm 9/10 (Vercel picks pnpm from lockfileVersion) read onlyBuiltDependencies.
 allowBuilds:
   "@parcel/watcher": true
