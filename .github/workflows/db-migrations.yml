@@ -1,0 +1,45 @@
+name: Database from migrations
+
+# Builds an empty local database from supabase/migrations and seed.sql, without secrets or access to
+# production. Its schema fingerprint must equal production's, kept in supabase/schema-fingerprint.txt;
+# then the pgTAP suite runs against it.
+on:
+  pull_request:
+    branches: [main]
+  # Also on pushes that change the schema, so a branch can be checked before its pull request.
+  push:
+    paths:
+      - "supabase/**"
+      - ".github/workflows/db-migrations.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  db-from-migrations:
+    name: Database from migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Start a local database from the migrations
+        run: pnpm exec supabase db start
+      - name: Compare the schema fingerprint with production
+        run: |
+          psql "$LOCAL_DB_URL" -X -q -A -t -v ON_ERROR_STOP=1 -f supabase/schema-fingerprint.sql > "$RUNNER_TEMP/schema-fingerprint.txt"
+          md5sum supabase/schema-fingerprint.txt "$RUNNER_TEMP/schema-fingerprint.txt"
+          diff -u supabase/schema-fingerprint.txt "$RUNNER_TEMP/schema-fingerprint.txt"
+      - name: Run pgTAP tests on the local database
+        run: pnpm exec supabase test db

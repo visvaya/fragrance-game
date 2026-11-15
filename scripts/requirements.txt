@@ -3,5 +3,4 @@ numpy>=2.5.4
 supabase
 python-dotenv
 tqdm
-psycopg2-binary
 boto3

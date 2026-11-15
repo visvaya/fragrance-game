@@ -1,0 +1,619 @@
+01 extension | fuzzystrmatch schema=extensions
+01 extension | pg_trgm schema=extensions
+01 extension | unaccent schema=extensions
+01 extension | uuid-ossp schema=extensions
+02 relation | app_admins kind=r owner=postgres rls=true force=false options=-
+02 relation | brand_aliases kind=r owner=postgres rls=true force=false options=-
+02 relation | brand_aliases_etl kind=r owner=postgres rls=true force=false options=-
+02 relation | brands kind=r owner=postgres rls=true force=false options=-
+02 relation | concentrations kind=r owner=postgres rls=true force=false options=-
+02 relation | daily_challenges kind=r owner=postgres rls=true force=false options=-
+02 relation | daily_challenges_challenge_number_seq kind=S owner=postgres rls=false force=false options=-
+02 relation | daily_challenges_public kind=v owner=postgres rls=false force=false options={security_invoker=true}
+02 relation | game_results kind=r owner=postgres rls=true force=false options=-
+02 relation | game_sessions kind=r owner=postgres rls=true force=false options=-
+02 relation | import_conflicts kind=r owner=postgres rls=true force=false options=-
+02 relation | import_runs kind=r owner=postgres rls=true force=false options=-
+02 relation | manufacturers kind=r owner=postgres rls=true force=false options=-
+02 relation | notes kind=r owner=postgres rls=true force=false options=-
+02 relation | perfume_asset_sources kind=r owner=postgres rls=true force=false options=-
+02 relation | perfume_assets kind=r owner=postgres rls=true force=false options=-
+02 relation | perfume_autocomplete_cache kind=m owner=postgres rls=false force=false options=-
+02 relation | perfume_notes kind=r owner=postgres rls=true force=false options=-
+02 relation | perfume_perfumers kind=r owner=postgres rls=true force=false options=-
+02 relation | perfume_revisions kind=r owner=postgres rls=true force=false options=-
+02 relation | perfume_source_urls kind=r owner=postgres rls=true force=false options=-
+02 relation | perfumers kind=r owner=postgres rls=true force=false options=-
+02 relation | perfumes kind=r owner=postgres rls=true force=false options=-
+02 relation | perfumes_public kind=v owner=postgres rls=false force=false options={security_invoker=true}
+02 relation | player_auth_links kind=r owner=postgres rls=true force=false options=-
+02 relation | player_profiles kind=r owner=postgres rls=true force=false options=-
+02 relation | player_streaks kind=r owner=postgres rls=true force=false options=-
+02 relation | players kind=r owner=postgres rls=true force=false options=-
+02 relation | raw_import_rows kind=r owner=postgres rls=true force=false options=-
+02 relation | recovery_keys kind=r owner=postgres rls=true force=false options=-
+02 relation | seasons kind=r owner=postgres rls=true force=false options=-
+02 relation | streak_freezes kind=r owner=postgres rls=true force=false options=-
+02 relation | teams kind=r owner=postgres rls=true force=false options=-
+02 relation | user_sessions kind=r owner=postgres rls=true force=false options=-
+03 column | app_admins.001 user_id uuid not null
+03 column | app_admins.002 created_at timestamp with time zone default now()
+03 column | brand_aliases.001 alias_norm text not null
+03 column | brand_aliases.002 brand_id uuid not null
+03 column | brand_aliases_etl.001 id uuid not null default extensions.uuid_generate_v4()
+03 column | brand_aliases_etl.002 alias_name text not null
+03 column | brand_aliases_etl.003 normalized_name text not null
+03 column | brand_aliases_etl.004 brand_id uuid
+03 column | brand_aliases_etl.005 created_at timestamp with time zone default now()
+03 column | brands.001 id uuid not null default extensions.uuid_generate_v4()
+03 column | brands.002 name text not null
+03 column | brands.003 slug text not null
+03 column | brands.004 created_at timestamp with time zone default now()
+03 column | concentrations.001 id uuid not null default extensions.uuid_generate_v4()
+03 column | concentrations.002 name text not null
+03 column | concentrations.003 slug text not null
+03 column | daily_challenges.001 id uuid not null default extensions.uuid_generate_v4()
+03 column | daily_challenges.002 challenge_number integer not null default nextval('public.daily_challenges_challenge_number_seq'::regclass)
+03 column | daily_challenges.003 challenge_date date not null
+03 column | daily_challenges.004 perfume_id uuid not null
+03 column | daily_challenges.005 mode text default 'standard'::text
+03 column | daily_challenges.006 seed_hash text not null
+03 column | daily_challenges.007 snapshot_metadata jsonb not null
+03 column | daily_challenges.008 snapshot_schema_version integer not null default 1
+03 column | daily_challenges.009 created_at timestamp with time zone default now()
+03 column | daily_challenges.010 grace_deadline_at_utc timestamp with time zone not null
+03 column | daily_challenges_public.001 id uuid
+03 column | daily_challenges_public.002 challenge_date date
+03 column | daily_challenges_public.003 mode text
+03 column | daily_challenges_public.004 grace_deadline_at_utc timestamp with time zone
+03 column | daily_challenges_public.005 snapshot_metadata jsonb
+03 column | game_results.001 id uuid not null default gen_random_uuid()
+03 column | game_results.002 challenge_id uuid
+03 column | game_results.003 player_id uuid
+03 column | game_results.004 session_id uuid
+03 column | game_results.005 status text default 'won'::text
+03 column | game_results.006 score integer not null
+03 column | game_results.007 score_raw integer not null default 0
+03 column | game_results.008 attempts integer not null
+03 column | game_results.009 time_seconds integer not null
+03 column | game_results.010 completed_at timestamp with time zone default now()
+03 column | game_results.011 scoring_version integer not null default 1
+03 column | game_results.012 is_ranked boolean not null default true
+03 column | game_results.013 ranked_reason text
+03 column | game_sessions.001 id uuid not null default gen_random_uuid()
+03 column | game_sessions.002 challenge_id uuid
+03 column | game_sessions.003 player_id uuid
+03 column | game_sessions.004 start_time timestamp with time zone default now()
+03 column | game_sessions.005 last_guess timestamp with time zone default now()
+03 column | game_sessions.006 attempts_count integer default 0
+03 column | game_sessions.007 last_nonce text default 0
+03 column | game_sessions.008 guesses jsonb default '[]'::jsonb
+03 column | game_sessions.009 status text default 'active'::text
+03 column | game_sessions.010 metadata jsonb default '{}'::jsonb
+03 column | import_conflicts.001 id uuid not null default gen_random_uuid()
+03 column | import_conflicts.002 import_run_id uuid not null
+03 column | import_conflicts.003 raw_row_id uuid not null
+03 column | import_conflicts.004 conflict_type text not null
+03 column | import_conflicts.005 details jsonb
+03 column | import_conflicts.006 resolved boolean default false
+03 column | import_runs.001 id uuid not null default gen_random_uuid()
+03 column | import_runs.002 catalog_version text not null
+03 column | import_runs.003 created_at timestamp with time zone not null default now()
+03 column | manufacturers.001 id uuid not null default extensions.uuid_generate_v4()
+03 column | manufacturers.002 name text not null
+03 column | notes.001 id uuid not null default extensions.uuid_generate_v4()
+03 column | notes.002 name text not null
+03 column | notes.003 slug text not null
+03 column | notes.004 display_name text not null
+03 column | notes.005 hints text[] default '{}'::text[]
+03 column | perfume_asset_sources.001 id uuid not null default gen_random_uuid()
+03 column | perfume_asset_sources.002 perfume_id uuid
+03 column | perfume_asset_sources.003 version integer not null default 1
+03 column | perfume_asset_sources.004 source_url text not null
+03 column | perfume_asset_sources.005 source_type text not null default 'web_catalog'::text
+03 column | perfume_asset_sources.006 license_status text default 'unknown'::text
+03 column | perfume_asset_sources.007 takedown_status text default 'active'::text
+03 column | perfume_asset_sources.008 original_filename text
+03 column | perfume_asset_sources.009 scraped_at timestamp with time zone default now()
+03 column | perfume_assets.001 perfume_id uuid not null
+03 column | perfume_assets.002 asset_random_id text not null
+03 column | perfume_assets.003 image_key_step_1 text not null
+03 column | perfume_assets.004 image_key_step_2 text not null
+03 column | perfume_assets.005 image_key_step_3 text not null
+03 column | perfume_assets.006 image_key_step_4 text not null
+03 column | perfume_assets.007 image_key_step_5 text not null
+03 column | perfume_assets.008 image_key_step_6 text not null
+03 column | perfume_assets.009 created_at timestamp with time zone default now()
+03 column | perfume_assets.010 updated_at timestamp with time zone default now()
+03 column | perfume_autocomplete_cache.001 perfume_id uuid
+03 column | perfume_autocomplete_cache.002 name text
+03 column | perfume_autocomplete_cache.003 brand_name text
+03 column | perfume_autocomplete_cache.004 release_year integer
+03 column | perfume_autocomplete_cache.005 concentration_name text
+03 column | perfume_autocomplete_cache.006 name_norm text
+03 column | perfume_autocomplete_cache.007 brand_norm text
+03 column | perfume_autocomplete_cache.008 brand_name_concat text
+03 column | perfume_autocomplete_cache.009 name_brand_concat text
+03 column | perfume_autocomplete_cache.010 name_phonetic text
+03 column | perfume_autocomplete_cache.011 brand_phonetic text
+03 column | perfume_autocomplete_cache.012 concentration_rank integer
+03 column | perfume_autocomplete_cache.013 name_length integer
+03 column | perfume_notes.001 perfume_id uuid not null
+03 column | perfume_notes.002 note_id uuid not null
+03 column | perfume_notes.003 type text not null
+03 column | perfume_notes.004 qualifiers text[] default '{}'::text[]
+03 column | perfume_perfumers.001 perfume_id uuid not null
+03 column | perfume_perfumers.002 perfumer_id uuid not null
+03 column | perfume_revisions.001 id uuid not null default gen_random_uuid()
+03 column | perfume_revisions.002 perfume_id uuid not null
+03 column | perfume_revisions.003 import_run_id uuid
+03 column | perfume_revisions.004 changed_at timestamp with time zone not null default now()
+03 column | perfume_revisions.005 diff_jsonb jsonb not null
+03 column | perfume_source_urls.001 id uuid not null default gen_random_uuid()
+03 column | perfume_source_urls.002 perfume_id uuid not null
+03 column | perfume_source_urls.003 url text not null
+03 column | perfume_source_urls.004 last_seen_at timestamp with time zone not null default now()
+03 column | perfumers.001 id uuid not null default extensions.uuid_generate_v4()
+03 column | perfumers.002 name text not null
+03 column | perfumes.001 id uuid not null default extensions.uuid_generate_v4()
+03 column | perfumes.002 brand_id uuid not null
+03 column | perfumes.003 name text not null
+03 column | perfumes.004 source_record_slug text not null
+03 column | perfumes.005 unique_slug text
+03 column | perfumes.006 release_year integer
+03 column | perfumes.007 concentration_id uuid
+03 column | perfumes.008 gender text
+03 column | perfumes.009 manufacturer_id uuid
+03 column | perfumes.010 is_uncertain boolean default false
+03 column | perfumes.011 is_linear boolean default false
+03 column | perfumes.012 is_active boolean default true
+03 column | perfumes.013 games_played integer not null default 0
+03 column | perfumes.014 solve_rate double precision
+03 column | perfumes.015 xsolve_score double precision default 0
+03 column | perfumes.016 xsolve_model_version integer default 1
+03 column | perfumes.017 fingerprint_strict text
+03 column | perfumes.018 fingerprint_loose text
+03 column | perfumes.019 created_at timestamp with time zone default now()
+03 column | perfumes.020 top_notes text[] default '{}'::text[]
+03 column | perfumes.021 middle_notes text[] default '{}'::text[]
+03 column | perfumes.022 base_notes text[] default '{}'::text[]
+03 column | perfumes.023 perfumers text[] default '{}'::text[]
+03 column | perfumes_public.001 id uuid
+03 column | perfumes_public.002 brand_id uuid
+03 column | perfumes_public.003 brand_name text
+03 column | perfumes_public.004 name text
+03 column | perfumes_public.005 unique_slug text
+03 column | perfumes_public.006 release_year integer
+03 column | perfumes_public.007 concentration_id uuid
+03 column | perfumes_public.008 concentration_name text
+03 column | perfumes_public.009 gender text
+03 column | perfumes_public.010 manufacturer_id uuid
+03 column | perfumes_public.011 is_uncertain boolean
+03 column | perfumes_public.012 is_linear boolean
+03 column | perfumes_public.013 games_played integer
+03 column | perfumes_public.014 solve_rate double precision
+03 column | player_auth_links.001 auth_user_id uuid not null
+03 column | player_auth_links.002 player_id uuid not null
+03 column | player_auth_links.003 linked_at timestamp with time zone not null default now()
+03 column | player_auth_links.004 revoked_at timestamp with time zone
+03 column | player_profiles.001 user_id uuid not null
+03 column | player_profiles.002 username text
+03 column | player_profiles.003 public_id text default "substring"(md5((random())::text), 1, 10)
+03 column | player_profiles.004 team_id uuid
+03 column | player_profiles.005 stats jsonb default '{}'::jsonb
+03 column | player_profiles.006 created_at timestamp with time zone default now()
+03 column | player_profiles.007 last_seen_at timestamp with time zone default now()
+03 column | player_streaks.001 player_id uuid not null
+03 column | player_streaks.002 current_streak integer not null default 0
+03 column | player_streaks.003 best_streak integer not null default 0
+03 column | player_streaks.004 last_played_date date
+03 column | player_streaks.005 jokers_remaining integer not null default 1
+03 column | player_streaks.006 joker_used_date date
+03 column | player_streaks.007 updated_at timestamp with time zone default now()
+03 column | players.001 id uuid not null default gen_random_uuid()
+03 column | players.002 created_at timestamp with time zone not null default now()
+03 column | players.003 last_seen_at timestamp with time zone
+03 column | raw_import_rows.001 id uuid not null default gen_random_uuid()
+03 column | raw_import_rows.002 import_run_id uuid not null
+03 column | raw_import_rows.003 brand_raw text
+03 column | raw_import_rows.004 name_raw text
+03 column | raw_import_rows.005 concentration_raw text
+03 column | raw_import_rows.006 release_year integer
+03 column | raw_import_rows.007 fp_strict text not null
+03 column | raw_import_rows.008 fp_loose text not null
+03 column | raw_import_rows.009 raw_json jsonb
+03 column | raw_import_rows.010 created_at timestamp with time zone not null default now()
+03 column | recovery_keys.001 id uuid not null default gen_random_uuid()
+03 column | recovery_keys.002 player_id uuid not null
+03 column | recovery_keys.003 key_id text not null
+03 column | recovery_keys.004 kdf text not null default 'scrypt'::text
+03 column | recovery_keys.005 salt bytea not null
+03 column | recovery_keys.006 hash bytea not null
+03 column | recovery_keys.007 params jsonb not null
+03 column | recovery_keys.008 created_at timestamp with time zone not null default now()
+03 column | recovery_keys.009 last_used_at timestamp with time zone
+03 column | recovery_keys.010 revoked_at timestamp with time zone
+03 column | recovery_keys.011 rotated_from uuid
+03 column | seasons.001 id uuid not null default extensions.uuid_generate_v4()
+03 column | seasons.002 name text not null
+03 column | seasons.003 starts_at timestamp with time zone not null
+03 column | seasons.004 ends_at timestamp with time zone not null
+03 column | seasons.005 is_active boolean default false
+03 column | streak_freezes.001 id uuid not null default extensions.uuid_generate_v4()
+03 column | streak_freezes.002 player_id uuid not null
+03 column | streak_freezes.003 for_date date not null
+03 column | streak_freezes.004 used_at timestamp with time zone default now()
+03 column | teams.001 id uuid not null default extensions.uuid_generate_v4()
+03 column | teams.002 name text not null
+03 column | teams.003 slug text not null
+03 column | user_sessions.001 id uuid not null default gen_random_uuid()
+03 column | user_sessions.002 user_id uuid not null
+03 column | user_sessions.003 session_token_hash text
+03 column | user_sessions.004 device_info jsonb default '{}'::jsonb
+03 column | user_sessions.005 ip_address inet
+03 column | user_sessions.006 last_active_at timestamp with time zone default now()
+03 column | user_sessions.007 created_at timestamp with time zone default now()
+03 column | user_sessions.008 revoked_at timestamp with time zone
+04 constraint | app_admins app_admins_pkey PRIMARY KEY (user_id)
+04 constraint | app_admins app_admins_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+04 constraint | brand_aliases brand_aliases_brand_id_fkey FOREIGN KEY (brand_id) REFERENCES public.brands(id) ON DELETE CASCADE
+04 constraint | brand_aliases brand_aliases_pkey PRIMARY KEY (alias_norm)
+04 constraint | brand_aliases_etl brand_aliases_etl_brand_id_fkey FOREIGN KEY (brand_id) REFERENCES public.brands(id)
+04 constraint | brand_aliases_etl brand_aliases_etl_pkey PRIMARY KEY (id)
+04 constraint | brands brands_name_key UNIQUE (name)
+04 constraint | brands brands_pkey PRIMARY KEY (id)
+04 constraint | brands brands_slug_key UNIQUE (slug)
+04 constraint | concentrations concentrations_name_key UNIQUE (name)
+04 constraint | concentrations concentrations_pkey PRIMARY KEY (id)
+04 constraint | concentrations concentrations_slug_key UNIQUE (slug)
+04 constraint | daily_challenges daily_challenges_challenge_date_key UNIQUE (challenge_date)
+04 constraint | daily_challenges daily_challenges_mode_check CHECK ((mode = 'standard'::text))
+04 constraint | daily_challenges daily_challenges_perfume_id_fkey FOREIGN KEY (perfume_id) REFERENCES public.perfumes(id)
+04 constraint | daily_challenges daily_challenges_pkey PRIMARY KEY (id)
+04 constraint | game_results game_results_attempts_check CHECK (((attempts >= 1) AND (attempts <= 6)))
+04 constraint | game_results game_results_challenge_id_fkey FOREIGN KEY (challenge_id) REFERENCES public.daily_challenges(id)
+04 constraint | game_results game_results_pkey PRIMARY KEY (id)
+04 constraint | game_results game_results_player_id_fkey FOREIGN KEY (player_id) REFERENCES public.players(id) ON DELETE CASCADE
+04 constraint | game_results game_results_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.game_sessions(id) ON DELETE CASCADE
+04 constraint | game_results game_results_status_check CHECK ((status = ANY (ARRAY['won'::text, 'lost'::text, 'abandoned'::text])))
+04 constraint | game_sessions game_sessions_attempts_count_check CHECK (((attempts_count >= 0) AND (attempts_count <= 6)))
+04 constraint | game_sessions game_sessions_challenge_id_fkey FOREIGN KEY (challenge_id) REFERENCES public.daily_challenges(id)
+04 constraint | game_sessions game_sessions_pkey PRIMARY KEY (id)
+04 constraint | game_sessions game_sessions_player_id_challenge_id_key UNIQUE (player_id, challenge_id)
+04 constraint | game_sessions game_sessions_player_id_fkey FOREIGN KEY (player_id) REFERENCES public.players(id) ON DELETE CASCADE
+04 constraint | game_sessions game_sessions_status_check CHECK ((status = ANY (ARRAY['active'::text, 'won'::text, 'lost'::text, 'abandoned'::text])))
+04 constraint | import_conflicts import_conflicts_import_run_id_fkey FOREIGN KEY (import_run_id) REFERENCES public.import_runs(id) ON DELETE CASCADE
+04 constraint | import_conflicts import_conflicts_pkey PRIMARY KEY (id)
+04 constraint | import_conflicts import_conflicts_raw_row_id_fkey FOREIGN KEY (raw_row_id) REFERENCES public.raw_import_rows(id) ON DELETE CASCADE
+04 constraint | import_runs import_runs_pkey PRIMARY KEY (id)
+04 constraint | manufacturers manufacturers_name_key UNIQUE (name)
+04 constraint | manufacturers manufacturers_pkey PRIMARY KEY (id)
+04 constraint | notes notes_name_key UNIQUE (name)
+04 constraint | notes notes_pkey PRIMARY KEY (id)
+04 constraint | notes notes_slug_key UNIQUE (slug)
+04 constraint | perfume_asset_sources perfume_asset_sources_perfume_id_fkey FOREIGN KEY (perfume_id) REFERENCES public.perfumes(id) ON DELETE CASCADE
+04 constraint | perfume_asset_sources perfume_asset_sources_perfume_id_version_key UNIQUE (perfume_id, version)
+04 constraint | perfume_asset_sources perfume_asset_sources_pkey PRIMARY KEY (id)
+04 constraint | perfume_asset_sources perfume_asset_sources_source_type_check CHECK ((source_type = ANY (ARRAY['web_catalog'::text, 'brand_press'::text, 'own_photo'::text, 'stock'::text])))
+04 constraint | perfume_asset_sources perfume_asset_sources_takedown_status_check CHECK ((takedown_status = ANY (ARRAY['active'::text, 'takedown_requested'::text, 'removed'::text])))
+04 constraint | perfume_assets perfume_assets_asset_random_id_format CHECK ((asset_random_id ~ '^[0-9a-f]{32}$'::text))
+04 constraint | perfume_assets perfume_assets_asset_random_id_key UNIQUE (asset_random_id)
+04 constraint | perfume_assets perfume_assets_perfume_id_fkey FOREIGN KEY (perfume_id) REFERENCES public.perfumes(id) ON DELETE CASCADE
+04 constraint | perfume_assets perfume_assets_pkey PRIMARY KEY (perfume_id)
+04 constraint | perfume_assets perfume_assets_step_keys_distinct CHECK (((((((image_key_step_1 <> image_key_step_2) AND (image_key_step_1 <> image_key_step_3)) AND (image_key_step_1 <> image_key_step_4)) AND (image_key_step_1 <> image_key_step_5)) AND (image_key_step_1 <> image_key_step_6)) AND ((((image_key_step_2 <> image_key_step_3) AND (image_key_step_2 <> image_key_step_4)) AND (image_key_step_2 <> image_key_step_5)) AND (image_key_step_2 <> image_key_step_6)) AND (((image_key_step_3 <> image_key_step_4) AND (image_key_step_3 <> image_key_step_5)) AND (image_key_step_3 <> image_key_step_6)) AND ((image_key_step_4 <> image_key_step_5) AND (image_key_step_4 <> image_key_step_6)) AND (image_key_step_5 <> image_key_step_6)))
+04 constraint | perfume_assets perfume_assets_step_keys_format CHECK (((image_key_step_1 ~ (('^a/'::text || asset_random_id) || '/[0-9a-f]{32}\.avif$'::text)) AND (image_key_step_2 ~ (('^a/'::text || asset_random_id) || '/[0-9a-f]{32}\.avif$'::text)) AND (image_key_step_3 ~ (('^a/'::text || asset_random_id) || '/[0-9a-f]{32}\.avif$'::text)) AND (image_key_step_4 ~ (('^a/'::text || asset_random_id) || '/[0-9a-f]{32}\.avif$'::text)) AND (image_key_step_5 ~ (('^a/'::text || asset_random_id) || '/[0-9a-f]{32}\.avif$'::text)) AND (image_key_step_6 ~ (('^a/'::text || asset_random_id) || '/[0-9a-f]{32}\.avif$'::text))))
+04 constraint | perfume_notes perfume_notes_note_id_fkey FOREIGN KEY (note_id) REFERENCES public.notes(id) ON DELETE CASCADE
+04 constraint | perfume_notes perfume_notes_perfume_id_fkey FOREIGN KEY (perfume_id) REFERENCES public.perfumes(id) ON DELETE CASCADE
+04 constraint | perfume_notes perfume_notes_pkey PRIMARY KEY (perfume_id, note_id, type)
+04 constraint | perfume_notes perfume_notes_type_check CHECK ((type = ANY (ARRAY['top'::text, 'middle'::text, 'base'::text])))
+04 constraint | perfume_perfumers perfume_perfumers_perfume_id_fkey FOREIGN KEY (perfume_id) REFERENCES public.perfumes(id) ON DELETE CASCADE
+04 constraint | perfume_perfumers perfume_perfumers_perfumer_id_fkey FOREIGN KEY (perfumer_id) REFERENCES public.perfumers(id) ON DELETE CASCADE
+04 constraint | perfume_perfumers perfume_perfumers_pkey PRIMARY KEY (perfume_id, perfumer_id)
+04 constraint | perfume_revisions perfume_revisions_import_run_id_fkey FOREIGN KEY (import_run_id) REFERENCES public.import_runs(id)
+04 constraint | perfume_revisions perfume_revisions_perfume_id_fkey FOREIGN KEY (perfume_id) REFERENCES public.perfumes(id) ON DELETE CASCADE
+04 constraint | perfume_revisions perfume_revisions_pkey PRIMARY KEY (id)
+04 constraint | perfume_source_urls perfume_source_urls_perfume_id_fkey FOREIGN KEY (perfume_id) REFERENCES public.perfumes(id) ON DELETE CASCADE
+04 constraint | perfume_source_urls perfume_source_urls_perfume_id_url_key UNIQUE (perfume_id, url)
+04 constraint | perfume_source_urls perfume_source_urls_pkey PRIMARY KEY (id)
+04 constraint | perfumers perfumers_name_key UNIQUE (name)
+04 constraint | perfumers perfumers_pkey PRIMARY KEY (id)
+04 constraint | perfumes perfumes_brand_id_fkey FOREIGN KEY (brand_id) REFERENCES public.brands(id) ON DELETE CASCADE
+04 constraint | perfumes perfumes_concentration_id_fkey FOREIGN KEY (concentration_id) REFERENCES public.concentrations(id)
+04 constraint | perfumes perfumes_manufacturer_id_fkey FOREIGN KEY (manufacturer_id) REFERENCES public.manufacturers(id)
+04 constraint | perfumes perfumes_pkey PRIMARY KEY (id)
+04 constraint | perfumes perfumes_release_year_check CHECK (((release_year >= 1668) AND ((release_year)::numeric <= (EXTRACT(year FROM now()) + (2)::numeric))))
+04 constraint | perfumes perfumes_source_record_slug_key UNIQUE (source_record_slug)
+04 constraint | perfumes perfumes_unique_slug_key UNIQUE (unique_slug)
+04 constraint | perfumes unique_perfume UNIQUE NULLS NOT DISTINCT (brand_id, name, concentration_id, release_year)
+04 constraint | perfumes valid_gender CHECK (((gender = ANY (ARRAY['Male'::text, 'Female'::text, 'Unisex'::text])) OR (gender IS NULL)))
+04 constraint | player_auth_links player_auth_links_pkey PRIMARY KEY (auth_user_id)
+04 constraint | player_auth_links player_auth_links_player_id_fkey FOREIGN KEY (player_id) REFERENCES public.players(id) ON DELETE CASCADE
+04 constraint | player_profiles player_profiles_pkey PRIMARY KEY (user_id)
+04 constraint | player_profiles player_profiles_public_id_key UNIQUE (public_id)
+04 constraint | player_profiles player_profiles_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
+04 constraint | player_profiles player_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.players(id) ON DELETE CASCADE
+04 constraint | player_profiles player_profiles_username_key UNIQUE (username)
+04 constraint | player_streaks player_streaks_pkey PRIMARY KEY (player_id)
+04 constraint | player_streaks player_streaks_player_id_fkey FOREIGN KEY (player_id) REFERENCES public.players(id) ON DELETE CASCADE
+04 constraint | players players_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
+04 constraint | players players_pkey PRIMARY KEY (id)
+04 constraint | raw_import_rows raw_import_rows_import_run_id_fkey FOREIGN KEY (import_run_id) REFERENCES public.import_runs(id) ON DELETE CASCADE
+04 constraint | raw_import_rows raw_import_rows_pkey PRIMARY KEY (id)
+04 constraint | recovery_keys recovery_keys_key_id_key UNIQUE (key_id)
+04 constraint | recovery_keys recovery_keys_pkey PRIMARY KEY (id)
+04 constraint | recovery_keys recovery_keys_player_id_fkey FOREIGN KEY (player_id) REFERENCES public.players(id) ON DELETE CASCADE
+04 constraint | recovery_keys recovery_keys_rotated_from_fkey FOREIGN KEY (rotated_from) REFERENCES public.recovery_keys(id)
+04 constraint | seasons seasons_pkey PRIMARY KEY (id)
+04 constraint | streak_freezes streak_freezes_pkey PRIMARY KEY (id)
+04 constraint | streak_freezes streak_freezes_player_id_fkey FOREIGN KEY (player_id) REFERENCES public.players(id) ON DELETE CASCADE
+04 constraint | streak_freezes streak_freezes_player_id_for_date_key UNIQUE (player_id, for_date)
+04 constraint | teams teams_name_key UNIQUE (name)
+04 constraint | teams teams_pkey PRIMARY KEY (id)
+04 constraint | teams teams_slug_key UNIQUE (slug)
+04 constraint | user_sessions user_sessions_pkey PRIMARY KEY (id)
+04 constraint | user_sessions user_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+05 index | CREATE INDEX idx_ac_cache_brand_name_concat ON public.perfume_autocomplete_cache USING btree (brand_name_concat text_pattern_ops)
+05 index | CREATE INDEX idx_ac_cache_brand_name_trgm ON public.perfume_autocomplete_cache USING gin (brand_name_concat extensions.gin_trgm_ops)
+05 index | CREATE INDEX idx_ac_cache_brand_norm ON public.perfume_autocomplete_cache USING btree (brand_norm text_pattern_ops)
+05 index | CREATE INDEX idx_ac_cache_brand_phonetic ON public.perfume_autocomplete_cache USING btree (brand_phonetic)
+05 index | CREATE INDEX idx_ac_cache_brand_trgm ON public.perfume_autocomplete_cache USING gin (brand_norm extensions.gin_trgm_ops)
+05 index | CREATE INDEX idx_ac_cache_concentration_rank ON public.perfume_autocomplete_cache USING btree (concentration_rank)
+05 index | CREATE INDEX idx_ac_cache_name_brand_concat ON public.perfume_autocomplete_cache USING btree (name_brand_concat text_pattern_ops)
+05 index | CREATE INDEX idx_ac_cache_name_brand_trgm ON public.perfume_autocomplete_cache USING gin (name_brand_concat extensions.gin_trgm_ops)
+05 index | CREATE INDEX idx_ac_cache_name_length ON public.perfume_autocomplete_cache USING btree (name_length)
+05 index | CREATE INDEX idx_ac_cache_name_norm ON public.perfume_autocomplete_cache USING btree (name_norm text_pattern_ops)
+05 index | CREATE INDEX idx_ac_cache_name_phonetic ON public.perfume_autocomplete_cache USING btree (name_phonetic)
+05 index | CREATE INDEX idx_ac_cache_name_trgm ON public.perfume_autocomplete_cache USING gin (name_norm extensions.gin_trgm_ops)
+05 index | CREATE INDEX idx_brands_name_trgm ON public.brands USING gin (name extensions.gin_trgm_ops)
+05 index | CREATE INDEX idx_brands_name_unaccent_trgm ON public.brands USING gin (public.f_unaccent(name) extensions.gin_trgm_ops)
+05 index | CREATE INDEX idx_game_results_session_id ON public.game_results USING btree (session_id)
+05 index | CREATE INDEX idx_perfumes_active ON public.perfumes USING btree (is_active)
+05 index | CREATE INDEX idx_perfumes_brand ON public.perfumes USING btree (brand_id)
+05 index | CREATE INDEX idx_perfumes_concentration_id ON public.perfumes USING btree (concentration_id)
+05 index | CREATE INDEX idx_perfumes_eligible ON public.perfumes USING btree (is_uncertain) WHERE (is_uncertain = false)
+05 index | CREATE INDEX idx_perfumes_name ON public.perfumes USING btree (name)
+05 index | CREATE INDEX idx_perfumes_name_trgm ON public.perfumes USING gin (name extensions.gin_trgm_ops)
+05 index | CREATE INDEX idx_perfumes_name_unaccent_trgm ON public.perfumes USING gin (public.f_unaccent(name) extensions.gin_trgm_ops)
+05 index | CREATE INDEX idx_perfumes_unique_slug ON public.perfumes USING btree (unique_slug)
+05 index | CREATE INDEX idx_sessions_challenge_id ON public.game_sessions USING btree (challenge_id)
+05 index | CREATE INDEX idx_sessions_player ON public.game_sessions USING btree (player_id)
+05 index | CREATE INDEX idx_user_sessions_last_active ON public.user_sessions USING btree (last_active_at)
+05 index | CREATE INDEX idx_user_sessions_user_id ON public.user_sessions USING btree (user_id)
+05 index | CREATE UNIQUE INDEX app_admins_pkey ON public.app_admins USING btree (user_id)
+05 index | CREATE UNIQUE INDEX brand_aliases_etl_pkey ON public.brand_aliases_etl USING btree (id)
+05 index | CREATE UNIQUE INDEX brand_aliases_pkey ON public.brand_aliases USING btree (alias_norm)
+05 index | CREATE UNIQUE INDEX brands_name_key ON public.brands USING btree (name)
+05 index | CREATE UNIQUE INDEX brands_pkey ON public.brands USING btree (id)
+05 index | CREATE UNIQUE INDEX brands_slug_key ON public.brands USING btree (slug)
+05 index | CREATE UNIQUE INDEX concentrations_name_key ON public.concentrations USING btree (name)
+05 index | CREATE UNIQUE INDEX concentrations_pkey ON public.concentrations USING btree (id)
+05 index | CREATE UNIQUE INDEX concentrations_slug_key ON public.concentrations USING btree (slug)
+05 index | CREATE UNIQUE INDEX daily_challenges_challenge_date_key ON public.daily_challenges USING btree (challenge_date)
+05 index | CREATE UNIQUE INDEX daily_challenges_pkey ON public.daily_challenges USING btree (id)
+05 index | CREATE UNIQUE INDEX game_results_pkey ON public.game_results USING btree (id)
+05 index | CREATE UNIQUE INDEX game_sessions_pkey ON public.game_sessions USING btree (id)
+05 index | CREATE UNIQUE INDEX game_sessions_player_id_challenge_id_key ON public.game_sessions USING btree (player_id, challenge_id)
+05 index | CREATE UNIQUE INDEX idx_ac_cache_perfume_id ON public.perfume_autocomplete_cache USING btree (perfume_id)
+05 index | CREATE UNIQUE INDEX idx_unique_game_per_user_day ON public.game_results USING btree (player_id, challenge_id)
+05 index | CREATE UNIQUE INDEX import_conflicts_pkey ON public.import_conflicts USING btree (id)
+05 index | CREATE UNIQUE INDEX import_runs_pkey ON public.import_runs USING btree (id)
+05 index | CREATE UNIQUE INDEX manufacturers_name_key ON public.manufacturers USING btree (name)
+05 index | CREATE UNIQUE INDEX manufacturers_pkey ON public.manufacturers USING btree (id)
+05 index | CREATE UNIQUE INDEX notes_name_key ON public.notes USING btree (name)
+05 index | CREATE UNIQUE INDEX notes_pkey ON public.notes USING btree (id)
+05 index | CREATE UNIQUE INDEX notes_slug_key ON public.notes USING btree (slug)
+05 index | CREATE UNIQUE INDEX perfume_asset_sources_perfume_id_version_key ON public.perfume_asset_sources USING btree (perfume_id, version)
+05 index | CREATE UNIQUE INDEX perfume_asset_sources_pkey ON public.perfume_asset_sources USING btree (id)
+05 index | CREATE UNIQUE INDEX perfume_assets_asset_random_id_key ON public.perfume_assets USING btree (asset_random_id)
+05 index | CREATE UNIQUE INDEX perfume_assets_pkey ON public.perfume_assets USING btree (perfume_id)
+05 index | CREATE UNIQUE INDEX perfume_notes_pkey ON public.perfume_notes USING btree (perfume_id, note_id, type)
+05 index | CREATE UNIQUE INDEX perfume_perfumers_pkey ON public.perfume_perfumers USING btree (perfume_id, perfumer_id)
+05 index | CREATE UNIQUE INDEX perfume_revisions_pkey ON public.perfume_revisions USING btree (id)
+05 index | CREATE UNIQUE INDEX perfume_source_urls_perfume_id_url_key ON public.perfume_source_urls USING btree (perfume_id, url)
+05 index | CREATE UNIQUE INDEX perfume_source_urls_pkey ON public.perfume_source_urls USING btree (id)
+05 index | CREATE UNIQUE INDEX perfumers_name_key ON public.perfumers USING btree (name)
+05 index | CREATE UNIQUE INDEX perfumers_pkey ON public.perfumers USING btree (id)
+05 index | CREATE UNIQUE INDEX perfumes_pkey ON public.perfumes USING btree (id)
+05 index | CREATE UNIQUE INDEX perfumes_source_record_slug_key ON public.perfumes USING btree (source_record_slug)
+05 index | CREATE UNIQUE INDEX perfumes_unique_slug_key ON public.perfumes USING btree (unique_slug)
+05 index | CREATE UNIQUE INDEX player_auth_links_pkey ON public.player_auth_links USING btree (auth_user_id)
+05 index | CREATE UNIQUE INDEX player_profiles_pkey ON public.player_profiles USING btree (user_id)
+05 index | CREATE UNIQUE INDEX player_profiles_public_id_key ON public.player_profiles USING btree (public_id)
+05 index | CREATE UNIQUE INDEX player_profiles_username_key ON public.player_profiles USING btree (username)
+05 index | CREATE UNIQUE INDEX player_streaks_pkey ON public.player_streaks USING btree (player_id)
+05 index | CREATE UNIQUE INDEX players_pkey ON public.players USING btree (id)
+05 index | CREATE UNIQUE INDEX raw_import_rows_pkey ON public.raw_import_rows USING btree (id)
+05 index | CREATE UNIQUE INDEX recovery_keys_key_id_key ON public.recovery_keys USING btree (key_id)
+05 index | CREATE UNIQUE INDEX recovery_keys_pkey ON public.recovery_keys USING btree (id)
+05 index | CREATE UNIQUE INDEX seasons_pkey ON public.seasons USING btree (id)
+05 index | CREATE UNIQUE INDEX streak_freezes_pkey ON public.streak_freezes USING btree (id)
+05 index | CREATE UNIQUE INDEX streak_freezes_player_id_for_date_key ON public.streak_freezes USING btree (player_id, for_date)
+05 index | CREATE UNIQUE INDEX teams_name_key ON public.teams USING btree (name)
+05 index | CREATE UNIQUE INDEX teams_pkey ON public.teams USING btree (id)
+05 index | CREATE UNIQUE INDEX teams_slug_key ON public.teams USING btree (slug)
+05 index | CREATE UNIQUE INDEX unique_perfume ON public.perfumes USING btree (brand_id, name, concentration_id, release_year) NULLS NOT DISTINCT
+05 index | CREATE UNIQUE INDEX user_sessions_pkey ON public.user_sessions USING btree (id)
+06 view | daily_challenges_public md5=467d5cf24cb97d9c69f655b0c24ee74f
+06 view | perfume_autocomplete_cache md5=acac2d875f4b37206e958fb68ba08fcf
+06 view | perfumes_public md5=dc156a929c1480b3a78f9de912b6cbcb
+07 function | public.auto_create_player() returns trigger lang=plpgsql secdef=true vol=v strict=false parallel=u config={"search_path=public, auth"} owner=postgres md5=974900a0128a409524edbe0a8a46b3d8
+07 function | public.delete_auth_session(uuid) returns void lang=plpgsql secdef=true vol=v strict=false parallel=u config={"search_path=public, extensions, pg_catalog"} owner=postgres md5=a4f37582e257754288395d448ead7a6a
+07 function | public.extensions_dmetaphone(text) returns text lang=sql secdef=false vol=i strict=false parallel=u config={"search_path=public, extensions, pg_catalog"} owner=postgres md5=bc4962fa83f9070ecc635ec4a281a59d
+07 function | public.extensions_f_unaccent(text) returns text lang=sql secdef=false vol=i strict=false parallel=u config={"search_path=public, extensions, pg_catalog"} owner=postgres md5=87abe662bd5716350ac0d6cc0e616b95
+07 function | public.f_unaccent(text) returns text lang=sql secdef=true vol=i strict=false parallel=u config={"search_path=public, extensions, pg_catalog"} owner=postgres md5=5755b3ccb0752ce5bde5a8d6dda00431
+07 function | public.generate_unique_slug() returns trigger lang=plpgsql secdef=false vol=v strict=false parallel=u config={search_path=public} owner=postgres md5=4b7ddbfc59e13183ff207d614dc3a69f
+07 function | public.guest_merge_preview(uuid,uuid) returns jsonb lang=sql secdef=true vol=s strict=false parallel=u config={"search_path=\"\""} owner=postgres md5=0596f10cdcef38c3bcc43a52b6a26c4f
+07 function | public.handle_new_session() returns trigger lang=plpgsql secdef=true vol=v strict=false parallel=u config={"search_path=public, extensions, pg_catalog"} owner=postgres md5=b70ba6a731ad85815ac4dd26c9a6777c
+07 function | public.handle_new_user() returns trigger lang=plpgsql secdef=true vol=v strict=false parallel=u config={"search_path=public, auth"} owner=postgres md5=0e1ebd568c35b39d0c4bc28c662b6f45
+07 function | public.handle_session_delete() returns trigger lang=plpgsql secdef=true vol=v strict=false parallel=u config={"search_path=public, extensions, pg_catalog"} owner=postgres md5=1b533ebc0f539cbb7fccc8688be74907
+07 function | public.handle_session_update() returns trigger lang=plpgsql secdef=true vol=v strict=false parallel=u config={"search_path=public, extensions, pg_catalog"} owner=postgres md5=53346275966fd78e856cb42b497472eb
+07 function | public.normalize_search_text(text) returns text lang=plpgsql secdef=false vol=i strict=true parallel=u config={"search_path=public, extensions, pg_catalog"} owner=postgres md5=e9d41944d932b1384c212da770181c7f
+07 function | public.refresh_autocomplete_cache() returns TABLE(rows_refreshed bigint, refresh_duration_ms numeric) lang=plpgsql secdef=true vol=v strict=false parallel=u config={"search_path=public, extensions"} owner=postgres md5=5ebd3bb57c1ec7b714e4da60cd522342
+07 function | public.search_perfumes_unaccent_v2(text,integer) returns TABLE(id uuid, name text, year integer, brand_name text, concentration text) lang=plpgsql secdef=true vol=s strict=false parallel=u config={"search_path=public, extensions, pg_catalog"} owner=postgres md5=52618cce892446318770d35c7cb05821
+07 function | public.slugify(text) returns text lang=plpgsql secdef=false vol=i strict=false parallel=u config={search_path=public} owner=postgres md5=ec22e60abd3ce3e493c66da46b7feda8
+07 function | public.transfer_guest_games(uuid,uuid,text) returns jsonb lang=plpgsql secdef=true vol=v strict=false parallel=u config={"search_path=\"\""} owner=postgres md5=57b340ed21a55116e505da2fb632a2d1
+08 trigger | CREATE TRIGGER on_auth_session_created AFTER INSERT ON auth.sessions FOR EACH ROW EXECUTE FUNCTION public.handle_new_session() enabled=O
+08 trigger | CREATE TRIGGER on_auth_session_deleted AFTER DELETE ON auth.sessions FOR EACH ROW EXECUTE FUNCTION public.handle_session_delete() enabled=O
+08 trigger | CREATE TRIGGER on_auth_session_updated AFTER UPDATE ON auth.sessions FOR EACH ROW EXECUTE FUNCTION public.handle_session_update() enabled=O
+08 trigger | CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.auto_create_player() enabled=O
+08 trigger | CREATE TRIGGER set_unique_slug BEFORE INSERT OR UPDATE ON public.perfumes FOR EACH ROW EXECUTE FUNCTION public.generate_unique_slug() enabled=O
+09 policy | app_admins "Service role only app_admins" PERMISSIVE ALL to=service_role using=true check=true
+09 policy | brand_aliases "Public read brand_aliases" PERMISSIVE SELECT to=public using=true check=-
+09 policy | brand_aliases_etl "Enable service_role access" PERMISSIVE ALL to=service_role using=true check=true
+09 policy | brands "Public read brands" PERMISSIVE SELECT to=public using=true check=-
+09 policy | concentrations "Public read concentrations" PERMISSIVE SELECT to=public using=true check=-
+09 policy | game_results "Owner read results" PERMISSIVE SELECT to=public using=(( SELECT auth.uid() AS uid) = player_id) check=-
+09 policy | game_sessions "Owner read sessions" PERMISSIVE SELECT to=public using=(( SELECT auth.uid() AS uid) = player_id) check=-
+09 policy | import_conflicts "Enable service_role access" PERMISSIVE ALL to=service_role using=true check=true
+09 policy | import_runs "Enable service_role access" PERMISSIVE ALL to=service_role using=true check=true
+09 policy | manufacturers "Public read manufacturers" PERMISSIVE SELECT to=public using=true check=-
+09 policy | notes "Public read notes" PERMISSIVE SELECT to=public using=true check=-
+09 policy | perfume_asset_sources "Enable service_role access" PERMISSIVE ALL to=service_role using=true check=true
+09 policy | perfume_notes "Public read perfume_notes" PERMISSIVE SELECT to=public using=true check=-
+09 policy | perfume_perfumers "Public read perfume_perfumers" PERMISSIVE SELECT to=public using=true check=-
+09 policy | perfume_revisions "Enable service_role access" PERMISSIVE ALL to=service_role using=true check=true
+09 policy | perfume_source_urls "Enable service_role access" PERMISSIVE ALL to=service_role using=true check=true
+09 policy | perfumers "Public read perfumers" PERMISSIVE SELECT to=public using=true check=-
+09 policy | player_auth_links "Owner delete auth links" PERMISSIVE DELETE to=public using=(player_id = ( SELECT auth.uid() AS uid)) check=-
+09 policy | player_auth_links "Owner read auth links" PERMISSIVE SELECT to=public using=(player_id = ( SELECT auth.uid() AS uid)) check=-
+09 policy | player_auth_links "Service role all auth links" PERMISSIVE ALL to=service_role using=true check=true
+09 policy | player_profiles "Owner insert player_profiles" PERMISSIVE INSERT to=public using=- check=(user_id = ( SELECT auth.uid() AS uid))
+09 policy | player_profiles "Owner read player_profiles" PERMISSIVE SELECT to=public using=(user_id = ( SELECT auth.uid() AS uid)) check=-
+09 policy | player_profiles "Owner update player_profiles" PERMISSIVE UPDATE to=public using=(user_id = ( SELECT auth.uid() AS uid)) check=(user_id = ( SELECT auth.uid() AS uid))
+09 policy | player_streaks "Owner read streaks" PERMISSIVE SELECT to=public using=(( SELECT auth.uid() AS uid) = player_id) check=-
+09 policy | raw_import_rows "Enable service_role access" PERMISSIVE ALL to=service_role using=true check=true
+09 policy | recovery_keys "Owner read recovery keys" PERMISSIVE SELECT to=public using=(player_id = ( SELECT auth.uid() AS uid)) check=-
+09 policy | recovery_keys "Service role all recovery keys" PERMISSIVE ALL to=service_role using=true check=true
+09 policy | seasons "Public read seasons" PERMISSIVE SELECT to=public using=true check=-
+09 policy | streak_freezes "Owner insert streak_freezes" PERMISSIVE INSERT to=public using=- check=(player_id = ( SELECT auth.uid() AS uid))
+09 policy | streak_freezes "Owner read streak_freezes" PERMISSIVE SELECT to=public using=(player_id = ( SELECT auth.uid() AS uid)) check=-
+09 policy | teams "Public read teams" PERMISSIVE SELECT to=public using=true check=-
+09 policy | user_sessions "Users can insert own sessions" PERMISSIVE INSERT to=public using=- check=(auth.uid() = user_id)
+09 policy | user_sessions "Users can update own sessions" PERMISSIVE UPDATE to=public using=(auth.uid() = user_id) check=-
+09 policy | user_sessions "Users can view own sessions" PERMISSIVE SELECT to=public using=(auth.uid() = user_id) check=-
+10 acl | function public.auto_create_player() service_role=EXECUTE
+10 acl | function public.delete_auth_session(uuid) service_role=EXECUTE
+10 acl | function public.extensions_dmetaphone(text) PUBLIC=EXECUTE
+10 acl | function public.extensions_dmetaphone(text) anon=EXECUTE
+10 acl | function public.extensions_dmetaphone(text) authenticated=EXECUTE
+10 acl | function public.extensions_dmetaphone(text) service_role=EXECUTE
+10 acl | function public.extensions_f_unaccent(text) PUBLIC=EXECUTE
+10 acl | function public.extensions_f_unaccent(text) anon=EXECUTE
+10 acl | function public.extensions_f_unaccent(text) authenticated=EXECUTE
+10 acl | function public.extensions_f_unaccent(text) service_role=EXECUTE
+10 acl | function public.f_unaccent(text) PUBLIC=EXECUTE
+10 acl | function public.f_unaccent(text) anon=EXECUTE
+10 acl | function public.f_unaccent(text) authenticated=EXECUTE
+10 acl | function public.f_unaccent(text) service_role=EXECUTE
+10 acl | function public.generate_unique_slug() PUBLIC=EXECUTE
+10 acl | function public.generate_unique_slug() anon=EXECUTE
+10 acl | function public.generate_unique_slug() authenticated=EXECUTE
+10 acl | function public.generate_unique_slug() service_role=EXECUTE
+10 acl | function public.guest_merge_preview(uuid,uuid) service_role=EXECUTE
+10 acl | function public.handle_new_session() service_role=EXECUTE
+10 acl | function public.handle_new_user() service_role=EXECUTE
+10 acl | function public.handle_session_delete() service_role=EXECUTE
+10 acl | function public.handle_session_update() service_role=EXECUTE
+10 acl | function public.normalize_search_text(text) PUBLIC=EXECUTE
+10 acl | function public.normalize_search_text(text) anon=EXECUTE
+10 acl | function public.normalize_search_text(text) authenticated=EXECUTE
+10 acl | function public.normalize_search_text(text) service_role=EXECUTE
+10 acl | function public.refresh_autocomplete_cache() service_role=EXECUTE
+10 acl | function public.search_perfumes_unaccent_v2(text,integer) PUBLIC=EXECUTE
+10 acl | function public.search_perfumes_unaccent_v2(text,integer) anon=EXECUTE
+10 acl | function public.search_perfumes_unaccent_v2(text,integer) authenticated=EXECUTE
+10 acl | function public.search_perfumes_unaccent_v2(text,integer) service_role=EXECUTE
+10 acl | function public.slugify(text) PUBLIC=EXECUTE
+10 acl | function public.slugify(text) anon=EXECUTE
+10 acl | function public.slugify(text) authenticated=EXECUTE
+10 acl | function public.slugify(text) service_role=EXECUTE
+10 acl | function public.transfer_guest_games(uuid,uuid,text) service_role=EXECUTE
+10 acl | relation app_admins anon=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation app_admins authenticated=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation app_admins service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation brand_aliases anon=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation brand_aliases authenticated=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation brand_aliases service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation brand_aliases_etl service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation brands anon=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation brands authenticated=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation brands service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation concentrations anon=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation concentrations authenticated=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation concentrations service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation daily_challenges anon=DELETE,INSERT,UPDATE
+10 acl | relation daily_challenges authenticated=DELETE,INSERT,UPDATE
+10 acl | relation daily_challenges service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation daily_challenges_challenge_number_seq anon=SELECT,UPDATE,USAGE
+10 acl | relation daily_challenges_challenge_number_seq authenticated=SELECT,UPDATE,USAGE
+10 acl | relation daily_challenges_challenge_number_seq service_role=SELECT,UPDATE,USAGE
+10 acl | relation daily_challenges_public anon=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation daily_challenges_public authenticated=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation daily_challenges_public service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation game_results authenticated=SELECT
+10 acl | relation game_results service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation game_sessions authenticated=SELECT
+10 acl | relation game_sessions service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation import_conflicts service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation import_runs service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation manufacturers anon=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation manufacturers authenticated=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation manufacturers service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation notes anon=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation notes authenticated=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation notes service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation perfume_asset_sources anon=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation perfume_asset_sources authenticated=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation perfume_asset_sources service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation perfume_assets service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation perfume_autocomplete_cache anon=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation perfume_autocomplete_cache authenticated=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation perfume_autocomplete_cache service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation perfume_notes anon=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation perfume_notes authenticated=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation perfume_notes service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation perfume_perfumers anon=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation perfume_perfumers authenticated=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation perfume_perfumers service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation perfume_revisions service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation perfume_source_urls service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation perfumers anon=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation perfumers authenticated=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation perfumers service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation perfumes anon=DELETE,INSERT,UPDATE
+10 acl | relation perfumes authenticated=DELETE,INSERT,UPDATE
+10 acl | relation perfumes service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation perfumes_public anon=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation perfumes_public authenticated=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation perfumes_public service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation player_auth_links service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation player_profiles anon=DELETE,INSERT,UPDATE
+10 acl | relation player_profiles authenticated=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation player_profiles service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation player_streaks authenticated=SELECT
+10 acl | relation player_streaks service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation players service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation raw_import_rows service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation recovery_keys service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation seasons anon=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation seasons authenticated=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation seasons service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation streak_freezes anon=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation streak_freezes authenticated=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation streak_freezes service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation teams anon=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation teams authenticated=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation teams service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+10 acl | relation user_sessions anon=DELETE,INSERT,UPDATE
+10 acl | relation user_sessions authenticated=DELETE,INSERT,SELECT,UPDATE
+10 acl | relation user_sessions service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+11 sequence | daily_challenges_challenge_number_seq type=integer start=1 inc=1 cycle=false
+12 comment | column perfumes.base_notes: Cleaned list of base notes
+12 comment | column perfumes.middle_notes: Cleaned list of middle/heart notes
+12 comment | column perfumes.perfumers: List of perumers (creators)
+12 comment | column perfumes.top_notes: Cleaned list of top notes
+12 comment | function public.f_unaccent(text): Remove diacritics from text. Search path locked for security.
+12 comment | function public.normalize_search_text(text): Removes accents, special chars, and normalizes "No5" → "N5" pattern
+12 comment | function public.refresh_autocomplete_cache(): Refreshes autocomplete cache. Call after perfume imports.
+12 comment | relation daily_challenges_public: Public view of daily challenges metadata. Security invoker enabled (2026-02-14).
+12 comment | relation perfumes_public: Public view of perfumes without sensitive data. Security invoker enabled (2026-02-14).
