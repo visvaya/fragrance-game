@@ -1,8 +1,7 @@
 name: E2E Nightly
 
-# The full Playwright suite takes about 18 minutes and currently has known failures
-# (docs/known-debt.md "E2E suite does not pass"), so it runs nightly and on demand
-# instead of on every pull request. Pull requests run the blocking smoke tests.
+# The full Playwright suite takes about 18 minutes and currently has known failures,
+# so it runs nightly and on demand instead of on every pull request. Pull requests run the blocking smoke tests.
 on:
   schedule:
     - cron: "30 3 * * *"

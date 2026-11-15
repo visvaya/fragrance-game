@@ -1284,7 +1284,7 @@ export default tseslint.config(
       // look empty to the rule, which only recognises test() calls.
       "sonarjs/no-empty-test-file": "off",
       // DEBT (sonarjs 4 upgrade): about 30 fixed waits and 4 networkidle waits in
-      // e2e/ should become web-first assertions. Tracked in docs/known-debt.md.
+      // e2e/ should become web-first assertions.
       "sonarjs/no-fixed-wait-in-tests": "off",
       "sonarjs/no-networkidle-wait": "off",
     },

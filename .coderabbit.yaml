@@ -96,8 +96,7 @@ reviews:
         ("te same perfumy", never "perfuma"). No em dash (U+2014) in UI text.
     - path: "docs/**"
       instructions: >-
-        Public documentation in English. docs/known-debt.md lists accepted shortcuts: an
-        entry describes the shortcut, its risk and the condition for removing it.
+        Public documentation in English.
 chat:
   art: false
 knowledge_base:
