@@ -18,9 +18,10 @@ Run the same checks as CI:
 pnpm typecheck && pnpm lint:strict && pnpm format:check && pnpm test
 ```
 
-For a change to the interface, also run the end-to-end tests in one browser:
+For a change to the interface, also run the end-to-end tests in one browser (the first command downloads the browser once):
 
 ```bash
+pnpm exec playwright install chromium
 pnpm test:e2e --project=chromium
 ```
 
