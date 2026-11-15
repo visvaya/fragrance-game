@@ -1,12 +1,11 @@
 "use server";
 
-import { headers } from "next/headers";
-
 import { trackEvent } from "@/lib/analytics-server";
 import {
   getCachedAutocomplete,
   setCachedAutocomplete,
 } from "@/lib/cache/autocomplete-cache";
+import { getClientIp } from "@/lib/client-ip";
 import { MAX_GUESSES } from "@/lib/constants";
 import { checkRateLimit } from "@/lib/redis";
 import { createClient } from "@/lib/supabase/server";
@@ -92,13 +91,7 @@ async function applyRateLimit(user: { id: string } | null): Promise<void> {
     await checkRateLimit("autocomplete", user.id);
     return;
   }
-  const requestHeaders = await headers();
-  const forwardedFor = requestHeaders.get("x-forwarded-for");
-  const ip =
-    forwardedFor?.split(",")[0].trim() ??
-    requestHeaders.get("x-real-ip") ??
-    "unknown";
-  await checkRateLimit("autocomplete_anon", ip);
+  await checkRateLimit("autocomplete_anon", await getClientIp());
 }
 
 /**

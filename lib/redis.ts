@@ -43,6 +43,12 @@ export const limiters = {
     prefix: "ratelimit:guestMerge",
     redis,
   }),
+  // 10 requests per minute per IP (sign-up and password reset submit one check each)
+  passwordCheck: new Ratelimit({
+    limiter: Ratelimit.slidingWindow(10, "1 m"),
+    prefix: "ratelimit:passwordCheck",
+    redis,
+  }),
   // 3 requests per 10 minutes per user (rare destructive operation)
   revokeAllSessions: new Ratelimit({
     limiter: Ratelimit.slidingWindow(3, "10 m"),
