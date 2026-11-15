@@ -38,7 +38,7 @@ jobs:
         run: pnpm vitest run lib/supabase/__tests__/rls-security.test.ts
       # The daily-challenge algorithm suite truncates tables and needs a staging
       # database (TEST_SUPABASE_URL / TEST_SUPABASE_SERVICE_ROLE_KEY). There is none
-      # yet, so it is not run here; see docs/known-debt.md.
+      # yet, so it is not run here.
 
       - name: Upload test results
         if: always()

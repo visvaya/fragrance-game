@@ -112,7 +112,7 @@ jobs:
         run: pnpm exec playwright install-deps
         if: steps.playwright-cache.outputs.cache-hit == 'true'
       - name: Run Smoke Tests
-        # The full chromium and a11y suites run nightly in e2e-nightly.yml (see docs/known-debt.md).
+        # The full chromium and a11y suites run nightly in e2e-nightly.yml.
         run: pnpm exec playwright test --project=smoke
       - name: Upload Playwright Report
         if: always()
