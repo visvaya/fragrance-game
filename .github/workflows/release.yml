@@ -8,9 +8,10 @@ on:
 
 permissions: {}
 
-# Two tags pushed together queue instead of cancelling a half-created release.
+# One group per tag: a re-run of the same tag waits for the running one instead of cancelling a
+# half-created release, and different tags never replace each other's pending runs.
 concurrency:
-  group: ${{ github.workflow }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
