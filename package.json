@@ -20,9 +20,10 @@
     "url": "https://github.com/visvaya/fragrance-game/issues"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": "^26.13.1"
   },
   "scripts": {
+    "preinstall": "node scripts/check-node-version.mjs",
     "build": "next build",
     "dev": "cross-env NODE_OPTIONS='--max-old-space-size=4096' next dev",
     "lint": "pnpm lint:strict",
