@@ -6,15 +6,26 @@ on:
   push:
     tags: ["v*.*.*"]
 
-permissions:
-  contents: write
+permissions: {}
+
+# One group per tag: a re-run of the same tag waits for the running one instead of cancelling a
+# half-created release, and different tags never replace each other's pending runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
     name: Verify version and publish release
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Only this job writes, and only through the API token passed to gh.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Check tag matches package.json version
         run: |
