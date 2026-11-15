@@ -5,7 +5,7 @@ BEGIN;
 -- supabase test db installs pgTAP for the run; switch to postgres for this transaction.
 SET LOCAL ROLE postgres;
 SET LOCAL search_path = public, extensions;
-SELECT plan(3);
+SELECT plan(5);
 
 SELECT is(
   (SELECT count(*)::int FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
@@ -21,6 +21,25 @@ SELECT is(
      AND (has_table_privilege('anon', c.oid, 'MAINTAIN') OR has_table_privilege('authenticated', c.oid, 'MAINTAIN'))),
   0,
   'client roles cannot lock, vacuum or reindex any public table'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+   WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p')
+     AND (has_table_privilege('anon', c.oid, 'TRIGGER') OR has_table_privilege('authenticated', c.oid, 'TRIGGER')
+       OR has_table_privilege('anon', c.oid, 'REFERENCES') OR has_table_privilege('authenticated', c.oid, 'REFERENCES'))),
+  0,
+  'client roles cannot create triggers or foreign keys on any public table'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM pg_default_acl d JOIN pg_namespace n ON n.oid = d.defaclnamespace,
+     aclexplode(d.defaclacl) a
+   WHERE n.nspname = 'public' AND d.defaclobjtype = 'r' AND d.defaclrole = 'postgres'::regrole
+     AND a.grantee IN ('anon'::regrole, 'authenticated'::regrole)
+     AND a.privilege_type IN ('TRUNCATE', 'TRIGGER', 'REFERENCES', 'MAINTAIN')),
+  0,
+  'new tables created by postgres do not grant client roles TRUNCATE, TRIGGER, REFERENCES or MAINTAIN'
 );
 
 SELECT is(
