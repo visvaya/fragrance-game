@@ -9,6 +9,9 @@ savePrefix: ""
 # has time to be noticed and pulled before it reaches this project. Matches the Dependabot
 # cooldown in .github/dependabot.yml.
 minimumReleaseAge: 10080
+# Fail resolution instead of falling back to a younger version when no mature one matches.
+# pnpm 12.3+ turns this on whenever minimumReleaseAge is set; pnpm 11 needs it explicitly.
+minimumReleaseAgeStrict: true
 
 # pnpm 11 reads allowBuilds; pnpm 9/10 (Vercel picks pnpm from lockfileVersion) read onlyBuiltDependencies.
 allowBuilds:
