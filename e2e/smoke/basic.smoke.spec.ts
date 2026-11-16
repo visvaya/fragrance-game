@@ -27,11 +27,5 @@ test.describe("Smoke Tests - Critical Path @smoke", () => {
       const isMessageVisible = await noPuzzleMessage.isVisible();
       expect(isInputVisible || isMessageVisible).toBeTruthy();
     }).toPass({ timeout: 15_000 });
-
-    if (await noPuzzleMessage.isVisible()) {
-      console.log(
-        "Smoke test note: Application is running, but no puzzle detected for current date/timezone.",
-      );
-    }
   });
 });
