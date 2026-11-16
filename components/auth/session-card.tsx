@@ -5,6 +5,7 @@ import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Loader2, Monitor, Smartphone, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ export type Session = {
 
 type SessionCardProperties = {
   readonly isCurrent: boolean;
-  readonly onRevoke: (id: string) => Promise<unknown>;
+  readonly onRevoke: (id: string) => Promise<{ success: boolean }>;
   readonly session: Session;
 };
 
@@ -44,8 +45,14 @@ export function SessionCard({
 
   const handleRevoke = async () => {
     setLoading(true);
-    await onRevoke(session.id);
-    setLoading(false);
+    try {
+      const result = await onRevoke(session.id);
+      if (!result.success) toast.error(t("revokeError"));
+    } catch {
+      toast.error(t("revokeError"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getIcon = () => {

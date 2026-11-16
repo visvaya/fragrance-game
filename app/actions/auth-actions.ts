@@ -118,14 +118,8 @@ export async function revokeSession(
     Sentry.captureException(new Error("Revoke failed (RPC)"), {
       extra: { rpcError: error.message },
     });
-    // Fallback: manually mark revoked if RPC fails. Client roles cannot write
-    // user_sessions; the owner filter keeps the service role to the caller's rows.
-    await adminSupabase
-      .from("user_sessions")
-      .update({ revoked_at: new Date().toISOString() })
-      .eq("id", sessionId)
-      .eq("user_id", currentUser.id);
-
+    // No fallback that only marks the row revoked: the auth session would stay valid while the
+    // row disappears from the list, so the player could not see it or retry.
     return { error: error.message, success: false };
   }
 
