@@ -6,11 +6,12 @@ name: Database from migrations
 on:
   pull_request:
     branches: [main]
-  # Also on pushes that change the schema, so a branch can be checked before its pull request.
   push:
-    paths:
-      - "supabase/**"
-      - ".github/workflows/db-migrations.yml"
+    branches: [main]
+
+concurrency:
+  group: db-migrations-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
