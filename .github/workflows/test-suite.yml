@@ -13,10 +13,17 @@ env:
 permissions:
   contents: read
 
+# Cancel superseded pull request runs. Other runs get a group of their own (run_id), because a
+# shared group keeps one pending run and cancels the rest, even without cancel-in-progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   fast-tests:
     name: Unit & Snapshots
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       # RLS security tests are read-only (SELECT only) — safe to run against production DB.
       # algorithm.integration.test.ts is excluded: it truncates all tables (beforeEach DELETE).
@@ -54,6 +61,7 @@ jobs:
     # counts as passing for branch protection. Run it manually before merging such a PR.
     if: github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: fast-tests
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -135,6 +143,14 @@ jobs:
     # counts as passing for branch protection. Run it manually before merging such a PR.
     if: github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # One run at a time across all branches: the Supabase CLI resets the password of its login
+    # role and installs pgTAP into the production database only for the duration of a run, so a
+    # concurrent run fails with "password authentication failed" or "function plan(integer)
+    # does not exist" (both seen 2026-11-16 with two pull requests in flight).
+    concurrency:
+      group: pgtap-production
+      cancel-in-progress: false
     needs: fast-tests
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
