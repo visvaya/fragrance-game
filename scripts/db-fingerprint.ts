@@ -1,8 +1,9 @@
 /**
  * Compares a database's schema fingerprint with the expected one in
  * supabase/schema-fingerprint.txt. Reads the JSON output of
- * `supabase db query -f supabase/schema-fingerprint.sql --output-format json`
- * on stdin (see the `db:fingerprint` package script).
+ * `supabase db query --agent=no -f supabase/schema-fingerprint.sql --output-format json`
+ * on stdin (see the `db:fingerprint` package script): a bare array of rows. Without
+ * --agent=no the CLI wraps the rows in an envelope when it detects an agent.
  *
  * Exit codes: 0 equal, 1 different, 2 unreadable input.
  */
@@ -14,9 +15,7 @@ import { z } from "zod";
 
 const EXPECTED_FILE = "supabase/schema-fingerprint.txt";
 
-const queryOutputSchema = z.object({
-  rows: z.array(z.object({ fingerprint: z.string() })),
-});
+const queryOutputSchema = z.array(z.object({ fingerprint: z.string() }));
 
 /** Result of reading the query output. */
 export type ParseResult = { ok: true; value: string[] } | { ok: false; error: string };
@@ -37,7 +36,7 @@ export function parseQueryOutput(text: string): ParseResult {
   }
   const parsed = queryOutputSchema.safeParse(json);
   return parsed.success
-    ? { ok: true, value: parsed.data.rows.map((row) => row.fingerprint) }
+    ? { ok: true, value: parsed.data.map((row) => row.fingerprint) }
     : { ok: false, error: `unexpected query output: ${parsed.error.message}` };
 }
 

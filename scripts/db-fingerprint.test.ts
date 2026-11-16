@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { compareFingerprint, parseQueryOutput } from "./db-fingerprint";
 
-const output = (lines: string[]) =>
-  JSON.stringify({ boundary: "x", rows: lines.map((fingerprint) => ({ fingerprint })) });
+// The CLI prints a bare array of rows with --agent=no (the package script sets it).
+const output = (lines: string[]) => JSON.stringify(lines.map((fingerprint) => ({ fingerprint })));
 
 describe("parseQueryOutput", () => {
   it("returns the fingerprint lines in order", () => {
@@ -11,7 +11,9 @@ describe("parseQueryOutput", () => {
   });
 
   it("rejects output without fingerprint rows", () => {
-    expect(parseQueryOutput(JSON.stringify({ rows: [{ other: 1 }] })).ok).toBe(false);
+    expect(parseQueryOutput(JSON.stringify([{ other: 1 }])).ok).toBe(false);
+    // The agent-mode envelope means the --agent=no flag is missing.
+    expect(parseQueryOutput(JSON.stringify({ boundary: "x", rows: [] })).ok).toBe(false);
     expect(parseQueryOutput("not json").ok).toBe(false);
   });
 });
