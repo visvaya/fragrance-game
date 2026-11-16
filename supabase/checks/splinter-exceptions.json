@@ -1,0 +1,8 @@
+{
+  "auth_rls_init_plan_public_user_sessions_Users can view own sessions": "Known since 2026-11-16; the policy is to use (select auth.uid()), fixed in the next database pull request.",
+  "materialized_view_in_api_public_perfume_autocomplete_cache": "Known since 2026-11-16; clients do not read the cache directly, so the grant is to be revoked in the next database pull request.",
+  "anon_security_definer_function_executable_public_f_unaccent_text": "Known since 2026-11-16; used only inside queries, so EXECUTE is to be revoked from client roles in the next database pull request.",
+  "authenticated_security_definer_function_executable_public_f_unaccent_text": "Known since 2026-11-16; used only inside queries, so EXECUTE is to be revoked from client roles in the next database pull request.",
+  "anon_security_definer_function_executable_public_search_perfumes_unaccent_v2_search_query text, limit_count integer": "Known since 2026-11-16; the autocomplete server action calls it with the user client, which lets a direct REST call skip its rate limit. The call moves to the service role and EXECUTE is revoked from client roles in the next database pull request.",
+  "authenticated_security_definer_function_executable_public_search_perfumes_unaccent_v2_search_query text, limit_count integer": "Known since 2026-11-16; see the anon entry for this function."
+}
