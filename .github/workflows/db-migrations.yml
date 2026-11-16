@@ -45,4 +45,5 @@ jobs:
       - name: Run pgTAP tests on the local database
         run: pnpm exec supabase test db
       - name: Check the auth triggers on the local database
-        run: psql "$LOCAL_DB_URL" -X -q -v ON_ERROR_STOP=1 -f supabase/checks/auth-triggers.sql
+        # The local stack gives its platform roles the database password.
+        run: psql "postgresql://supabase_admin:postgres@127.0.0.1:54322/postgres" -X -q -v ON_ERROR_STOP=1 -f supabase/checks/auth-triggers.sql

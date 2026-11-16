@@ -1,8 +1,9 @@
 -- Behaviour of the triggers on auth.users and auth.sessions, for a database built from the
 -- migrations (CI job "Database from migrations"). It writes to auth tables, so it must never run
 -- against production: it lives outside supabase/tests, which the pgTAP job runs there.
--- Run with psql -v ON_ERROR_STOP=1 as postgres; every check raises an exception on a mismatch and
--- the transaction is rolled back at the end.
+-- Run with psql -v ON_ERROR_STOP=1 as a role that may switch to supabase_auth_admin (the role the
+-- auth server writes with; locally supabase_admin, since postgres is not a member). Every check
+-- raises an exception on a mismatch, and the transaction is rolled back at the end.
 BEGIN;
 
 -- Sign-up as the auth server does it: the trigger creates the player and its auth link.
