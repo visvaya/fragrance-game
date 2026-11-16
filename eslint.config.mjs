@@ -811,14 +811,17 @@ export default tseslint.config(
     ...playwrightPlugin.configs["flat/recommended"],
     rules: {
       ...playwrightPlugin.configs["flat/recommended"].rules,
-      "playwright/expect-expect": "warn",
-      "playwright/no-skipped-test": "off",
+      // Test guards: a test that branches on page state or wraps its expects in try/catch can pass
+      // while the feature is broken. Only test.skip(condition, reason) for a state the test does not
+      // control is allowed.
+      "playwright/expect-expect": "error",
+      "playwright/no-skipped-test": ["error", { allowConditional: true }],
       "playwright/no-focused-test": "error",
       "playwright/no-wait-for-timeout": "warn",
       "playwright/no-force-option": "warn",
       "playwright/no-networkidle": "warn",
-      "playwright/no-conditional-in-test": "off",
-      "playwright/no-conditional-expect": "off",
+      "playwright/no-conditional-in-test": "error",
+      "playwright/no-conditional-expect": "error",
       "playwright/no-standalone-expect": "off", // Disable due to false positives with test.extend
       "playwright/no-wait-for-selector": "warn",
       "sonarjs/no-empty-test-file": "off", // SonarJS doesn't understand Playwright test declarations
@@ -852,6 +855,29 @@ export default tseslint.config(
       globals: {
         ...globals.node,
       },
+    },
+  },
+  {
+    // Known violations of the test guards (93 on 2026-11-16, in the nightly suite). This list only
+    // shrinks: fix a file (assert the state instead of branching on it, no try/catch around expects)
+    // and remove it here. New e2e files get the guards as errors.
+    files: [
+      "e2e/errors/diagnostic.spec.ts",
+      "e2e/errors/error-handling.spec.ts",
+      "e2e/game-completion.spec.ts",
+      "e2e/game-flow.spec.ts",
+      "e2e/i18n/locale-switching.spec.ts",
+      "e2e/performance/auth-waterfall.spec.ts",
+      "e2e/performance/memory.spec.ts",
+      "e2e/performance/web-vitals.spec.ts",
+      "e2e/sanity.spec.ts",
+      "e2e/security/middleware.spec.ts",
+      "e2e/security/rate-limiting.spec.ts",
+      "e2e/security/xss-injection.spec.ts",
+    ],
+    rules: {
+      "playwright/no-conditional-expect": "off",
+      "playwright/no-conditional-in-test": "off",
     },
   },
 
