@@ -13,10 +13,11 @@ env:
 permissions:
   contents: read
 
-# Cancel superseded pull request runs; runs on main always finish.
+# Cancel superseded pull request runs. Other runs get a group of their own (run_id), because a
+# shared group keeps one pending run and cancels the rest, even without cancel-in-progress.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   fast-tests:
