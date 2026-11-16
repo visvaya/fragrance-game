@@ -1288,9 +1288,7 @@ export async function resetGame(
     .eq("id", sessionId)
     .single();
 
-  const targetChallengeId = sessionData
-    ? String(sessionData.challenge_id)
-    : undefined;
+  const targetChallengeId = sessionData?.challenge_id;
   if (!targetChallengeId) return { success: true };
 
   // Players have no DELETE rights on their game rows (anti-replay), so the

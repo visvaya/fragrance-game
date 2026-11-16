@@ -41,6 +41,8 @@ jobs:
       - name: Check PL/pgSQL functions with plpgsql_check
         # Runs before the fingerprint, so a function error is reported even when the schema changed.
         run: psql "postgresql://supabase_admin:postgres@127.0.0.1:54322/postgres" -X -q -v ON_ERROR_STOP=1 -f supabase/checks/plpgsql-functions.sql
+      - name: Check that unique keys cover no nullable column
+        run: psql "$LOCAL_DB_URL" -X -q -v ON_ERROR_STOP=1 -f supabase/checks/unique-nulls.sql
       - name: Lint the schema with the Supabase linter (splinter)
         env:
           # splinter.sql of release 2026.09.1; the same file as main on 2026-11-16. Update both together.

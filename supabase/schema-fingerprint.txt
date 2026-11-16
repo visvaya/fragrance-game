@@ -48,8 +48,8 @@
 03 column | daily_challenges_public.004 grace_deadline_at_utc timestamp with time zone
 03 column | daily_challenges_public.005 snapshot_metadata jsonb
 03 column | game_results.001 id uuid not null default gen_random_uuid()
-03 column | game_results.002 challenge_id uuid
-03 column | game_results.003 player_id uuid
+03 column | game_results.002 challenge_id uuid not null
+03 column | game_results.003 player_id uuid not null
 03 column | game_results.004 session_id uuid
 03 column | game_results.005 status text default 'won'::text
 03 column | game_results.006 score integer not null
@@ -61,8 +61,8 @@
 03 column | game_results.012 is_ranked boolean not null default true
 03 column | game_results.013 ranked_reason text
 03 column | game_sessions.001 id uuid not null default gen_random_uuid()
-03 column | game_sessions.002 challenge_id uuid
-03 column | game_sessions.003 player_id uuid
+03 column | game_sessions.002 challenge_id uuid not null
+03 column | game_sessions.003 player_id uuid not null
 03 column | game_sessions.004 start_time timestamp with time zone default now()
 03 column | game_sessions.005 last_guess timestamp with time zone default now()
 03 column | game_sessions.006 attempts_count integer default 0
@@ -82,7 +82,7 @@
 03 column | manufacturers.001 id uuid not null default extensions.uuid_generate_v4()
 03 column | manufacturers.002 name text not null
 03 column | perfume_asset_sources.001 id uuid not null default gen_random_uuid()
-03 column | perfume_asset_sources.002 perfume_id uuid
+03 column | perfume_asset_sources.002 perfume_id uuid not null
 03 column | perfume_asset_sources.003 version integer not null default 1
 03 column | perfume_asset_sources.004 source_url text not null
 03 column | perfume_asset_sources.005 source_type text not null default 'web_catalog'::text
@@ -117,7 +117,7 @@
 03 column | perfumes.002 brand_id uuid not null
 03 column | perfumes.003 name text not null
 03 column | perfumes.004 source_record_slug text not null
-03 column | perfumes.005 unique_slug text
+03 column | perfumes.005 unique_slug text not null
 03 column | perfumes.006 release_year integer
 03 column | perfumes.007 concentration_id uuid
 03 column | perfumes.008 gender text

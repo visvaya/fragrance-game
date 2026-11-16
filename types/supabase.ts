@@ -132,11 +132,11 @@ export type Database = {
       game_results: {
         Row: {
           attempts: number;
-          challenge_id: string | null;
+          challenge_id: string;
           completed_at: string | null;
           id: string;
           is_ranked: boolean;
-          player_id: string | null;
+          player_id: string;
           ranked_reason: string | null;
           score: number;
           score_raw: number;
@@ -147,11 +147,11 @@ export type Database = {
         };
         Insert: {
           attempts: number;
-          challenge_id?: string | null;
+          challenge_id: string;
           completed_at?: string | null;
           id?: string;
           is_ranked?: boolean;
-          player_id?: string | null;
+          player_id: string;
           ranked_reason?: string | null;
           score: number;
           score_raw?: number;
@@ -162,11 +162,11 @@ export type Database = {
         };
         Update: {
           attempts?: number;
-          challenge_id?: string | null;
+          challenge_id?: string;
           completed_at?: string | null;
           id?: string;
           is_ranked?: boolean;
-          player_id?: string | null;
+          player_id?: string;
           ranked_reason?: string | null;
           score?: number;
           score_raw?: number;
@@ -209,37 +209,37 @@ export type Database = {
       game_sessions: {
         Row: {
           attempts_count: number | null;
-          challenge_id: string | null;
+          challenge_id: string;
           guesses: Json | null;
           id: string;
           last_guess: string | null;
           last_nonce: string | null;
           metadata: Json | null;
-          player_id: string | null;
+          player_id: string;
           start_time: string | null;
           status: string | null;
         };
         Insert: {
           attempts_count?: number | null;
-          challenge_id?: string | null;
+          challenge_id: string;
           guesses?: Json | null;
           id?: string;
           last_guess?: string | null;
           last_nonce?: string | null;
           metadata?: Json | null;
-          player_id?: string | null;
+          player_id: string;
           start_time?: string | null;
           status?: string | null;
         };
         Update: {
           attempts_count?: number | null;
-          challenge_id?: string | null;
+          challenge_id?: string;
           guesses?: Json | null;
           id?: string;
           last_guess?: string | null;
           last_nonce?: string | null;
           metadata?: Json | null;
-          player_id?: string | null;
+          player_id?: string;
           start_time?: string | null;
           status?: string | null;
         };
@@ -347,7 +347,7 @@ export type Database = {
           id: string;
           license_status: string | null;
           original_filename: string | null;
-          perfume_id: string | null;
+          perfume_id: string;
           scraped_at: string | null;
           source_type: string;
           source_url: string;
@@ -358,7 +358,7 @@ export type Database = {
           id?: string;
           license_status?: string | null;
           original_filename?: string | null;
-          perfume_id?: string | null;
+          perfume_id: string;
           scraped_at?: string | null;
           source_type?: string;
           source_url: string;
@@ -369,7 +369,7 @@ export type Database = {
           id?: string;
           license_status?: string | null;
           original_filename?: string | null;
-          perfume_id?: string | null;
+          perfume_id?: string;
           scraped_at?: string | null;
           source_type?: string;
           source_url?: string;
@@ -483,7 +483,7 @@ export type Database = {
           solve_rate: number | null;
           source_record_slug: string;
           top_notes: string[] | null;
-          unique_slug: string | null;
+          unique_slug: string;
           xsolve_model_version: number | null;
           xsolve_score: number | null;
         };
@@ -508,7 +508,7 @@ export type Database = {
           solve_rate?: number | null;
           source_record_slug: string;
           top_notes?: string[] | null;
-          unique_slug?: string | null;
+          unique_slug: string;
           xsolve_model_version?: number | null;
           xsolve_score?: number | null;
         };
@@ -533,7 +533,7 @@ export type Database = {
           solve_rate?: number | null;
           source_record_slug?: string;
           top_notes?: string[] | null;
-          unique_slug?: string | null;
+          unique_slug?: string;
           xsolve_model_version?: number | null;
           xsolve_score?: number | null;
         };
