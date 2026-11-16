@@ -109,14 +109,14 @@ with rel as (
   -- platform role supabase_admin are left out: the project cannot change them).
   select '13 default acl', 'type=' || d.defaclobjtype::text
     || ' schema=' || case when d.defaclnamespace = 0 then '*' else d.defaclnamespace::pg_catalog.regnamespace::text end
-    || ' ' || g.rolname::text || '='
+    || ' ' || coalesce(g.rolname::text, 'PUBLIC') || '='
     || string_agg(a.privilege_type || case when a.is_grantable then '*' else '' end, ',' order by a.privilege_type)
   from pg_catalog.pg_default_acl d
   cross join lateral pg_catalog.aclexplode(d.defaclacl) a
-  join pg_catalog.pg_roles g on g.oid = a.grantee
+  left join pg_catalog.pg_roles g on g.oid = a.grantee
   where d.defaclrole = 'postgres'::pg_catalog.regrole
     and (d.defaclnamespace = 0 or d.defaclnamespace = 'public'::pg_catalog.regnamespace)
-    and g.rolname in ('anon','authenticated','service_role')
+    and (a.grantee = 0 or g.rolname in ('anon','authenticated','service_role'))
   group by d.defaclobjtype, d.defaclnamespace, g.rolname
 )
 select section || ' | ' || line as fingerprint
