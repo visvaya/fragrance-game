@@ -13,7 +13,7 @@ Output:
 import pandas as pd
 import re
 from collections import Counter
-from typing import List, Set
+from typing import List
 
 # Configuration
 CSV_PATH = '../data/dataset.csv'
@@ -164,7 +164,7 @@ def main():
     
     export_df = pd.DataFrame(export_data)
     export_df.to_csv('qualifier_analysis.csv', sep=';', index=False, encoding='utf-8-sig')
-    print(f"\n✅ Detailed analysis exported to: qualifier_analysis.csv")
+    print(f"\n[ok] Detailed analysis exported to: qualifier_analysis.csv")
     
     print("\n" + "="*80)
     print("QUALIFIER RECOMMENDATIONS FOR NOTES")

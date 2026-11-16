@@ -1,15 +1,13 @@
 import os
 import re
+import sys
 import hashlib
-import json
 import logging
-import asyncio
 import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 from supabase import create_client, Client
 from tqdm import tqdm
-from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 # Setup Logging
@@ -35,7 +33,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") # Helper key for complete 
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     logger.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env")
-    exit(1)
+    sys.exit(1)
 
 # Initialize Supabase
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -66,7 +64,7 @@ class ETLPipelineV5:
         # Handle Year
         try:
             year_val = str(int(float(year))) if pd.notnull(year) and year != "" else "0"
-        except:
+        except (TypeError, ValueError):
             year_val = "0"
             
         raw_str = f"{norm_brand}|{norm_name}|{norm_conc}|{year_val}"
@@ -227,12 +225,9 @@ class ETLPipelineV5:
 
         # --- Component 1: Obscurity Bonus (Global Rarity) ---
         # Log-scale rarity 
-        p99_rating = np.percentile(df_stats['Rating Count'], 99)
-        p99_rating = max(p99_rating, 1) # Avoid div 0
-        
+        p99_rating = max(np.percentile(df_stats['Rating Count'], 99), 1)  # Avoid div 0
+
         # Calculate for ELIGIBLE rows only (others will be NULL)
-        p99_rating = np.percentile(df_stats['Rating Count'], 99)
-        p99_rating = max(p99_rating, 1) # Avoid div 0
         
         # Initialize column with NaN
         self.df['obscurity_raw'] = np.nan

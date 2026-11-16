@@ -10,7 +10,7 @@ const path = require('path');
 
 function printLintSummary(reportPath, options = {}) {
     if (!fs.existsSync(reportPath)) {
-        console.log(`  ⚠️  ESLint report not found at ${reportPath}`);
+        console.log(`  [warn]  ESLint report not found at ${reportPath}`);
         return;
     }
 
@@ -19,17 +19,17 @@ function printLintSummary(reportPath, options = {}) {
         const raw = fs.readFileSync(reportPath, 'utf8');
         const jsonStart = raw.indexOf('[');
         if (jsonStart === -1) {
-            console.log('  ⚠️  ESLint report does not contain a JSON array');
+            console.log('  [warn]  ESLint report does not contain a JSON array');
             return;
         }
         const jsonEnd = raw.lastIndexOf(']');
         if (jsonEnd === -1 || jsonEnd < jsonStart) {
-            console.log('  ⚠️  ESLint report contains an incomplete JSON array');
+            console.log('  [warn]  ESLint report contains an incomplete JSON array');
             return;
         }
         data = JSON.parse(raw.slice(jsonStart, jsonEnd + 1));
     } catch (e) {
-        console.log('  ⚠️  Could not parse eslint.json');
+        console.log('  [warn]  Could not parse eslint.json');
         return;
     }
 
@@ -52,7 +52,7 @@ function printLintSummary(reportPath, options = {}) {
         filesWithIssues++;
 
         const relativeFilePath = path.relative(process.cwd(), file.filePath);
-        let fileOutput = `\n📄 ${relativeFilePath}\n`;
+        let fileOutput = `\n${relativeFilePath}\n`;
 
         for (const msg of file.messages) {
             const isError = msg.severity === 2;
@@ -66,7 +66,7 @@ function printLintSummary(reportPath, options = {}) {
                 totalWarnings++;
             }
 
-            const type = isError ? '🔴 ERR' : '🟡 WRN';
+            const type = isError ? 'ERR' : 'WRN';
             const position = `${msg.line || 0}:${msg.column || 0}`;
 
             fileOutput += `     ${type}  [${position.padEnd(7)}]  ${msg.message} (${rule})\n`;
@@ -94,7 +94,7 @@ function printLintSummary(reportPath, options = {}) {
             );
         log(`  └──────────────────────────────────────────────────────────────────┘`);
     } else {
-        log(`  ✅ No ESLint errors!`);
+        log(`  [ok] No ESLint errors!`);
     }
 
     if (totalWarnings > 0) {

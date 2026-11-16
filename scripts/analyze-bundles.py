@@ -1,7 +1,6 @@
 
 import json
 import re
-import sys
 import os
 
 def analyze_html_report(file_path):
@@ -17,7 +16,7 @@ def analyze_html_report(file_path):
 
     try:
         data = json.loads(match.group(1))
-    except:
+    except json.JSONDecodeError:
         return None
 
     lib_stats = {}

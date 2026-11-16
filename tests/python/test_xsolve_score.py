@@ -2,7 +2,6 @@ import os
 import sys
 import pytest
 import pandas as pd
-import numpy as np
 from unittest.mock import MagicMock, patch
 
 # Mock environment

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
 
-import { TEST_USER_IDS_FILE } from "./global-setup";
+import { loadSupabaseAdminConfig, TEST_USER_IDS_FILE } from "./global-setup";
 
 import type { FullConfig } from "@playwright/test";
 
@@ -23,22 +23,24 @@ export default async function globalTeardown(
     return;
   }
 
-  let supabaseUrl: string;
-  let serviceRoleKey: string;
-  let userIds: string[];
+  const config = loadSupabaseAdminConfig();
+  if (!config) {
+    console.warn(
+      "[E2E globalTeardown] Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY: skipping cleanup",
+    );
+    return;
+  }
+  const { serviceRoleKey, supabaseUrl } = config;
 
+  let userIds: string[];
   try {
     const raw = JSON.parse(readFileSync(TEST_USER_IDS_FILE, "utf8")) as {
-      serviceRoleKey: string;
-      supabaseUrl: string;
       userIds: string[];
     };
-    supabaseUrl = raw.supabaseUrl;
-    serviceRoleKey = raw.serviceRoleKey;
     userIds = raw.userIds;
   } catch {
     console.warn(
-      "[E2E globalTeardown] Failed to parse test user IDs file — skipping cleanup",
+      "[E2E globalTeardown] Failed to parse test user IDs file: skipping cleanup",
     );
     return;
   }

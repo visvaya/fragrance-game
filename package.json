@@ -52,7 +52,7 @@
     "audit:report": "node scripts/audit-parse.js",
     "audit:lighthouse": "node scripts/parse-lighthouse.mjs ./reports/latest.report.json",
     "clean": "pnpm dlx rimraf .next node_modules",
-    "supabase": "pnpm dlx supabase",
+    "supabase": "supabase",
     "supabase:start": "pnpm supabase start",
     "supabase:stop": "pnpm supabase stop",
     "supabase:reset": "pnpm supabase db reset",
