@@ -23,6 +23,7 @@ vi.mock("@/lib/redis", () => ({
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
+  createAdminClient: vi.fn(),
   createClient: vi.fn().mockResolvedValue({}),
 }));
 
@@ -218,7 +219,7 @@ describe("searchPerfumes — sliceCandidates exact-match shortcut", () => {
       year: 2010 + i,
     }));
 
-    const { createClient } = await vi.importMock<
+    const { createAdminClient, createClient } = await vi.importMock<
       typeof import("@/lib/supabase/server")
     >("@/lib/supabase/server");
     vi.mocked(createClient).mockResolvedValue({
@@ -227,6 +228,8 @@ describe("searchPerfumes — sliceCandidates exact-match shortcut", () => {
           .fn()
           .mockResolvedValue({ data: { user: null }, error: null }),
       },
+    } as never);
+    vi.mocked(createAdminClient).mockReturnValue({
       rpc: vi.fn().mockResolvedValue({
         data: [...exactMatches, ...otherMatches],
         error: null,

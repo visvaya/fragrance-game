@@ -11,6 +11,7 @@ vi.mock("@/lib/redis", () => ({
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
+  createAdminClient: vi.fn(),
   createClient: vi.fn().mockResolvedValue({} as any),
 }));
 
@@ -61,10 +62,16 @@ vi.mock("@/lib/cache/autocomplete-cache", () => ({
 // Import after mocks
 import { trackEvent } from "@/lib/analytics-server";
 import { checkRateLimit } from "@/lib/redis";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { maskYear } from "@/lib/utils/brand-masking";
 
 import { searchPerfumes } from "../autocomplete";
+
+/** One mock as both the user client (auth) and the service role client (search RPC). */
+function mockClients(client: object): void {
+  vi.mocked(createClient).mockResolvedValue(client as never);
+  vi.mocked(createAdminClient).mockReturnValue(client as never);
+}
 
 describe("autocomplete", () => {
   beforeEach(() => {
@@ -72,6 +79,31 @@ describe("autocomplete", () => {
   });
 
   describe("searchPerfumes", () => {
+    it("checks the user with the user client and searches with the service role client", async () => {
+      const userClient = {
+        auth: {
+          getUser: vi
+            .fn()
+            .mockResolvedValue({ data: { user: null }, error: null }),
+        },
+        rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
+      };
+      const adminClient = {
+        rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
+      };
+      vi.mocked(createClient).mockResolvedValue(userClient as never);
+      vi.mocked(createAdminClient).mockReturnValue(adminClient as never);
+
+      await searchPerfumes("Chanel");
+
+      expect(userClient.auth.getUser).toHaveBeenCalled();
+      expect(adminClient.rpc).toHaveBeenCalledWith(
+        "search_perfumes_unaccent_v2",
+        expect.anything(),
+      );
+      expect(userClient.rpc).not.toHaveBeenCalled();
+    });
+
     describe("input validation", () => {
       it("returns empty array for query less than 3 characters", async () => {
         const result = await searchPerfumes("ab");
@@ -97,7 +129,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         const result = await searchPerfumes("Chanel");
 
@@ -116,7 +148,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         await searchPerfumes("L'Eau d'Issey");
 
@@ -141,7 +173,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         await searchPerfumes("Dior");
 
@@ -159,7 +191,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         await searchPerfumes("Chanel");
 
@@ -181,7 +213,7 @@ describe("autocomplete", () => {
           rpc: vi.fn(),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
         vi.mocked(checkRateLimit).mockRejectedValueOnce(
           new Error("Rate limit exceeded for autocomplete"),
         );
@@ -206,7 +238,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         await searchPerfumes("Sauvage", "session-123", 3);
 
@@ -233,7 +265,7 @@ describe("autocomplete", () => {
           }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         const result = await searchPerfumes("Chanel");
 
@@ -258,7 +290,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         const result = await searchPerfumes("NonexistentPerfume123");
 
@@ -288,7 +320,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: mockPerfumes, error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         // Attempt 2: should show first digit
         const result = await searchPerfumes("Sauvage", "session-123", 2);
@@ -325,7 +357,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: mockPerfumes, error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         const result = await searchPerfumes("Chanel No. 5", "session-123", 2);
 
@@ -355,7 +387,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: mockPerfumes, error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         const result = await searchPerfumes("Unknown", "session-123", 3);
 
@@ -386,7 +418,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: mockPerfumes, error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         const result = await searchPerfumes("Sauvage", "session-123", 6);
 
@@ -416,7 +448,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: mockPerfumes, error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         const result = await searchPerfumes("Test", "session-123", 6);
 
@@ -444,7 +476,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: mockPerfumes, error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         const result = await searchPerfumes("Sauvage", "session-123", 3);
 
@@ -478,7 +510,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: mockPerfumes, error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         const result = await searchPerfumes("Perfume", "session-123", 3);
 
@@ -528,7 +560,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: mockPerfumes, error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         const result = await searchPerfumes("Perfume", "session-123", 3);
 
@@ -578,7 +610,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: mockPerfumes, error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         const result = await searchPerfumes("Perfume", "session-123", 3);
 
@@ -609,7 +641,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: mockPerfumes, error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         await searchPerfumes("Sauvage", "session-123", 3);
 
@@ -638,7 +670,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         await searchPerfumes("NonexistentXYZ", "session-123", 1);
 
@@ -668,7 +700,7 @@ describe("autocomplete", () => {
           }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         await searchPerfumes("Test", "session-123", 2);
 
@@ -696,7 +728,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         const result = await searchPerfumes("XYZ123NotFound", "session-123", 3);
 
@@ -714,7 +746,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         const result = await searchPerfumes("Chanel");
 
@@ -757,7 +789,7 @@ describe("autocomplete", () => {
           rpc: vi.fn().mockResolvedValue({ data: mockPerfumes, error: null }),
         };
 
-        vi.mocked(createClient).mockResolvedValue(mockSupabaseClient as never);
+        mockClients(mockSupabaseClient);
 
         const result = await searchPerfumes("Sauvage", "session-123", 2);
 
