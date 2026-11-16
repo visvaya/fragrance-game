@@ -2,7 +2,7 @@ name: Database from migrations
 
 # Builds an empty local database from supabase/migrations and seed.sql, without secrets or access to
 # production. Its schema fingerprint must equal production's, kept in supabase/schema-fingerprint.txt;
-# then the pgTAP suite runs against it.
+# then the pgTAP suite and the auth trigger check (supabase/checks) run against it.
 on:
   pull_request:
     branches: [main]
@@ -44,3 +44,5 @@ jobs:
           diff -u supabase/schema-fingerprint.txt "$RUNNER_TEMP/schema-fingerprint.txt"
       - name: Run pgTAP tests on the local database
         run: pnpm exec supabase test db
+      - name: Check the auth triggers on the local database
+        run: psql "$LOCAL_DB_URL" -X -q -v ON_ERROR_STOP=1 -f supabase/checks/auth-triggers.sql
