@@ -41,6 +41,17 @@ jobs:
       - name: Check PL/pgSQL functions with plpgsql_check
         # Runs before the fingerprint, so a function error is reported even when the schema changed.
         run: psql "postgresql://supabase_admin:postgres@127.0.0.1:54322/postgres" -X -q -v ON_ERROR_STOP=1 -f supabase/checks/plpgsql-functions.sql
+      - name: Lint the schema with the Supabase linter (splinter)
+        env:
+          # splinter.sql of release 2026.09.1; the same file as main on 2026-11-16. Update both together.
+          SPLINTER_COMMIT: e74a9e36cb12258cb67d1464bc1cb196e9cd8446
+          SPLINTER_SHA256: d8d558baad3e03832e521c527907fa50a9a172fabd899dd0f5c2504a5a0e9349
+        run: |
+          set -o pipefail
+          curl -fsSL -o "$RUNNER_TEMP/splinter.sql" "https://raw.githubusercontent.com/supabase/splinter/$SPLINTER_COMMIT/splinter.sql"
+          echo "$SPLINTER_SHA256  $RUNNER_TEMP/splinter.sql" | sha256sum -c -
+          psql "$LOCAL_DB_URL" -X -q --csv -v ON_ERROR_STOP=1 -v splinter="$RUNNER_TEMP/splinter.sql" -f supabase/checks/splinter-run.sql \
+            | pnpm exec tsx scripts/db-lint.ts
       - name: Compare the schema fingerprint with production
         run: |
           psql "$LOCAL_DB_URL" -X -q -A -t -v ON_ERROR_STOP=1 -f supabase/schema-fingerprint.sql > "$RUNNER_TEMP/schema-fingerprint.txt"
