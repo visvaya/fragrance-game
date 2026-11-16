@@ -13,10 +13,16 @@ env:
 permissions:
   contents: read
 
+# Cancel superseded pull request runs; runs on main always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   fast-tests:
     name: Unit & Snapshots
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       # RLS security tests are read-only (SELECT only) — safe to run against production DB.
       # algorithm.integration.test.ts is excluded: it truncates all tables (beforeEach DELETE).
@@ -54,6 +60,7 @@ jobs:
     # counts as passing for branch protection. Run it manually before merging such a PR.
     if: github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: fast-tests
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -135,6 +142,7 @@ jobs:
     # counts as passing for branch protection. Run it manually before merging such a PR.
     if: github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: fast-tests
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

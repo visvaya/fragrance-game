@@ -13,10 +13,16 @@ on:
     - cron: 34 23 * * *
 name: Semgrep
 permissions: {}
+# Cancel superseded pull request runs; runs on main always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   semgrep:
     name: semgrep/ci
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     env:

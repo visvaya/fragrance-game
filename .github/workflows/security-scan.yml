@@ -8,10 +8,16 @@ on:
 permissions:
   contents: read
 
+# Cancel superseded pull request runs; runs on main always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   dependency-audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -44,6 +50,7 @@ jobs:
   gitleaks:
     name: Gitleaks Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # gitleaks-action lists the pull request's commits through the API.
     permissions:
       contents: read
@@ -61,6 +68,7 @@ jobs:
   custom-security-check:
     name: Custom Security Check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -80,6 +88,7 @@ jobs:
     # dependencies, so a dependency update loses nothing here.
     if: github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
