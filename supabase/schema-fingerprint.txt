@@ -334,12 +334,9 @@
 09 policy | player_auth_links "Service role all auth links" PERMISSIVE ALL to=service_role using=true check=true
 09 policy | player_streaks "Owner read streaks" PERMISSIVE SELECT to=public using=(( SELECT auth.uid() AS uid) = player_id) check=-
 09 policy | raw_import_rows "Enable service_role access" PERMISSIVE ALL to=service_role using=true check=true
-09 policy | user_sessions "Users can view own sessions" PERMISSIVE SELECT to=public using=(auth.uid() = user_id) check=-
+09 policy | user_sessions "Users can view own sessions" PERMISSIVE SELECT to=public using=(( SELECT auth.uid() AS uid) = user_id) check=-
 10 acl | function public.auto_create_player() service_role=EXECUTE
 10 acl | function public.delete_auth_session(uuid) service_role=EXECUTE
-10 acl | function public.f_unaccent(text) PUBLIC=EXECUTE
-10 acl | function public.f_unaccent(text) anon=EXECUTE
-10 acl | function public.f_unaccent(text) authenticated=EXECUTE
 10 acl | function public.f_unaccent(text) service_role=EXECUTE
 10 acl | function public.generate_unique_slug() PUBLIC=EXECUTE
 10 acl | function public.generate_unique_slug() anon=EXECUTE
@@ -354,9 +351,6 @@
 10 acl | function public.normalize_search_text(text) authenticated=EXECUTE
 10 acl | function public.normalize_search_text(text) service_role=EXECUTE
 10 acl | function public.refresh_autocomplete_cache() service_role=EXECUTE
-10 acl | function public.search_perfumes_unaccent_v2(text,integer) PUBLIC=EXECUTE
-10 acl | function public.search_perfumes_unaccent_v2(text,integer) anon=EXECUTE
-10 acl | function public.search_perfumes_unaccent_v2(text,integer) authenticated=EXECUTE
 10 acl | function public.search_perfumes_unaccent_v2(text,integer) service_role=EXECUTE
 10 acl | function public.slugify(text) PUBLIC=EXECUTE
 10 acl | function public.slugify(text) anon=EXECUTE
@@ -392,8 +386,6 @@
 10 acl | relation perfume_asset_sources authenticated=SELECT
 10 acl | relation perfume_asset_sources service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
 10 acl | relation perfume_assets service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
-10 acl | relation perfume_autocomplete_cache anon=SELECT
-10 acl | relation perfume_autocomplete_cache authenticated=SELECT
 10 acl | relation perfume_autocomplete_cache service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
 10 acl | relation perfumes service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
 10 acl | relation perfumes_public anon=SELECT
