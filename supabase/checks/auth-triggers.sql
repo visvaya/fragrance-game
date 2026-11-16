@@ -42,9 +42,10 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'a new session did not create a user_sessions row';
   END IF;
-  IF s.user_id <> '00000000-0000-4000-8000-000000000001' OR s.ip_address <> '192.0.2.1'::inet
+  IF s.user_id IS DISTINCT FROM '00000000-0000-4000-8000-000000000001'
+     OR s.ip_address IS DISTINCT FROM '192.0.2.1'::inet
      OR s.device_info ->> 'user_agent' IS DISTINCT FROM 'agent-1'
-     OR s.last_active_at <> '2026-01-01 10:00:00+00' OR s.revoked_at IS NOT NULL THEN
+     OR s.last_active_at IS DISTINCT FROM '2026-01-01 10:00:00+00' OR s.revoked_at IS NOT NULL THEN
     RAISE EXCEPTION 'unexpected user_sessions row after sign-in: %', row_to_json(s);
   END IF;
 END
