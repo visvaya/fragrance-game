@@ -487,7 +487,8 @@ class ETLPipelineV5:
             # Best is to rely on ON CONFLICT logic. Supabase-js/py defaults to upsert.
             # We must specify the column(s) that define conflict. 
             # If the schema doesn't have a UNIQUE constraint on fingerprint_strict, using it here won't work for UPSERT in same way.
-            # Looking at schema.sql: UNIQUE NULLS NOT DISTINCT (brand_id, name, concentration_id, release_year)
+            # The production baseline migration defines unique_perfume:
+            # UNIQUE NULLS NOT DISTINCT (brand_id, name, concentration_id, release_year)
             # We should probably map that.
             
             # For this MVP, we will try standard upsert.
