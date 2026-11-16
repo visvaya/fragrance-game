@@ -8,7 +8,7 @@ import {
 import { getClientIp } from "@/lib/client-ip";
 import { MAX_GUESSES } from "@/lib/constants";
 import { checkRateLimit } from "@/lib/redis";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { normalizeText } from "@/lib/utils";
 import { maskYear } from "@/lib/utils/brand-masking";
 import { autocompleteSchema } from "@/lib/validations/game.schema";
@@ -216,10 +216,15 @@ export async function searchPerfumes(
   // 5. Database Query
   const startTime = performance.now();
 
-  const dbResult = (await supabase.rpc("search_perfumes_unaccent_v2", {
-    limit_count: dbLimit,
-    search_query: validatedQuery,
-  })) as { data: FragranceRow[] | null; error: { message: string } | null };
+  // The service role runs the search: client roles have no EXECUTE on it, so a direct REST call
+  // cannot skip the user check and rate limit above.
+  const dbResult = (await createAdminClient().rpc(
+    "search_perfumes_unaccent_v2",
+    {
+      limit_count: dbLimit,
+      search_query: validatedQuery,
+    },
+  )) as { data: FragranceRow[] | null; error: { message: string } | null };
 
   const perfumes = dbResult.data;
   const dbError = dbResult.error;
