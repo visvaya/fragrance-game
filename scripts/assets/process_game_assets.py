@@ -24,7 +24,7 @@ try:
     # Imported for its side effect: registers the AVIF codec with older Pillow builds.
     importlib.import_module("pillow_avif")
 except ImportError:
-    pass
+    pass  # Optional: Pillow builds with native AVIF support need no plugin.
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
