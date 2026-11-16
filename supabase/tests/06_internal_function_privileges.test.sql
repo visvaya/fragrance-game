@@ -4,7 +4,7 @@ BEGIN;
 -- supabase test db installs pgTAP for the run; switch to postgres for this transaction.
 SET LOCAL ROLE postgres;
 SET LOCAL search_path = public, extensions;
-SELECT plan(16);
+SELECT plan(14);
 
 SELECT ok(NOT has_function_privilege('anon', 'public.delete_auth_session(uuid)', 'EXECUTE'), 'anon cannot delete auth sessions');
 SELECT ok(NOT has_function_privilege('authenticated', 'public.delete_auth_session(uuid)', 'EXECUTE'), 'authenticated cannot delete auth sessions');
@@ -14,8 +14,6 @@ SELECT ok(NOT has_function_privilege('anon', 'public.refresh_autocomplete_cache(
 SELECT ok(NOT has_function_privilege('authenticated', 'public.refresh_autocomplete_cache()', 'EXECUTE'), 'authenticated cannot refresh the autocomplete cache');
 SELECT ok(has_function_privilege('service_role', 'public.refresh_autocomplete_cache()', 'EXECUTE'), 'service_role can refresh the autocomplete cache');
 
-SELECT ok(NOT has_function_privilege('anon', 'public.handle_new_user()', 'EXECUTE'), 'anon cannot call handle_new_user');
-SELECT ok(NOT has_function_privilege('authenticated', 'public.handle_new_user()', 'EXECUTE'), 'authenticated cannot call handle_new_user');
 SELECT ok(NOT has_function_privilege('anon', 'public.auto_create_player()', 'EXECUTE'), 'anon cannot call auto_create_player');
 SELECT ok(NOT has_function_privilege('authenticated', 'public.auto_create_player()', 'EXECUTE'), 'authenticated cannot call auto_create_player');
 SELECT ok(NOT has_function_privilege('anon', 'public.handle_new_session()', 'EXECUTE'), 'anon cannot call handle_new_session');

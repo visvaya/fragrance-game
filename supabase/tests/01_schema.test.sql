@@ -9,7 +9,7 @@ BEGIN;
 -- supabase test db installs pgTAP for the run; switch to postgres for this transaction.
 SET LOCAL ROLE postgres;
 SET LOCAL search_path = public, extensions;
-SELECT plan(64);
+SELECT plan(71);
 
 -- ============================================================
 -- TABLES — core game
@@ -18,8 +18,6 @@ SELECT plan(64);
 SELECT has_table('public', 'perfumes',           'perfumes table exists');
 SELECT has_table('public', 'brands',             'brands table exists');
 SELECT has_table('public', 'concentrations',     'concentrations table exists');
-SELECT has_table('public', 'notes',              'notes table exists');
-SELECT has_table('public', 'perfume_notes',      'perfume_notes table exists');
 SELECT has_table('public', 'daily_challenges',   'daily_challenges table exists');
 SELECT has_table('public', 'game_sessions',      'game_sessions table exists');
 SELECT has_table('public', 'game_results',       'game_results table exists');
@@ -31,8 +29,6 @@ SELECT has_table('public', 'player_streaks',     'player_streaks table exists');
 -- ============================================================
 
 SELECT has_table('public', 'manufacturers',      'manufacturers table exists');
-SELECT has_table('public', 'perfumers',          'perfumers table exists');
-SELECT has_table('public', 'perfume_perfumers',  'perfume_perfumers table exists');
 SELECT has_table('public', 'perfume_assets',     'perfume_assets table exists');
 
 -- ============================================================
@@ -40,13 +36,29 @@ SELECT has_table('public', 'perfume_assets',     'perfume_assets table exists');
 -- ============================================================
 
 SELECT has_table('public', 'player_auth_links',  'player_auth_links table exists');
-SELECT has_table('public', 'player_profiles',    'player_profiles table exists');
-SELECT has_table('public', 'recovery_keys',      'recovery_keys table exists');
 SELECT has_table('public', 'user_sessions',      'user_sessions table exists');
-SELECT has_table('public', 'streak_freezes',     'streak_freezes table exists');
-SELECT has_table('public', 'teams',              'teams table exists');
-SELECT has_table('public', 'seasons',            'seasons table exists');
 SELECT has_table('public', 'app_admins',         'app_admins table exists');
+
+-- ============================================================
+-- REMOVED: tables of features that were never built, unused functions
+-- ============================================================
+
+SELECT hasnt_table('public', 'player_profiles',     'player_profiles table is gone');
+SELECT hasnt_table('public', 'teams',               'teams table is gone');
+SELECT hasnt_table('public', 'seasons',             'seasons table is gone');
+SELECT hasnt_table('public', 'streak_freezes',      'streak_freezes table is gone');
+SELECT hasnt_table('public', 'recovery_keys',       'recovery_keys table is gone');
+SELECT hasnt_table('public', 'perfume_notes',       'perfume_notes table is gone');
+SELECT hasnt_table('public', 'notes',               'notes table is gone');
+SELECT hasnt_table('public', 'perfume_perfumers',   'perfume_perfumers table is gone');
+SELECT hasnt_table('public', 'perfumers',           'perfumers table is gone');
+SELECT hasnt_table('public', 'brand_aliases',       'brand_aliases table is gone');
+SELECT hasnt_table('public', 'brand_aliases_etl',   'brand_aliases_etl table is gone');
+SELECT hasnt_table('public', 'perfume_revisions',   'perfume_revisions table is gone');
+SELECT hasnt_table('public', 'perfume_source_urls', 'perfume_source_urls table is gone');
+SELECT hasnt_function('public', 'handle_new_user',       'handle_new_user function is gone');
+SELECT hasnt_function('public', 'extensions_dmetaphone', 'extensions_dmetaphone function is gone');
+SELECT hasnt_function('public', 'extensions_f_unaccent', 'extensions_f_unaccent function is gone');
 
 -- ============================================================
 -- VIEWS
