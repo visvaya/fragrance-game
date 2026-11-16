@@ -1059,25 +1059,25 @@ export default tseslint.config(
           selector:
             "CallExpression[callee.property.name='select'] > CallExpression[callee.property.name='from']:not(:has(CallExpression[callee.property.name='limit']))",
           message:
-            "❌ Supabase .select() without .limit() is a security risk. Always add a limit.",
+            "Supabase .select() without .limit() is a security risk. Always add a limit.",
         },
         {
           selector:
             "CallExpression[callee.property.name='select'][arguments.0.value='*']",
           message:
-            "❌ Avoid select('*'). Choose specific columns for better performance and security.",
+            "Avoid select('*'). Choose specific columns for better performance and security.",
         },
         {
           selector:
             "CallExpression[callee.name=/^(fetch|axios|got)$/]:not(:has(CallExpression[callee.property.name=/^(parse|safeParse)$/]))",
           message:
-            "❌ Data from APIs must be validated by Zod (.parse() or .safeParse()).",
+            "Data from APIs must be validated by Zod (.parse() or .safeParse()).",
         },
         {
           selector:
             "CallExpression[callee.property.name='rpc'][arguments.length>1]:not(:has(CallExpression[callee.property.name=/^(parse|safeParse)$/]))",
           message:
-            "❌ Supabase .rpc() with params must validate data with Zod (.parse or .safeParse).",
+            "Supabase .rpc() with params must validate data with Zod (.parse or .safeParse).",
         },
         // ── Supabase .delete() without a filter ─────────────────────────────
         // AwaitExpression > CallExpression: '.delete()' is a direct child of await
@@ -1087,7 +1087,7 @@ export default tseslint.config(
           selector:
             "AwaitExpression > CallExpression[callee.property.name='delete']",
           message:
-            "❌ Supabase .delete() without a filter will delete ALL records. Add .eq(), .in() or .match() first.",
+            "Supabase .delete() without a filter will delete ALL records. Add .eq(), .in() or .match() first.",
         },
         // ── px units — use rem instead of px ────────────────────────────────
         // Catches arbitrary Tailwind values in className, e.g. text-[10px] → text-[0.625rem]
@@ -1095,20 +1095,20 @@ export default tseslint.config(
           selector:
             "JSXAttribute[name.name='className'] > Literal[value=/\\[\\d+(?:\\.\\d+)?px\\]/]",
           message:
-            "❌ Use rem instead of px in Tailwind arbitrary values. Example: text-[0.625rem] instead of text-[10px]. Exceptions: border (1px, 2px) and border-radius (999px) — add eslint-disable with a comment.",
+            "Use rem instead of px in Tailwind arbitrary values. Example: text-[0.625rem] instead of text-[10px]. Exceptions: border (1px, 2px) and border-radius (999px): add eslint-disable with a comment.",
         },
         // Catches template literals: cn(`text-[${n}px]`) and hardcoded className strings with a variable
         {
           selector:
             "JSXAttribute[name.name='className'] TemplateLiteral > TemplateElement[value.raw=/\\[\\d+(?:\\.\\d+)?px\\]/]",
-          message: "❌ Use rem instead of px in Tailwind arbitrary values.",
+          message: "Use rem instead of px in Tailwind arbitrary values.",
         },
         // Catches inline style={{ fontSize: '14px' }}
         {
           selector:
             "JSXAttribute[name.name='style'] ObjectExpression > Property > Literal[value=/^\\d+(?:\\.\\d+)?px$/]",
           message:
-            "❌ Use rem instead of px in inline styles. 1rem = 16px. Exceptions: border (1px) — add eslint-disable with a comment.",
+            "Use rem instead of px in inline styles. 1rem = 16px. Exceptions: border (1px): add eslint-disable with a comment.",
         },
       ],
     },
@@ -1129,26 +1129,26 @@ export default tseslint.config(
           selector:
             "CallExpression[callee.property.name='select'] > CallExpression[callee.property.name='from']:not(:has(CallExpression[callee.property.name='limit']))",
           message:
-            "❌ Supabase .select() without .limit() is a security risk. Always add a limit.",
+            "Supabase .select() without .limit() is a security risk. Always add a limit.",
         },
         {
           selector:
             "CallExpression[callee.property.name='select'][arguments.0.value='*']",
           message:
-            "❌ Avoid select('*'). Choose specific columns for better performance and security.",
+            "Avoid select('*'). Choose specific columns for better performance and security.",
         },
         {
           selector:
             "CallExpression[callee.name=/^(fetch|axios|got)$/]:not(:has(CallExpression[callee.property.name=/^(parse|safeParse)$/]))",
           message:
-            "❌ Data from APIs must be validated by Zod (.parse() or .safeParse()).",
+            "Data from APIs must be validated by Zod (.parse() or .safeParse()).",
         },
         // ── Supabase .delete() without a filter ─────────────────────────────
         {
           selector:
             "AwaitExpression > CallExpression[callee.property.name='delete']",
           message:
-            "❌ Supabase .delete() without a filter will delete ALL records. Add .eq(), .in() or .match() first.",
+            "Supabase .delete() without a filter will delete ALL records. Add .eq(), .in() or .match() first.",
         },
         // ── Server Actions specific (only functions that accept params) ──
         {

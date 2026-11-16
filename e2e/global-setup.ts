@@ -39,6 +39,20 @@ function loadEnvironmentFile(): Record<string, string> {
   return result;
 }
 
+/**
+ * Supabase URL and service role key for the Admin API, from the environment or .env.local.
+ * Shared with globalTeardown, so the key is never written to disk between the two.
+ */
+export function loadSupabaseAdminConfig(): {
+  serviceRoleKey: string;
+  supabaseUrl: string;
+} | null {
+  const env = { ...loadEnvironmentFile(), ...process.env };
+  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+  return supabaseUrl && serviceRoleKey ? { serviceRoleKey, supabaseUrl } : null;
+}
+
 /** Create an anonymous Supabase session via the Admin API (bypasses Turnstile captcha). */
 async function createAnonymousSession(
   supabaseUrl: string,
@@ -130,16 +144,14 @@ function saveStorageState(
  */
 // eslint-disable-next-line import-x/no-default-export -- Playwright requires default export for globalSetup
 export default async function globalSetup(_config: FullConfig): Promise<void> {
-  const env = { ...loadEnvironmentFile(), ...process.env };
-  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
+  const config = loadSupabaseAdminConfig();
+  if (!config) {
     console.warn(
-      "[E2E globalSetup] Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY — skipping auth setup",
+      "[E2E globalSetup] Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY: skipping auth setup",
     );
     return;
   }
+  const { serviceRoleKey, supabaseUrl } = config;
 
   const projectReference = /https?:\/\/([^.]+)\./.exec(supabaseUrl)?.[1];
   if (!projectReference) {
@@ -185,17 +197,14 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
     console.warn("[E2E globalSetup] A11y session failed — a11y tests may fail");
   }
 
-  // Persist user IDs for globalTeardown cleanup.
+  // Persist user IDs (not the key) for globalTeardown cleanup.
   const userIds = [primarySession, gameflowSession, a11ySession]
     .map((s) => s?.user?.id)
     .filter((id): id is string => typeof id === "string");
 
   if (userIds.length > 0) {
     mkdirSync(path.dirname(TEST_USER_IDS_FILE), { recursive: true });
-    writeFileSync(
-      TEST_USER_IDS_FILE,
-      JSON.stringify({ serviceRoleKey, supabaseUrl, userIds }),
-    );
+    writeFileSync(TEST_USER_IDS_FILE, JSON.stringify({ userIds }));
     console.log(
       `[E2E globalSetup] Saved ${userIds.length} test user IDs for teardown cleanup`,
     );

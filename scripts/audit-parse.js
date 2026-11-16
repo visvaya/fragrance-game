@@ -36,7 +36,7 @@ function parseAudit(jsonStr) {
                 report += `- **Paths:** ${(a.findings || []).map(f => f.paths?.join(' > ')).join(', ')}\n\n`;
             });
         } else {
-            report += `✅ No High or Critical vulnerabilities found.\n\n`;
+            report += `[ok] No High or Critical vulnerabilities found.\n\n`;
         }
 
         fs.writeFileSync(REPORT_PATH, report);

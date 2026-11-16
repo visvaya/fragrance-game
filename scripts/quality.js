@@ -54,12 +54,12 @@ function run(name, command, outputFile) {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     fs.writeFileSync(outputFile, output);
-    console.log(`  ✅ No issues found.`);
+    console.log(`  [ok] No issues found.`);
     return true;
   } catch (error) {
     const output = (error.stdout || '') + (error.stderr ? '\n' + error.stderr : '');
     fs.writeFileSync(outputFile, output);
-    console.log(`  ⚠️  Issues found – saved to ${path.basename(outputFile)}`);
+    console.log(`  [warn]  Issues found – saved to ${path.basename(outputFile)}`);
     return false;
   }
 }
@@ -70,7 +70,7 @@ function printTypecheckSummary(reportPath) {
   if (!fs.existsSync(reportPath)) return;
   const content = fs.readFileSync(reportPath, 'utf8').trim();
   if (!content) {
-    log(`  ✅ No type errors!`);
+    log(`  [ok] No type errors!`);
     return;
   }
   const lines = content.split('\n').filter(Boolean);
@@ -86,10 +86,10 @@ function printKnipSummary(reportPath) {
   try {
     const raw = fs.readFileSync(reportPath, 'utf8');
     const jsonStart = raw.indexOf('{');
-    if (jsonStart === -1) { log('  ⚠️  Could not parse knip.json'); return; }
+    if (jsonStart === -1) { log('  [warn]  Could not parse knip.json'); return; }
     data = JSON.parse(raw.slice(jsonStart));
   } catch {
-    log('  ⚠️  Could not parse knip.json'); return;
+    log('  [warn]  Could not parse knip.json'); return;
   }
   const issueCount = (data.issues || []).reduce((s, f) => {
     return s + Object.keys(f).filter(k => k !== 'file').reduce((sum, key) => {
@@ -98,10 +98,10 @@ function printKnipSummary(reportPath) {
   }, 0);
   const fileCount = (data.files || []).length;
   if (issueCount === 0 && fileCount === 0) {
-    log(`  ✅ No dead code found!`);
+    log(`  [ok] No dead code found!`);
   } else {
-    if (fileCount > 0) log(`  ⚠️  ${fileCount} unused file(s)`);
-    if (issueCount > 0) log(`  ⚠️  ${issueCount} unused export(s)/binding(s)`);
+    if (fileCount > 0) log(`  [warn]  ${fileCount} unused file(s)`);
+    if (issueCount > 0) log(`  [warn]  ${issueCount} unused export(s)/binding(s)`);
     (data.issues || []).forEach(issue => {
       Object.keys(issue).filter(k => k !== 'file').forEach(category => {
         const items = issue[category];
@@ -129,12 +129,12 @@ function printDepcheckSummary(reportPath) {
   } catch {
     const raw = fs.readFileSync(reportPath, 'utf8').trim();
     if (raw) {
-      log('  ⚠️  Depcheck tool crashed or returned invalid JSON. Raw output:');
+      log('  [warn]  Depcheck tool crashed or returned invalid JSON. Raw output:');
       const lines = raw.split('\n');
       lines.slice(0, 5).forEach(line => log(`    ${line}`));
       if (lines.length > 5) log(`    ... and ${lines.length - 5} more lines`);
     } else {
-      log('  ⚠️  Could not parse depcheck.json (empty output)');
+      log('  [warn]  Could not parse depcheck.json (empty output)');
     }
     return;
   }
@@ -158,24 +158,24 @@ function printDepcheckSummary(reportPath) {
     log(`  └──────────────────────────────────────┘`);
     hasIssues = true;
   }
-  if (!hasIssues) log('  ✅ No unused or missing dependencies!');
+  if (!hasIssues) log('  [ok] No unused or missing dependencies!');
 }
 
 function printJscpdSummary(reportDir) {
   const reportFile = path.join(reportDir, 'jscpd-report.json');
   if (!fs.existsSync(reportFile)) {
-    log('  ⚠️  JSCPD report not found.');
+    log('  [warn]  JSCPD report not found.');
     return;
   }
   let data;
   try {
     data = JSON.parse(fs.readFileSync(reportFile, 'utf8'));
   } catch {
-    log('  ⚠️  Could not parse jscpd report.'); return;
+    log('  [warn]  Could not parse jscpd report.'); return;
   }
 
   const stats = data.statistics;
-  if (!stats) { log('  ⚠️  JSCPD report missing statistics.'); return; }
+  if (!stats) { log('  [warn]  JSCPD report missing statistics.'); return; }
 
   const total   = stats.total || {};
   const pct     = parseFloat(total.percentage || 0);
@@ -184,11 +184,11 @@ function printJscpdSummary(reportDir) {
   const THRESHOLD = 5;
 
   if (pct <= THRESHOLD && clones === 0) {
-    log(`  ✅ No significant duplication detected! (${pct.toFixed(2)}% of lines)`);
+    log(`  [ok] No significant duplication detected! (${pct.toFixed(2)}% of lines)`);
     return;
   }
 
-  const icon = pct > THRESHOLD ? '🔴' : '🟡';
+  const icon = pct > THRESHOLD ? '[error]' : '[warn]';
   log(`  ${icon} Duplication: ${pct.toFixed(2)}% (${duped} lines across ${clones} clone groups) [threshold: ${THRESHOLD}%]`);
 
   const duplicates = data.duplicates || [];
@@ -208,23 +208,23 @@ function printJscpdSummary(reportDir) {
 
 function printMadgeSummary(reportPath) {
   if (!fs.existsSync(reportPath)) {
-    log('  ⚠️  Madge report not found.');
+    log('  [warn]  Madge report not found.');
     return;
   }
   let data;
   try {
     data = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
   } catch {
-    log('  ⚠️  Could not parse madge-circular.json.'); return;
+    log('  [warn]  Could not parse madge-circular.json.'); return;
   }
 
   // madge --circular --json returns an array of cycles
   if (!Array.isArray(data) || data.length === 0) {
-    log(`  ✅ No circular dependencies detected!`);
+    log(`  [ok] No circular dependencies detected!`);
     return;
   }
 
-  log(`  🔴 ${data.length} circular dependency cycle(s) detected!`);
+  log(`  [error] ${data.length} circular dependency cycle(s) detected!`);
   log(`\n  ┌─ CIRCULAR DEPENDENCIES ─────────────────────────────────────────┐`);
   data.slice(0, 10).forEach((cycle, i) => {
     log(`  │ ${i + 1}. ${Array.isArray(cycle) ? cycle.join(' → ') : String(cycle)}`);
@@ -235,7 +235,7 @@ function printMadgeSummary(reportPath) {
 
 function printDepcruiseSummary(reportPath) {
   if (!fs.existsSync(reportPath)) {
-    log('  ⚠️  Dependency Cruiser report not found.');
+    log('  [warn]  Dependency Cruiser report not found.');
     return;
   }
   let data;
@@ -244,7 +244,7 @@ function printDepcruiseSummary(reportPath) {
   } catch {
     const raw = fs.readFileSync(reportPath, 'utf8').trim();
     if (raw) {
-      log('  ⚠️  Depcruise error:');
+      log('  [warn]  Depcruise error:');
       raw.split('\n').slice(0, 5).forEach(l => log(`    ${l}`));
     }
     return;
@@ -264,17 +264,17 @@ function printDepcruiseSummary(reportPath) {
   }
 
   if (violations.length === 0) {
-    log(`  ✅ No architectural violations detected!`);
+    log(`  [ok] No architectural violations detected!`);
     return;
   }
 
   const errors = violations.filter(v => v.severity === 'error');
   const warns  = violations.filter(v => v.severity === 'warn');
 
-  log(`  ${errors.length > 0 ? '🔴' : '🟡'} ${errors.length} error(s), ${warns.length} warning(s) in dependency rules`);
+  log(`  ${errors.length > 0 ? '[error]' : '[warn]'} ${errors.length} error(s), ${warns.length} warning(s) in dependency rules`);
   log(`\n  ┌─ ARCHITECTURAL VIOLATIONS ──────────────────────────────────────┐`);
   violations.slice(0, 15).forEach(v => {
-    const icon = v.severity === 'error' ? '🔴 ERR ' : '🟡 WRN ';
+    const icon = v.severity === 'error' ? 'ERR ' : 'WRN ';
     log(`  │ ${icon} [${v.rule}] ${v.from} → ${v.to}`);
   });
   if (violations.length > 15) log(`  │ ... and ${violations.length - 15} more violations`);
@@ -283,7 +283,7 @@ function printDepcruiseSummary(reportPath) {
 
 function printTypeCoverageSummary(reportPath) {
   if (!fs.existsSync(reportPath)) {
-    log('  ⚠️  Type coverage report not found.');
+    log('  [warn]  Type coverage report not found.');
     return;
   }
   const raw = fs.readFileSync(reportPath, 'utf8').trim();
@@ -292,15 +292,15 @@ function printTypeCoverageSummary(reportPath) {
   // type-coverage output: "XX.XX% (typed/total)"
   const match = raw.match(/([\d.]+)%/);
   if (!match) {
-    log(`  ⚠️  Could not parse type coverage output: ${raw.slice(0, 120)}`);
+    log(`  [warn]  Could not parse type coverage output: ${raw.slice(0, 120)}`);
     return;
   }
 
   const pct = parseFloat(match[1]);
   if (pct >= MIN_COVERAGE) {
-    log(`  ✅ Type coverage: ${pct.toFixed(2)}% (threshold: ${MIN_COVERAGE}%)`);
+    log(`  [ok] Type coverage: ${pct.toFixed(2)}% (threshold: ${MIN_COVERAGE}%)`);
   } else {
-    log(`  🔴 Type coverage too low: ${pct.toFixed(2)}% (required: ≥${MIN_COVERAGE}%)`);
+    log(`  [error] Type coverage too low: ${pct.toFixed(2)}% (required: ≥${MIN_COVERAGE}%)`);
     // Show uncovered lines from the detail report
     const lines = raw.split('\n').filter(l => l.includes(' any ') || l.includes(': any'));
     if (lines.length > 0) {
@@ -314,7 +314,7 @@ function printTypeCoverageSummary(reportPath) {
 
 function printAuditSummary(reportPath) {
   if (!fs.existsSync(reportPath)) {
-    log('  ⚠️  Security audit report not found.');
+    log('  [warn]  Security audit report not found.');
     return;
   }
   let data;
@@ -322,7 +322,7 @@ function printAuditSummary(reportPath) {
     data = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
   } catch {
     const raw = fs.readFileSync(reportPath, 'utf8').trim();
-    log(`  ⚠️  Could not parse audit report: ${raw.slice(0, 80)}`);
+    log(`  [warn]  Could not parse audit report: ${raw.slice(0, 80)}`);
     return;
   }
 
@@ -332,7 +332,7 @@ function printAuditSummary(reportPath) {
   const total  = Object.values(vulns).reduce((a, b) => a + (b || 0), 0);
 
   if (total === 0) {
-    log(`  ✅ No known vulnerabilities found!`);
+    log(`  [ok] No known vulnerabilities found!`);
     return;
   }
 
@@ -340,14 +340,14 @@ function printAuditSummary(reportPath) {
   const high     = vulns.high || 0;
   const moderate = vulns.moderate || 0;
   const low      = vulns.low || 0;
-  const icon     = critical > 0 || high > 0 ? '🔴' : '🟡';
+  const icon     = critical > 0 || high > 0 ? '[error]' : '[warn]';
 
   log(`  ${icon} ${total} vulnerabilit${total === 1 ? 'y' : 'ies'} found:`);
   if (critical > 0) log(`       Critical: ${critical}`);
   if (high     > 0) log(`       High:     ${high}`);
   if (moderate > 0) log(`       Moderate: ${moderate}`);
   if (low      > 0) log(`       Low:      ${low}`);
-  log(`\n  💡 Run 'pnpm audit --fix' to attempt automatic remediation.`);
+  log(`\n  Run 'pnpm audit --fix' to attempt automatic remediation.`);
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -355,9 +355,9 @@ function printAuditSummary(reportPath) {
 const LINE = '═'.repeat(70);
 
 log(`\n${LINE}`);
-log(`  🚀  QUALITY AUDIT  –  ${new Date().toLocaleTimeString('pl-PL')}`);
-if (skipTests) log(`  🧪  Excluding tests from audit`);
-if (fastMode)  log(`  ⚡  Fast mode – skipping slow checks`);
+log(`  QUALITY AUDIT  –  ${new Date().toLocaleTimeString('pl-PL')}`);
+if (skipTests) log(`  Excluding tests from audit`);
+if (fastMode)  log(`  Fast mode – skipping slow checks`);
 log(`${LINE}`);
 
 ensureDir(reportsDir);
@@ -435,7 +435,7 @@ for (const t of tools) {
 // ── Summary Section ───────────────────────────────────────────────────────────
 
 log(`\n${LINE}`);
-log(`  📊  SUMMARY`);
+log(`  SUMMARY`);
 log(`${LINE}`);
 
 log('\n[TYPECHECK]');
@@ -472,7 +472,7 @@ printAuditSummary(path.join(reportsDir, 'audit.json'));
 
 log('\n[PRETTIER]');
 if (results.format) {
-  log('  ✅ All files correctly formatted!');
+  log('  [ok] All files correctly formatted!');
 } else {
   const formatLogPath = path.join(reportsDir, 'format.log');
   if (fs.existsSync(formatLogPath)) {
@@ -483,14 +483,14 @@ if (results.format) {
     const adviceLine = lines.find(l => l.toLowerCase().includes('run prettier with --write'));
 
     if (bad.length === 0) {
-      log('  ⚠️  Prettier failed but no specific unformatted files listed.');
+      log('  [warn]  Prettier failed but no specific unformatted files listed.');
     } else {
-      bad.slice(0, 10).forEach(l => log(`  ⚠️  ${l.trim()}`));
+      bad.slice(0, 10).forEach(l => log(`  [warn]  ${l.trim()}`));
       if (bad.length > 10) log(`  │ ... and ${bad.length - 10} more formatting issues`);
       const advice = adviceLine
         ? adviceLine.replace('[warn]', '').trim()
         : `Code style issues found in ${bad.length} files. Run 'pnpm prettier --write .' to fix.`;
-      log(`\n  💡 Tip: ${advice}`);
+      log(`\n  Tip: ${advice}`);
     }
   }
 }
@@ -500,13 +500,13 @@ if (results.format) {
 const allClean = Object.values(results).every(Boolean);
 log(`\n${LINE}`);
 log(allClean
-  ? `  🎉  All checks passed! Project is clean.`
-  : `  ⚠️  Some checks reported issues. See /reports for details.`
+  ? `  All checks passed! Project is clean.`
+  : `  [warn]  Some checks reported issues. See /reports for details.`
 );
 log(`${LINE}\n`);
 
 fs.writeFileSync(TEXT_REPORT, outputLog.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, ''));
-log(`📄 Full state summary saved to: ${path.relative(process.cwd(), TEXT_REPORT)}`);
+log(`Full state summary saved to: ${path.relative(process.cwd(), TEXT_REPORT)}`);
 
 // Non-zero exit when any check failed, so the report can also serve as a gate.
 process.exitCode = allClean ? 0 : 1;

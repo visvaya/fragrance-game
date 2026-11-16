@@ -231,7 +231,7 @@ async function ensureChallenge(
     );
   }
 
-  console.warn(`[CRON] ✅ Created challenge #${nextNumber} for ${dateString}`);
+  console.warn(`[CRON] Created challenge #${nextNumber} for ${dateString}`);
   return {
     date: dateString,
     id: newChallenge.id,

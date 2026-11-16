@@ -216,8 +216,8 @@ export async function searchPerfumes(
   // 5. Database Query
   const startTime = performance.now();
 
-  // The service role runs the search: client roles have no EXECUTE on it, so a direct REST call
-  // cannot skip the user check and rate limit above.
+  // The service role runs the search, so client roles need no EXECUTE on it and a direct REST
+  // call cannot skip the user check and rate limit above.
   const dbResult = (await createAdminClient().rpc(
     "search_perfumes_unaccent_v2",
     {
