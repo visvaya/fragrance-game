@@ -17,6 +17,7 @@ DECLARE
   finding record;
   errors text[] := '{}';
   warnings integer := 0;
+  checked integer := 0;
 BEGIN
   FOR fn IN
     SELECT p.oid,
@@ -33,6 +34,7 @@ BEGIN
       RAISE NOTICE 'skipped % (trigger function attached to no table)', fn.name;
       CONTINUE;
     END IF;
+    checked := checked + 1;
     FOR finding IN
       SELECT c.level, c.lineno, c.message, c.query
       FROM extensions.plpgsql_check_function_tb(
@@ -51,7 +53,11 @@ BEGIN
     END LOOP;
   END LOOP;
 
-  RAISE NOTICE 'plpgsql_check: % errors, % warnings', COALESCE(array_length(errors, 1), 0), warnings;
+  RAISE NOTICE 'plpgsql_check: % functions, % errors, % warnings',
+    checked, COALESCE(array_length(errors, 1), 0), warnings;
+  IF checked = 0 THEN
+    RAISE EXCEPTION 'plpgsql_check found no PL/pgSQL functions in public; the query is wrong';
+  END IF;
   IF array_length(errors, 1) > 0 THEN
     RAISE EXCEPTION E'plpgsql_check found errors:\n%', array_to_string(errors, E'\n');
   END IF;
