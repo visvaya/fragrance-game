@@ -5,9 +5,13 @@ packages:
 # The lockfile pins the rest, and every change arrives as a reviewed update pull request.
 savePrefix: ""
 
-# Install only versions published at least 3 days ago (minutes), so a compromised release
-# has time to be noticed and pulled before it reaches this project.
-minimumReleaseAge: 4320
+# Install only versions published at least 7 days ago (minutes), so a compromised release
+# has time to be noticed and pulled before it reaches this project. Matches the Dependabot
+# cooldown in .github/dependabot.yml.
+minimumReleaseAge: 10080
+# Fail resolution instead of falling back to a younger version when no mature one matches.
+# pnpm 12.3+ turns this on whenever minimumReleaseAge is set; pnpm 11 needs it explicitly.
+minimumReleaseAgeStrict: true
 
 # pnpm 11 reads allowBuilds; pnpm 9/10 (Vercel picks pnpm from lockfileVersion) read onlyBuiltDependencies.
 allowBuilds:
