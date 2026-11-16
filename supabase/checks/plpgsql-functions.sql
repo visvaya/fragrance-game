@@ -20,13 +20,18 @@ DECLARE
   checked integer := 0;
 BEGIN
   FOR fn IN
+    -- One row per function, and per attached table for a trigger function: the same function can be
+    -- valid on one table and broken on another (a column only one of them has).
     SELECT p.oid,
-           p.oid::regprocedure::text AS name,
-           (SELECT t.tgrelid FROM pg_catalog.pg_trigger t WHERE t.tgfoid = p.oid ORDER BY t.oid LIMIT 1) AS relid,
+           p.oid::regprocedure::text || COALESCE(' on ' || t.tgrelid::regclass::text, '') AS name,
+           t.tgrelid AS relid,
            p.prorettype = 'pg_catalog.trigger'::pg_catalog.regtype AS is_trigger
     FROM pg_catalog.pg_proc p
     JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
     JOIN pg_catalog.pg_language l ON l.oid = p.prolang
+    LEFT JOIN LATERAL (
+      SELECT DISTINCT tr.tgrelid FROM pg_catalog.pg_trigger tr WHERE tr.tgfoid = p.oid
+    ) t ON true
     WHERE n.nspname = 'public' AND l.lanname = 'plpgsql'
     ORDER BY 2
   LOOP
@@ -53,7 +58,7 @@ BEGIN
     END LOOP;
   END LOOP;
 
-  RAISE NOTICE 'plpgsql_check: % functions, % errors, % warnings',
+  RAISE NOTICE 'plpgsql_check: % checks (function, or trigger function and table), % errors, % warnings',
     checked, COALESCE(array_length(errors, 1), 0), warnings;
   IF checked = 0 THEN
     RAISE EXCEPTION 'plpgsql_check found no PL/pgSQL functions in public; the query is wrong';
