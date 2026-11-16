@@ -27,6 +27,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 const randomHex = (): string => randomBytes(16).toString("hex");
 
+// perfumes.unique_slug is NOT NULL, and the set_unique_slug trigger overwrites whatever an insert
+// passes; the generated types do not know the trigger, so inserts pass this placeholder.
+const SLUG_SET_BY_TRIGGER = "set-by-trigger";
+
 /** Asset id and six distinct step keys that satisfy the perfume_assets CHECK constraints. */
 const validAssetKeys = () => {
   const assetId = randomHex();
@@ -96,6 +100,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
             name: "Test Perfume 1",
             release_year: 2020,
             source_record_slug: "test-perfume-1",
+            unique_slug: SLUG_SET_BY_TRIGGER,
           })
           .select()
           .single();
@@ -110,6 +115,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
             name: "Test Perfume 2",
             release_year: 2021,
             source_record_slug: "test-perfume-2",
+            unique_slug: SLUG_SET_BY_TRIGGER,
           })
           .select()
           .single();
@@ -188,6 +194,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
             name: "First Perfume",
             release_year: 2020,
             source_record_slug: "first-perfume",
+            unique_slug: SLUG_SET_BY_TRIGGER,
           })
           .select()
           .single();
@@ -232,6 +239,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
             name: "Old Perfume",
             release_year: 2015,
             source_record_slug: "old-perfume",
+            unique_slug: SLUG_SET_BY_TRIGGER,
           })
           .select()
           .single();
@@ -246,6 +254,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
             name: "Recent Perfume",
             release_year: 2023,
             source_record_slug: "recent-perfume",
+            unique_slug: SLUG_SET_BY_TRIGGER,
           })
           .select()
           .single();
@@ -314,6 +323,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
             name: "Sequence Perfume",
             release_year: 2020,
             source_record_slug: "sequence-perfume",
+            unique_slug: SLUG_SET_BY_TRIGGER,
           })
           .select()
           .single();
@@ -419,6 +429,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
             name: "With Asset",
             release_year: 2020,
             source_record_slug: "with-asset",
+            unique_slug: SLUG_SET_BY_TRIGGER,
           })
           .select()
           .single();
@@ -433,6 +444,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
             name: "Without Asset",
             release_year: 2021,
             source_record_slug: "without-asset",
+            unique_slug: SLUG_SET_BY_TRIGGER,
           })
           .select()
           .single();
@@ -474,6 +486,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
             name: "Certain Perfume",
             release_year: 2020,
             source_record_slug: "certain-perfume",
+            unique_slug: SLUG_SET_BY_TRIGGER,
           })
           .select()
           .single();
@@ -488,6 +501,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
             name: "Uncertain Perfume",
             release_year: 2021,
             source_record_slug: "uncertain-perfume",
+            unique_slug: SLUG_SET_BY_TRIGGER,
           })
           .select()
           .single();
@@ -537,6 +551,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
             name: "Duplicate Perfume",
             release_year: 2020,
             source_record_slug: "duplicate-perfume",
+            unique_slug: SLUG_SET_BY_TRIGGER,
           })
           .select()
           .single();

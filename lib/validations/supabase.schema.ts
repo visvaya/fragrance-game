@@ -111,11 +111,11 @@ export type DailyChallengesUpdate = z.infer<typeof DailyChallengesUpdate>;
 
 export const GameResults = z.object({
   attempts: z.number(),
-  challenge_id: z.string().nullable(),
+  challenge_id: z.string(),
   completed_at: z.string().nullable(),
   id: z.string(),
   is_ranked: z.boolean(),
-  player_id: z.string().nullable(),
+  player_id: z.string(),
   ranked_reason: z.string().nullable(),
   score: z.number(),
   score_raw: z.number(),
@@ -128,11 +128,11 @@ export type GameResults = z.infer<typeof GameResults>;
 
 export const GameResultsInsert = z.object({
   attempts: z.number(),
-  challenge_id: z.string().optional(),
+  challenge_id: z.string(),
   completed_at: z.string().optional(),
   id: z.string().optional(),
   is_ranked: z.boolean().optional(),
-  player_id: z.string().optional(),
+  player_id: z.string(),
   ranked_reason: z.string().optional(),
   score: z.number(),
   score_raw: z.number().optional(),
@@ -162,13 +162,13 @@ export type GameResultsUpdate = z.infer<typeof GameResultsUpdate>;
 
 export const GameSessions = z.object({
   attempts_count: z.number().nullable(),
-  challenge_id: z.string().nullable(),
+  challenge_id: z.string(),
   guesses: jsonSchema.nullable(),
   id: z.string(),
   last_guess: z.string().nullable(),
   last_nonce: z.string().nullable(),
   metadata: jsonSchema.nullable(),
-  player_id: z.string().nullable(),
+  player_id: z.string(),
   start_time: z.string().nullable(),
   status: z.string().nullable(),
 });
@@ -176,13 +176,13 @@ export type GameSessions = z.infer<typeof GameSessions>;
 
 export const GameSessionsInsert = z.object({
   attempts_count: z.number().optional(),
-  challenge_id: z.string().optional(),
+  challenge_id: z.string(),
   guesses: jsonSchema.optional(),
   id: z.string().optional(),
   last_guess: z.string().optional(),
   last_nonce: z.string().optional(),
   metadata: jsonSchema.optional(),
-  player_id: z.string().optional(),
+  player_id: z.string(),
   start_time: z.string().optional(),
   status: z.string().optional(),
 });
@@ -275,7 +275,7 @@ export const PerfumeAssetSources = z.object({
   id: z.string(),
   license_status: z.string().nullable(),
   original_filename: z.string().nullable(),
-  perfume_id: z.string().nullable(),
+  perfume_id: z.string(),
   scraped_at: z.string().nullable(),
   source_type: z.string(),
   source_url: z.string(),
@@ -288,7 +288,7 @@ export const PerfumeAssetSourcesInsert = z.object({
   id: z.string().optional(),
   license_status: z.string().optional(),
   original_filename: z.string().optional(),
-  perfume_id: z.string().optional(),
+  perfume_id: z.string(),
   scraped_at: z.string().optional(),
   source_type: z.string().optional(),
   source_url: z.string(),
@@ -377,7 +377,7 @@ export const Perfumes = z.object({
   solve_rate: z.number().nullable(),
   source_record_slug: z.string(),
   top_notes: z.array(z.string()).nullable(),
-  unique_slug: z.string().nullable(),
+  unique_slug: z.string(),
   xsolve_model_version: z.number().nullable(),
   xsolve_score: z.number().nullable(),
 });
@@ -404,7 +404,7 @@ export const PerfumesInsert = z.object({
   solve_rate: z.number().optional(),
   source_record_slug: z.string(),
   top_notes: z.array(z.string()).optional(),
-  unique_slug: z.string().optional(),
+  unique_slug: z.string(),
   xsolve_model_version: z.number().optional(),
   xsolve_score: z.number().optional(),
 });
