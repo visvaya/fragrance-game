@@ -2,7 +2,7 @@
 // RLS integration tests require Node.js environment (not jsdom) because:
 // - createAdminClient() accesses server-side env vars blocked in browser context
 // - Real HTTP requests to Supabase REST API are made
-/* eslint-disable vitest/no-duplicate-hooks, no-restricted-syntax -- RLS integration tests use duplicate beforeEach per role; px constraints in Supabase helpers; unused vars in destructured auth results */
+/* eslint-disable vitest/no-duplicate-hooks, no-restricted-syntax -- RLS integration tests use duplicate beforeEach per role; px constraints in Supabase helpers */
 import { describe, it, expect, beforeAll } from "vitest";
 
 /**

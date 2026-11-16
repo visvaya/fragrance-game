@@ -109,7 +109,7 @@ def main() -> None:
         issues = check_for_secrets(content, file_path)
 
         if issues:
-            logger.error(f"🚫 BLOCKED - Security issue detected in {file_path}:")
+            logger.error(f"BLOCKED: Security issue detected in {file_path}:")
             for issue in issues:
                 logger.error(f"  - {issue}")
             logger.info("\nRemove the secret from the file before committing it.")

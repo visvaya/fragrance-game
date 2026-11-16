@@ -24,7 +24,7 @@ if (skipTests) {
     eslintCmd += ' --ignore-pattern "**/tests/**" --ignore-pattern "**/e2e/**" --ignore-pattern "**/*.test.ts" --ignore-pattern "**/*.spec.ts"';
 }
 
-console.log(`🏃 Running ESLint${skipTests ? ' (skipping tests)' : ''}...`);
+console.log(`Running ESLint${skipTests ? ' (skipping tests)' : ''}...`);
 
 try {
     const output = execSync(eslintCmd, {
@@ -39,4 +39,4 @@ try {
 }
 
 printLintSummary(LINT_REPORT, { outputFile: TEXT_REPORT });
-console.log(`\n📄 Summary saved to: ${path.relative(process.cwd(), TEXT_REPORT)}`);
+console.log(`\nSummary saved to: ${path.relative(process.cwd(), TEXT_REPORT)}`);
