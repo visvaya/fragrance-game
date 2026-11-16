@@ -13,10 +13,17 @@ on:
     - cron: 34 23 * * *
 name: Semgrep
 permissions: {}
+# Cancel superseded pull request runs. Other runs get a group of their own (run_id), because a
+# shared group keeps one pending run and cancels the rest, even without cancel-in-progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   semgrep:
     name: semgrep/ci
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     env:

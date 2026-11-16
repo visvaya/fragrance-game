@@ -40,7 +40,7 @@ Keep a pull request to one topic. Fill in the template: what changed, which chec
 
 ## Review
 
-Every pull request runs the CI checks, which must pass before a merge. CodeRabbit reviews each pull request automatically; its comments are suggestions, and the maintainer decides which of them apply. The maintainer reviews the change and merges it.
+Every pull request runs the CI checks, which must pass before a merge. The maintainer may request a CodeRabbit review on a pull request; its comments are suggestions, and the maintainer decides which of them apply. The maintainer reviews the change and merges it.
 
 ## License
 

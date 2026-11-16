@@ -8,10 +8,17 @@ on:
 permissions:
   contents: read
 
+# Cancel superseded pull request runs. Other runs get a group of their own (run_id), because a
+# shared group keeps one pending run and cancels the rest, even without cancel-in-progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   dependency-audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -44,6 +51,7 @@ jobs:
   gitleaks:
     name: Gitleaks Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # gitleaks-action lists the pull request's commits through the API.
     permissions:
       contents: read
@@ -61,6 +69,7 @@ jobs:
   custom-security-check:
     name: Custom Security Check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -80,6 +89,7 @@ jobs:
     # dependencies, so a dependency update loses nothing here.
     if: github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

@@ -19,6 +19,7 @@ jobs:
   e2e:
     name: Playwright full suite (chromium + a11y)
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
