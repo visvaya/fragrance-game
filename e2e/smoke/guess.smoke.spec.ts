@@ -34,6 +34,14 @@ test("A player can make a guess @smoke", async ({ page }) => {
     "No puzzle for today; nothing to guess.",
   );
 
+  // The attempt counter ("Attempt: 1 / 6", in Polish "Próba") moves on after a guess, or disappears
+  // when the guess ends the game.
+  const firstAttempt = page.getByText(/\b1\s*\/\s*6\b/);
+  await expect(
+    firstAttempt,
+    "a fresh player starts at attempt 1",
+  ).toBeVisible();
+
   await input.fill("Chanel");
   const suggestions = page.locator('[role="option"]');
   await expect(
@@ -42,11 +50,7 @@ test("A player can make a guess @smoke", async ({ page }) => {
   ).toBeVisible({ timeout: 15_000 });
   await suggestions.first().click();
 
-  // The first row of the attempt log is numbered with the Roman numeral I.
-  await expect(
-    page.locator("span", { hasText: /^I$/ }).first(),
-    "the guess did not reach the attempt log",
-  ).toBeVisible({
+  await expect(firstAttempt, "the guess was not recorded").toBeHidden({
     timeout: 15_000,
   });
 });
