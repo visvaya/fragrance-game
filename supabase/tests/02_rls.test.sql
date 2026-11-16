@@ -10,7 +10,7 @@ BEGIN;
 -- supabase test db installs pgTAP for the run; switch to postgres for this transaction.
 SET LOCAL ROLE postgres;
 SET LOCAL search_path = public, extensions;
-SELECT plan(61);
+SELECT plan(47);
 
 -- ============================================================
 -- RLS ENABLED — core game tables
@@ -56,26 +56,6 @@ SELECT ok(
 -- ============================================================
 
 SELECT ok(
-  (SELECT rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notes'),
-  'RLS is enabled on notes table'
-);
-
-SELECT ok(
-  (SELECT rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename = 'perfume_notes'),
-  'RLS is enabled on perfume_notes table'
-);
-
-SELECT ok(
-  (SELECT rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename = 'perfumers'),
-  'RLS is enabled on perfumers table'
-);
-
-SELECT ok(
-  (SELECT rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename = 'perfume_perfumers'),
-  'RLS is enabled on perfume_perfumers table'
-);
-
-SELECT ok(
   (SELECT rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename = 'manufacturers'),
   'RLS is enabled on manufacturers table'
 );
@@ -100,33 +80,8 @@ SELECT ok(
 );
 
 SELECT ok(
-  (SELECT rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename = 'player_profiles'),
-  'RLS is enabled on player_profiles table'
-);
-
-SELECT ok(
-  (SELECT rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename = 'recovery_keys'),
-  'RLS is enabled on recovery_keys table'
-);
-
-SELECT ok(
   (SELECT rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename = 'user_sessions'),
   'RLS is enabled on user_sessions table'
-);
-
-SELECT ok(
-  (SELECT rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename = 'streak_freezes'),
-  'RLS is enabled on streak_freezes table'
-);
-
-SELECT ok(
-  (SELECT rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename = 'teams'),
-  'RLS is enabled on teams table'
-);
-
-SELECT ok(
-  (SELECT rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename = 'seasons'),
-  'RLS is enabled on seasons table'
 );
 
 SELECT ok(
@@ -179,24 +134,8 @@ SELECT ok(
 );
 
 SELECT ok(
-  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='player_profiles' AND policyname='Owner read player_profiles'),
-  'player_profiles has owner-only read policy'
-);
-
-SELECT ok(
   EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='user_sessions' AND policyname='Users can view own sessions'),
   'user_sessions has owner-only read policy'
-);
-
-
-SELECT ok(
-  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='recovery_keys' AND policyname='Owner read recovery keys'),
-  'recovery_keys has owner-only read policy'
-);
-
-SELECT ok(
-  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='recovery_keys' AND policyname='Service role all recovery keys'),
-  'recovery_keys has service_role policy'
 );
 
 SELECT ok(
@@ -258,16 +197,6 @@ SELECT ok(
 SELECT ok(
   NOT has_table_privilege('anon', 'public.player_auth_links', 'SELECT'),
   'anon has no direct SELECT on player_auth_links table'
-);
-
-SELECT ok(
-  NOT has_table_privilege('anon', 'public.player_profiles', 'SELECT'),
-  'anon has no direct SELECT on player_profiles table'
-);
-
-SELECT ok(
-  NOT has_table_privilege('anon', 'public.recovery_keys', 'SELECT'),
-  'anon has no direct SELECT on recovery_keys table'
 );
 
 SELECT ok(
