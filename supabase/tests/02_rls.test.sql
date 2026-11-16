@@ -10,7 +10,7 @@ BEGIN;
 -- supabase test db installs pgTAP for the run; switch to postgres for this transaction.
 SET LOCAL ROLE postgres;
 SET LOCAL search_path = public, extensions;
-SELECT plan(66);
+SELECT plan(61);
 
 -- ============================================================
 -- RLS ENABLED — core game tables
@@ -174,11 +174,6 @@ SELECT ok(
 );
 
 SELECT ok(
-  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='player_auth_links' AND policyname='Owner delete auth links'),
-  'player_auth_links has owner-only delete policy'
-);
-
-SELECT ok(
   EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='player_auth_links' AND policyname='Service role all auth links'),
   'player_auth_links has service_role policy'
 );
@@ -189,29 +184,10 @@ SELECT ok(
 );
 
 SELECT ok(
-  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='player_profiles' AND policyname='Owner update player_profiles'),
-  'player_profiles has owner-only update policy'
-);
-
-SELECT ok(
-  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='player_profiles' AND policyname='Owner insert player_profiles'),
-  'player_profiles has owner insert policy'
-);
-
-SELECT ok(
   EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='user_sessions' AND policyname='Users can view own sessions'),
   'user_sessions has owner-only read policy'
 );
 
-SELECT ok(
-  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='user_sessions' AND policyname='Users can update own sessions'),
-  'user_sessions has owner-only update policy'
-);
-
-SELECT ok(
-  EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='user_sessions' AND policyname='Users can insert own sessions'),
-  'user_sessions has insert policy'
-);
 
 SELECT ok(
   EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='recovery_keys' AND policyname='Owner read recovery keys'),

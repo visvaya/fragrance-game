@@ -118,15 +118,12 @@ export async function revokeSession(
     Sentry.captureException(new Error("Revoke failed (RPC)"), {
       extra: { rpcError: error.message },
     });
-    // Fallback: manually mark revoked if RPC fails
-    await supabase
-      .from("user_sessions")
-      .update({ revoked_at: new Date().toISOString() })
-      .eq("id", sessionId);
-
+    // No fallback that only marks the row revoked: the auth session would stay valid while the
+    // row disappears from the list, so the player could not see it or retry.
     return { error: error.message, success: false };
   }
 
   revalidatePath("/");
+  revalidatePath("/[locale]/auth/sessions", "page");
   return { success: true };
 }

@@ -150,7 +150,8 @@ describe("revokeSession", () => {
     expect(Sentry.captureException).toHaveBeenCalled();
   });
 
-  it("returns RPC error and triggers fallback update when RPC fails", async () => {
+  it("returns the RPC error and leaves the session row untouched when RPC fails", async () => {
+    // Marking the row revoked would hide a session that is still valid.
     vi.mocked(createClient).mockResolvedValue({
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -164,12 +165,11 @@ describe("revokeSession", () => {
           data: { session_token_hash: "hash-xyz" },
           error: null,
         }),
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ data: null, error: null }),
-        }),
       }),
     } as never);
+    const adminFrom = vi.fn();
     vi.mocked(createAdminClient).mockReturnValue({
+      from: adminFrom,
       rpc: vi.fn().mockResolvedValue({ error: { message: "RPC failed" } }),
     } as never);
 
@@ -177,6 +177,7 @@ describe("revokeSession", () => {
 
     expect(result).toEqual({ error: "RPC failed", success: false });
     expect(Sentry.captureException).toHaveBeenCalled();
+    expect(adminFrom).not.toHaveBeenCalled();
   });
 
   it("returns success and revalidates path when session revoked successfully", async () => {
@@ -203,5 +204,9 @@ describe("revokeSession", () => {
 
     expect(result).toEqual({ success: true });
     expect(revalidatePath).toHaveBeenCalledWith("/");
+    expect(revalidatePath).toHaveBeenCalledWith(
+      "/[locale]/auth/sessions",
+      "page",
+    );
   });
 });

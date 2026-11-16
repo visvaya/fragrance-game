@@ -1,30 +1,10 @@
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { getTranslations } from "next-intl/server";
 
+import { revokeSession } from "@/app/actions/auth-actions";
 import { SessionCard, type Session } from "@/components/auth/session-card";
 import { createClient } from "@/lib/supabase/server";
-
-async function revokeSession(sessionId: string) {
-  "use server";
-  const supabase = await createClient();
-
-  // Ownership check: only allow revoking own sessions
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
-
-  const { error } = await supabase
-    .from("user_sessions")
-    .update({ revoked_at: new Date().toISOString() })
-    .eq("id", sessionId)
-    .eq("user_id", user.id); // prevents revoking other users' sessions
-
-  if (error) console.error("Revoke failed:", error);
-  revalidatePath("/account/sessions");
-}
 
 /** Displays all active sessions for the authenticated user with option to revoke each. */
 export default async function SessionsPage() {
