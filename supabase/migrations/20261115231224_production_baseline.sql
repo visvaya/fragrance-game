@@ -4,6 +4,9 @@
 -- guard below stops the file there before it changes anything.
 -- supabase/schema-fingerprint.txt holds the production schema fingerprint; CI builds a database
 -- from the migrations and compares its fingerprint with that file.
+-- Run the file only as one transaction (the Supabase CLI, or apply_migration through the API), so
+-- that an error leaves nothing behind; never with plain psql -f, which needs --single-transaction
+-- and ON_ERROR_STOP for the same effect.
 
 DO $guard$
 BEGIN
