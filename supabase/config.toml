@@ -2,11 +2,6 @@
 # Run `supabase start` to start the local stack (requires Docker).
 # Run `supabase db push --local` to apply migrations to the local instance.
 # Run `supabase db diff` to compare local schema with remote.
-#
-# WARNING: seed.sql moves extensions to the `extensions` schema after migrations run.
-# This is required because cloud Supabase installs extensions in `extensions` schema,
-# but local Supabase installs them in `public` by default. Without this, functions
-# like extensions.similarity(), extensions.dmetaphone() fail locally.
 
 project_id = "rirboszzqowftfrfmmzp"
 
@@ -32,8 +27,7 @@ port = 54329
 
 [db.seed]
 enabled = true
-# seed.sql runs after all migrations. It installs fuzzystrmatch (not in migrations)
-# and moves extensions to the `extensions` schema to match cloud Supabase.
+# seed.sql runs after all migrations and adds a minimal catalogue for local tests.
 sql_paths = ["./seed.sql"]
 
 [realtime]
