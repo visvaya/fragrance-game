@@ -28,7 +28,7 @@ export type Session = {
 
 type SessionCardProperties = {
   readonly isCurrent: boolean;
-  readonly onRevoke: (id: string) => Promise<void>;
+  readonly onRevoke: (id: string) => Promise<unknown>;
   readonly session: Session;
 };
 

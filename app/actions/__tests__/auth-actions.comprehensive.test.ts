@@ -217,5 +217,9 @@ describe("revokeSession", () => {
 
     expect(result).toEqual({ success: true });
     expect(revalidatePath).toHaveBeenCalledWith("/");
+    expect(revalidatePath).toHaveBeenCalledWith(
+      "/[locale]/auth/sessions",
+      "page",
+    );
   });
 });

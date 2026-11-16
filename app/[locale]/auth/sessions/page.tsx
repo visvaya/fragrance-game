@@ -1,34 +1,10 @@
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { getTranslations } from "next-intl/server";
-import { z } from "zod";
 
+import { revokeSession } from "@/app/actions/auth-actions";
 import { SessionCard, type Session } from "@/components/auth/session-card";
-import { createAdminClient, createClient } from "@/lib/supabase/server";
-
-async function revokeSession(sessionId: string) {
-  "use server";
-  z.uuid().parse(sessionId);
-  const supabase = await createClient();
-
-  // Ownership check: only allow revoking own sessions
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
-
-  // Client roles cannot write user_sessions; the owner filter below keeps the
-  // service role to the caller's own rows.
-  const { error } = await createAdminClient()
-    .from("user_sessions")
-    .update({ revoked_at: new Date().toISOString() })
-    .eq("id", sessionId)
-    .eq("user_id", user.id); // prevents revoking other users' sessions
-
-  if (error) console.error("Revoke failed:", error);
-  revalidatePath("/account/sessions");
-}
+import { createClient } from "@/lib/supabase/server";
 
 /** Displays all active sessions for the authenticated user with option to revoke each. */
 export default async function SessionsPage() {

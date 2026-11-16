@@ -130,5 +130,6 @@ export async function revokeSession(
   }
 
   revalidatePath("/");
+  revalidatePath("/[locale]/auth/sessions", "page");
   return { success: true };
 }
