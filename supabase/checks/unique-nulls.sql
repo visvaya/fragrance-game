@@ -16,7 +16,19 @@ BEGIN
   CROSS JOIN LATERAL (
     SELECT string_agg(a.attname, ', ' ORDER BY a.attnum) AS cols
     FROM pg_catalog.pg_attribute a
-    WHERE a.attrelid = c.oid AND a.attnum = ANY (x.indkey) AND NOT a.attnotnull
+    WHERE a.attrelid = c.oid AND NOT a.attnotnull
+      AND (
+        a.attnum = ANY (x.indkey)
+        -- An expression key (lower(slug)) stores 0 in indkey; the columns it reads are recorded as
+        -- dependencies of the index. A partial index predicate is recorded the same way, so a column
+        -- that only appears in WHERE is reported too; such an index gets NOT NULL or an exception.
+        OR a.attnum IN (
+          SELECT d.refobjsubid FROM pg_catalog.pg_depend d
+          WHERE d.classid = 'pg_catalog.pg_class'::pg_catalog.regclass AND d.objid = x.indexrelid
+            AND d.refclassid = 'pg_catalog.pg_class'::pg_catalog.regclass AND d.refobjid = c.oid
+            AND d.refobjsubid > 0
+        )
+      )
   ) nullable
   WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p') AND x.indisunique AND NOT x.indnullsnotdistinct
     AND nullable.cols IS NOT NULL;
