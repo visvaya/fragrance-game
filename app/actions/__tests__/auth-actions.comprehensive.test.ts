@@ -150,7 +150,8 @@ describe("revokeSession", () => {
     expect(Sentry.captureException).toHaveBeenCalled();
   });
 
-  it("returns RPC error and triggers fallback update when RPC fails", async () => {
+  it("marks the caller's own session revoked with the service role when RPC fails", async () => {
+    // The user client only reads: client roles hold no write privilege on user_sessions.
     vi.mocked(createClient).mockResolvedValue({
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -164,12 +165,19 @@ describe("revokeSession", () => {
           data: { session_token_hash: "hash-xyz" },
           error: null,
         }),
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ data: null, error: null }),
-        }),
       }),
     } as never);
+    const filters: [string, string][] = [];
+    const updateQuery = {
+      eq: vi.fn((column: string, value: string) => {
+        filters.push([column, value]);
+        return updateQuery;
+      }),
+    };
+    const update = vi.fn().mockReturnValue(updateQuery);
+    const adminFrom = vi.fn().mockReturnValue({ update });
     vi.mocked(createAdminClient).mockReturnValue({
+      from: adminFrom,
       rpc: vi.fn().mockResolvedValue({ error: { message: "RPC failed" } }),
     } as never);
 
@@ -177,6 +185,12 @@ describe("revokeSession", () => {
 
     expect(result).toEqual({ error: "RPC failed", success: false });
     expect(Sentry.captureException).toHaveBeenCalled();
+    expect(adminFrom).toHaveBeenCalledWith("user_sessions");
+    expect(update).toHaveBeenCalledWith({ revoked_at: expect.any(String) });
+    expect(filters).toEqual([
+      ["id", VALID_UUID],
+      ["user_id", "user-123"],
+    ]);
   });
 
   it("returns success and revalidates path when session revoked successfully", async () => {

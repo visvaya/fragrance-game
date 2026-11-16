@@ -2,12 +2,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { getTranslations } from "next-intl/server";
+import { z } from "zod";
 
 import { SessionCard, type Session } from "@/components/auth/session-card";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 async function revokeSession(sessionId: string) {
   "use server";
+  z.uuid().parse(sessionId);
   const supabase = await createClient();
 
   // Ownership check: only allow revoking own sessions
@@ -16,7 +18,9 @@ async function revokeSession(sessionId: string) {
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  const { error } = await supabase
+  // Client roles cannot write user_sessions; the owner filter below keeps the
+  // service role to the caller's own rows.
+  const { error } = await createAdminClient()
     .from("user_sessions")
     .update({ revoked_at: new Date().toISOString() })
     .eq("id", sessionId)
