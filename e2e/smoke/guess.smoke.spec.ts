@@ -35,12 +35,13 @@ test("A player can make a guess @smoke", async ({ page }) => {
   );
 
   // The attempt counter ("Attempt: 1 / 6", in Polish "Próba") moves on after a guess, or disappears
-  // when the guess ends the game.
-  const firstAttempt = page.getByText(/\b1\s*\/\s*6\b/);
-  await expect(
-    firstAttempt,
-    "a fresh player starts at attempt 1",
-  ).toBeVisible();
+  // when the guess ends the game. The page renders it twice (two layouts), one of them hidden.
+  const firstAttempt = page
+    .getByText(/\b1\s*\/\s*6\b/)
+    .filter({ visible: true });
+  await expect(firstAttempt, "a fresh player starts at attempt 1").toHaveCount(
+    1,
+  );
 
   await input.fill("Chanel");
   const suggestions = page.locator('[role="option"]');
@@ -50,7 +51,7 @@ test("A player can make a guess @smoke", async ({ page }) => {
   ).toBeVisible({ timeout: 15_000 });
   await suggestions.first().click();
 
-  await expect(firstAttempt, "the guess was not recorded").toBeHidden({
+  await expect(firstAttempt, "the guess was not recorded").toHaveCount(0, {
     timeout: 15_000,
   });
 });
