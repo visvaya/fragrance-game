@@ -6,6 +6,7 @@ asset_publish.publish_asset; --local writes the files to the debug directory ins
 """
 
 import argparse
+import importlib
 import io
 import logging
 from pathlib import Path
@@ -20,8 +21,9 @@ from r2_client import bucket_name, make_r2_io, make_s3_client, make_supabase
 
 # Optional AVIF plugin for older Pillow builds
 try:
-    import pillow_avif  # noqa: F401
-except Exception:
+    # Imported for its side effect: registers the AVIF codec with older Pillow builds.
+    importlib.import_module("pillow_avif")
+except ImportError:
     pass
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

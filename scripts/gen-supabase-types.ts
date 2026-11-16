@@ -1,5 +1,5 @@
-import { execSync } from "child_process";
-import { readFileSync } from "fs";
+import { execFileSync } from "child_process";
+import { readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
 
 function loadEnvLocal(): Record<string, string> {
@@ -31,11 +31,30 @@ if (!projectId || projectId === "-") {
   process.exit(1);
 }
 
+// Supabase project refs are 20 lowercase letters or digits; anything else is a typo or an injection.
+if (!/^[a-z0-9]{20}$/.test(projectId)) {
+  console.error("Error: SUPABASE_PROJECT_ID is not a Supabase project ref (20 lowercase letters or digits).");
+  process.exit(1);
+}
+
 console.log(`Generating types for project: ${projectId}`);
 
-execSync(
-  `pnpm dlx supabase gen types typescript --project-id ${projectId} > types/supabase.ts`,
-  { stdio: "inherit" },
+// The pinned CLI from devDependencies, called without a shell.
+const types = execFileSync(
+  process.execPath,
+  [
+    resolve(process.cwd(), "node_modules/supabase/dist/supabase.js"),
+    "gen",
+    "types",
+    "typescript",
+    "--project-id",
+    projectId,
+    // Only the app's schema; extensions holds pgTAP objects while a test run is in progress.
+    "--schema",
+    "public",
+  ],
+  { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "inherit"] },
 );
+writeFileSync(resolve(process.cwd(), "types/supabase.ts"), types);
 
 console.log("Done. types/supabase.ts updated.");

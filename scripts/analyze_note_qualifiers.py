@@ -13,7 +13,7 @@ Output:
 import pandas as pd
 import re
 from collections import Counter
-from typing import List, Set
+from typing import List
 
 # Configuration
 CSV_PATH = '../data/dataset.csv'

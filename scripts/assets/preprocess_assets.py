@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 from pathlib import Path
 from typing import Iterable, Optional, Tuple
 
 import numpy as np
 try:
-    import pillow_avif  # type: ignore  # noqa: F401
-except Exception:
-    pillow_avif = None  # type: ignore
+    # Imported for its side effect: registers the AVIF codec with older Pillow builds.
+    importlib.import_module("pillow_avif")
+except ImportError:
+    pass
 from PIL import Image, ImageOps
 
 from asset_config import load_env, local_dirs

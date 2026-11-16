@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
-Pre-edit security check hook.
-Blocks edits that might contain secrets or security issues.
+Scans one file for secrets and other security issues.
+CI (security-scan.yml) runs it once per file: exit 2 on a finding, 0 otherwise.
 """
-import json
 import logging
 import re
 import sys
 import os
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple
 
 # Files to skip
 SKIP_FILES = {
@@ -97,21 +96,11 @@ def main() -> None:
         file_path = ""
         content = ""
 
-        # Check if arguments are provided directly
         if len(sys.argv) > 1:
             file_path = sys.argv[1]
             if os.path.exists(file_path):
                 with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read()
-        # Fallback to stdin JSON (hook style)
-        elif not sys.stdin.isatty():
-            try:
-                input_data = json.load(sys.stdin)
-                tool_input = input_data.get("tool_input", {})
-                file_path = tool_input.get("file_path", "")
-                content = tool_input.get("content", "") or tool_input.get("new_string", "")
-            except json.JSONDecodeError:
-                pass
 
         if not file_path or not content:
             # If no file/content provided, nothing to check
@@ -123,9 +112,9 @@ def main() -> None:
             logger.error(f"🚫 BLOCKED - Security issue detected in {file_path}:")
             for issue in issues:
                 logger.error(f"  - {issue}")
-            logger.info("\nThis edit has been BLOCKED to prevent committing secrets.")
+            logger.info("\nRemove the secret from the file before committing it.")
             logger.info("If this is a false positive, review and adjust the patterns in security-check.py")
-            # Exit 2 to block (common convention for hooks)
+            # Exit 2 marks a finding; CI fails on any non-zero exit.
             sys.exit(2)
 
         sys.exit(0)
