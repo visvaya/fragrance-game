@@ -80,7 +80,7 @@ DO $check$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.user_sessions
                  WHERE session_token_hash = '00000000-0000-4000-8000-0000000000a1'
-                   AND revoked_at IS NULL) THEN
+                   AND revoked_at IS NOT NULL) THEN
     RAISE EXCEPTION 'sign-out did not mark the user_sessions row as revoked';
   END IF;
 END
