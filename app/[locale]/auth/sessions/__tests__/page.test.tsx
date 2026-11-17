@@ -32,9 +32,10 @@ vi.mock("@/lib/supabase/server", () => ({
     from: vi.fn().mockReturnValue({
       eq: vi.fn().mockReturnThis(),
       is: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({
+      limit: vi.fn().mockResolvedValue({
         data: [{ id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" }],
       }),
+      order: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
     }),
   }),

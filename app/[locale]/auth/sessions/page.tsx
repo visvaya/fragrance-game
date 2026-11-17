@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 
 import { revokeSession } from "@/app/actions/auth-actions";
 import { SessionCard, type Session } from "@/components/auth/session-card";
+import { MAX_LISTED_SESSIONS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 
 /** Displays all active sessions for the authenticated user with option to revoke each. */
@@ -26,7 +27,8 @@ export default async function SessionsPage() {
     )
     .eq("user_id", user.id)
     .is("revoked_at", null)
-    .order("last_active_at", { ascending: false });
+    .order("last_active_at", { ascending: false })
+    .limit(MAX_LISTED_SESSIONS);
 
   return (
     <div className="container mx-auto max-w-2xl py-8">

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 
+import { MAX_LISTED_SESSIONS } from "@/lib/constants";
 import { checkRateLimit } from "@/lib/redis";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
@@ -67,7 +68,8 @@ export async function getSessions(): Promise<
     )
     .eq("user_id", user.id)
     .is("revoked_at", null)
-    .order("last_active_at", { ascending: false });
+    .order("last_active_at", { ascending: false })
+    .limit(MAX_LISTED_SESSIONS);
 
   return sessions ?? [];
 }
