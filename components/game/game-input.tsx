@@ -307,11 +307,9 @@ export function GameInput() {
   useEffect(() => {
     const listElement = listReference.current;
     if (listElement && selectedIndex >= 0) {
-      const activeItem = listElement.children[selectedIndex] as
-        HTMLElement | undefined;
-      if (activeItem) {
-        activeItem.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }
+      listElement.children
+        .item(selectedIndex)
+        ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   }, [selectedIndex]);
 

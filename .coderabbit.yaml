@@ -46,7 +46,7 @@ reviews:
         did not cause with "Pre-existing:". Do not comment on what the CI gate enforces:
         TypeScript (pnpm typecheck), oxlint with the project's rules (pnpm lint:strict: no
         useEffect without a named hook, kebab-case file names, JSDoc on exports, no any),
-        Prettier (pnpm format:check), Vitest coverage thresholds, pgTAP, Semgrep, gitleaks and
+        oxfmt (pnpm format:check), Vitest coverage thresholds, pgTAP, Semgrep, gitleaks and
         the Supabase security advisor. Prefer lean code: reuse existing helpers, no option or
         abstraction without a current user, remove dead code in the same change. Never
         Math.random(), Date.now(), window or document during render (hydration mismatch).

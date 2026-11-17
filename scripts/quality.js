@@ -5,7 +5,7 @@
  * Checks:
  *   1. TypeScript  – zero type errors (tsc --noEmit)
  *   2. oxlint      – static analysis (type-aware, warnings fail)
- *   3. Prettier    – consistent formatting
+ *   3. oxfmt       – consistent formatting
  *   4. Knip        – dead exports / unused files
  *   5. Depcheck    – unused / missing npm dependencies
  *   6. JSCPD       – copy-paste / code duplication (threshold 5%)
@@ -405,7 +405,7 @@ const tools = [
   },
   {
     name: 'format',
-    command: 'pnpm prettier --check .',
+    command: 'pnpm exec oxfmt --check',
     file: 'format.log',
   },
   {
@@ -488,7 +488,7 @@ if (!fastMode) {
 log('\n[PNPM AUDIT — Security]');
 printAuditSummary(path.join(reportsDir, 'audit.json'));
 
-log('\n[PRETTIER]');
+log('\n[OXFMT]');
 if (results.format) {
   log('  [ok] All files correctly formatted!');
 } else {
@@ -496,19 +496,15 @@ if (results.format) {
   if (fs.existsSync(formatLogPath)) {
     const fmt = fs.readFileSync(formatLogPath, 'utf8').trim();
     const cleanFmt = fmt.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
-    const lines = cleanFmt.split('\n');
-    const bad = lines.filter(l => l.includes('[warn]') && !l.includes('issues found'));
-    const adviceLine = lines.find(l => l.toLowerCase().includes('run prettier with --write'));
+    // oxfmt --check lists each unformatted file with its time, e.g. "lib/a.ts (3ms)".
+    const bad = cleanFmt.split('\n').filter(l => /\(\d+ms\)$/.test(l.trim()));
 
     if (bad.length === 0) {
-      log('  [warn]  Prettier failed but no specific unformatted files listed.');
+      log('  [warn]  oxfmt failed but listed no unformatted files.');
     } else {
       bad.slice(0, 10).forEach(l => log(`  [warn]  ${l.trim()}`));
       if (bad.length > 10) log(`  │ ... and ${bad.length - 10} more formatting issues`);
-      const advice = adviceLine
-        ? adviceLine.replace('[warn]', '').trim()
-        : `Code style issues found in ${bad.length} files. Run 'pnpm prettier --write .' to fix.`;
-      log(`\n  Tip: ${advice}`);
+      log(`\n  Tip: ${bad.length} files need formatting. Run 'pnpm format' to fix.`);
     }
   }
 }
