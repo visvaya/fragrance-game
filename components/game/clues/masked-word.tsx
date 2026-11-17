@@ -45,7 +45,6 @@ export function MaskedWord({
   keyPrefix,
   word,
 }: MaskedWordProperties): React.ReactNode[] {
-  // eslint-disable-next-line unicorn/prefer-spread -- split("") vs [...str] conflicts with no-misused-spread
   return word.split("").map((char, index) => {
     if (char === MASK_CHAR) {
       return (

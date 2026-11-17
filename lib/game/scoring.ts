@@ -137,7 +137,6 @@ export function getRevealPercentages(attempt: number): RevealState {
         yearMask: "FULL",
       };
     }
-    // eslint-disable-next-line sonarjs/no-duplicated-branches -- same body as attempt 1; safeAttempt clamped to 1–6 makes default unreachable, but TypeScript exhaustiveness requires it
     default: {
       // Same as case 1 – safeAttempt is clamped to 1-6 so this is unreachable,
       // but required for exhaustive return-type checking by TypeScript.

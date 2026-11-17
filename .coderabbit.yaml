@@ -29,6 +29,8 @@ reviews:
     # The CI gate already runs these with the project's own configuration.
     eslint:
       enabled: false
+    oxc:
+      enabled: false
     gitleaks:
       enabled: false
     semgrep:
@@ -42,7 +44,7 @@ reviews:
         Eauxle is a public daily perfume guessing game (Next.js 16 App Router, React 19,
         Supabase, Tailwind v4, next-intl). Prefix a comment about a problem this pull request
         did not cause with "Pre-existing:". Do not comment on what the CI gate enforces:
-        TypeScript (pnpm typecheck), ESLint with the project's rules (pnpm lint:strict: no
+        TypeScript (pnpm typecheck), oxlint with the project's rules (pnpm lint:strict: no
         useEffect without a named hook, kebab-case file names, JSDoc on exports, no any),
         Prettier (pnpm format:check), Vitest coverage thresholds, pgTAP, Semgrep, gitleaks and
         the Supabase security advisor. Prefer lean code: reuse existing helpers, no option or

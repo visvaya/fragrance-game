@@ -1,6 +1,6 @@
 "use client";
 
-/* eslint-disable no-restricted-syntax -- Required for strict breakpoints (max-[280px]) and viewport calculations (calc(100vw - Xpx)) */
+/* eslint-disable eauxle/restricted-syntax -- Required for strict breakpoints (max-[280px]) and viewport calculations (calc(100vw - Xpx)) */
 /* eslint-disable better-tailwindcss/no-unknown-classes -- Custom animations defined in globals.css */
 
 // eslint-disable-next-line no-restricted-imports -- dom read: reads localStorage on mount; dismisses help hint on input focus

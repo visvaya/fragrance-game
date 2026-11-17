@@ -60,7 +60,6 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 }
 
-// eslint-disable-next-line sonarjs/max-lines-per-function -- orchestrates sequential DB ops (check existing, pick perfume, insert challenge, upload image); steps share state and must remain sequential
 async function ensureChallenge(
   supabase: ReturnType<typeof createAdminClient>,
   dateString: string,

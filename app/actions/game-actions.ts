@@ -138,7 +138,6 @@ function cleanNote(note: string | null | undefined): string {
       .replaceAll(/\bLa Réunion\b/gi, ""),
   );
   const t = cleanedNote
-    // eslint-disable-next-line sonarjs/super-linear-regex -- negated class [^)]* cannot backtrack into the closing paren; linear
     .replaceAll(/\([^)]*\)/g, "")
     .replaceAll(/\s+/g, " ")
     .trim()
@@ -743,7 +742,6 @@ function calculateFeedback(
  * The function orchestrates multiple async operations (auth, DB reads/writes, analytics)
  * that form a single atomic business transaction; extraction would scatter this logic.
  */
-// eslint-disable-next-line sonarjs/max-lines-per-function -- orchestrates multi-step game transaction: auth, DB ops, scoring, analytics; each step is cohesive with shared state
 export async function submitGuess(
   sessionId: string,
   perfumeId: string,

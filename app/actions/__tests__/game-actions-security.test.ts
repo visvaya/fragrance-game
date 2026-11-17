@@ -12,7 +12,7 @@ import { getDailyChallenge } from "../game-actions";
  */
 
 // Mock Supabase clients
-/* eslint-disable sonarjs/no-nested-functions, @typescript-eslint/require-await -- security tests use nested describe/it structure; mock server actions don't need await */
+/* eslint-disable @typescript-eslint/require-await -- mock server actions don't need await */
 vi.mock("@/lib/auth/guest-ticket-cookie", () => ({
   ensureGuestTicket: vi.fn().mockResolvedValue(undefined),
 }));
@@ -181,7 +181,7 @@ vi.mock("@/lib/supabase/server", () => ({
     }),
   })),
 }));
-/* eslint-enable sonarjs/no-nested-functions, @typescript-eslint/require-await */
+/* eslint-enable @typescript-eslint/require-await */
 
 describe("Server Actions Security", () => {
   beforeEach(() => {

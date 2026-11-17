@@ -19,7 +19,6 @@ import { InfoPopover } from "../info-popover";
 
 import { MaskedWord } from "./masked-word";
 
-// eslint-disable-next-line @typescript-eslint/no-shadow -- the named function gives the memoized component its DevTools name
 export const MetaClues = memo(function MetaClues() {
   const {
     clues: serverClues,

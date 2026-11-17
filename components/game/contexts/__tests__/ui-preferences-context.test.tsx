@@ -177,12 +177,14 @@ describe("UIPreferencesContext", () => {
     vi.mocked(globalThis.matchMedia).mockImplementationOnce(
       (query: string) => ({
         addEventListener: vi.fn(),
+        // eslint-disable-next-line typescript/no-deprecated -- the mock implements the whole MediaQueryList interface
         addListener: vi.fn(),
         dispatchEvent: vi.fn(),
         matches: true,
         media: query,
         onchange: null,
         removeEventListener: vi.fn(),
+        // eslint-disable-next-line typescript/no-deprecated -- the mock implements the whole MediaQueryList interface
         removeListener: vi.fn(),
       }),
     );

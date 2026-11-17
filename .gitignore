@@ -10,7 +10,6 @@
 .vercel
 
 # Linting & caching
-.eslintcache
 .ruff_cache/
 .mypy_cache/
 .pytest_cache/

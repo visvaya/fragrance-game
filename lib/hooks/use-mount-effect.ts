@@ -1,4 +1,3 @@
-/* eslint-disable react-compiler/react-compiler -- intentional: this file wraps useEffect with disabled exhaustive-deps; optimizer cannot run */
 import { useEffect } from "react";
 
 /**

@@ -202,7 +202,9 @@ describe("skipAttempt", () => {
 
     vi.mocked(createClient).mockResolvedValue(makeClientMock(session) as any);
 
-    await expect(skipAttempt(SESSION_ID, "WRONG")).rejects.toThrow();
+    await expect(skipAttempt(SESSION_ID, "WRONG")).rejects.toThrow(
+      "CONFLICT:DIFFERENT",
+    );
   });
 
   it("throws on invalid session ID", async () => {

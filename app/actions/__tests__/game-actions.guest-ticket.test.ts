@@ -110,7 +110,9 @@ describe("guest ticket on moves", () => {
       user: GUEST,
     });
 
-    await expect(submitGuess(SESSION_ID, GUESS_ID, NONCE)).rejects.toThrow();
+    await expect(submitGuess(SESSION_ID, GUESS_ID, NONCE)).rejects.toThrow(
+      "CONFLICT:",
+    );
     expect(ensureGuestTicket).not.toHaveBeenCalled();
   });
 
@@ -121,7 +123,9 @@ describe("guest ticket on moves", () => {
       user: GUEST,
     });
 
-    await expect(skipAttempt(SESSION_ID, NONCE)).rejects.toThrow();
+    await expect(skipAttempt(SESSION_ID, NONCE)).rejects.toThrow(
+      "Game session update failed",
+    );
     expect(ensureGuestTicket).not.toHaveBeenCalled();
   });
 

@@ -366,7 +366,7 @@ describe("redis rate limiting", () => {
 
       await expect(
         checkRateLimit("startGame", "ip:192.168.1.1"),
-      ).rejects.toThrow();
+      ).rejects.toThrow("Rate limit exceeded for startGame");
 
       // Authenticated user (still has quota)
       vi.mocked(mockLimiter.limit).mockResolvedValueOnce({

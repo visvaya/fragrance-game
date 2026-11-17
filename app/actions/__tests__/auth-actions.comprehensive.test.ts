@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 
 import * as Sentry from "@sentry/nextjs";
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { ZodError } from "zod";
 
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
@@ -110,7 +111,7 @@ describe("revokeSession", () => {
   });
 
   it("throws ZodError for invalid UUID sessionId", async () => {
-    await expect(revokeSession("not-a-uuid")).rejects.toThrow();
+    await expect(revokeSession("not-a-uuid")).rejects.toThrow(ZodError);
   });
 
   it("returns unauthorized error when user not authenticated", async () => {

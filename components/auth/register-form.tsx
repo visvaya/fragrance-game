@@ -31,7 +31,7 @@ import { PasswordStrength } from "./password-strength";
 const CaptchaLoader = () => {
   const t = useTranslations("Auth.register");
   return (
-    // eslint-disable-next-line no-restricted-syntax -- Cloudflare Turnstile documented minimum height is 65px (fixed hardware constraint)
+    // eslint-disable-next-line eauxle/restricted-syntax -- Cloudflare Turnstile documented minimum height is 65px (fixed hardware constraint)
     <div className="flex h-[65px] animate-pulse items-center justify-center rounded bg-muted/20 text-xs text-muted-foreground">
       {t("captchaLoading")}
     </div>

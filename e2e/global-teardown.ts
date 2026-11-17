@@ -49,7 +49,7 @@ export default async function globalTeardown(
 
   const results = await Promise.allSettled(
     userIds.map(async (userId) => {
-      // eslint-disable-next-line no-restricted-syntax -- E2E Admin API call with service role key; response structure is known
+      // eslint-disable-next-line eauxle/restricted-syntax -- E2E Admin API call with service role key; response structure is known
       const res = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
         headers: {
           apikey: serviceRoleKey,

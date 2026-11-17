@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ZodError } from "zod";
 
 import { GUEST_TICKET_CONFIG } from "../guest-ticket-config";
 import {
@@ -68,6 +69,6 @@ describe("guest ticket token", () => {
   });
 
   it("throws when creating a ticket for a non-uuid id", () => {
-    expect(() => createGuestTicket("nope", NOW, KEY)).toThrow();
+    expect(() => createGuestTicket("nope", NOW, KEY)).toThrow(ZodError);
   });
 });

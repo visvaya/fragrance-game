@@ -143,9 +143,7 @@ describe("Translation Keys Parity", () => {
     const placeholderPatterns = [
       /TODO/i,
       /FIXME/i,
-      // eslint-disable-next-line sonarjs/super-linear-regex -- negated class matches linearly; input is short translation strings
       /\[[^\]]*\]/,
-      // eslint-disable-next-line sonarjs/super-linear-regex -- negated class matches linearly; input is short translation strings
       /\{[^}]*\}/,
       /xxx/i,
     ];

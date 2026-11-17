@@ -109,7 +109,6 @@ test.describe("CORS Configuration", () => {
   test("blocks requests from unauthorized origins", async ({ request }) => {
     const response = await request.get("/", {
       headers: {
-        // eslint-disable-next-line sonarjs/no-clear-text-protocols -- intentional HTTP URL to verify middleware redirects to HTTPS
         origin: "http://evil.com",
       },
     });
@@ -140,6 +139,7 @@ test.describe("CSP Enforcement", () => {
     const scriptBlocked = await page
       .evaluate(() => {
         try {
+          // eslint-disable-next-line no-eval -- the test checks that the CSP blocks eval in the page
           eval("console.log('inline script executed')");
           return false;
         } catch {

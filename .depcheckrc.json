@@ -7,8 +7,7 @@
     "shx",
     "prettier-plugin-tailwindcss",
     "tailwindcss-animate",
-    "@vitest/coverage-v8",
-    "eslint-import-resolver-typescript"
+    "@vitest/coverage-v8"
   ],
   "skip-missing": true,
   "ignorePatterns": [".next", "coverage", "dist"]

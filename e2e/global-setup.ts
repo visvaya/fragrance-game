@@ -59,7 +59,7 @@ async function createAnonymousSession(
   serviceRoleKey: string,
 ): Promise<AuthSession | null> {
   try {
-    // eslint-disable-next-line no-restricted-syntax -- E2E Admin API call with service role key; response structure is known
+    // eslint-disable-next-line eauxle/restricted-syntax -- E2E Admin API call with service role key; response structure is known
     const response = await fetch(`${supabaseUrl}/auth/v1/signup`, {
       body: JSON.stringify({ data: { is_test_user: true } }),
       headers: {
