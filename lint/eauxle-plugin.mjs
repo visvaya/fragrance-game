@@ -74,8 +74,9 @@ const isHeadOnly = (call) =>
 /**
  * `bounded-select`: every Supabase `select()` in a `from()` chain ends with `.limit()`,
  * `.single()` or `.maybeSingle()`, so that a query never returns an unbounded number of rows.
- * The chain is followed through the call expression only; a query assembled across variables
- * needs its bound in the same expression as `select()` or a disable comment with the reason.
+ * The chain is followed through one expression only: a builder kept in a variable
+ * (`const q = db.from("t"); q.select("id")`) is not recognised and not reported. The project has
+ * no such query today; build each query in one expression.
  */
 const boundedSelect = {
   meta: {
