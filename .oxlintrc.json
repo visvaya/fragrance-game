@@ -1151,12 +1151,9 @@
       "files": ["**/*.ts", "**/*.tsx"],
       "jsPlugins": ["./lint/eauxle-plugin.mjs"],
       "rules": {
+        "eauxle/bounded-select": "error",
         "eauxle/restricted-syntax": [
           "error",
-          {
-            "selector": "CallExpression[callee.property.name='select'] > CallExpression[callee.property.name='from']:not(:has(CallExpression[callee.property.name='limit']))",
-            "message": "Supabase .select() without .limit() is a security risk. Always add a limit."
-          },
           {
             "selector": "CallExpression[callee.property.name='select'][arguments.0.value='*']",
             "message": "Avoid select('*'). Choose specific columns for better performance and security."
@@ -1194,12 +1191,9 @@
       "files": ["app/actions/**/*.ts", "actions/**/*.ts"],
       "jsPlugins": ["./lint/eauxle-plugin.mjs"],
       "rules": {
+        "eauxle/bounded-select": "error",
         "eauxle/restricted-syntax": [
           "error",
-          {
-            "selector": "CallExpression[callee.property.name='select'] > CallExpression[callee.property.name='from']:not(:has(CallExpression[callee.property.name='limit']))",
-            "message": "Supabase .select() without .limit() is a security risk. Always add a limit."
-          },
           {
             "selector": "CallExpression[callee.property.name='select'][arguments.0.value='*']",
             "message": "Avoid select('*'). Choose specific columns for better performance and security."
@@ -1647,6 +1641,7 @@
       }
     },
     // Tests: describe blocks are long by nature; limits set at the measured maximum (2026-11-17).
+    // Tests read back the rows they created, so their queries need no row bound.
     {
       "files": [
         "**/*.test.{ts,tsx}",
@@ -1655,7 +1650,9 @@
         "e2e/**",
         "vitest.setup.ts"
       ],
+      "jsPlugins": ["./lint/eauxle-plugin.mjs"],
       "rules": {
+        "eauxle/bounded-select": "off",
         "complexity": ["error", 19],
         "max-lines-per-function": "off",
         "max-nested-callbacks": ["error", 7]

@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/nextjs";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { ZodError } from "zod";
 
+import { MAX_LISTED_SESSIONS } from "@/lib/constants";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 import { getSessions, revokeSession } from "../auth-actions";
@@ -61,6 +62,7 @@ describe("getSessions", () => {
         user_id: "user-123",
       },
     ];
+    const limit = vi.fn().mockResolvedValue({ data: mockSessions });
     vi.mocked(createClient).mockResolvedValue({
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -70,7 +72,8 @@ describe("getSessions", () => {
       from: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnThis(),
         is: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: mockSessions }),
+        limit,
+        order: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
       }),
     } as never);
@@ -78,6 +81,7 @@ describe("getSessions", () => {
     const result = await getSessions();
 
     expect(result).toEqual(mockSessions);
+    expect(limit).toHaveBeenCalledWith(MAX_LISTED_SESSIONS);
   });
 
   it("returns empty array when DB returns null", async () => {
@@ -90,7 +94,8 @@ describe("getSessions", () => {
       from: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnThis(),
         is: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ data: null }),
+        limit: vi.fn().mockResolvedValue({ data: null }),
+        order: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
       }),
     } as never);

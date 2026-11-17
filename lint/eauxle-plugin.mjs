@@ -33,7 +33,80 @@ const restrictedSyntax = {
   },
 };
 
+const BOUNDING_METHODS = new Set(["limit", "maybeSingle", "single"]);
+
+/** Method name of a call like `x.name(...)`, or undefined for any other node. */
+const methodName = (node) =>
+  node?.type === "CallExpression" &&
+  node.callee.type === "MemberExpression" &&
+  !node.callee.computed
+    ? node.callee.property.name
+    : undefined;
+
+/** Method names of the whole call chain that `call` belongs to, e.g. from, select, eq, limit. */
+function chainMethods(call) {
+  const names = [];
+  let lower = call.callee.object;
+  while (methodName(lower)) {
+    names.push(methodName(lower));
+    lower = lower.callee.object;
+  }
+  let upper = call;
+  while (
+    upper.parent?.type === "MemberExpression" &&
+    upper.parent.object === upper &&
+    methodName(upper.parent.parent)
+  ) {
+    upper = upper.parent.parent;
+    names.push(methodName(upper));
+  }
+  return names;
+}
+
+/** `select(columns, { head: true })` returns only a count, never rows. */
+const isHeadOnly = (call) =>
+  call.arguments[1]?.type === "ObjectExpression" &&
+  call.arguments[1].properties.some(
+    (p) =>
+      p.type === "Property" && p.key.name === "head" && p.value.value === true,
+  );
+
+/**
+ * `bounded-select`: every Supabase `select()` in a `from()` chain ends with `.limit()`,
+ * `.single()` or `.maybeSingle()`, so that a query never returns an unbounded number of rows.
+ * The chain is followed through the call expression only; a query assembled across variables
+ * needs its bound in the same expression as `select()` or a disable comment with the reason.
+ */
+const boundedSelect = {
+  meta: {
+    type: "problem",
+    docs: { description: "Require a row bound on Supabase select() queries." },
+    schema: [],
+  },
+  create(context) {
+    return {
+      CallExpression(node) {
+        if (methodName(node) !== "select" || isHeadOnly(node)) return;
+        const methods = chainMethods(node);
+        if (
+          !methods.includes("from") ||
+          methods.some((m) => BOUNDING_METHODS.has(m))
+        )
+          return;
+        context.report({
+          message:
+            "Supabase select() without .limit(), .single() or .maybeSingle() can return every row. Add a bound to the chain.",
+          node,
+        });
+      },
+    };
+  },
+};
+
 export default {
   meta: { name: "eauxle" },
-  rules: { "restricted-syntax": restrictedSyntax },
+  rules: {
+    "bounded-select": boundedSelect,
+    "restricted-syntax": restrictedSyntax,
+  },
 };

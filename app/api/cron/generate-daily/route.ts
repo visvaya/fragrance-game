@@ -7,6 +7,13 @@ import { env } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/server";
 import { DailyChallengesInsert } from "@/lib/validations/supabase.schema";
 
+// One challenge per date: the exclusion windows (30 and 7 days) plus pre-generated days stay far
+// below this.
+const RECENT_CHALLENGES_LIMIT = 100;
+// The whole candidate pool is fetched and one perfume picked at random. PostgREST caps a response
+// at 1000 rows anyway; a larger pool needs the random pick in SQL, or some perfumes never come up.
+const CANDIDATE_POOL_LIMIT = 1000;
+
 /**
  * Vercel Cron Job: Generate Daily Challenge
  *
@@ -88,7 +95,8 @@ async function ensureChallenge(
   const queryResult2 = await supabase
     .from("daily_challenges")
     .select("perfume_id")
-    .gte("challenge_date", exclusionDate.toISOString().split("T")[0]);
+    .gte("challenge_date", exclusionDate.toISOString().split("T")[0])
+    .limit(RECENT_CHALLENGES_LIMIT);
   const { data: recentChallenges } = queryResult2 as {
     data: { perfume_id: string }[] | null;
   };
@@ -106,7 +114,8 @@ async function ensureChallenge(
     .from("perfume_assets")
     .select("perfume_id, perfumes!inner(is_uncertain)")
     .not("image_key_step_1", "is", null) // Must have assets
-    .eq("perfumes.is_uncertain", false); // Must be verified
+    .eq("perfumes.is_uncertain", false) // Must be verified
+    .limit(CANDIDATE_POOL_LIMIT);
 
   const query =
     excludeIds.length > 0
@@ -140,7 +149,8 @@ async function ensureChallenge(
       const queryResult3 = await supabase
         .from("daily_challenges")
         .select("perfume_id")
-        .gte("challenge_date", shortExclusionDate.toISOString().split("T")[0]);
+        .gte("challenge_date", shortExclusionDate.toISOString().split("T")[0])
+        .limit(RECENT_CHALLENGES_LIMIT);
       const { data: recent7 } = queryResult3 as {
         data: { perfume_id: string }[] | null;
       };
@@ -153,7 +163,8 @@ async function ensureChallenge(
         .from("perfume_assets")
         .select("perfume_id, perfumes!inner(is_uncertain)")
         .not("image_key_step_1", "is", null)
-        .eq("perfumes.is_uncertain", false);
+        .eq("perfumes.is_uncertain", false)
+        .limit(CANDIDATE_POOL_LIMIT);
 
       return await (excludeIds7.length > 0
         ? baseRetryQuery.not("perfume_id", "in", `(${excludeIds7.join(",")})`)

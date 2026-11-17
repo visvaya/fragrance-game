@@ -125,6 +125,19 @@ const FIXTURES: Record<string, { expected: string[]; source: string }> = {
       "",
     ].join("\n"),
   },
+  "lib/probe-select.ts": {
+    expected: ["eauxle(bounded-select)"],
+    source: [
+      "declare const db: { from: (t: string) => any };",
+      "export const probes = [",
+      '  db.from("t").select("a").eq("b", 1),',
+      '  db.from("t").select("a").eq("b", 1).limit(5),',
+      '  db.from("t").select("a").single(),',
+      '  db.from("t").select("a", { count: "exact", head: true }),',
+      "];",
+      "",
+    ].join("\n"),
+  },
 };
 
 /** Removes `//` and `/* *\/` comments outside strings, so that JSONC parses as JSON. */
@@ -161,7 +174,11 @@ function probeConfig(): string {
   });
 }
 
-type Diagnostic = { code: string; filename: string };
+type Diagnostic = {
+  code: string;
+  filename: string;
+  labels: { span: { line: number } }[];
+};
 
 describe("oxlint config wiring", () => {
   let dir = "";
@@ -212,4 +229,15 @@ describe("oxlint config wiring", () => {
       expect([...expected].filter((code) => !codes.has(code))).toEqual([]);
     },
   );
+
+  it("reports only the unbounded select() of lib/probe-select.ts", () => {
+    const lines = diagnostics
+      .filter(
+        (d) =>
+          d.code === "eauxle(bounded-select)" &&
+          path.normalize(d.filename) === path.normalize("lib/probe-select.ts"),
+      )
+      .map((d) => d.labels[0]?.span.line);
+    expect(lines).toEqual([3]);
+  });
 });
