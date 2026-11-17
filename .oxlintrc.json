@@ -63,6 +63,11 @@
     "report/html/js/prism.js"
   ],
   "rules": {
+    // Measured 2026-11-17 among the suspicious and perf rules: few findings, all real. The others
+    // stay off: consistent-return flags effects with conditional cleanup, and the React Compiler
+    // memoizes constructed context values (ADR-0016).
+    "preserve-caught-error": "error",
+    "unicorn/no-array-fill-with-reference-type": "error",
     "no-case-declarations": "error",
     "no-empty": "error",
     "no-fallthrough": "error",

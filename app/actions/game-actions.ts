@@ -938,7 +938,7 @@ export async function submitGuess(
     GameSessionsUpdate.parse(updatePayload);
   } catch (error) {
     console.error("Game session update validation failed:", error);
-    throw new Error("Game state validation failed");
+    throw new Error("Game state validation failed", { cause: error });
   }
 
   const { data: updatedSession, error: updateError } = await updateGameSession(
