@@ -347,9 +347,7 @@ export function GameProvider({
   }, [router]);
 
   // Initialize Game (with proper auth sequencing)
-  // eslint-disable-next-line sonarjs/max-lines-per-function -- thin useEffect wrapper; inner initGame complexity annotated below
   useEffect(() => {
-    // eslint-disable-next-line sonarjs/max-lines-per-function,sonarjs/cognitive-complexity -- initGame orchestrates sequential auth (anon sign-in, verify), challenge fetch, and game session init; steps are tightly interdependent and cannot be split without losing clarity
     const initGame = async () => {
       performance.mark("eauxle:init_start");
 

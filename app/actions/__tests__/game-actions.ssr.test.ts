@@ -7,6 +7,7 @@
  *   - initializeAndSkip    (Zod validation + delegation)
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { ZodError } from "zod";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -359,7 +360,7 @@ describe("getPlayerDailySession", () => {
   });
 
   it("throws ZodError for invalid challengeId UUID", async () => {
-    await expect(getPlayerDailySession("not-a-uuid")).rejects.toThrow();
+    await expect(getPlayerDailySession("not-a-uuid")).rejects.toThrow(ZodError);
   });
 
   it("returns null for unauthenticated user", async () => {
@@ -393,18 +394,18 @@ describe("initializeAndGuess — Zod validation", () => {
   it("throws ZodError for invalid challengeId", async () => {
     await expect(
       initializeAndGuess("not-uuid", VALID_PERFUME_ID),
-    ).rejects.toThrow();
+    ).rejects.toThrow(ZodError);
   });
 
   it("throws ZodError for invalid perfumeId", async () => {
     await expect(
       initializeAndGuess(VALID_CHALLENGE_ID, "not-uuid"),
-    ).rejects.toThrow();
+    ).rejects.toThrow(ZodError);
   });
 });
 
 describe("initializeAndSkip — Zod validation", () => {
   it("throws ZodError for invalid challengeId", async () => {
-    await expect(initializeAndSkip("not-uuid")).rejects.toThrow();
+    await expect(initializeAndSkip("not-uuid")).rejects.toThrow(ZodError);
   });
 });

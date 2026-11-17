@@ -112,7 +112,7 @@ export function MigrationModal() {
 
   return (
     <Dialog onOpenChange={handleOpenChange} open={isOpen}>
-      {/* eslint-disable-next-line no-restricted-syntax -- shadcn/ui standard dialog width: 425px is a design system convention */}
+      {/* eslint-disable-next-line eauxle/restricted-syntax -- shadcn/ui standard dialog width: 425px is a design system convention */}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>

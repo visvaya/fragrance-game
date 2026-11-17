@@ -166,7 +166,7 @@ export function AuthModal({
         <DialogTrigger asChild>{children}</DialogTrigger>
       )}
 
-      {/* eslint-disable-next-line no-restricted-syntax -- shadcn/ui standard dialog width: 425px is a design system convention, not a user-scalable size */}
+      {/* eslint-disable-next-line eauxle/restricted-syntax -- shadcn/ui standard dialog width: 425px is a design system convention, not a user-scalable size */}
       <DialogContent className="flex flex-col gap-0 overflow-hidden border-0 bg-transparent p-0 shadow-none sm:max-w-[425px] sm:bg-transparent">
         <div className="mx-auto w-full max-w-md overflow-hidden rounded-lg border bg-background shadow-lg">
           <DialogHeader className="sr-only">

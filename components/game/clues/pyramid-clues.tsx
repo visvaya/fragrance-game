@@ -77,7 +77,6 @@ function renderPyramidNoteWord({
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-shadow -- the named function gives the memoized component its DevTools name
 export const PyramidClues = memo(function PyramidClues() {
   const t = useTranslations("PyramidClues");
   const { clues, currentAttempt, dailyPerfume, revealLevel } = useGameState();

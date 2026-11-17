@@ -27,7 +27,6 @@ export function createClient(): SupabaseClient<Database> {
 
   // Use local proxy to bypass uMatrix/AdBlockers
   // Valid URL is required by createBrowserClient
-  // eslint-disable-next-line unicorn/prefer-global-this -- safer for SSR pre-render
   const isBrowser = typeof window !== "undefined";
   const proxyUrl = isBrowser
     ? `${globalThis.location.origin}/api/db`

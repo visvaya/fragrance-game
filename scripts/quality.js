@@ -4,7 +4,7 @@
  *
  * Checks:
  *   1. TypeScript  – zero type errors (tsc --noEmit)
- *   2. ESLint      – static analysis (max-warnings=0 in CI)
+ *   2. oxlint      – static analysis (type-aware, warnings fail)
  *   3. Prettier    – consistent formatting
  *   4. Knip        – dead exports / unused files
  *   5. Depcheck    – unused / missing npm dependencies
@@ -23,13 +23,12 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { printLintSummary } = require('./parse-eslint');
 
 const skipTests = process.argv.includes('--no-tests');
 const fastMode  = process.argv.includes('--fast');
 
 const reportsDir   = path.join(process.cwd(), 'reports');
-const LINT_REPORT  = path.join(reportsDir, 'eslint.json');
+const LINT_REPORT  = path.join(reportsDir, 'oxlint.json');
 const TEXT_REPORT  = path.join(reportsDir, 'quality-summary.txt');
 
 let outputLog = '';
@@ -65,6 +64,28 @@ function run(name, command, outputFile) {
 }
 
 // ── Section Printers ─────────────────────────────────────────────────────────
+
+function printLintSummary(reportPath) {
+  if (!fs.existsSync(reportPath)) return;
+  let diagnostics;
+  try {
+    diagnostics = JSON.parse(fs.readFileSync(reportPath, 'utf8')).diagnostics;
+  } catch {
+    log('  [warn]  Could not parse oxlint.json');
+    return;
+  }
+  if (diagnostics.length === 0) {
+    log('  [ok] No lint errors!');
+    return;
+  }
+  const byRule = {};
+  for (const d of diagnostics) byRule[d.code] = (byRule[d.code] || 0) + 1;
+  log(`\n  ┌─ LINT ISSUES (${diagnostics.length}) ──────────────────────────────────────────┐`);
+  Object.entries(byRule)
+    .sort((a, b) => b[1] - a[1])
+    .forEach(([rule, count]) => log(`  │ ${String(count).padStart(4)}  ${rule}`));
+  log(`  └──────────────────────────────────────────────────────────────────┘`);
+}
 
 function printTypecheckSummary(reportPath) {
   if (!fs.existsSync(reportPath)) return;
@@ -363,7 +384,7 @@ log(`${LINE}`);
 ensureDir(reportsDir);
 ensureDir(path.join(reportsDir, 'jscpd'));
 
-let lintCmd = 'pnpm exec eslint . -f json';
+let lintCmd = 'pnpm exec oxlint -f json';
 if (skipTests) {
   lintCmd += ' --ignore-pattern "**/tests/**" --ignore-pattern "**/__tests__/**" --ignore-pattern "**/e2e/**" --ignore-pattern "**/*.test.ts" --ignore-pattern "**/*.test.tsx" --ignore-pattern "**/*.spec.ts" --ignore-pattern "**/*.spec.tsx"';
 }
@@ -380,7 +401,7 @@ const tools = [
   {
     name: 'lint',
     command: lintCmd,
-    file: 'eslint.json',
+    file: 'oxlint.json',
   },
   {
     name: 'format',
@@ -441,11 +462,8 @@ log(`${LINE}`);
 log('\n[TYPECHECK]');
 printTypecheckSummary(path.join(reportsDir, 'typecheck.log'));
 
-log('\n[ESLINT]');
-const oldLog = console.log;
-console.log = (m) => { outputLog += m + '\n'; oldLog(m); };
+log('\n[OXLINT]');
 printLintSummary(LINT_REPORT);
-console.log = oldLog;
 
 log('\n[KNIP]');
 printKnipSummary(path.join(reportsDir, 'knip.json'));

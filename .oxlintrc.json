@@ -1,0 +1,1762 @@
+// oxlint configuration (JSONC). Migrated from ESLint on 2026-11-17; every off entry and exception
+// carries its reason. Rule probes: lint/__tests__/oxlint-config.test.ts.
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "typescript",
+    "react",
+    "jsx-a11y",
+    "nextjs",
+    "import",
+    "unicorn",
+    "promise",
+    "jsdoc"
+  ],
+  "categories": {
+    "correctness": "error"
+  },
+  "options": {
+    "typeAware": true,
+    "denyWarnings": true,
+    "reportUnusedDisableDirectives": "error"
+  },
+  "env": {
+    "builtin": true,
+    "es2026": true
+  },
+  "settings": {
+    "react": {
+      "version": "19.3.1"
+    },
+    "better-tailwindcss": {
+      "entryPoint": "app/globals.css"
+    }
+  },
+  "ignorePatterns": [
+    ".next/**",
+    "out/**",
+    "dist/**",
+    "node_modules/**",
+    "types/supabase.ts",
+    "reports/**",
+    "coverage/**",
+    "test-results/**",
+    "playwright-report/**",
+    "**/*.json",
+    "**/*.yaml",
+    "**/*.yml",
+    ".ruff_cache/**",
+    ".mypy_cache/**",
+    ".eslintcache",
+    "supabase/functions/**",
+    "data/**",
+    "scripts/**",
+    "scripts/**/*.sql",
+    "img/**",
+    ".sentryrc",
+    "*.config.*",
+    ".prettierrc.*",
+    "postcss.config.*",
+    "sentry.*.config.ts",
+    "instrumentation.ts",
+    ".dependency-cruiser.js",
+    "report/html/js/prism.js"
+  ],
+  "rules": {
+    "no-case-declarations": "error",
+    "no-empty": "error",
+    "no-fallthrough": "error",
+    "no-prototype-builtins": "error",
+    "no-redeclare": "error",
+    "no-regex-spaces": "error",
+    "no-array-constructor": "error",
+    "no-useless-constructor": "error",
+    "no-empty-function": "error",
+    "no-console": [
+      "error",
+      {
+        "allow": ["warn", "error"]
+      }
+    ],
+    "react/display-name": "error",
+    "react/jsx-no-comment-textnodes": "error",
+    "react/jsx-no-target-blank": "error",
+    "react/no-unescaped-entities": "error",
+    "react/no-unknown-property": "error",
+    "jsx-a11y/alt-text": "error",
+    "jsx-a11y/anchor-has-content": "error",
+    "jsx-a11y/anchor-is-valid": "error",
+    "jsx-a11y/aria-activedescendant-has-tabindex": "error",
+    "jsx-a11y/aria-props": "error",
+    "jsx-a11y/aria-proptypes": "error",
+    "jsx-a11y/aria-role": "error",
+    "jsx-a11y/aria-unsupported-elements": "error",
+    "jsx-a11y/autocomplete-valid": "error",
+    "jsx-a11y/click-events-have-key-events": "error",
+    "jsx-a11y/heading-has-content": "error",
+    "jsx-a11y/html-has-lang": "error",
+    "jsx-a11y/iframe-has-title": "error",
+    "jsx-a11y/img-redundant-alt": "error",
+    "jsx-a11y/interactive-supports-focus": [
+      "error",
+      {
+        "tabbable": [
+          "button",
+          "checkbox",
+          "link",
+          "searchbox",
+          "spinbutton",
+          "switch",
+          "textbox"
+        ]
+      }
+    ],
+    "jsx-a11y/label-has-associated-control": "error",
+    "jsx-a11y/media-has-caption": "error",
+    "jsx-a11y/mouse-events-have-key-events": "error",
+    "jsx-a11y/no-access-key": "error",
+    "jsx-a11y/no-distracting-elements": "error",
+    "jsx-a11y/no-interactive-element-to-noninteractive-role": [
+      "error",
+      {
+        "tr": ["none", "presentation"],
+        "canvas": ["img"]
+      }
+    ],
+    "jsx-a11y/no-noninteractive-element-interactions": [
+      "error",
+      {
+        "handlers": [
+          "onClick",
+          "onError",
+          "onLoad",
+          "onMouseDown",
+          "onMouseUp",
+          "onKeyPress",
+          "onKeyDown",
+          "onKeyUp"
+        ],
+        "alert": ["onKeyUp", "onKeyDown", "onKeyPress"],
+        "body": ["onError", "onLoad"],
+        "dialog": ["onKeyUp", "onKeyDown", "onKeyPress"],
+        "iframe": ["onError", "onLoad"],
+        "img": ["onError", "onLoad"]
+      }
+    ],
+    "jsx-a11y/no-noninteractive-element-to-interactive-role": [
+      "error",
+      {
+        "ul": [
+          "listbox",
+          "menu",
+          "menubar",
+          "radiogroup",
+          "tablist",
+          "tree",
+          "treegrid"
+        ],
+        "ol": [
+          "listbox",
+          "menu",
+          "menubar",
+          "radiogroup",
+          "tablist",
+          "tree",
+          "treegrid"
+        ],
+        "li": [
+          "menuitem",
+          "menuitemradio",
+          "menuitemcheckbox",
+          "option",
+          "row",
+          "tab",
+          "treeitem"
+        ],
+        "table": ["grid"],
+        "td": ["gridcell"],
+        "fieldset": ["radiogroup", "presentation"]
+      }
+    ],
+    "jsx-a11y/no-noninteractive-tabindex": [
+      "error",
+      {
+        "tags": [],
+        "roles": ["tabpanel"],
+        "allowExpressionValues": true
+      }
+    ],
+    "jsx-a11y/no-redundant-roles": "error",
+    "jsx-a11y/no-static-element-interactions": [
+      "error",
+      {
+        "allowExpressionValues": true,
+        "handlers": [
+          "onClick",
+          "onMouseDown",
+          "onMouseUp",
+          "onKeyPress",
+          "onKeyDown",
+          "onKeyUp"
+        ]
+      }
+    ],
+    "jsx-a11y/role-has-required-aria-props": "error",
+    "jsx-a11y/role-supports-aria-props": "error",
+    "jsx-a11y/scope": "error",
+    "jsx-a11y/tabindex-no-positive": "error",
+    "unicorn/catch-error-name": "error",
+    "unicorn/consistent-assert": "error",
+    "unicorn/consistent-date-clone": "error",
+    "unicorn/consistent-empty-array-spread": "error",
+    "unicorn/consistent-existence-index-check": "error",
+    "unicorn/consistent-template-literal-escape": "error",
+    "unicorn/error-message": "error",
+    "unicorn/escape-case": "error",
+    "unicorn/explicit-length-check": "error",
+    "unicorn/import-style": "error",
+    "unicorn/new-for-builtins": "error",
+    "unicorn/no-abusive-eslint-disable": "error",
+    "unicorn/no-accessor-recursion": "error",
+    "unicorn/no-anonymous-default-export": "error",
+    "unicorn/no-array-callback-reference": "error",
+    "unicorn/no-array-for-each": "error",
+    "unicorn/no-array-method-this-argument": "error",
+    "unicorn/no-array-reduce": "error",
+    "unicorn/no-array-reverse": "error",
+    "unicorn/no-array-sort": "error",
+    "unicorn/no-await-expression-member": "error",
+    "unicorn/no-console-spaces": "error",
+    "unicorn/no-document-cookie": "error",
+    "unicorn/no-hex-escape": "error",
+    "unicorn/no-immediate-mutation": "error",
+    "unicorn/no-instanceof-builtins": "error",
+    "unicorn/no-lonely-if": "error",
+    "unicorn/no-magic-array-flat-depth": "error",
+    "unicorn/no-negated-condition": "error",
+    "unicorn/no-negation-in-equality-check": "error",
+    "unicorn/no-new-buffer": "error",
+    "unicorn/no-object-as-default-parameter": "error",
+    "unicorn/no-process-exit": "error",
+    "unicorn/no-static-only-class": "error",
+    "unicorn/no-this-assignment": "error",
+    "unicorn/no-typeof-undefined": "error",
+    "unicorn/no-unnecessary-array-flat-depth": "error",
+    "unicorn/no-unnecessary-array-splice-count": "error",
+    "unicorn/no-unnecessary-slice-end": "error",
+    "unicorn/no-unreadable-array-destructuring": "error",
+    "unicorn/no-unreadable-iife": "error",
+    "unicorn/no-useless-collection-argument": "error",
+    "unicorn/no-useless-error-capture-stack-trace": "error",
+    "unicorn/no-useless-promise-resolve-reject": "error",
+    "unicorn/no-useless-switch-case": "error",
+    "unicorn/no-useless-undefined": "error",
+    "unicorn/no-zero-fractions": "error",
+    "unicorn/numeric-separators-style": "error",
+    "unicorn/prefer-add-event-listener": "error",
+    "unicorn/prefer-array-find": "error",
+    "unicorn/prefer-array-flat": "error",
+    "unicorn/prefer-array-flat-map": "error",
+    "unicorn/prefer-array-index-of": "error",
+    "unicorn/prefer-array-some": "error",
+    "unicorn/prefer-at": "error",
+    "unicorn/prefer-bigint-literals": "error",
+    "unicorn/prefer-blob-reading-methods": "error",
+    "unicorn/prefer-class-fields": "error",
+    "unicorn/prefer-classlist-toggle": "error",
+    "unicorn/prefer-code-point": "error",
+    "unicorn/prefer-date-now": "error",
+    "unicorn/prefer-default-parameters": "error",
+    "unicorn/prefer-dom-node-append": "error",
+    "unicorn/prefer-dom-node-dataset": "error",
+    "unicorn/prefer-dom-node-remove": "error",
+    "unicorn/prefer-dom-node-text-content": "error",
+    "unicorn/prefer-event-target": "error",
+    "unicorn/prefer-export-from": "error",
+    "unicorn/prefer-global-this": "error",
+    "unicorn/prefer-includes": "error",
+    "unicorn/prefer-keyboard-event-key": "error",
+    "unicorn/prefer-logical-operator-over-ternary": "error",
+    "unicorn/prefer-math-min-max": "error",
+    "unicorn/prefer-math-trunc": "error",
+    "unicorn/prefer-modern-dom-apis": "error",
+    "unicorn/prefer-modern-math-apis": "error",
+    "unicorn/prefer-module": "error",
+    "unicorn/prefer-native-coercion-functions": "error",
+    "unicorn/prefer-negative-index": "error",
+    "unicorn/prefer-node-protocol": "error",
+    "unicorn/prefer-number-properties": "error",
+    "unicorn/prefer-object-from-entries": "error",
+    "unicorn/prefer-optional-catch-binding": "error",
+    "unicorn/prefer-prototype-methods": "error",
+    "unicorn/prefer-query-selector": "error",
+    "unicorn/prefer-reflect-apply": "error",
+    "unicorn/prefer-regexp-test": "error",
+    "unicorn/prefer-response-static-json": "error",
+    "unicorn/prefer-set-has": "error",
+    "unicorn/prefer-single-call": "error",
+    "unicorn/prefer-spread": "error",
+    "unicorn/prefer-string-raw": "error",
+    "unicorn/prefer-string-replace-all": "error",
+    "unicorn/prefer-string-slice": "error",
+    "unicorn/prefer-string-trim-start-end": "error",
+    "unicorn/prefer-structured-clone": "error",
+    "unicorn/prefer-ternary": "error",
+    "unicorn/prefer-top-level-await": "error",
+    "unicorn/prefer-type-error": "error",
+    "unicorn/relative-url-style": "error",
+    "unicorn/require-array-join-separator": "error",
+    "unicorn/require-module-attributes": "error",
+    "unicorn/require-module-specifiers": "error",
+    "unicorn/require-number-to-fixed-digits-argument": "error",
+    "unicorn/switch-case-braces": "error",
+    "unicorn/switch-case-break-position": "error",
+    "unicorn/text-encoding-identifier-case": "error",
+    "unicorn/throw-new-error": "error",
+    "promise/always-return": "error",
+    "promise/no-return-wrap": "error",
+    "promise/param-names": "error",
+    "promise/catch-or-return": "error",
+    "promise/no-nesting": "error",
+    "promise/no-promise-in-callback": "error",
+    "prefer-regex-literals": "error",
+    "jsdoc/check-access": "error",
+    "jsdoc/check-tag-names": [
+      "error",
+      {
+        "typed": true
+      }
+    ],
+    "jsdoc/empty-tags": "error",
+    "jsdoc/require-param-name": "error",
+    "jsdoc/require-throws-type": "error",
+    "jsdoc/require-yields-type": "error",
+    "import/no-named-as-default": "error",
+    "import/no-named-as-default-member": "error",
+    "import/no-duplicates": [
+      "error",
+      {
+        "prefer-inline": true
+      }
+    ],
+    "import/no-cycle": [
+      "error",
+      {
+        "maxDepth": 5,
+        "ignoreExternal": true
+      }
+    ],
+    "import/no-default-export": "error",
+    "react/rules-of-hooks": "error",
+    "typescript/ban-ts-comment": [
+      "error",
+      {
+        "minimumDescriptionLength": 10
+      }
+    ],
+    "typescript/no-confusing-void-expression": "error",
+    "typescript/no-deprecated": "error",
+    "typescript/no-dynamic-delete": "error",
+    "typescript/no-empty-object-type": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-extraneous-class": "error",
+    "typescript/no-floating-promises": [
+      "error",
+      {
+        "ignoreVoid": true
+      }
+    ],
+    "typescript/no-generated-empty-object-type": "error",
+    "typescript/no-invalid-void-type": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/no-mixed-enums": "error",
+    "typescript/no-namespace": "error",
+    "typescript/no-non-null-asserted-nullish-coalescing": "error",
+    "typescript/no-non-null-assertion": "error",
+    "typescript/no-require-imports": "error",
+    "typescript/no-unnecessary-boolean-literal-compare": "error",
+    "typescript/no-unnecessary-template-expression": "error",
+    "typescript/no-unnecessary-type-arguments": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-unnecessary-type-constraint": "error",
+    "typescript/no-unnecessary-type-conversion": "error",
+    "typescript/no-unnecessary-type-parameters": "error",
+    "typescript/no-unsafe-argument": "error",
+    "typescript/no-unsafe-assignment": "error",
+    "typescript/no-unsafe-call": "error",
+    "typescript/no-unsafe-enum-comparison": "error",
+    "typescript/no-unsafe-function-type": "error",
+    "typescript/no-unsafe-member-access": "error",
+    "typescript/no-unsafe-return": "error",
+    "typescript/only-throw-error": "error",
+    "typescript/prefer-literal-enum-member": "error",
+    "typescript/prefer-promise-reject-errors": "error",
+    "typescript/prefer-reduce-type-parameter": "error",
+    "typescript/prefer-return-this-type": "error",
+    "typescript/related-getter-setter-pairs": "error",
+    "typescript/require-await": "error",
+    "typescript/restrict-plus-operands": [
+      "error",
+      {
+        "allowAny": false,
+        "allowBoolean": false,
+        "allowNullish": false,
+        "allowNumberAndString": false,
+        "allowRegExp": false
+      }
+    ],
+    "typescript/restrict-template-expressions": [
+      "error",
+      {
+        "allowAny": false,
+        "allowBoolean": false,
+        "allowNever": false,
+        "allowNullish": false,
+        "allowNumber": false,
+        "allowRegExp": false
+      }
+    ],
+    "typescript/return-await": ["error", "error-handling-correctness-only"],
+    "typescript/unified-signatures": "error",
+    "typescript/use-unknown-in-catch-callback-variable": "error",
+    "typescript/adjacent-overload-signatures": "error",
+    "typescript/array-type": "error",
+    "typescript/ban-tslint-comment": "error",
+    "typescript/class-literal-property-style": "error",
+    "typescript/consistent-generic-constructors": "error",
+    "typescript/consistent-indexed-object-style": "error",
+    "typescript/consistent-type-assertions": "error",
+    "typescript/consistent-type-definitions": "error",
+    "typescript/dot-notation": "error",
+    "typescript/no-confusing-non-null-assertion": "error",
+    "typescript/no-inferrable-types": "error",
+    "typescript/non-nullable-type-assertion-style": "error",
+    "typescript/prefer-find": "error",
+    "typescript/prefer-for-of": "error",
+    "typescript/prefer-function-type": "error",
+    "typescript/prefer-includes": "error",
+    "typescript/prefer-nullish-coalescing": "error",
+    "typescript/prefer-regexp-exec": "error",
+    "typescript/prefer-string-starts-ends-with": "error",
+    "no-shadow": [
+      "error",
+      {
+        "ignoreTypeValueShadow": true,
+        "ignoreFunctionTypeParameterNameValueShadow": true
+      }
+    ],
+    "typescript/no-unnecessary-condition": "error",
+    "typescript/prefer-optional-chain": "error",
+    "import/export": "error",
+    "promise/no-return-in-finally": "error",
+    "unicorn/no-useless-iterator-to-array": "error",
+    "complexity": ["error", 20],
+    "max-depth": ["error", 4],
+    "max-lines-per-function": [
+      "error",
+      {
+        "max": 300
+      }
+    ],
+    "max-nested-callbacks": ["error", 4],
+    "max-params": ["error", 6]
+  },
+  "overrides": [
+    // TypeScript files: core rules that tsc already checks stay off (typescript-eslint
+    // eslint-recommended).
+    {
+      "files": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
+      "rules": {
+        "constructor-super": "off",
+        "getter-return": "off",
+        "no-class-assign": "off",
+        "no-const-assign": "off",
+        "no-dupe-class-members": "off",
+        "no-dupe-keys": "off",
+        "no-func-assign": "off",
+        "no-import-assign": "off",
+        "no-new-native-nonconstructor": "off",
+        "no-obj-calls": "off",
+        "no-redeclare": "off",
+        "no-setter-return": "off",
+        "no-this-before-super": "off",
+        "no-unreachable": "off",
+        "no-unsafe-negation": "off",
+        "no-var": "error",
+        "no-with": "off",
+        "prefer-const": "error",
+        "prefer-rest-params": "error",
+        "prefer-spread": "error"
+      }
+    },
+    // Project-wide TypeScript and React rules.
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "rules": {
+        "react/display-name": "off",
+        "react/self-closing-comp": "error",
+        "react/jsx-boolean-value": ["error", "never"],
+        "react/jsx-curly-brace-presence": [
+          "error",
+          {
+            "props": "never",
+            "children": "never"
+          }
+        ],
+        "react/hook-use-state": "error",
+        "react/jsx-no-useless-fragment": [
+          "error",
+          {
+            "allowExpressions": true
+          }
+        ],
+        "react/no-unknown-property": [
+          "error",
+          {
+            "ignore": ["vaul-drawer-wrapper"]
+          }
+        ],
+        "react/iframe-missing-sandbox": "error",
+        "react/jsx-no-script-url": "error",
+        "react/no-array-index-key": "error",
+        "react/no-danger": "error",
+        "react/no-unstable-nested-components": [
+          "error",
+          {
+            "allowAsProps": true
+          }
+        ],
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "react",
+                "importNames": ["forwardRef"],
+                "message": "React 19 handles ref as a prop. Use ref directly instead of forwardRef."
+              }
+            ]
+          }
+        ],
+        "no-restricted-properties": [
+          "error",
+          {
+            "message": "Use 'import { env } from \"@/lib/env\"' instead of process.env. Variables are validated by Zod.",
+            "object": "process",
+            "property": "env"
+          }
+        ],
+        "no-console": [
+          "error",
+          {
+            "allow": ["warn", "error"]
+          }
+        ],
+        "prefer-const": "error",
+        "prefer-template": "error",
+        "no-param-reassign": [
+          "error",
+          {
+            "props": false
+          }
+        ],
+        "eqeqeq": [
+          "error",
+          "always",
+          {
+            "null": "ignore"
+          }
+        ],
+        "no-restricted-globals": [
+          "error",
+          {
+            "name": "fetch",
+            "message": "Use fetch from next/server or the appropriate client (Supabase, PostHog, etc.)."
+          }
+        ],
+        "no-unused-vars": [
+          "error",
+          {
+            "argsIgnorePattern": "^_",
+            "varsIgnorePattern": "^_",
+            "destructuredArrayIgnorePattern": "^_",
+            "caughtErrorsIgnorePattern": "^_"
+          }
+        ],
+        "no-shadow": [
+          "error",
+          {
+            "ignoreTypeValueShadow": true,
+            "ignoreFunctionTypeParameterNameValueShadow": true
+          }
+        ],
+        "typescript/consistent-type-imports": [
+          "error",
+          {
+            "prefer": "type-imports",
+            "fixStyle": "inline-type-imports"
+          }
+        ],
+        "typescript/consistent-type-definitions": ["error", "type"],
+        "typescript/no-misused-promises": [
+          "error",
+          {
+            "checksVoidReturn": {
+              "attributes": false
+            }
+          }
+        ],
+        "typescript/restrict-template-expressions": [
+          "error",
+          {
+            "allowNumber": true,
+            "allowBoolean": true
+          }
+        ],
+        "typescript/prefer-nullish-coalescing": [
+          "error",
+          {
+            "ignoreConditionalTests": true,
+            "ignorePrimitives": {
+              "string": true
+            }
+          }
+        ],
+        "typescript/no-confusing-void-expression": [
+          "error",
+          {
+            "ignoreArrowShorthand": true
+          }
+        ],
+        "typescript/no-floating-promises": [
+          "error",
+          {
+            "ignoreVoid": true
+          }
+        ],
+        "typescript/promise-function-async": "error",
+        "typescript/switch-exhaustiveness-check": "error",
+        "typescript/no-import-type-side-effects": "error",
+        "typescript/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "as",
+            "objectLiteralTypeAssertions": "allow-as-parameter"
+          }
+        ],
+        "typescript/method-signature-style": ["error", "property"],
+        "typescript/strict-boolean-expressions": [
+          "error",
+          {
+            "allowNullableObject": true,
+            "allowNullableBoolean": true,
+            "allowNullableString": true,
+            "allowString": true,
+            "allowNumber": false,
+            "allowNullableNumber": false,
+            "allowNullableEnum": false,
+            "allowAny": true
+          }
+        ],
+        "typescript/no-deprecated": "error"
+      }
+    },
+    // Root layouts render static blocking inline scripts against a theme flash; no input reaches
+    // dangerouslySetInnerHTML.
+    {
+      "files": ["app/**/layout.tsx"],
+      "rules": {
+        "react/no-danger": "off"
+      }
+    },
+    // SSR safety: Math.random() and Date.now() in TSX render cause hydration mismatches;
+    // process.env only through lib/env.
+    {
+      "files": ["**/*.tsx"],
+      "rules": {
+        "no-restricted-properties": [
+          "error",
+          {
+            "message": "Math.random() causes hydration mismatch in SSR. Use inside useEffect or a server action.",
+            "object": "Math",
+            "property": "random"
+          },
+          {
+            "message": "Date.now() causes hydration mismatch in SSR. Use inside useEffect or a server action.",
+            "object": "Date",
+            "property": "now"
+          },
+          {
+            "message": "Use 'import { env } from \"@/lib/env\"' instead of process.env. Variables are validated by Zod.",
+            "object": "process",
+            "property": "env"
+          }
+        ]
+      }
+    },
+    // lib/env.ts is the one place that reads process.env.
+    {
+      "files": ["lib/env.ts"],
+      "rules": {
+        "no-restricted-properties": "off"
+      }
+    },
+    // Server Components: browser globals are not available.
+    {
+      "files": [
+        "app/**/page.tsx",
+        "app/**/layout.tsx",
+        "app/**/loading.tsx",
+        "app/**/error.tsx",
+        "app/**/not-found.tsx",
+        "app/**/template.tsx",
+        "app/**/default.tsx"
+      ],
+      "rules": {
+        "no-restricted-globals": [
+          "error",
+          {
+            "name": "window",
+            "message": "window is not available in Server Components. Move to 'use client' or useEffect."
+          },
+          {
+            "name": "document",
+            "message": "document is not available in Server Components. Move to 'use client' or useEffect."
+          },
+          {
+            "name": "localStorage",
+            "message": "localStorage is not available in Server Components. Move to 'use client' or useEffect."
+          },
+          {
+            "name": "sessionStorage",
+            "message": "sessionStorage is not available in Server Components. Move to 'use client' or useEffect."
+          },
+          {
+            "name": "navigator",
+            "message": "navigator is not available in Server Components. Move to 'use client' or useEffect."
+          },
+          {
+            "name": "fetch",
+            "message": "Use fetch from next/server or the appropriate client (Supabase, PostHog, etc.)."
+          }
+        ]
+      }
+    },
+    // Direct useEffect is banned (useMountEffect or a named hook); use-mount-effect.ts is the
+    // wrapper itself.
+    {
+      "files": ["**/*.tsx", "**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "react",
+                "importNames": ["forwardRef"],
+                "message": "React 19 handles ref as a prop. Use ref directly instead of forwardRef."
+              },
+              {
+                "name": "react",
+                "importNames": ["useEffect"],
+                "message": "Direct useEffect is banned. Use useMountEffect() for mount-only effects (empty deps), or extract to a named custom hook. If neither applies, add eslint-disable with a category comment."
+              }
+            ]
+          }
+        ]
+      },
+      "excludeFiles": ["lib/hooks/use-mount-effect.ts"]
+    },
+    // Server Components: client-only hooks are banned.
+    {
+      "files": [
+        "app/**/page.tsx",
+        "app/**/layout.tsx",
+        "app/**/loading.tsx",
+        "app/**/error.tsx",
+        "app/**/not-found.tsx",
+        "app/**/template.tsx",
+        "app/**/default.tsx",
+        "app/**/opengraph-image.tsx",
+        "app/**/icon.tsx",
+        "app/**/sitemap.ts",
+        "app/**/robots.ts",
+        "app/**/manifest.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "react",
+                "importNames": ["forwardRef"],
+                "message": "React 19 handles ref as a prop. Use ref directly instead of forwardRef."
+              },
+              {
+                "name": "react",
+                "importNames": [
+                  "useState",
+                  "useEffect",
+                  "useReducer",
+                  "useRef",
+                  "useCallback",
+                  "useMemo",
+                  "useLayoutEffect",
+                  "useInsertionEffect",
+                  "useSyncExternalStore"
+                ],
+                "message": "This file is a Server Component. Move client hooks to a \"use client\" component."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    // Next.js requires default exports in these files.
+    {
+      "files": [
+        "app/**/page.tsx",
+        "app/**/layout.tsx",
+        "app/**/loading.tsx",
+        "app/**/error.tsx",
+        "app/**/global-error.tsx",
+        "app/**/not-found.tsx",
+        "app/**/template.tsx",
+        "app/**/default.tsx",
+        "app/**/opengraph-image.tsx",
+        "app/**/icon.tsx",
+        "app/robots.ts",
+        "app/sitemap.ts",
+        "middleware.ts",
+        "proxy.ts",
+        "instrumentation.ts"
+      ],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    },
+    // Route handlers: Next.js requires default exports; they may call fetch directly.
+    {
+      "files": ["app/api/**/route.ts"],
+      "rules": {
+        "no-restricted-globals": "off",
+        "import/no-default-export": "off"
+      }
+    },
+    // Vitest: tests may use loose types for mocks; console output is allowed.
+    {
+      "files": [
+        "**/*.test.{ts,tsx}",
+        "**/*.spec.{ts,tsx}",
+        "**/__tests__/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "vitest/expect-expect": "error",
+        "vitest/no-commented-out-tests": "error",
+        "vitest/no-conditional-expect": "error",
+        "vitest/no-disabled-tests": "error",
+        "vitest/no-focused-tests": "error",
+        "vitest/no-identical-title": "error",
+        "vitest/no-import-node-test": "error",
+        "vitest/no-interpolation-in-snapshots": "error",
+        "vitest/no-mocks-import": "error",
+        "vitest/no-standalone-expect": "error",
+        "vitest/no-unneeded-async-expect-function": "error",
+        "vitest/prefer-called-exactly-once-with": "error",
+        "vitest/require-local-test-context-for-concurrent-snapshots": "error",
+        "vitest/valid-describe-callback": "error",
+        "vitest/valid-expect": "error",
+        "vitest/valid-expect-in-promise": "error",
+        "vitest/valid-title": "error",
+        "no-restricted-globals": "off",
+        "vitest/consistent-test-it": [
+          "error",
+          {
+            "fn": "it",
+            "withinDescribe": "it"
+          }
+        ],
+        "vitest/no-duplicate-hooks": "error",
+        "vitest/prefer-to-be": "error",
+        "vitest/prefer-to-have-length": "error",
+        "no-console": "off",
+        "vitest/prefer-mock-promise-shorthand": "error",
+        "no-shadow": [
+          "error",
+          {
+            "ignoreTypeValueShadow": true,
+            "ignoreFunctionTypeParameterNameValueShadow": true
+          }
+        ],
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-unsafe-argument": "off",
+        "typescript/no-explicit-any": "off",
+        "typescript/no-non-null-assertion": "off",
+        "typescript/unbound-method": "off",
+        "typescript/strict-boolean-expressions": "off",
+        "typescript/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "as",
+            "objectLiteralTypeAssertions": "allow"
+          }
+        ],
+        "unicorn/no-useless-undefined": [
+          "error",
+          {
+            "checkArguments": false
+          }
+        ],
+        "vitest/require-mock-type-parameters": "off"
+      },
+      "plugins": ["vitest"],
+      "env": {
+        "node": true
+      }
+    },
+    // Playwright e2e: fixtures destructure {}, tests read process.env directly (no @/lib/env) and
+    // log to the console.
+    {
+      "files": ["e2e/**/*.{ts,tsx}", "tests/e2e/**/*.{ts,tsx}"],
+      "rules": {
+        "no-empty-pattern": "off",
+        "no-console": "off",
+        "no-restricted-globals": "off",
+        "no-restricted-properties": "off",
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-floating-promises": "off",
+        "typescript/strict-boolean-expressions": "off",
+        "typescript/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "as",
+            "objectLiteralTypeAssertions": "allow"
+          }
+        ]
+      },
+      "env": {
+        "node": true
+      }
+    },
+    // next-intl configuration: message types are loose and a default export is required.
+    {
+      "files": ["i18n/**/*.ts", "messages/**/*.json"],
+      "rules": {
+        "import/no-default-export": "off",
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-member-access": "off"
+      }
+    },
+    // Server actions return through await, not promise chains.
+    {
+      "files": ["app/actions/**/*.ts"],
+      "rules": {
+        "promise/always-return": "off",
+        "promise/catch-or-return": "off"
+      }
+    },
+    // Explicit return types at module boundaries in lib, server actions and route handlers.
+    {
+      "files": ["lib/**/*.ts", "app/actions/**/*.ts", "app/api/**/route.ts"],
+      "rules": {
+        "typescript/explicit-module-boundary-types": [
+          "error",
+          {
+            "allowArgumentsExplicitlyTypedAsAny": true,
+            "allowHigherOrderFunctions": true,
+            "allowTypedFunctionExpressions": true
+          }
+        ]
+      }
+    },
+    // shadcn/ui primitives keep the upstream patterns.
+    {
+      "files": ["components/ui/**/*.{ts,tsx}"],
+      "rules": {
+        "import/no-named-as-default-member": "off",
+        "typescript/no-empty-object-type": "off"
+      }
+    },
+    // Playwright e2e: locator expressions and loose conditions are the Playwright style.
+    {
+      "files": ["e2e/**/*.{ts,tsx}", "tests/e2e/**/*.{ts,tsx}"],
+      "rules": {
+        "unicorn/no-await-expression-member": "off",
+        "typescript/strict-boolean-expressions": "off"
+      }
+    },
+    // All tests: loose conditions, object-literal casts for mocks, inline import() types for
+    // vi.importMock.
+    {
+      "files": [
+        "**/*.test.{ts,tsx}",
+        "**/*.spec.{ts,tsx}",
+        "**/__tests__/**/*.{ts,tsx}",
+        "vitest.setup.ts"
+      ],
+      "rules": {
+        "typescript/strict-boolean-expressions": "off",
+        "typescript/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "as",
+            "objectLiteralTypeAssertions": "allow"
+          }
+        ],
+        "typescript/consistent-type-imports": [
+          "error",
+          {
+            "prefer": "type-imports",
+            "fixStyle": "inline-type-imports",
+            "disallowTypeAnnotations": false
+          }
+        ]
+      }
+    },
+    // Route handlers: Node.js rules.
+    {
+      "files": ["app/api/**/route.ts"],
+      "rules": {
+        "node/no-sync": "error"
+      },
+      "plugins": ["node"]
+    },
+    // Layer boundary for lib/**. Repeats the React import bans, because an override replaces the
+    // whole no-restricted-imports entry for its files.
+    {
+      "files": ["lib/**"],
+      "excludeFiles": ["lib/hooks/use-mount-effect.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "react",
+                "importNames": ["forwardRef"],
+                "message": "React 19 handles ref as a prop. Use ref directly instead of forwardRef."
+              },
+              {
+                "name": "react",
+                "importNames": ["useEffect"],
+                "message": "Direct useEffect is banned. Use useMountEffect() for mount-only effects (empty deps), or extract to a named custom hook. If neither applies, add eslint-disable with a category comment."
+              }
+            ],
+            "patterns": [
+              {
+                "group": [
+                  "@/components",
+                  "@/components/**",
+                  "**/components/**",
+                  "@/hooks",
+                  "@/hooks/**",
+                  "**/hooks/**"
+                ],
+                "message": "lib/ is pure utilities: it must not import from the UI layer."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    // Layer boundary for types/**. Repeats the React import bans, because an override replaces the
+    // whole no-restricted-imports entry for its files.
+    {
+      "files": ["types/**"],
+      "excludeFiles": ["lib/hooks/use-mount-effect.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "react",
+                "importNames": ["forwardRef"],
+                "message": "React 19 handles ref as a prop. Use ref directly instead of forwardRef."
+              },
+              {
+                "name": "react",
+                "importNames": ["useEffect"],
+                "message": "Direct useEffect is banned. Use useMountEffect() for mount-only effects (empty deps), or extract to a named custom hook. If neither applies, add eslint-disable with a category comment."
+              }
+            ],
+            "patterns": [
+              {
+                "group": [
+                  "@/components",
+                  "@/components/**",
+                  "**/components/**",
+                  "@/hooks",
+                  "@/hooks/**",
+                  "**/hooks/**",
+                  "@/app",
+                  "@/app/**",
+                  "**/app/**"
+                ],
+                "message": "types/ holds type definitions: it must not import from layers with business logic."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    // Layer boundary for app/actions/**. Repeats the React import bans, because an override
+    // replaces the whole no-restricted-imports entry for its files.
+    {
+      "files": ["app/actions/**"],
+      "excludeFiles": ["lib/hooks/use-mount-effect.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "react",
+                "importNames": ["forwardRef"],
+                "message": "React 19 handles ref as a prop. Use ref directly instead of forwardRef."
+              },
+              {
+                "name": "react",
+                "importNames": ["useEffect"],
+                "message": "Direct useEffect is banned. Use useMountEffect() for mount-only effects (empty deps), or extract to a named custom hook. If neither applies, add eslint-disable with a category comment."
+              }
+            ],
+            "patterns": [
+              {
+                "group": [
+                  "@/components",
+                  "@/components/**",
+                  "**/components/**"
+                ],
+                "message": "Server Actions run on the server: they must not import client-only components."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    // Supabase and Zod guardrails and rem instead of px (no-restricted-syntax before; the local
+    // plugin takes the same selectors).
+    {
+      "files": ["**/*.ts", "**/*.tsx"],
+      "jsPlugins": ["./lint/eauxle-plugin.mjs"],
+      "rules": {
+        "eauxle/restricted-syntax": [
+          "error",
+          {
+            "selector": "CallExpression[callee.property.name='select'] > CallExpression[callee.property.name='from']:not(:has(CallExpression[callee.property.name='limit']))",
+            "message": "Supabase .select() without .limit() is a security risk. Always add a limit."
+          },
+          {
+            "selector": "CallExpression[callee.property.name='select'][arguments.0.value='*']",
+            "message": "Avoid select('*'). Choose specific columns for better performance and security."
+          },
+          {
+            "selector": "CallExpression[callee.name=/^(fetch|axios|got)$/]:not(:has(CallExpression[callee.property.name=/^(parse|safeParse)$/]))",
+            "message": "Data from APIs must be validated by Zod (.parse() or .safeParse())."
+          },
+          {
+            "selector": "CallExpression[callee.property.name='rpc'][arguments.length>1]:not(:has(CallExpression[callee.property.name=/^(parse|safeParse)$/]))",
+            "message": "Supabase .rpc() with params must validate data with Zod (.parse or .safeParse)."
+          },
+          {
+            "selector": "AwaitExpression > CallExpression[callee.property.name='delete']",
+            "message": "Supabase .delete() without a filter will delete ALL records. Add .eq(), .in() or .match() first."
+          },
+          {
+            "selector": "JSXAttribute[name.name='className'] > Literal[value=/\\[\\d+(?:\\.\\d+)?px\\]/]",
+            "message": "Use rem instead of px in Tailwind arbitrary values. Example: text-[0.625rem] instead of text-[10px]. Exceptions: border (1px, 2px) and border-radius (999px): add eslint-disable with a comment."
+          },
+          {
+            "selector": "JSXAttribute[name.name='className'] TemplateLiteral > TemplateElement[value.raw=/\\[\\d+(?:\\.\\d+)?px\\]/]",
+            "message": "Use rem instead of px in Tailwind arbitrary values."
+          },
+          {
+            "selector": "JSXAttribute[name.name='style'] ObjectExpression > Property > Literal[value=/^\\d+(?:\\.\\d+)?px$/]",
+            "message": "Use rem instead of px in inline styles. 1rem = 16px. Exceptions: border (1px): add eslint-disable with a comment."
+          }
+        ]
+      }
+    },
+    // Server actions: the same guardrails plus input validation of exported actions (the list
+    // replaces the one above).
+    {
+      "files": ["app/actions/**/*.ts", "actions/**/*.ts"],
+      "jsPlugins": ["./lint/eauxle-plugin.mjs"],
+      "rules": {
+        "eauxle/restricted-syntax": [
+          "error",
+          {
+            "selector": "CallExpression[callee.property.name='select'] > CallExpression[callee.property.name='from']:not(:has(CallExpression[callee.property.name='limit']))",
+            "message": "Supabase .select() without .limit() is a security risk. Always add a limit."
+          },
+          {
+            "selector": "CallExpression[callee.property.name='select'][arguments.0.value='*']",
+            "message": "Avoid select('*'). Choose specific columns for better performance and security."
+          },
+          {
+            "selector": "CallExpression[callee.name=/^(fetch|axios|got)$/]:not(:has(CallExpression[callee.property.name=/^(parse|safeParse)$/]))",
+            "message": "Data from APIs must be validated by Zod (.parse() or .safeParse())."
+          },
+          {
+            "selector": "AwaitExpression > CallExpression[callee.property.name='delete']",
+            "message": "Supabase .delete() without a filter will delete ALL records. Add .eq(), .in() or .match() first."
+          },
+          {
+            "selector": "ExportNamedDeclaration > FunctionDeclaration[params.length>0]:not(:has(CallExpression[callee.name=\"parse\"], CallExpression[callee.property.name=\"parse\"], CallExpression[callee.property.name=\"safeParse\"]))",
+            "message": "Server Actions should validate inputs (e.g. Zod .parse/.safeParse)."
+          }
+        ]
+      }
+    },
+    // Regular expressions: eslint-plugin-regexp recommended rules (oxlint has no native
+    // equivalent).
+    {
+      "files": ["**/*.ts", "**/*.tsx"],
+      "jsPlugins": ["eslint-plugin-regexp"],
+      "rules": {
+        "regexp/confusing-quantifier": "error",
+        "regexp/control-character-escape": "error",
+        "regexp/match-any": "error",
+        "regexp/negation": "error",
+        "regexp/no-contradiction-with-assertion": "error",
+        "regexp/no-dupe-characters-character-class": "error",
+        "regexp/no-dupe-disjunctions": "error",
+        "regexp/no-empty-alternative": "error",
+        "regexp/no-empty-capturing-group": "error",
+        "regexp/no-empty-character-class": "error",
+        "regexp/no-empty-group": "error",
+        "regexp/no-empty-lookarounds-assertion": "error",
+        "regexp/no-empty-string-literal": "error",
+        "regexp/no-escape-backspace": "error",
+        "regexp/no-extra-lookaround-assertions": "error",
+        "regexp/no-invalid-regexp": "error",
+        "regexp/no-invisible-character": "error",
+        "regexp/no-lazy-ends": "error",
+        "regexp/no-legacy-features": "error",
+        "regexp/no-misleading-capturing-group": "error",
+        "regexp/no-misleading-unicode-character": "error",
+        "regexp/no-missing-g-flag": "error",
+        "regexp/no-non-standard-flag": "error",
+        "regexp/no-obscure-range": "error",
+        "regexp/no-optional-assertion": "error",
+        "regexp/no-potentially-useless-backreference": "error",
+        "regexp/no-super-linear-backtracking": "error",
+        "regexp/no-trivially-nested-assertion": "error",
+        "regexp/no-trivially-nested-quantifier": "error",
+        "regexp/no-unused-capturing-group": "error",
+        "regexp/no-useless-assertions": "error",
+        "regexp/no-useless-backreference": "error",
+        "regexp/no-useless-character-class": "error",
+        "regexp/no-useless-dollar-replacements": "error",
+        "regexp/no-useless-escape": "error",
+        "regexp/no-useless-flag": "error",
+        "regexp/no-useless-lazy": "error",
+        "regexp/no-useless-non-capturing-group": "error",
+        "regexp/no-useless-quantifier": "error",
+        "regexp/no-useless-range": "error",
+        "regexp/no-useless-set-operand": "error",
+        "regexp/no-useless-string-literal": "error",
+        "regexp/no-useless-two-nums-quantifier": "error",
+        "regexp/no-zero-quantifier": "error",
+        "regexp/optimal-lookaround-quantifier": "error",
+        "regexp/optimal-quantifier-concatenation": "error",
+        "regexp/prefer-character-class": "error",
+        "regexp/prefer-d": "error",
+        "regexp/prefer-plus-quantifier": "error",
+        "regexp/prefer-predefined-assertion": "error",
+        "regexp/prefer-question-quantifier": "error",
+        "regexp/prefer-range": "error",
+        "regexp/prefer-set-operation": "error",
+        "regexp/prefer-star-quantifier": "error",
+        "regexp/prefer-unicode-codepoint-escapes": "error",
+        "regexp/prefer-w": "error",
+        "regexp/simplify-set-operations": "error",
+        "regexp/sort-flags": "error",
+        "regexp/strict": "error",
+        "regexp/use-ignore-case": "error"
+      }
+    },
+    // Security patterns. Off: detect-object-injection (obj[key] false positives; Zod validates at
+    // boundaries), the two regex rules (covered by regexp/no-super-linear-backtracking), CSRF and
+    // mustache rules (no Express).
+    {
+      "files": ["**/*.ts", "**/*.tsx"],
+      "jsPlugins": ["eslint-plugin-security"],
+      "rules": {
+        "security/detect-buffer-noassert": "error",
+        "security/detect-child-process": "error",
+        "security/detect-disable-mustache-escape": "off",
+        "security/detect-eval-with-expression": "error",
+        "security/detect-new-buffer": "error",
+        "security/detect-no-csrf-before-method-override": "off",
+        "security/detect-non-literal-fs-filename": "error",
+        "security/detect-non-literal-regexp": "off",
+        "security/detect-non-literal-require": "error",
+        "security/detect-object-injection": "off",
+        "security/detect-possible-timing-attacks": "error",
+        "security/detect-pseudoRandomBytes": "error",
+        "security/detect-unsafe-regex": "off",
+        "security/detect-bidi-characters": "error"
+      }
+    },
+    // JSDoc on exported functions, and the jsdoc rules oxlint lacks natively (loaded under another
+    // name, because native jsdoc rules use the jsdoc prefix).
+    {
+      "files": ["**/*.ts", "**/*.tsx"],
+      "jsPlugins": [
+        {
+          "name": "jsdoc-js",
+          "specifier": "eslint-plugin-jsdoc"
+        }
+      ],
+      "rules": {
+        "jsdoc-js/require-jsdoc": [
+          "error",
+          {
+            "publicOnly": true,
+            "require": {
+              "ArrowFunctionExpression": false,
+              "ClassDeclaration": true,
+              "FunctionDeclaration": true,
+              "FunctionExpression": false
+            },
+            "contexts": [
+              "ExportNamedDeclaration > VariableDeclaration > VariableDeclarator > ArrowFunctionExpression"
+            ]
+          }
+        ],
+        "jsdoc-js/check-alignment": "error",
+        "jsdoc-js/check-param-names": "error",
+        "jsdoc-js/check-types": "error",
+        "jsdoc-js/check-values": "error",
+        "jsdoc-js/escape-inline-tags": "error",
+        "jsdoc-js/multiline-blocks": "error",
+        "jsdoc-js/no-multi-asterisks": "error",
+        "jsdoc-js/no-types": "error",
+        "jsdoc-js/reject-any-type": "error",
+        "jsdoc-js/reject-function-type": "error",
+        "jsdoc-js/require-next-type": "error",
+        "jsdoc-js/require-returns-check": "error",
+        "jsdoc-js/require-yields-check": "error",
+        "jsdoc-js/tag-lines": "error",
+        "jsdoc-js/ts-no-empty-object-type": "error",
+        "jsdoc-js/valid-types": "error"
+      }
+    },
+    // kebab-case file and folder names.
+    {
+      "files": ["**/*.ts", "**/*.tsx"],
+      "jsPlugins": ["eslint-plugin-check-file"],
+      "rules": {
+        "check-file/filename-naming-convention": [
+          "error",
+          {
+            "app/**/*.{ts,tsx}": "KEBAB_CASE",
+            "components/**/*.{ts,tsx}": "KEBAB_CASE",
+            "hooks/**/*.ts": "KEBAB_CASE",
+            "lib/**/*.ts": "KEBAB_CASE",
+            "types/**/*.ts": "KEBAB_CASE",
+            "actions/**/*.ts": "KEBAB_CASE"
+          },
+          {
+            "ignoreMiddleExtensions": true
+          }
+        ],
+        "check-file/folder-naming-convention": [
+          "error",
+          {
+            "components/**/!(__tests__)": "KEBAB_CASE",
+            "lib/**/!(__tests__)": "KEBAB_CASE",
+            "hooks/**/!(__tests__)": "KEBAB_CASE",
+            "app/**/!(__tests__)": "KEBAB_CASE"
+          }
+        ]
+      }
+    },
+    // Sorted objects, types, JSX props, enums and named exports (imports are sorted by the
+    // formatter).
+    {
+      "files": ["**/*.ts", "**/*.tsx"],
+      "jsPlugins": ["eslint-plugin-perfectionist"],
+      "rules": {
+        "perfectionist/sort-objects": [
+          "error",
+          {
+            "type": "natural",
+            "order": "asc"
+          }
+        ],
+        "perfectionist/sort-object-types": [
+          "error",
+          {
+            "type": "natural",
+            "order": "asc"
+          }
+        ],
+        "perfectionist/sort-interfaces": [
+          "error",
+          {
+            "type": "natural",
+            "order": "asc"
+          }
+        ],
+        "perfectionist/sort-jsx-props": [
+          "error",
+          {
+            "type": "natural",
+            "order": "asc"
+          }
+        ],
+        "perfectionist/sort-enums": [
+          "error",
+          {
+            "type": "natural",
+            "order": "asc"
+          }
+        ],
+        "perfectionist/sort-named-exports": [
+          "error",
+          {
+            "type": "natural",
+            "order": "asc"
+          }
+        ]
+      }
+    },
+    // Tailwind v4 classes: unknown, duplicate and conflicting classes, order and shorthands.
+    {
+      "files": ["**/*.ts", "**/*.tsx"],
+      "jsPlugins": ["eslint-plugin-better-tailwindcss"],
+      "rules": {
+        "better-tailwindcss/no-unknown-classes": "error",
+        "better-tailwindcss/no-duplicate-classes": "error",
+        "better-tailwindcss/enforce-consistent-class-order": "error",
+        "better-tailwindcss/enforce-shorthand-classes": "error",
+        "better-tailwindcss/no-conflicting-classes": "error"
+      }
+    },
+    // Application code: no mutation (spread instead), and no listener, interval or timeout left
+    // without cleanup in effects.
+    {
+      "files": ["**/*.ts", "**/*.tsx"],
+      "excludeFiles": [
+        "**/*.test.{ts,tsx}",
+        "**/*.spec.{ts,tsx}",
+        "**/__tests__/**",
+        "e2e/**"
+      ],
+      "jsPlugins": ["eslint-plugin-fp", "eslint-plugin-react-web-api"],
+      "rules": {
+        "fp/no-mutating-methods": "error",
+        "fp/no-mutation": [
+          "error",
+          {
+            "commonjs": false,
+            "allowThis": false,
+            "exceptions": [
+              {
+                "object": "module",
+                "property": "exports"
+              },
+              {
+                "property": "current"
+              }
+            ]
+          }
+        ],
+        "fp/no-delete": "error",
+        "react-web-api/no-leaked-event-listener": "error",
+        "react-web-api/no-leaked-interval": "error",
+        "react-web-api/no-leaked-timeout": "error"
+      }
+    },
+    // Auth components: router.push() and form.watch() are not array mutations; the rule cannot
+    // tell object types apart.
+    {
+      "files": ["components/auth/**/*.{ts,tsx}"],
+      "jsPlugins": ["eslint-plugin-fp"],
+      "rules": {
+        "fp/no-mutating-methods": "off"
+      }
+    },
+    // React Testing Library practices in unit tests.
+    {
+      "files": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "excludeFiles": ["e2e/**", "tests/e2e/**"],
+      "jsPlugins": ["eslint-plugin-testing-library"],
+      "rules": {
+        "testing-library/await-async-events": [
+          "error",
+          {
+            "eventModule": "userEvent"
+          }
+        ],
+        "testing-library/await-async-queries": "error",
+        "testing-library/await-async-utils": "error",
+        "testing-library/no-await-sync-events": [
+          "error",
+          {
+            "eventModules": ["fire-event"]
+          }
+        ],
+        "testing-library/no-await-sync-queries": "error",
+        "testing-library/no-container": "error",
+        "testing-library/no-debugging-utils": "error",
+        "testing-library/no-dom-import": ["error", "react"],
+        "testing-library/no-global-regexp-flag-in-query": "error",
+        "testing-library/no-manual-cleanup": "error",
+        "testing-library/no-node-access": "error",
+        "testing-library/no-promise-in-fire-event": "error",
+        "testing-library/no-render-in-lifecycle": "error",
+        "testing-library/no-unnecessary-act": "error",
+        "testing-library/no-wait-for-multiple-assertions": "error",
+        "testing-library/no-wait-for-side-effects": "error",
+        "testing-library/no-wait-for-snapshot": "error",
+        "testing-library/prefer-find-by": "error",
+        "testing-library/prefer-presence-queries": "error",
+        "testing-library/prefer-query-by-disappearance": "error",
+        "testing-library/prefer-screen-queries": "error",
+        "testing-library/render-result-naming-convention": "error",
+        "testing-library/prefer-user-event": "error"
+      }
+    },
+    // Playwright: recommended rules plus test guards. A test that branches on page state or wraps
+    // its expects in try/catch can pass while the feature is broken; only test.skip(condition,
+    // reason) for a state the test does not control is allowed. no-standalone-expect is off: false
+    // positives with test.extend. Setup and teardown write to paths derived from the working
+    // directory.
+    {
+      "files": ["e2e/**/*.{ts,tsx}", "tests/e2e/**/*.{ts,tsx}"],
+      "jsPlugins": ["eslint-plugin-playwright"],
+      "rules": {
+        "security/detect-non-literal-fs-filename": "off",
+        "playwright/consistent-spacing-between-blocks": "error",
+        "playwright/expect-expect": "error",
+        "playwright/max-nested-describe": "error",
+        "playwright/missing-playwright-await": "error",
+        "playwright/no-conditional-expect": "error",
+        "playwright/no-conditional-in-test": "error",
+        "playwright/no-duplicate-hooks": "error",
+        "playwright/no-duplicate-slow": "error",
+        "playwright/no-element-handle": "error",
+        "playwright/no-eval": "error",
+        "playwright/no-focused-test": "error",
+        "playwright/no-force-option": "error",
+        "playwright/no-identical-title": "error",
+        "playwright/no-nested-step": "error",
+        "playwright/no-networkidle": "error",
+        "playwright/no-page-pause": "error",
+        "playwright/no-skipped-test": [
+          "error",
+          {
+            "allowConditional": true
+          }
+        ],
+        "playwright/no-standalone-expect": "off",
+        "playwright/no-unnecessary-assertions": "error",
+        "playwright/no-unsafe-references": "error",
+        "playwright/no-unused-locators": "error",
+        "playwright/no-useless-await": "error",
+        "playwright/no-useless-not": "error",
+        "playwright/no-wait-for-navigation": "error",
+        "playwright/no-wait-for-selector": "error",
+        "playwright/no-wait-for-timeout": "error",
+        "playwright/prefer-hooks-in-order": "error",
+        "playwright/prefer-hooks-on-top": "error",
+        "playwright/prefer-locator": "error",
+        "playwright/prefer-to-have-count": "error",
+        "playwright/prefer-to-have-length": "error",
+        "playwright/prefer-web-first-assertions": "error",
+        "playwright/valid-describe-callback": "error",
+        "playwright/valid-expect": "error",
+        "playwright/valid-expect-in-promise": "error",
+        "playwright/valid-test-tags": "error",
+        "playwright/valid-title": "error"
+      }
+    },
+    // Known violations of the test guards (93 on 2026-11-16, in the nightly suite). This list only
+    // shrinks: fix a file (assert the state instead of branching on it, no try/catch around
+    // expects) and remove it here. New e2e files get the guards as errors.
+    {
+      "files": [
+        "e2e/errors/diagnostic.spec.ts",
+        "e2e/errors/error-handling.spec.ts",
+        "e2e/game-completion.spec.ts",
+        "e2e/game-flow.spec.ts",
+        "e2e/i18n/locale-switching.spec.ts",
+        "e2e/performance/auth-waterfall.spec.ts",
+        "e2e/performance/memory.spec.ts",
+        "e2e/performance/web-vitals.spec.ts",
+        "e2e/sanity.spec.ts",
+        "e2e/security/middleware.spec.ts",
+        "e2e/security/rate-limiting.spec.ts",
+        "e2e/security/xss-injection.spec.ts"
+      ],
+      "jsPlugins": ["eslint-plugin-playwright"],
+      "rules": {
+        "playwright/no-conditional-expect": "off",
+        "playwright/no-conditional-in-test": "off"
+      }
+    },
+    // Rules new with oxlint (React Compiler and jsx-a11y checks that ESLint did not run). Their
+    // findings of 2026-11-17 are listed per file in this and the next two entries; the lists only
+    // shrink: fix a file and remove it here. Any other file gets the rules as errors.
+    {
+      "files": [
+        "components/game/game-input.tsx",
+        "components/game/game-header.tsx",
+        "components/game/reveal-image.tsx",
+        "hooks/use-mount-transition.ts"
+      ],
+      "rules": {
+        "react/set-state-in-effect": "off"
+      }
+    },
+    // react-hook-form watch() cannot be memoized by the React Compiler (findings of 2026-11-17).
+    {
+      "files": [
+        "components/auth/reset-password-form.tsx",
+        "components/auth/register-form.tsx"
+      ],
+      "rules": {
+        "react/incompatible-library": "off"
+      }
+    },
+    // Custom combobox, overlay and image roles (findings of 2026-11-17); replacing them with
+    // native elements is a UI change checked on a preview.
+    {
+      "files": [
+        "components/game/game-input.tsx",
+        "components/game/game-header.tsx",
+        "components/game/reveal-image.tsx",
+        "components/auth/google-auth-button.tsx"
+      ],
+      "rules": {
+        "jsx-a11y/prefer-tag-over-role": "off"
+      }
+    },
+    // Tests: describe blocks are long by nature; limits set at the measured maximum (2026-11-17).
+    {
+      "files": [
+        "**/*.test.{ts,tsx}",
+        "**/*.spec.{ts,tsx}",
+        "**/__tests__/**",
+        "e2e/**",
+        "vitest.setup.ts"
+      ],
+      "rules": {
+        "complexity": ["error", 19],
+        "max-lines-per-function": "off",
+        "max-nested-callbacks": ["error", 7]
+      }
+    },
+    // Above the application size limits, at its measured maximum (2026-11-17). Lower the number
+    // when a refactor shrinks the function; drop the entry once it fits.
+    {
+      "files": ["components/game/game-input.tsx"],
+      "rules": {
+        "complexity": ["error", 40],
+        "max-lines-per-function": [
+          "error",
+          {
+            "max": 794
+          }
+        ]
+      }
+    },
+    // Above the application size limits, at its measured maximum (2026-11-17). Lower the number
+    // when a refactor shrinks the function; drop the entry once it fits.
+    {
+      "files": ["app/actions/game-actions.ts"],
+      "rules": {
+        "complexity": ["error", 36]
+      }
+    },
+    // Above the application size limits, at its measured maximum (2026-11-17). Lower the number
+    // when a refactor shrinks the function; drop the entry once it fits.
+    {
+      "files": ["components/game/game-provider.tsx"],
+      "rules": {
+        "complexity": ["error", 21],
+        "max-lines-per-function": [
+          "error",
+          {
+            "max": 377
+          }
+        ]
+      }
+    },
+    // Above the application size limits, at its measured maximum (2026-11-17). Lower the number
+    // when a refactor shrinks the function; drop the entry once it fits.
+    {
+      "files": ["components/game/attempt-row.tsx"],
+      "rules": {
+        "max-lines-per-function": [
+          "error",
+          {
+            "max": 610
+          }
+        ]
+      }
+    },
+    // Above the application size limits, at its measured maximum (2026-11-17). Lower the number
+    // when a refactor shrinks the function; drop the entry once it fits.
+    {
+      "files": ["components/game/game-header.tsx"],
+      "rules": {
+        "max-lines-per-function": [
+          "error",
+          {
+            "max": 565
+          }
+        ]
+      }
+    },
+    // Above the application size limits, at its measured maximum (2026-11-17). Lower the number
+    // when a refactor shrinks the function; drop the entry once it fits.
+    {
+      "files": ["components/game/clues/pyramid-clues.tsx"],
+      "rules": {
+        "max-lines-per-function": [
+          "error",
+          {
+            "max": 366
+          }
+        ]
+      }
+    },
+    // Above the application size limits, at its measured maximum (2026-11-17). Lower the number
+    // when a refactor shrinks the function; drop the entry once it fits.
+    {
+      "files": ["components/game/contexts/game-actions-context.tsx"],
+      "rules": {
+        "max-lines-per-function": [
+          "error",
+          {
+            "max": 321
+          }
+        ],
+        "max-params": ["error", 8]
+      }
+    },
+    // oxlint JS plugins: the plugin format requires a default export, and the plugin API is
+    // untyped.
+    {
+      "files": ["lint/**"],
+      "rules": {
+        "import/no-default-export": "off",
+        "typescript/no-unsafe-argument": "off",
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-return": "off"
+      }
+    }
+  ]
+}

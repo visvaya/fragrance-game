@@ -50,20 +50,22 @@ function setHintCookie(present: boolean) {
   });
 }
 
-async function renderModal(user: unknown, expectCheck = true) {
+function renderModal(user: unknown) {
   mockUseGameState.mockReturnValue({ user });
   render(<MigrationModal />);
-  if (expectCheck) {
-    await waitFor(() => {
-      expect(mockGetPending).toHaveBeenCalled();
-    });
-  }
+}
+
+async function renderAfterPendingCheck(user: unknown) {
+  renderModal(user);
+  await waitFor(() => {
+    expect(mockGetPending).toHaveBeenCalled();
+  });
 }
 
 async function openPendingModal() {
   setHintCookie(true);
   mockGetPending.mockResolvedValue({ pending: true, todayMoves: false });
-  await renderModal(registered);
+  await renderAfterPendingCheck(registered);
   await screen.findByRole("dialog");
 }
 
@@ -81,23 +83,23 @@ describe("MigrationModal", () => {
     vi.unstubAllGlobals();
   });
 
-  it("does not ask the server without the hint cookie", async () => {
+  it("does not ask the server without the hint cookie", () => {
     setHintCookie(false);
-    await renderModal(registered, false);
+    renderModal(registered);
     expect(mockGetPending).not.toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("does not ask the server for an anonymous user", async () => {
+  it("does not ask the server for an anonymous user", () => {
     setHintCookie(true);
-    await renderModal(anonymous, false);
+    renderModal(anonymous);
     expect(mockGetPending).not.toHaveBeenCalled();
   });
 
   it("stays closed when nothing is pending", async () => {
     setHintCookie(true);
     mockGetPending.mockResolvedValue({ pending: false });
-    await renderModal(registered);
+    await renderAfterPendingCheck(registered);
     expect(mockGetPending).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("dialog")).toBeNull();
   });
@@ -105,7 +107,7 @@ describe("MigrationModal", () => {
   it("shows the today line when today's game moves", async () => {
     setHintCookie(true);
     mockGetPending.mockResolvedValue({ pending: true, todayMoves: true });
-    await renderModal(registered);
+    await renderAfterPendingCheck(registered);
     expect(await screen.findByRole("dialog")).toBeTruthy();
     expect(screen.getByText("title")).toBeTruthy();
     expect(screen.getByText("description")).toBeTruthy();
@@ -115,7 +117,7 @@ describe("MigrationModal", () => {
   it("hides the today line when today's game does not move", async () => {
     setHintCookie(true);
     mockGetPending.mockResolvedValue({ pending: true, todayMoves: false });
-    await renderModal(registered);
+    await renderAfterPendingCheck(registered);
     expect(await screen.findByText("title")).toBeTruthy();
     expect(screen.queryByText("today")).toBeNull();
   });
@@ -165,7 +167,7 @@ describe("MigrationModal", () => {
     it("asks with the today sentence when today's game moves", async () => {
       setHintCookie(true);
       mockGetPending.mockResolvedValue({ pending: true, todayMoves: true });
-      await renderModal(registered);
+      await renderAfterPendingCheck(registered);
       await screen.findByRole("dialog");
       confirmSpy.mockReturnValue(false);
       await userEvent.keyboard("{Escape}");

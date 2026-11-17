@@ -143,7 +143,6 @@ function relevanceScore(
 /**
  * Game input component handling perfume guessing, autocomplete, and skipping attempts.
  */
-// eslint-disable-next-line sonarjs/cognitive-complexity -- GameInput handles full input lifecycle: autocomplete debounce, keyboard shortcuts, skip confirmation, submit; decomposition would split tightly coupled state
 export function GameInput() {
   const {
     attempts,

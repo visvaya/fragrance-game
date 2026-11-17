@@ -30,7 +30,6 @@ import { InfoPopover } from "./info-popover";
 /**
  * Komponent logu prób gracza.
  */
-// eslint-disable-next-line @typescript-eslint/no-shadow -- the named function gives the memoized component its DevTools name
 export const AttemptLog = memo(function AttemptLog() {
   const { attempts, clues, dailyPerfume, gameState, loading, maxAttempts } =
     useGameState();

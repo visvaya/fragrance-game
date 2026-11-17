@@ -36,12 +36,12 @@ async function initPostHog() {
       advanced_disable_feature_flags: true,
       api_host: "/ph-proxy",
       autocapture: false,
+      capture_heatmaps: false,
       // Page views and page leaves are the only traffic metrics; "history_change" also covers client-side navigation.
       capture_pageview: "history_change",
       disable_external_dependency_loading: true,
       disable_session_recording: true,
       disable_surveys: true,
-      enable_heatmaps: false,
       loaded: (ph) => {
         // eslint-disable-next-line no-restricted-properties -- process.env.NODE_ENV enables bundler dead-code elimination; env.NODE_ENV indirection prevents tree-shaking of this debug log
         if (process.env.NODE_ENV === "development") {
