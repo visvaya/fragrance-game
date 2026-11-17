@@ -55,7 +55,6 @@
     "img/**",
     ".sentryrc",
     "*.config.*",
-    ".prettierrc.*",
     "postcss.config.*",
     "sentry.*.config.ts",
     "instrumentation.ts",
@@ -1667,7 +1666,7 @@
         "max-lines-per-function": [
           "error",
           {
-            "max": 794
+            "max": 792
           }
         ]
       }

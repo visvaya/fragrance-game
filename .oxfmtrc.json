@@ -1,0 +1,41 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "semi": true,
+  "singleQuote": false,
+  "tabWidth": 2,
+  "trailingComma": "all",
+  "printWidth": 80,
+  "bracketSpacing": true,
+  "arrowParens": "always",
+  "endOfLine": "lf",
+  "sortPackageJson": false,
+  "sortTailwindcss": {
+    "stylesheet": "./app/globals.css"
+  },
+  "ignorePatterns": [
+    ".next",
+    "dist",
+    "build",
+    "node_modules",
+    ".vercel",
+    "reports",
+    "playwright-report",
+    "test-results",
+    "coverage",
+    "data",
+    "scripts",
+    "*.csv",
+    "*.py",
+    "*.sql",
+    "*.log",
+    "*.tsbuildinfo",
+    "public",
+    "img",
+    "*.png",
+    "*.jpg",
+    "*.ico",
+    "*.svg",
+    ".mypy_cache",
+    "pnpm-lock.yaml"
+  ]
+}
