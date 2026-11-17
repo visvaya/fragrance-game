@@ -158,7 +158,7 @@ describe("GameActionsContext", () => {
   });
 
   it("should not allow guess when max attempts reached", async () => {
-    const mockAttempts: Attempt[] = Array.from<Attempt>({ length: 6 }).fill({
+    const mockAttempts: Attempt[] = Array.from({ length: 6 }, () => ({
       brand: "Test",
       feedback: {
         brandMatch: false,
@@ -169,7 +169,7 @@ describe("GameActionsContext", () => {
         yearMatch: "wrong",
       },
       guess: "Test",
-    });
+    }));
     const setAttempts = vi.fn();
     const { result } = renderHook(() => useGameActions(), {
       wrapper: createWrapper({

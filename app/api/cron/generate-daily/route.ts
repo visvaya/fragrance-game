@@ -209,6 +209,7 @@ async function ensureChallenge(
       );
       throw new Error(
         `Validation failed for ${dateString}: ${validationError.message}`,
+        { cause: validationError },
       );
     }
     throw validationError;
