@@ -1,3 +1,4 @@
+import argparse
 import hashlib
 import logging
 import os
@@ -634,5 +635,7 @@ class EtlPipeline:
 
 
 if __name__ == "__main__":
-    pipeline = EtlPipeline(os.path.join(os.path.dirname(__file__), "../data/dataset.csv"))
-    pipeline.run()
+    # The source file is not part of this repository; its location is given on every run.
+    parser = argparse.ArgumentParser(description="Import the perfume source file into Supabase.")
+    parser.add_argument("csv_path", help="semicolon-separated source file with a header row")
+    EtlPipeline(parser.parse_args().csv_path).run()
