@@ -142,46 +142,6 @@ function printKnipSummary(reportPath) {
   }
 }
 
-function printDepcheckSummary(reportPath) {
-  if (!fs.existsSync(reportPath)) return;
-  let data;
-  try {
-    data = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-  } catch {
-    const raw = fs.readFileSync(reportPath, 'utf8').trim();
-    if (raw) {
-      log('  [warn]  Depcheck tool crashed or returned invalid JSON. Raw output:');
-      const lines = raw.split('\n');
-      lines.slice(0, 5).forEach(line => log(`    ${line}`));
-      if (lines.length > 5) log(`    ... and ${lines.length - 5} more lines`);
-    } else {
-      log('  [warn]  Could not parse depcheck.json (empty output)');
-    }
-    return;
-  }
-  let hasIssues = false;
-  if (data.dependencies && data.dependencies.length > 0) {
-    log(`\n  ┌─ UNUSED DEPENDENCIES (${data.dependencies.length}) ─────────┐`);
-    data.dependencies.forEach(dep => log(`  │ ${dep}`));
-    log(`  └──────────────────────────────────────┘`);
-    hasIssues = true;
-  }
-  if (data.devDependencies && data.devDependencies.length > 0) {
-    log(`\n  ┌─ UNUSED DEV-DEPENDENCIES (${data.devDependencies.length}) ─┐`);
-    data.devDependencies.forEach(dep => log(`  │ ${dep}`));
-    log(`  └──────────────────────────────────────┘`);
-    hasIssues = true;
-  }
-  if (data.missing && Object.keys(data.missing).length > 0) {
-    const missingKeys = Object.keys(data.missing);
-    log(`\n  ┌─ MISSING DEPENDENCIES (${missingKeys.length}) ─────────┐`);
-    missingKeys.forEach(dep => log(`  │ ${dep}`));
-    log(`  └──────────────────────────────────────┘`);
-    hasIssues = true;
-  }
-  if (!hasIssues) log('  [ok] No unused or missing dependencies!');
-}
-
 function printJscpdSummary(reportDir) {
   const reportFile = path.join(reportDir, 'jscpd-report.json');
   if (!fs.existsSync(reportFile)) {
@@ -414,11 +374,6 @@ const tools = [
     file: 'knip.json',
   },
   {
-    name: 'depcheck',
-    command: 'pnpm exec depcheck --json',
-    file: 'depcheck.json',
-  },
-  {
     name: 'jscpd',
     // Config from .jscpdrc; output to reports/jscpd/
     command: `pnpm exec jscpd . --config .jscpdrc --output reports/jscpd --reporters json`,
@@ -467,9 +422,6 @@ printLintSummary(LINT_REPORT);
 
 log('\n[KNIP]');
 printKnipSummary(path.join(reportsDir, 'knip.json'));
-
-log('\n[DEPCHECK]');
-printDepcheckSummary(path.join(reportsDir, 'depcheck.json'));
 
 log('\n[JSCPD — Code Duplication]');
 printJscpdSummary(path.join(reportsDir, 'jscpd'));
