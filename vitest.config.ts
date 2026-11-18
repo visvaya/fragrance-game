@@ -55,17 +55,12 @@ export default defineConfig({
         "components/ui/**", // shadcn/ui components (low priority)
       ],
       thresholds: {
-        // Etap 1 (2026-04-01): podniesione z 35/27/29/36
-        // Etap 2 (2026-04-01 po Sesji 3): podniesione z 40/32/30/38 — aktuale: 47/36/36/46
-        // Etap 3 (2026-04-02 po Sesji 5): podniesione z 45/34/35/44 — aktuale: 52.71/40.6/40.53/54.33
-        // Etap 4 (2026-04-02 po Sesji 6): podniesione z 52/40/40/52 — aktuale: 62.5/49.8/51.24/60.67
-        // Etap 5 (po Sesji 7, game-provider + game-actions-context): cel 65/55/52/62
-        // Cel końcowy (Q3 2026): linie 80, funkcje 75, branches 70
-        // Stage 5 (2026-09-27, after session 7): raised from 61/48/50/59; actual 65.17/52.9/55.24/63.8
-        lines: 64,
-        functions: 52,
-        branches: 54,
-        statements: 63,
+        // Ratchet: raised to the CI measurement on main (2026-11-18: 71.24/60.26/62.52/69.41),
+        // never lowered. Target: lines 80, functions 75, branches 70.
+        lines: 71,
+        functions: 60,
+        branches: 62,
+        statements: 69,
       },
     },
   },
