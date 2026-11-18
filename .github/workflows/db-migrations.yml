@@ -44,7 +44,9 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
           git fetch --no-tags --depth=1 origin "$BASE_SHA"
-          mapfile -t files < <(git diff --name-only --diff-filter=d "$BASE_SHA" HEAD -- 'supabase/migrations/*.sql')
+          # Through a file, so a failing git diff stops the step instead of reading as "no changes".
+          git diff -z --name-only --diff-filter=d "$BASE_SHA" HEAD -- 'supabase/migrations/*.sql' > "$RUNNER_TEMP/migrations"
+          mapfile -d '' -t files < "$RUNNER_TEMP/migrations"
           if [ "${#files[@]}" -eq 0 ]; then echo "No changed migrations."; exit 0; fi
           pnpm exec squawk --reporter=gcc "${files[@]}"
       - name: Start a local database from the migrations
