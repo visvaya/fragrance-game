@@ -7,6 +7,11 @@ on:
     - cron: "30 3 * * *"
   workflow_dispatch:
 
+# A manual run waits for the nightly one instead of overlapping it.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 env:
   TZ: Europe/Warsaw
   # Production builds require a public origin; CI serves the app on localhost.
