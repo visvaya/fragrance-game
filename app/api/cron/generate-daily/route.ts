@@ -1,6 +1,7 @@
 import { revalidateTag } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
 
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 
 import { env } from "@/lib/env";
@@ -49,13 +50,14 @@ export async function GET(request: NextRequest): Promise<Response> {
       await ensureChallenge(adminSupabase, tomorrowString),
     ];
 
-    revalidateTag("daily-challenge", {});
-
     return NextResponse.json({
       results,
       status: "success",
     });
   } catch (error) {
+    // Caught errors never reach onRequestError, and tomorrow's puzzle is the only buffer: two
+    // failed nights in a row leave a day without a puzzle.
+    Sentry.captureException(error, { tags: { cron: "generate-daily" } });
     console.error("[CRON] Unexpected error:", error);
     return NextResponse.json(
       {
@@ -64,6 +66,10 @@ export async function GET(request: NextRequest): Promise<Response> {
       },
       { status: 500 },
     );
+  } finally {
+    // Also after a failure: today's puzzle may be committed before tomorrow's step throws, and
+    // the SSR loader caches a missing puzzle under this tag.
+    revalidateTag("daily-challenge", {});
   }
 }
 
@@ -71,110 +77,50 @@ async function ensureChallenge(
   supabase: ReturnType<typeof createAdminClient>,
   dateString: string,
 ) {
-  // 1. Check if exists
+  // 1. Check if exists. A failed lookup must not read as "missing": the insert would then hit the
+  // unique date or, worse, a later step would run on partial data.
   const queryResult1 = await supabase
     .from("daily_challenges")
     .select("id, challenge_number, perfume_id")
     .eq("challenge_date", dateString)
     .limit(1)
-    .single();
-  const { data: existing } = queryResult1 as {
+    .maybeSingle();
+  const { data: existing, error: existingError } = queryResult1 as {
     data: { challenge_number: number; id: string; perfume_id: string } | null;
+    error: { message: string } | null;
   };
 
+  if (existingError) {
+    throw new Error(
+      `Challenge lookup failed for ${dateString}: ${existingError.message}`,
+    );
+  }
   if (existing) {
     return { date: dateString, id: existing.id, status: "exists" };
   }
 
   console.warn(`[CRON] Generating missing challenge for ${dateString}...`);
 
-  // 2. Fetch exclusion list (Last 30 days is sufficient to avoid recent repeats, keeping pool healthy)
-  const exclusionDate = new Date();
-  exclusionDate.setUTCDate(exclusionDate.getUTCDate() - 30);
-
-  const queryResult2 = await supabase
-    .from("daily_challenges")
-    .select("perfume_id")
-    .gte("challenge_date", exclusionDate.toISOString().split("T")[0])
-    .limit(RECENT_CHALLENGES_LIMIT);
-  const { data: recentChallenges } = queryResult2 as {
-    data: { perfume_id: string }[] | null;
-  };
-
-  const rawExcludeIds = recentChallenges?.map((c) => c.perfume_id) ?? [];
-  // Defense-in-depth: validate that all IDs are valid UUIDs before using in query
-  const uuidRegex =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  const excludeIds = rawExcludeIds.filter(
-    (id) => typeof id === "string" && uuidRegex.test(id),
+  // 2-3. Candidates outside the last 30 days; if the pool is exhausted, outside the last 7.
+  const primary = await fetchCandidates(
+    supabase,
+    await fetchRecentPerfumeIds(supabase, 30),
   );
-
-  // 3. Fetch Candidates
-  const baseQuery = supabase
-    .from("perfume_assets")
-    .select("perfume_id, perfumes!inner(is_uncertain)")
-    .not("image_key_step_1", "is", null) // Must have assets
-    .eq("perfumes.is_uncertain", false) // Must be verified
-    .limit(CANDIDATE_POOL_LIMIT);
-
-  const query =
-    excludeIds.length > 0
-      ? baseQuery.not("perfume_id", "in", `(${excludeIds.join(",")})`)
-      : baseQuery;
-
-  type CandidateResult = {
-    data: { perfume_id: string }[] | null;
-    error: { message: string } | null;
-  };
-
-  const primaryResult = (await query) as CandidateResult;
-
-  // Fallback: If pool exhausted (unlikely), try excluding only last 7 days
-  const { data: candidates, error } =
-    await (async (): Promise<CandidateResult> => {
-      if (
-        !primaryResult.error &&
-        primaryResult.data &&
-        primaryResult.data.length > 0
-      ) {
-        return primaryResult;
-      }
-
-      console.warn(
-        `[CRON] Pool exhausted for ${dateString}. Retrying with 7-day exclusion.`,
-      );
-
-      const shortExclusionDate = new Date();
-      shortExclusionDate.setUTCDate(shortExclusionDate.getUTCDate() - 7);
-      const queryResult3 = await supabase
-        .from("daily_challenges")
-        .select("perfume_id")
-        .gte("challenge_date", shortExclusionDate.toISOString().split("T")[0])
-        .limit(RECENT_CHALLENGES_LIMIT);
-      const { data: recent7 } = queryResult3 as {
-        data: { perfume_id: string }[] | null;
-      };
-
-      const excludeIds7 = (recent7?.map((c) => c.perfume_id) ?? []).filter(
-        (id) => typeof id === "string" && uuidRegex.test(id),
-      );
-
-      const baseRetryQuery = supabase
-        .from("perfume_assets")
-        .select("perfume_id, perfumes!inner(is_uncertain)")
-        .not("image_key_step_1", "is", null)
-        .eq("perfumes.is_uncertain", false)
-        .limit(CANDIDATE_POOL_LIMIT);
-
-      return await (excludeIds7.length > 0
-        ? baseRetryQuery.not("perfume_id", "in", `(${excludeIds7.join(",")})`)
-        : baseRetryQuery);
-    })();
-
-  if (error || !candidates || candidates.length === 0) {
-    throw new Error(
-      `No eligible perfumes found for ${dateString}. Error: ${error?.message}`,
+  if (primary.length === 0) {
+    console.warn(
+      `[CRON] Pool exhausted for ${dateString}. Retrying with 7-day exclusion.`,
     );
+  }
+  const candidates =
+    primary.length > 0
+      ? primary
+      : await fetchCandidates(
+          supabase,
+          await fetchRecentPerfumeIds(supabase, 7),
+        );
+
+  if (candidates.length === 0) {
+    throw new Error(`No eligible perfumes found for ${dateString}.`);
   }
 
   // 4. Random Selection
@@ -249,4 +195,66 @@ async function ensureChallenge(
     perfume_id: selected.perfume_id,
     status: "created",
   };
+}
+
+const PerfumeIdRows = z.array(z.object({ perfume_id: z.string() }));
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Perfumes used by challenges dated within the last `days` days (future dates included). */
+async function fetchRecentPerfumeIds(
+  supabase: ReturnType<typeof createAdminClient>,
+  days: number,
+): Promise<string[]> {
+  const since = new Date();
+  since.setUTCDate(since.getUTCDate() - days);
+  const result = (await supabase
+    .from("daily_challenges")
+    .select("perfume_id")
+    .gte("challenge_date", since.toISOString().split("T")[0])
+    .limit(RECENT_CHALLENGES_LIMIT)) as {
+    data: unknown;
+    error: { message: string } | null;
+  };
+  // An unreadable exclusion list would silently allow a recent repeat.
+  if (result.error) {
+    throw new Error(`Recent challenges lookup failed: ${result.error.message}`);
+  }
+  // Defense-in-depth: only UUIDs go into the filter string below.
+  return PerfumeIdRows.parse(result.data ?? [])
+    .map((challenge) => challenge.perfume_id)
+    .filter((id) => UUID_PATTERN.test(id));
+}
+
+/**
+ * Perfumes eligible for a puzzle: published images, verified, active, with a difficulty score
+ * (the game cannot load a puzzle without it) and with notes (only `top_notes` needs checking:
+ * linear perfumes keep their flat list there, and no perfume has middle or base notes alone).
+ */
+async function fetchCandidates(
+  supabase: ReturnType<typeof createAdminClient>,
+  excludeIds: string[],
+): Promise<{ perfume_id: string }[]> {
+  const baseQuery = supabase
+    .from("perfume_assets")
+    .select("perfume_id, perfumes!inner(is_uncertain)")
+    .not("image_key_step_1", "is", null)
+    .eq("perfumes.is_uncertain", false)
+    .eq("perfumes.is_active", true)
+    .not("perfumes.xsolve_score", "is", null)
+    .filter("perfumes.top_notes", "neq", "{}")
+    .limit(CANDIDATE_POOL_LIMIT);
+  const query =
+    excludeIds.length > 0
+      ? baseQuery.not("perfume_id", "in", `(${excludeIds.join(",")})`)
+      : baseQuery;
+  const result = (await query) as {
+    data: unknown;
+    error: { message: string } | null;
+  };
+  if (result.error) {
+    throw new Error(`Candidate lookup failed: ${result.error.message}`);
+  }
+  return PerfumeIdRows.parse(result.data ?? []);
 }

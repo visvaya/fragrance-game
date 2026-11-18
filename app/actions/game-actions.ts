@@ -350,7 +350,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
   }
 
   // CRITICAL: xsolve_score must be present for difficulty calculation
-  // This should never happen if eligible_perfumes view is used correctly,
+  // The daily cron draws only perfumes with a score (generate-daily route, fetchCandidates),
   // but we validate defensively to catch any manual insertions or bugs.
   if (perfume.xsolve_score == null) {
     throw new Error(

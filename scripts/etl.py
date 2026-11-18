@@ -16,7 +16,7 @@ from supabase import Client, create_client
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler("etl_v5.log"), logging.StreamHandler()],
+    handlers=[logging.FileHandler("etl.log"), logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 
@@ -38,11 +38,12 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
-class ETLPipelineV5:
+class EtlPipeline:
     def __init__(self, csv_path: str):
         self.csv_path = csv_path
         self.df = None
         self.db_cache = {"brands": {}, "concentrations": {}, "manufacturers": {}}
+        self.failed_records = 0
 
     def normalize_text(self, text: Any) -> str:
         """Lowercase, strip, single internal spaces."""
@@ -363,7 +364,7 @@ class ETLPipelineV5:
 
         # --- Set is_active ---
         # Rule: Technical validity only (Name + Brand + URL exists)
-        # Eligibility for game (Rating >= 400, Image) is handled by 'eligible_perfumes' view
+        # Eligibility for the game (verified, image, notes, score) is checked by the daily cron
 
         # We need to ensure Name and Brand are not 'Unknown' or empty, and URL is present
         # Normalize first to check for 'unknown'
@@ -443,7 +444,8 @@ class ETLPipelineV5:
                 self.db_cache[table][norm_val] = uuid
                 return uuid
 
-        return None
+        # A real value that could not be stored: the caller must not save the perfume without it.
+        raise LookupError(f"Could not find or create {table} row for {value!r}")
 
     def prepoulate_cache(self):
         """Pre-fetch existing lookups to minimize requests."""
@@ -466,17 +468,22 @@ class ETLPipelineV5:
         records_to_upsert = []
 
         for _, row in tqdm(self.df.iterrows(), total=len(self.df), desc="Processing Rows"):
-            # 1. Resolve Dependencies
-            brand_id = self._get_or_create_lookup("brands", "name", row["Brand"], has_slug=True)
-            conc_id = self._get_or_create_lookup(
-                "concentrations", "name", row["Concentration"], has_slug=True
-            )
-            manuf_id = self._get_or_create_lookup(
-                "manufacturers", "name", row["Manufacturer"], has_slug=False
-            )
+            # 1. Resolve Dependencies (None means the source has no value)
+            try:
+                brand_id = self._get_or_create_lookup("brands", "name", row["Brand"], has_slug=True)
+                conc_id = self._get_or_create_lookup(
+                    "concentrations", "name", row["Concentration"], has_slug=True
+                )
+                manuf_id = self._get_or_create_lookup(
+                    "manufacturers", "name", row["Manufacturer"], has_slug=False
+                )
+            except LookupError as e:
+                logger.error(f"Skipping {row['Brand']} {row['Name']}: {e}")
+                self.failed_records += 1
+                continue
 
             if not brand_id:
-                # Critical fail, skip this record or handle as conflict
+                # No brand in the source: deliberately not imported
                 continue
 
             # 2. Build Perfume Record
@@ -506,7 +513,7 @@ class ETLPipelineV5:
                 else None,
                 "xsolve_model_version": XSOLVE_MODEL_VERSION,
                 "is_active": bool(row["is_active"]),
-                # CRITICAL: is_uncertain affects eligible_perfumes view
+                # CRITICAL: the daily cron draws only perfumes with is_uncertain = false
                 "is_uncertain": str(row["Is Uncertain"]).lower() == "true"
                 if pd.notnull(row["Is Uncertain"])
                 else False,
@@ -560,15 +567,18 @@ class ETLPipelineV5:
             ).execute()
         except Exception as e:
             logger.error(f"Batch upsert failed: {e}")
-            # Fallback to single insert to isolate specific errors could be added here
+            self.failed_records += len(records)
 
     def run(self):
         self.load_and_clean_data()
         self.calculate_xsolve_score()
         self.sync_to_supabase()
+        if self.failed_records:
+            logger.error(f"ETL Pipeline finished with {self.failed_records} records not saved.")
+            raise SystemExit(1)
         logger.info("ETL Pipeline completed successfully.")
 
 
 if __name__ == "__main__":
-    pipeline = ETLPipelineV5(os.path.join(os.path.dirname(__file__), "../data/dataset.csv"))
+    pipeline = EtlPipeline(os.path.join(os.path.dirname(__file__), "../data/dataset.csv"))
     pipeline.run()

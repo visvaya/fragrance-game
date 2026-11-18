@@ -20,7 +20,7 @@ vi.mock("@/lib/supabase/server", () => {
   const mockSingle = vi
     .fn()
     .mockResolvedValue({ data: { id: "existing-challenge" } });
-  const mockLimit = vi.fn().mockReturnValue({ single: mockSingle });
+  const mockLimit = vi.fn().mockReturnValue({ maybeSingle: mockSingle });
   const mockEq = vi.fn().mockReturnValue({ limit: mockLimit });
   const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
   const mockFrom = vi.fn().mockReturnValue({ select: mockSelect });

@@ -13,12 +13,12 @@ with patch("supabase.create_client") as mock_create:
     mock_create.return_value = MagicMock()
     # Add scripts directory to path to allow import
     sys.path.append(os.path.join(os.path.dirname(__file__), "../../scripts"))
-    from etl_v5 import ETLPipelineV5
+    from etl import EtlPipeline
 
 
 @pytest.fixture
 def etl():
-    return ETLPipelineV5("dummy.csv")
+    return EtlPipeline("dummy.csv")
 
 
 def test_normalize_text(etl):

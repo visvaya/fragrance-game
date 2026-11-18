@@ -13,12 +13,12 @@ os.environ["SUPABASE_SERVICE_ROLE_KEY"] = "mock"
 with patch("supabase.create_client") as mock_create:
     mock_create.return_value = MagicMock()
     sys.path.append(os.path.join(os.path.dirname(__file__), "../../scripts"))
-    from etl_v5 import ETLPipelineV5
+    from etl import EtlPipeline
 
 
 @pytest.fixture
 def etl():
-    pipeline = ETLPipelineV5("dummy.csv")
+    pipeline = EtlPipeline("dummy.csv")
     # Mock a dataframe with minimal columns
     data = {
         "Brand": ["A", "B", "A", "C"],
