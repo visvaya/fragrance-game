@@ -5,14 +5,14 @@ R2 bucket and the `perfume_assets` table.
 
 ## Setup
 
-From `fragrance-webapp/`, in a Python 3.12+ virtual environment:
+From `fragrance-webapp/`, with [uv](https://docs.astral.sh/uv/) (versions come from `uv.lock`):
 
 ```bash
-python -m pip install -r scripts/assets/requirements.txt
+uv sync --locked
 ```
 
-Pillow must report AVIF support: `python -c "from PIL import features; print(features.check('avif'))"`
-prints `True`.
+Run the scripts below with `uv run python ...`. Pillow must report AVIF support:
+`uv run python -c "from PIL import features; print(features.check('avif'))"` prints `True`.
 
 ## Pipeline order
 
