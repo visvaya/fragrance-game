@@ -10,6 +10,11 @@
 --
 -- Non-ASCII characters are built with chr() so the file stays ASCII.
 
+-- The view refresh takes an exclusive lock on perfume_autocomplete_cache (about 59 000 rows):
+-- give up rather than queue behind a long reader, and bound the whole migration.
+SET lock_timeout = '5s';
+SET statement_timeout = '60s';
+
 UPDATE public.concentrations
 SET name = convert_from(convert_to(name, 'WIN1250'), 'UTF8')
 WHERE name ~ (
