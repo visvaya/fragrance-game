@@ -188,10 +188,9 @@ def _fetch(host: str, key: str) -> tuple[int, bytes, dict[str, str]]:
     try:
         conn.request("GET", f"/{key}", headers={"User-Agent": REKEY_CONFIG.user_agent})
         resp = conn.getresponse()
-        body = resp.read()
         if resp.status >= 400:
             return resp.status, b"", {}
-        return resp.status, body, {k.lower(): v for k, v in resp.getheaders()}
+        return resp.status, resp.read(), {k.lower(): v for k, v in resp.getheaders()}
     finally:
         conn.close()
 
