@@ -87,6 +87,8 @@ jobs:
           python -m pip install --quiet --require-hashes --no-deps -r tools/zizmor/requirements.txt
           zizmor --persona pedantic --offline --format github .
       - name: Lint workflows with actionlint
+        # Also after a zizmor failure, so one run reports both.
+        if: ${{ !cancelled() }}
         run: |
           docker build --quiet --tag actionlint tools/actionlint
           docker run --rm --volume "$PWD:/repo" --workdir /repo actionlint -color
