@@ -6,6 +6,11 @@ on:
     - cron: "0 2 * * *"
   workflow_dispatch:
 
+# A manual run waits for the scheduled one instead of overlapping it on the live database.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
