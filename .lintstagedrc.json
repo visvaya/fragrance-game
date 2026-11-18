@@ -3,5 +3,5 @@
     "oxlint --fix --no-error-on-unmatched-pattern",
     "oxfmt --no-error-on-unmatched-pattern"
   ],
-  "*.{json,md,css}": ["oxfmt --no-error-on-unmatched-pattern"]
+  "*.{json,md,css,toml,yml,yaml}": ["oxfmt --no-error-on-unmatched-pattern"]
 }
