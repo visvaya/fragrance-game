@@ -24,6 +24,34 @@ logger = logging.getLogger(__name__)
 XSOLVE_MODEL_VERSION = 1
 BATCH_SIZE = 100
 
+# UTF-8 text decoded as CP1250 somewhere upstream: an i with circumflex arrives as U+0102 U+00AE
+# (seen in the Concentration column of the source file in 2026-11). A lead character of such a
+# pair followed by a Latin-1, Latin Extended or punctuation character marks a broken sequence.
+_MOJIBAKE_LEADS = "".join(map(chr, (0x102, 0xC3, 0xC4, 0x139, 0xC5, 0xE2)))
+_MOJIBAKE_TAILS = chr(0x80) + "-" + chr(0x2FF) + chr(0x2000) + "-" + chr(0x20FF)
+MOJIBAKE = re.compile(f"[{_MOJIBAKE_LEADS}][{_MOJIBAKE_TAILS}]")
+# Names the source spells differently from the product line.
+NAME_FIXES = {"SeeByChlo" + chr(0xE9): "See by Chlo" + chr(0xE9)}
+
+
+def _repair_token(match: re.Match[str]) -> str:
+    token = match.group(0)
+    try:
+        return token.encode("cp1250").decode("utf-8")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return token
+
+
+def repair_text(value: Any) -> Any:
+    """Undo CP1250 mojibake and known misspelt names; anything that is not a string passes."""
+    if not isinstance(value, str):
+        return value
+    repaired = MOJIBAKE.sub(_repair_token, value)
+    for wrong, right in NAME_FIXES.items():
+        repaired = repaired.replace(wrong, right)
+    return repaired
+
+
 # Load Environment Variables
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../.env"))
 
@@ -92,6 +120,10 @@ class EtlPipeline:
 
         # 1. Clean Column Names
         self.df.columns = [c.strip() for c in self.df.columns]
+
+        # 1b. Repair broken encoding and known misspellings in every text column
+        for column in self.df.select_dtypes(include="object").columns:
+            self.df[column] = self.df[column].map(repair_text)
 
         # 2. Basic Conversions
         self.df["Release Year"] = (
