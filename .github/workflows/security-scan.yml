@@ -54,8 +54,8 @@ jobs:
     timeout-minutes: 10
     # gitleaks-action lists the pull request's commits through the API.
     permissions:
-      contents: read
-      pull-requests: read
+      contents: read # checkout
+      pull-requests: read # list the pull request's commits
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -81,6 +81,15 @@ jobs:
       - name: Run security-check.py
         run: |
           find . -maxdepth 3 -not -path '*/.*' -type f | xargs -I {} python scripts/security-check.py {}
+      # Versions live in tools/ so Dependabot updates them (pip with hashes, docker with a digest).
+      - name: Scan workflows with zizmor
+        run: |
+          python -m pip install --quiet --require-hashes --no-deps -r tools/zizmor/requirements.txt
+          zizmor --persona pedantic --offline --format github .
+      - name: Lint workflows with actionlint
+        run: |
+          docker build --quiet --tag actionlint tools/actionlint
+          docker run --rm --volume "$PWD:/repo" --workdir /repo actionlint -color
 
   supabase-advisors:
     name: Supabase Security Advisor
