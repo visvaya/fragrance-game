@@ -3,6 +3,7 @@
 Scans one file for secrets and other security issues.
 CI (security-scan.yml) runs it once per file: exit 2 on a finding, 0 otherwise.
 """
+
 import logging
 import re
 import sys
@@ -11,11 +12,11 @@ from typing import List, Tuple
 
 # Files to skip
 SKIP_FILES = {
-    'pnpm-lock.yaml',
-    'package-lock.json',
-    'yarn.lock',
-    'security-check.py',
-    '.gitignore',
+    "pnpm-lock.yaml",
+    "package-lock.json",
+    "yarn.lock",
+    "security-check.py",
+    ".gitignore",
 }
 
 # Patterns that indicate potential secrets
@@ -24,29 +25,29 @@ SECRET_PATTERNS: List[Tuple[str, str]] = [
     (r'(?i)api[-_]?key\s*[:=]\s*["\'][^"\']{10,}["\']', "Hardcoded API Key"),
     (r'(?i)secret\s*[:=]\s*["\'][^"\']{10,}["\']', "Hardcoded Secret"),
     (r'(?i)token\s*[:=]\s*["\'][^"\']{10,}["\']', "Hardcoded Token"),
-    (r'AIza[0-9A-Za-z-_]{35}', "Google API Key"),
-    (r'sk_live_[0-9a-zA-Z]{24}', "Stripe Live Secret Key"),
-    (r'sq0csp-[0-9A-Za-z-_]{43}', "Square Access Token"),
-    (r'sq0idp-[0-9A-Za-z-_]{22}', "Square Application ID"),
-    (r'key-[0-9a-zA-Z]{32}', "Mailgun API Key"),
-    (r'SK[0-9a-fA-F]{32}', "Twilio API Key"),
+    (r"AIza[0-9A-Za-z-_]{35}", "Google API Key"),
+    (r"sk_live_[0-9a-zA-Z]{24}", "Stripe Live Secret Key"),
+    (r"sq0csp-[0-9A-Za-z-_]{43}", "Square Access Token"),
+    (r"sq0idp-[0-9A-Za-z-_]{22}", "Square Application ID"),
+    (r"key-[0-9a-zA-Z]{32}", "Mailgun API Key"),
+    (r"SK[0-9a-fA-F]{32}", "Twilio API Key"),
 ]
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(message)s',
-    stream=sys.stderr
-)
+logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stderr)
 logger = logging.getLogger(__name__)
 
 # Patterns that indicate potential security issues (other than secrets)
 SECURITY_PATTERNS: List[Tuple[str, str]] = [
     # Absolute Paths (Windows) - Including common drive letters and user/system folders
-    (r'(?i)[A-Z]:\\(?:Users|Windows|Program Files|fragrance-game)', "Absolute Windows path (privacy/portability)"),
+    (
+        r"(?i)[A-Z]:\\(?:Users|Windows|Program Files|fragrance-game)",
+        "Absolute Windows path (privacy/portability)",
+    ),
     # Absolute Paths (Linux/Mac)
-    (r'(?i)/(?:Users|home)/[a-zA-Z0-9._-]+', "Absolute Unix path (privacy/portability)"),
+    (r"(?i)/(?:Users|home)/[a-zA-Z0-9._-]+", "Absolute Unix path (privacy/portability)"),
 ]
+
 
 def check_for_security_issues(content: str) -> List[str]:
     """Check content for non-secret security issues like absolute paths."""
@@ -57,14 +58,15 @@ def check_for_security_issues(content: str) -> List[str]:
             issues.append(f"{issue_type} detected")
     return issues
 
+
 def check_for_secrets(content: str, file_path: str) -> List[str]:
     """
     Check content for potential secrets and security issues.
-    
+
     Args:
         content: The text content to scan.
         file_path: Path to the file being checked.
-        
+
     Returns:
         List of issues found.
     """
@@ -99,7 +101,7 @@ def main() -> None:
         if len(sys.argv) > 1:
             file_path = sys.argv[1]
             if os.path.exists(file_path):
-                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                     content = f.read()
 
         if not file_path or not content:
@@ -113,7 +115,9 @@ def main() -> None:
             for issue in issues:
                 logger.error(f"  - {issue}")
             logger.info("\nRemove the secret from the file before committing it.")
-            logger.info("If this is a false positive, review and adjust the patterns in security-check.py")
+            logger.info(
+                "If this is a false positive, review and adjust the patterns in security-check.py"
+            )
             # Exit 2 marks a finding; CI fails on any non-zero exit.
             sys.exit(2)
 

@@ -26,15 +26,16 @@ try:
 except ImportError:
     pass  # Optional: Pillow builds with native AVIF support need no plugin.
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 # --- Optimization Functions ---
 
+
 def _resolve_quantize_method(method_name: str) -> int:
     name = (method_name or "auto").lower()
     quantize_enum = getattr(Image, "Quantize", None)
-    
+
     def _get(attr):
         val = getattr(quantize_enum, attr, None) if quantize_enum else getattr(Image, attr, None)
         return int(val) if val is not None else 0
@@ -42,22 +43,30 @@ def _resolve_quantize_method(method_name: str) -> int:
     mediancut = _get("MEDIANCUT") or 0
     fastoctree = _get("FASTOCTREE") or mediancut
     libimagequant = _get("LIBIMAGEQUANT")
-    
-    if name == "libimagequant": return libimagequant or fastoctree
-    if name == "fastoctree": return fastoctree
+
+    if name == "libimagequant":
+        return libimagequant or fastoctree
+    if name == "fastoctree":
+        return fastoctree
     return mediancut
 
+
 def _snap_near_white(img: Image.Image, threshold: int) -> Image.Image:
-    if not threshold or threshold <= 0: return img
+    if not threshold or threshold <= 0:
+        return img
     data = np.asarray(img)
     # Check if any pixel meets the condition before copying/processing
-    mask = (data[:, :, 0] >= threshold) & (data[:, :, 1] >= threshold) & (data[:, :, 2] >= threshold)
-    if not mask.any(): return img
-    
+    mask = (
+        (data[:, :, 0] >= threshold) & (data[:, :, 1] >= threshold) & (data[:, :, 2] >= threshold)
+    )
+    if not mask.any():
+        return img
+
     data2 = data.copy()
     data2[mask] = (255, 255, 255)
-    
+
     return Image.fromarray(data2, mode=img.mode)
+
 
 def reduce_image_complexity(
     img: Image.Image,
@@ -68,17 +77,17 @@ def reduce_image_complexity(
     snap_white_threshold: int = 253,
 ) -> Image.Image:
     img = img.convert("RGB")
-    
+
     if median >= 3:
         img = img.filter(ImageFilter.MedianFilter(size=median))
-    
+
     if posterize_bits > 0:
         img = ImageOps.posterize(img, bits=int(posterize_bits))
-        
+
     # Pre-snap to help quantization
     if snap_white_threshold > 0:
         img = _snap_near_white(img, threshold=snap_white_threshold)
-        
+
     if colors > 0:
         method = _resolve_quantize_method(quantize_method)
         # Handle Dither constant safe lookup
@@ -87,25 +96,28 @@ def reduce_image_complexity(
         # Post-snap to clean up dithering near white
         if snap_white_threshold > 0:
             img = _snap_near_white(img, threshold=snap_white_threshold)
-        
+
     return img
+
 
 def add_noise(img: Image.Image, intensity: float = 0.05) -> Image.Image:
     """
     Adds monochromatic noise.
     """
-    if intensity <= 1e-4: return img
-    
+    if intensity <= 1e-4:
+        return img
+
     arr = np.asarray(img).astype(float)
     noise = np.random.normal(0, intensity * 255, arr.shape[:2])
-    
+
     if len(arr.shape) == 3:
         noise = noise[:, :, np.newaxis]
-        
+
     arr = arr + noise
     arr = np.clip(arr, 0, 255).astype(np.uint8)
-    
+
     return Image.fromarray(arr, mode=img.mode)
+
 
 def normalize_to_square_canvas(img: Image.Image, target_size: int = 400) -> Image.Image:
     """
@@ -113,44 +125,44 @@ def normalize_to_square_canvas(img: Image.Image, target_size: int = 400) -> Imag
     and pads the rest with white to create a perfect square.
     """
     img = ImageOps.exif_transpose(img)
-    img = img.convert("RGB") # Ensure RGB
-    
+    img = img.convert("RGB")  # Ensure RGB
+
     w, h = img.size
     if w == 0 or h == 0:
         return Image.new("RGB", (target_size, target_size), (255, 255, 255))
-        
+
     scale = target_size / float(max(w, h))
     new_w = max(1, int(round(w * scale)))
     new_h = max(1, int(round(h * scale)))
-    
+
     img_resized = img.resize((new_w, new_h), resample=Image.Resampling.LANCZOS)
-    
+
     canvas = Image.new("RGB", (target_size, target_size), (255, 255, 255))
     paste_x = (target_size - new_w) // 2
     paste_y = (target_size - new_h) // 2
     canvas.paste(img_resized, (paste_x, paste_y))
-    
+
     return canvas
 
-def encode_image(img: Image.Image, quality: int, speed: int = 0, subsampling: str = "4:2:0") -> bytes:
+
+def encode_image(
+    img: Image.Image, quality: int, speed: int = 0, subsampling: str = "4:2:0"
+) -> bytes:
     buf = io.BytesIO()
     try:
         img.save(buf, format="AVIF", quality=quality, speed=speed, subsampling=subsampling)
     except Exception:
         # Retry without subsampling/speed if libs are old
         try:
-             img.save(buf, format="AVIF", quality=quality)
+            img.save(buf, format="AVIF", quality=quality)
         except Exception as e2:
             logger.error(f"AVIF save failed: {e2}")
             raise e2
     return buf.getvalue()
 
+
 def choose_quality_for_max_kb(
-    img: Image.Image,
-    max_kb: int,
-    min_quality: int = 20,
-    max_quality: int = 80,
-    speed: int = 0 
+    img: Image.Image, max_kb: int, min_quality: int = 20, max_quality: int = 80, speed: int = 0
 ) -> bytes:
     """
     Uses Binary Search to find the highest quality that fits within max_kb.
@@ -170,22 +182,26 @@ def choose_quality_for_max_kb(
     while low <= high:
         mid = (low + high) // 2
         data = encode_image(img, quality=mid, speed=speed, subsampling="4:2:0")
-        
+
         if len(data) <= target_bytes:
             best_data = data
             low = mid + 1  # Try to increase quality
         else:
-            high = mid - 1 # Reduce quality
+            high = mid - 1  # Reduce quality
 
     if best_data:
         return best_data
-    
+
     # Fallback to min quality if nothing fit
     return encode_image(img, quality=min_quality, speed=speed, subsampling="4:2:0")
 
+
 # --- Normalization Logic ---
 
-def normalize_signal(img: Image.Image, target_mean: float = 160.0, target_std: float = 40.0) -> Image.Image:
+
+def normalize_signal(
+    img: Image.Image, target_mean: float = 160.0, target_std: float = 40.0
+) -> Image.Image:
     """
     Normalizes the object's luminance to equalize difficulty.
     Assumes white background.
@@ -193,37 +209,40 @@ def normalize_signal(img: Image.Image, target_mean: float = 160.0, target_std: f
     # Convert to Grayscale for analysis
     gray = img.convert("L")
     arr = np.array(gray).astype(float)
-    
+
     # Mask: Pixels darker than 250 (Background assumed > 250)
     # We invert the logic: Object < 250.
     mask = arr < 250
-    
+
     if not np.any(mask):
         # Empty object? Return original
         return img
-        
+
     # Analyze masked pixels
     obj_pixels = arr[mask]
     current_mean = np.mean(obj_pixels)
     current_std = np.std(obj_pixels)
-    
-    if current_std < 1e-5: current_std = 1.0 # Prevent div by zero
-    
+
+    if current_std < 1e-5:
+        current_std = 1.0  # Prevent div by zero
+
     # Normalize: (x - mean) / std -> z-score
     # Then scale: z * target_std + target_mean
     norm_pixels = (obj_pixels - current_mean) / current_std
     new_pixels = norm_pixels * target_std + target_mean
-    
+
     # Clip
     new_pixels = np.clip(new_pixels, 0, 255)
-    
+
     # Apply back to array
-    res_arr = np.full_like(arr, 255) # Default to white background
+    res_arr = np.full_like(arr, 255)  # Default to white background
     res_arr[mask] = new_pixels
-    
+
     return Image.fromarray(res_arr.astype(np.uint8), mode="L").convert("RGB")
 
+
 # --- Progression Logic ---
+
 
 def apply_progressive_reveal(
     img: Image.Image,
@@ -232,13 +251,13 @@ def apply_progressive_reveal(
     grayscale: bool = False,
     noise_intensity: float = 0.0,
     normalize: bool = False,
-    base_img_override: Optional[Image.Image] = None
+    base_img_override: Optional[Image.Image] = None,
 ) -> Image.Image:
     """
     Applies blur, optional grayscale, SIGNAL NORMALIZATION, NOISE (bg only), and a center reveal mask.
     OPTIMIZATION: base_img_override can be passed to avoid expensive normalization/grayscale re-calculation.
     """
-    
+
     # 1. Base Transformation (Background)
     if base_img_override:
         # Use pre-calculated base (already normalized/grayscaled)
@@ -253,7 +272,7 @@ def apply_progressive_reveal(
         elif grayscale:
             # Legacy simple grayscale
             base_img = ImageOps.grayscale(base_img).convert("RGB")
-        
+
     if blur_px > 0:
         base_img = base_img.filter(ImageFilter.GaussianBlur(radius=blur_px))
 
@@ -263,47 +282,45 @@ def apply_progressive_reveal(
 
     # If full reveal, return FOREGROUND color (img)
     if reveal_pct >= 1.0:
-        return img 
-        
+        return img
+
     # If no reveal, return BACKGROUND
     if reveal_pct <= 0:
         return base_img
-        
+
     # 2. Composition with Mask
     w, h = img.size
     cx, cy = w // 2, h // 2
     min_dim = min(w, h)
-    
-    mask_radius = (min_dim / 2) * reveal_pct 
-    
+
+    mask_radius = (min_dim / 2) * reveal_pct
+
     mask = Image.new("L", (w, h), 0)
     draw = ImageDraw.Draw(mask)
-    
+
     # HARD EDGE with Anti-Aliasing (Smoothing)
     feather = 1.0
-    
-    draw.ellipse(
-        (cx - mask_radius, cy - mask_radius, cx + mask_radius, cy + mask_radius),
-        fill=255
-    )
-    
+
+    draw.ellipse((cx - mask_radius, cy - mask_radius, cx + mask_radius, cy + mask_radius), fill=255)
+
     # Apply minimal blur to smooth pixelation on the mask edge
     mask = mask.filter(ImageFilter.GaussianBlur(radius=feather))
-    
+
     result = Image.composite(img, base_img, mask)
     return result
+
 
 # --- Main Pipeline ---
 
 # (StepNum, Blur, Reveal, Gray, ColorsRedux, MaxKB, NoisePct, Normalize)
 # Max 65KB for steps 1-5, quality 30-77, snap 253.
 STEPS_CONFIG: List[Tuple[int, float, float, bool, int, int, float, bool]] = [
-    (1, 10.0,  0.00, True, 64, 65,  0.030, True),
-    (2,  9.5,  0.05, True, 0, 65,   0.025, True),
-    (3,  8.5,  0.08, True, 0, 65,   0.020, True),
-    (4,  7.5,  0.11, True, 0, 65,   0.018, True),
-    (5,  6.0,  0.13, True, 0, 65,   0.015, True),
-    (6,  0.0,  1.00, False, 0, 150, 0.000, False)
+    (1, 10.0, 0.00, True, 64, 65, 0.030, True),
+    (2, 9.5, 0.05, True, 0, 65, 0.025, True),
+    (3, 8.5, 0.08, True, 0, 65, 0.020, True),
+    (4, 7.5, 0.11, True, 0, 65, 0.018, True),
+    (5, 6.0, 0.13, True, 0, 65, 0.015, True),
+    (6, 0.0, 1.00, False, 0, 150, 0.000, False),
 ]
 
 
@@ -326,15 +343,17 @@ def build_step_images(master_img: Image.Image, no_compression: bool = False) -> 
             grayscale=gray,
             noise_intensity=noise,
             normalize=norm,
-            base_img_override=current_base_override
+            base_img_override=current_base_override,
         )
 
         if no_compression:
             img_data = encode_image(processed, quality=95, speed=6, subsampling="4:4:4")
-            logger.info(f"  [Step {step_num}] Generated {len(img_data)//1024}KB (High Quality)")
+            logger.info(f"  [Step {step_num}] Generated {len(img_data) // 1024}KB (High Quality)")
         else:
             if colors > 0:
-                processed = reduce_image_complexity(processed, colors=colors, snap_white_threshold=253)
+                processed = reduce_image_complexity(
+                    processed, colors=colors, snap_white_threshold=253
+                )
 
             # Binary search for the highest quality within the size limit
             img_data = choose_quality_for_max_kb(
@@ -342,9 +361,11 @@ def build_step_images(master_img: Image.Image, no_compression: bool = False) -> 
                 max_kb=max_kb,
                 min_quality=30,
                 max_quality=77 if step_num < 6 else 90,
-                speed=0  # Speed 0 for maximum compression efficiency
+                speed=0,  # Speed 0 for maximum compression efficiency
             )
-            logger.info(f"  [Step {step_num}] Generated {len(img_data)//1024}KB (Limit {max_kb}KB)")
+            logger.info(
+                f"  [Step {step_num}] Generated {len(img_data) // 1024}KB (Limit {max_kb}KB)"
+            )
 
         images[step_num] = img_data
     return images
@@ -353,13 +374,13 @@ def build_step_images(master_img: Image.Image, no_compression: bool = False) -> 
 def find_existing_asset_id(supabase: Any, perfume_id: str) -> Optional[str]:
     """Current asset id of a perfume, or None when it has no assets yet."""
     res = (
-        supabase.table('perfume_assets')
-        .select('asset_random_id')
-        .eq('perfume_id', perfume_id)
+        supabase.table("perfume_assets")
+        .select("asset_random_id")
+        .eq("perfume_id", perfume_id)
         .limit(1)
         .execute()
     )
-    return res.data[0].get('asset_random_id') if res.data else None
+    return res.data[0].get("asset_random_id") if res.data else None
 
 
 def confirm_overwrite(perfume_id: str, old_asset_id: str, force: bool, skip_existing: bool) -> bool:
@@ -372,7 +393,7 @@ def confirm_overwrite(perfume_id: str, old_asset_id: str, force: bool, skip_exis
         return True
     print(f"\n[!] Perfume {perfume_id} already has assets (ID: {old_asset_id}).")
     choice = input("    Replace them with new ones? [y/N]: ").strip().lower()
-    if choice != 'y':
+    if choice != "y":
         print("    -> Skipped.")
         return False
     return True
@@ -384,7 +405,7 @@ def process_file(
     clients: Optional[dict[str, Any]],
     no_compression: bool = False,
     force: bool = False,
-    skip_existing: bool = False
+    skip_existing: bool = False,
 ) -> None:
     """Process one illustration; clients is None in local mode."""
     filename = file_path.stem
@@ -397,7 +418,7 @@ def process_file(
     old_asset_id: Optional[str] = None
     if clients is not None:
         try:
-            old_asset_id = find_existing_asset_id(clients['supabase'], filename)
+            old_asset_id = find_existing_asset_id(clients["supabase"], filename)
         except Exception as e:
             logger.error(f"  DB check failed, skipping: {e}")
             return
@@ -419,7 +440,7 @@ def process_file(
         return
 
     def upsert_row(row: Any) -> None:
-        clients['supabase'].table('perfume_assets').upsert(dict(row)).execute()
+        clients["supabase"].table("perfume_assets").upsert(dict(row)).execute()
 
     try:
         result = publish_asset(
@@ -427,7 +448,7 @@ def process_file(
             images,
             old_asset_id=old_asset_id,
             upsert_row=upsert_row,
-            **clients['r2_io'],
+            **clients["r2_io"],
         )
     except Exception as e:
         logger.error(f"  Publish failed, previous asset kept: {e}")
@@ -438,10 +459,20 @@ def process_file(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--local', action='store_true', help='Generate assets in the debug directory without upload')
-    parser.add_argument('--no-compression', action='store_true', help='Disable all optimization/compression (High Quality Debug)')
-    parser.add_argument('--force', action='store_true', help='Replace existing assets without asking')
-    parser.add_argument('--skip-existing', action='store_true', help='Skip perfumes that already have assets')
+    parser.add_argument(
+        "--local", action="store_true", help="Generate assets in the debug directory without upload"
+    )
+    parser.add_argument(
+        "--no-compression",
+        action="store_true",
+        help="Disable all optimization/compression (High Quality Debug)",
+    )
+    parser.add_argument(
+        "--force", action="store_true", help="Replace existing assets without asking"
+    )
+    parser.add_argument(
+        "--skip-existing", action="store_true", help="Skip perfumes that already have assets"
+    )
     args = parser.parse_args()
 
     load_env()
@@ -453,7 +484,7 @@ def main() -> None:
         logger.error(f"Input dir not found: {input_dir}")
         return
 
-    files = sorted(list(input_dir.glob('*.png')) + list(input_dir.glob('*.avif')))
+    files = sorted(list(input_dir.glob("*.png")) + list(input_dir.glob("*.avif")))
     logger.info(f"Found {len(files)} files in {input_dir}")
 
     clients: Optional[dict[str, Any]] = None
@@ -462,8 +493,8 @@ def main() -> None:
         output_dir.mkdir(parents=True, exist_ok=True)
     else:
         clients = {
-            'supabase': make_supabase(),
-            'r2_io': make_r2_io(make_s3_client(), bucket_name()),
+            "supabase": make_supabase(),
+            "r2_io": make_r2_io(make_s3_client(), bucket_name()),
         }
 
     for f in files:
@@ -473,11 +504,11 @@ def main() -> None:
             clients,
             no_compression=args.no_compression,
             force=args.force,
-            skip_existing=args.skip_existing
+            skip_existing=args.skip_existing,
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         main()
     except Exception as e:
