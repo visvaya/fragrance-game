@@ -80,7 +80,7 @@ jobs:
           python-version: "3.12"
       - name: Run security-check.py
         run: |
-          find . -maxdepth 3 -not -path '*/.*' -type f | xargs -I {} python scripts/security-check.py {}
+          find . -maxdepth 3 -not -path '*/.*' -type f -print0 | xargs -0 -n1 python scripts/security-check.py
       # Versions live in tools/ so Dependabot updates them (pip with hashes, docker with a digest).
       - name: Scan workflows with zizmor
         run: |
