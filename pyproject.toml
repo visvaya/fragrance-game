@@ -15,7 +15,13 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest==9.2.0", "ruff==0.17.4"]
+dev = [
+  "mypy==2.4.1",
+  "pandas-stubs==3.1.0.261029",
+  "pytest==9.2.0",
+  "ruff==0.17.4",
+  "types-tqdm==4.70.0.20261106",
+]
 
 [tool.ruff]
 target-version = "py312"
@@ -27,6 +33,24 @@ select = ["E", "F", "W", "I", "B", "UP", "SIM", "S"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["scripts", "tests/python"]
+# The scripts are not a package: each directory is put on the import path as tests do.
+mypy_path = ["scripts", "scripts/assets"]
+explicit_package_bases = true
+
+# boto3 ships no type information; the scripts use it only to build an S3 client for R2.
+[[tool.mypy.overrides]]
+module = ["boto3", "botocore.*"]
+ignore_missing_imports = true
+
+# Files not yet typed. The list only shrinks: a file leaves it in the change that types it.
+[[tool.mypy.overrides]]
+module = ["etl"]
+ignore_errors = true
 
 [tool.uv]
 package = false

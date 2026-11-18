@@ -69,7 +69,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 class EtlPipeline:
     def __init__(self, csv_path: str):
         self.csv_path = csv_path
-        self.df = None
+        self.df: pd.DataFrame | None = None
         self.db_cache = {"brands": {}, "concentrations": {}, "manufacturers": {}}
         self.failed_records = 0
 
@@ -171,7 +171,7 @@ class EtlPipeline:
             f"Current count: {len(self.df)}"
         )
 
-    def _clean_note(self, note_text):
+    def _clean_note(self, note_text: str) -> str:
         """Clean individual note text removing marketing terms."""
         if not note_text:
             return ""
@@ -233,7 +233,7 @@ class EtlPipeline:
                 seen.add(c)
         return final
 
-    def calculate_xsolve_score(self):
+    def calculate_xsolve_score(self) -> None:
         logger.info("Calculating xSolve scores...")
 
         # Helper for note cleaning

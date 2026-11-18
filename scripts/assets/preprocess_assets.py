@@ -32,7 +32,8 @@ def iter_images(input_dir: Path) -> Iterable[Path]:
 def _corner_patch_median(data: np.ndarray, x0: int, x1: int, y0: int, y1: int) -> np.ndarray:
     patch = data[y0:y1, x0:x1, :]
     patch = patch.reshape(-1, 3)
-    return np.median(patch, axis=0)
+    median: np.ndarray = np.median(patch, axis=0)
+    return median
 
 
 def compute_object_bbox(

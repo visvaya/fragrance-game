@@ -17,7 +17,7 @@ with patch("supabase.create_client") as mock_create:
 
 
 @pytest.fixture
-def etl():
+def etl() -> EtlPipeline:
     pipeline = EtlPipeline("dummy.csv")
     # Mock a dataframe with minimal columns
     data = {
@@ -42,13 +42,18 @@ def etl():
     return pipeline
 
 
-def test_xsolve_scoring_components(etl):
+def frame(pipeline: EtlPipeline) -> pd.DataFrame:
+    assert pipeline.df is not None
+    return pipeline.df
+
+
+def test_xsolve_scoring_components(etl: EtlPipeline) -> None:
     # We need to lower the threshold for our small test set
     with patch("logging.Logger.warning"):  # Silence warning about lowering threshold
         etl.calculate_xsolve_score()
 
     # Check if xsolve_score column exists
-    assert "xsolve_score" in etl.df.columns
+    assert "xsolve_score" in frame(etl).columns
 
     # Check eligibility (Rating >= 400 in our test case is P1 and P3)
     # The script lowers threshold to >= 10 if < 50 eligible.
@@ -56,27 +61,27 @@ def test_xsolve_scoring_components(etl):
 
     # High population/rating should have LOWER obscurity score (more popular)
     # P1 (1000) vs P4 (10)
-    p1_score = etl.df[etl.df["Name"] == "P1"]["obscurity_raw"].iloc[0]
-    p4_score = etl.df[etl.df["Name"] == "P4"]["obscurity_raw"].iloc[0]
+    p1_score = frame(etl)[frame(etl)["Name"] == "P1"]["obscurity_raw"].iloc[0]
+    p4_score = frame(etl)[frame(etl)["Name"] == "P4"]["obscurity_raw"].iloc[0]
     assert p1_score < p4_score
 
     # Note count factor
     # P1 has 4 unique notes (Bergamot, Lemon, Rose, Musk)
     # Check if notes were extracted correctly
-    p1_notes = etl.df[etl.df["Name"] == "P1"]["notes_list"].iloc[0]
+    p1_notes = frame(etl)[frame(etl)["Name"] == "P1"]["notes_list"].iloc[0]
     assert "Bergamot" in p1_notes
     assert len(p1_notes) >= 4
 
 
-def test_note_extraction_robustness(etl):
+def test_note_extraction_robustness(etl: EtlPipeline) -> None:
     # Test fallback to Main Accords if pyramid is empty
-    etl.df.loc[0, "Top Notes"] = None
-    etl.df.loc[0, "Middle Notes"] = None
-    etl.df.loc[0, "Base Notes"] = None
-    etl.df.loc[0, "Main Accords"] = "Citrus, Woody"
+    frame(etl).loc[0, "Top Notes"] = None
+    frame(etl).loc[0, "Middle Notes"] = None
+    frame(etl).loc[0, "Base Notes"] = None
+    frame(etl).loc[0, "Main Accords"] = "Citrus, Woody"
 
     etl.calculate_xsolve_score()
 
-    p1_notes = etl.df.iloc[0]["notes_list"]
+    p1_notes = frame(etl).iloc[0]["notes_list"]
     assert "Citrus" in p1_notes
     assert "Woody" in p1_notes
