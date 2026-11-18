@@ -25,7 +25,7 @@ def etl() -> EtlPipeline:
         "Name": ["P1", "P2", "P3", "P4"],
         "Concentration": ["EDP", "EDT", "EDP", "Parfum"],
         "Release Year": [2020, 2021, 2020, 2022],
-        "Rating Count": [1000, 50, 500, 10],  # Eligible threshold is 400
+        "Rating Count": [1000, 50, 500, 10],  # Eligible from 400 ratings
         "Gender": ["Unisex", "Male", "Female", "Unisex"],
         "Top Notes": ["Bergamot, Lemon", "Orange", "Rose", "Lemon"],
         "Middle Notes": ["Rose", "Cedar", "Jasmine", "Rose"],
@@ -48,22 +48,18 @@ def frame(pipeline: EtlPipeline) -> pd.DataFrame:
 
 
 def test_xsolve_scoring_components(etl: EtlPipeline) -> None:
-    # We need to lower the threshold for our small test set
-    with patch("logging.Logger.warning"):  # Silence warning about lowering threshold
+    # Only 2 of the 4 perfumes are eligible: the real threshold stays, with a warning
+    with patch("logging.Logger.warning"):
         etl.calculate_xsolve_score()
 
-    # Check if xsolve_score column exists
     assert "xsolve_score" in frame(etl).columns
 
-    # Check eligibility (Rating >= 400 in our test case is P1 and P3)
-    # The script lowers threshold to >= 10 if < 50 eligible.
-    # With our data, all 4 are eligible (>= 10).
-
     # High population/rating should have LOWER obscurity score (more popular)
-    # P1 (1000) vs P4 (10)
+    # P1 (1000) vs P3 (500), both eligible
     p1_score = frame(etl)[frame(etl)["Name"] == "P1"]["obscurity_raw"].iloc[0]
-    p4_score = frame(etl)[frame(etl)["Name"] == "P4"]["obscurity_raw"].iloc[0]
-    assert p1_score < p4_score
+    p3_score = frame(etl)[frame(etl)["Name"] == "P3"]["obscurity_raw"].iloc[0]
+    assert p1_score < p3_score
+    assert pd.isna(frame(etl)[frame(etl)["Name"] == "P4"]["obscurity_raw"].iloc[0])
 
     # Note count factor
     # P1 has 4 unique notes (Bergamot, Lemon, Rose, Musk)
@@ -85,3 +81,11 @@ def test_note_extraction_robustness(etl: EtlPipeline) -> None:
     p1_notes = frame(etl).iloc[0]["notes_list"]
     assert "Citrus" in p1_notes
     assert "Woody" in p1_notes
+
+
+def test_perfume_below_the_rating_threshold_gets_no_score(etl: EtlPipeline) -> None:
+    etl.calculate_xsolve_score()
+
+    scores = frame(etl).set_index("Name")["xsolve_score"]
+    assert scores[["P1", "P3"]].notna().all()
+    assert scores[["P2", "P4"]].isna().all()
