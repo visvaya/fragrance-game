@@ -444,7 +444,8 @@ class EtlPipeline:
                 self.db_cache[table][norm_val] = uuid
                 return uuid
 
-        return None
+        # A real value that could not be stored: the caller must not save the perfume without it.
+        raise LookupError(f"Could not find or create {table} row for {value!r}")
 
     def prepoulate_cache(self):
         """Pre-fetch existing lookups to minimize requests."""
@@ -467,17 +468,22 @@ class EtlPipeline:
         records_to_upsert = []
 
         for _, row in tqdm(self.df.iterrows(), total=len(self.df), desc="Processing Rows"):
-            # 1. Resolve Dependencies
-            brand_id = self._get_or_create_lookup("brands", "name", row["Brand"], has_slug=True)
-            conc_id = self._get_or_create_lookup(
-                "concentrations", "name", row["Concentration"], has_slug=True
-            )
-            manuf_id = self._get_or_create_lookup(
-                "manufacturers", "name", row["Manufacturer"], has_slug=False
-            )
+            # 1. Resolve Dependencies (None means the source has no value)
+            try:
+                brand_id = self._get_or_create_lookup("brands", "name", row["Brand"], has_slug=True)
+                conc_id = self._get_or_create_lookup(
+                    "concentrations", "name", row["Concentration"], has_slug=True
+                )
+                manuf_id = self._get_or_create_lookup(
+                    "manufacturers", "name", row["Manufacturer"], has_slug=False
+                )
+            except LookupError as e:
+                logger.error(f"Skipping {row['Brand']} {row['Name']}: {e}")
+                self.failed_records += 1
+                continue
 
             if not brand_id:
-                # Critical fail, skip this record or handle as conflict
+                # No brand in the source: deliberately not imported
                 continue
 
             # 2. Build Perfume Record

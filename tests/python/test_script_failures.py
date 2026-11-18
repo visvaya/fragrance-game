@@ -5,6 +5,7 @@ import os
 import sys
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
 import pytest
 
 os.environ["SUPABASE_URL"] = "http://mock"
@@ -41,6 +42,46 @@ def test_etl_exits_with_an_error_when_a_batch_is_not_saved():
     assert pipeline.failed_records == 2
 
 
+def test_etl_counts_a_perfume_whose_brand_could_not_be_stored():
+    pipeline = etl.EtlPipeline("dummy.csv")
+    pipeline.df = pd.DataFrame(
+        {
+            "Brand": ["Broken", "Good"],
+            "Name": ["P1", "P2"],
+            "Concentration": ["Unknown", "Unknown"],
+            "Manufacturer": ["Unknown", "Unknown"],
+            "Release Year": [2020, 2021],
+            "Gender": ["Unisex", "Male"],
+            "Top Notes": ["Rose", "Musk"],
+            "Middle Notes": ["", ""],
+            "Base Notes": ["", ""],
+            "Perfumers": ["", ""],
+            "xsolve_score": [0.5, 0.5],
+            "is_active": [True, True],
+            "Is Uncertain": [False, False],
+            "Is Linear": [False, False],
+            "fingerprint_strict": ["a", "b"],
+            "fingerprint_loose": ["a", "b"],
+        }
+    )
+    saved = []
+    pipeline.prepoulate_cache = MagicMock()
+    pipeline._batch_upsert = saved.extend
+
+    with patch.object(etl, "supabase") as client:
+        brands = client.table.return_value
+        brands.select.return_value.eq.return_value.limit.return_value.execute.side_effect = [
+            MagicMock(data=[]),
+            MagicMock(data=[]),
+            MagicMock(data=[{"id": "brand-good"}]),
+        ]
+        brands.insert.return_value.execute.side_effect = RuntimeError("insert refused")
+        pipeline.sync_to_supabase()
+
+    assert pipeline.failed_records == 1
+    assert [record["name"] for record in saved] == ["P2"]
+
+
 def test_process_file_reports_an_unreadable_illustration(tmp_path):
     broken = tmp_path / f"{PERFUME}.png"
     broken.write_bytes(b"not an image")
@@ -58,6 +99,10 @@ class FakeTable:
 
     def order(self, column):
         self.ordered_by = column
+        return self
+
+    def limit(self, count):
+        assert count <= self.cap
         return self
 
     def range(self, start, end):

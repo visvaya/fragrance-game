@@ -2,14 +2,17 @@ import { NextRequest } from "next/server";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { captureException, queries, resolveQuery } = vi.hoisted(() => ({
-  captureException: vi.fn(),
-  queries: [] as { calls: unknown[][]; table: string }[],
-  resolveQuery: vi.fn(),
-}));
+const { captureException, queries, resolveQuery, revalidateTag } = vi.hoisted(
+  () => ({
+    captureException: vi.fn(),
+    queries: [] as { calls: unknown[][]; table: string }[],
+    resolveQuery: vi.fn(),
+    revalidateTag: vi.fn(),
+  }),
+);
 
 vi.mock("@/lib/env", () => ({ env: { CRON_SECRET: "test-cron-secret" } }));
-vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidateTag }));
 vi.mock("@sentry/nextjs", () => ({ captureException }));
 
 /**
@@ -126,6 +129,20 @@ describe("generate-daily cron failures", () => {
     expect(response.status).toBe(500);
     expect(inserted()).toEqual([]);
     expect(captureException).toHaveBeenCalledOnce();
+  });
+
+  it("refreshes the cached puzzle when tomorrow fails after today was saved", async () => {
+    resolveQuery.mockImplementation((table: string, calls: unknown[][]) =>
+      table === "perfume_assets" && inserted().length > 0
+        ? { data: null, error: { message: "timeout" } }
+        : healthyResponse(table, calls),
+    );
+
+    const response = await callCron();
+
+    expect(response.status).toBe(500);
+    expect(inserted()).toEqual(["daily_challenges"]);
+    expect(revalidateTag).toHaveBeenCalledWith("daily-challenge", {});
   });
 
   it("draws only active perfumes with notes and a difficulty score", async () => {

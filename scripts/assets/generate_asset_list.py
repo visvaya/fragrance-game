@@ -21,7 +21,14 @@ def fetch_pages(make_query, order_column: str, page_size: int = PAGE_SIZE) -> li
     rows: list = []
     start = 0
     while True:
-        batch = make_query().order(order_column).range(start, start + page_size - 1).execute().data
+        batch = (
+            make_query()
+            .order(order_column)
+            .range(start, start + page_size - 1)
+            .limit(page_size)
+            .execute()
+            .data
+        )
         rows.extend(batch or [])
         if not batch or len(batch) < page_size:
             return rows

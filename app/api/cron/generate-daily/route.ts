@@ -50,8 +50,6 @@ export async function GET(request: NextRequest): Promise<Response> {
       await ensureChallenge(adminSupabase, tomorrowString),
     ];
 
-    revalidateTag("daily-challenge", {});
-
     return NextResponse.json({
       results,
       status: "success",
@@ -68,6 +66,10 @@ export async function GET(request: NextRequest): Promise<Response> {
       },
       { status: 500 },
     );
+  } finally {
+    // Also after a failure: today's puzzle may be committed before tomorrow's step throws, and
+    // the SSR loader caches a missing puzzle under this tag.
+    revalidateTag("daily-challenge", {});
   }
 }
 
@@ -195,6 +197,8 @@ async function ensureChallenge(
   };
 }
 
+const PerfumeIdRows = z.array(z.object({ perfume_id: z.string() }));
+
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -210,7 +214,7 @@ async function fetchRecentPerfumeIds(
     .select("perfume_id")
     .gte("challenge_date", since.toISOString().split("T")[0])
     .limit(RECENT_CHALLENGES_LIMIT)) as {
-    data: { perfume_id: string }[] | null;
+    data: unknown;
     error: { message: string } | null;
   };
   // An unreadable exclusion list would silently allow a recent repeat.
@@ -218,9 +222,9 @@ async function fetchRecentPerfumeIds(
     throw new Error(`Recent challenges lookup failed: ${result.error.message}`);
   }
   // Defense-in-depth: only UUIDs go into the filter string below.
-  return (result.data ?? [])
+  return PerfumeIdRows.parse(result.data ?? [])
     .map((challenge) => challenge.perfume_id)
-    .filter((id) => typeof id === "string" && UUID_PATTERN.test(id));
+    .filter((id) => UUID_PATTERN.test(id));
 }
 
 /**
@@ -246,11 +250,11 @@ async function fetchCandidates(
       ? baseQuery.not("perfume_id", "in", `(${excludeIds.join(",")})`)
       : baseQuery;
   const result = (await query) as {
-    data: { perfume_id: string }[] | null;
+    data: unknown;
     error: { message: string } | null;
   };
   if (result.error) {
     throw new Error(`Candidate lookup failed: ${result.error.message}`);
   }
-  return result.data ?? [];
+  return PerfumeIdRows.parse(result.data ?? []);
 }
