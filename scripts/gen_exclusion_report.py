@@ -1,7 +1,8 @@
-import pandas as pd
 import hashlib
 import re
 from pathlib import Path
+
+import pandas as pd
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
 WEBAPP_DIR = SCRIPTS_DIR.parent
@@ -51,12 +52,12 @@ report_samples = []
 # Group by FP and take some samples where count > 1
 duplicate_groups = df_sorted.groupby("temp_fp")
 count = 0
-for fp, group in duplicate_groups:
+for _fp, group in duplicate_groups:
     if len(group) > 1:
         # The first is kept (highest rating), others are excluded
         kept = group.iloc[0]
         excluded = group.iloc[1:]
-        for exc_idx, exc_row in excluded.iterrows():
+        for _exc_idx, exc_row in excluded.iterrows():
             report_samples.append(
                 {
                     "Name": exc_row["Name"],

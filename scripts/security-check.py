@@ -5,10 +5,9 @@ CI (security-scan.yml) runs it once per file: exit 2 on a finding, 0 otherwise.
 """
 
 import logging
+import os
 import re
 import sys
-import os
-from typing import List, Tuple
 
 # Files to skip
 SKIP_FILES = {
@@ -20,7 +19,7 @@ SKIP_FILES = {
 }
 
 # Patterns that indicate potential secrets
-SECRET_PATTERNS: List[Tuple[str, str]] = [
+SECRET_PATTERNS: list[tuple[str, str]] = [
     (r'(?i)password\s*[:=]\s*["\'][^"\']{4,}["\']', "Hardcoded password"),
     (r'(?i)api[-_]?key\s*[:=]\s*["\'][^"\']{10,}["\']', "Hardcoded API Key"),
     (r'(?i)secret\s*[:=]\s*["\'][^"\']{10,}["\']', "Hardcoded Secret"),
@@ -38,7 +37,7 @@ logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stderr)
 logger = logging.getLogger(__name__)
 
 # Patterns that indicate potential security issues (other than secrets)
-SECURITY_PATTERNS: List[Tuple[str, str]] = [
+SECURITY_PATTERNS: list[tuple[str, str]] = [
     # Absolute Paths (Windows) - Including common drive letters and user/system folders
     (
         r"(?i)[A-Z]:\\(?:Users|Windows|Program Files|fragrance-game)",
@@ -49,9 +48,9 @@ SECURITY_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 
-def check_for_security_issues(content: str) -> List[str]:
+def check_for_security_issues(content: str) -> list[str]:
     """Check content for non-secret security issues like absolute paths."""
-    issues: List[str] = []
+    issues: list[str] = []
     for pattern, issue_type in SECURITY_PATTERNS:
         matches = re.findall(pattern, content)
         if matches:
@@ -59,7 +58,7 @@ def check_for_security_issues(content: str) -> List[str]:
     return issues
 
 
-def check_for_secrets(content: str, file_path: str) -> List[str]:
+def check_for_secrets(content: str, file_path: str) -> list[str]:
     """
     Check content for potential secrets and security issues.
 
@@ -70,7 +69,7 @@ def check_for_secrets(content: str, file_path: str) -> List[str]:
     Returns:
         List of issues found.
     """
-    issues: List[str] = []
+    issues: list[str] = []
 
     # Skip certain files
     if os.path.basename(file_path) in SKIP_FILES:
@@ -101,7 +100,7 @@ def main() -> None:
         if len(sys.argv) > 1:
             file_path = sys.argv[1]
             if os.path.exists(file_path):
-                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                with open(file_path, encoding="utf-8", errors="ignore") as f:
                     content = f.read()
 
         if not file_path or not content:

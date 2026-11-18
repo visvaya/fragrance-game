@@ -46,14 +46,15 @@ def process_passwords(
             out_f.write("/**\n")
             out_f.write(" * Refined list of common passwords that pass complexity requirements.\n")
             out_f.write(
-                f" * Generated from {os.path.basename(input_path)} at {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+                f" * Generated from {os.path.basename(input_path)} "
+                f"at {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
             )
             if limit:
                 out_f.write(f" * LIMITED TO TOP {limit} MATCHES.\n")
             out_f.write(" */\n")
             out_f.write("export const COMMON_PASSWORDS = [\n")
 
-            with open(input_path, "r", encoding="utf-8", errors="ignore") as in_f:
+            with open(input_path, encoding="utf-8", errors="ignore") as in_f:
                 for line in in_f:
                     total_scanned += 1
                     pwd = line.strip()
@@ -95,7 +96,8 @@ def process_passwords(
                     # Progress update every 1M lines
                     if total_scanned % 1000000 == 0:
                         print(
-                            f"    [>] Scanned {total_scanned / 1000000:.0f}M lines, found {filtered_count} matches..."
+                            f"    [>] Scanned {total_scanned / 1000000:.0f}M lines, "
+                            f"found {filtered_count} matches..."
                         )
 
             out_f.write("\n];\n")

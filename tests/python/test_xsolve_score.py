@@ -1,8 +1,9 @@
 import os
 import sys
-import pytest
-import pandas as pd
 from unittest.mock import MagicMock, patch
+
+import pandas as pd
+import pytest
 
 # Mock environment
 os.environ["SUPABASE_URL"] = "http://mock"
