@@ -9,10 +9,9 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import http.client
 import json
 import sys
-import urllib.error
-import urllib.request
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -183,18 +182,23 @@ def cmd_copy(args: argparse.Namespace) -> int:
     return 0
 
 
-def _fetch(url: str) -> tuple[int, bytes, dict[str, str]]:
-    request = urllib.request.Request(url, headers={"User-Agent": REKEY_CONFIG.user_agent})
+def _fetch(host: str, key: str) -> tuple[int, bytes, dict[str, str]]:
+    """GET https://<host>/<key> without following redirects; an error status has an empty body."""
+    conn = http.client.HTTPSConnection(host, timeout=REKEY_CONFIG.http_timeout_seconds)
     try:
-        with urllib.request.urlopen(request, timeout=REKEY_CONFIG.http_timeout_seconds) as resp:
-            return resp.status, resp.read(), {k.lower(): v for k, v in resp.headers.items()}
-    except urllib.error.HTTPError as error:
-        return error.code, b"", {}
+        conn.request("GET", f"/{key}", headers={"User-Agent": REKEY_CONFIG.user_agent})
+        resp = conn.getresponse()
+        body = resp.read()
+        if resp.status >= 400:
+            return resp.status, b"", {}
+        return resp.status, body, {k.lower(): v for k, v in resp.getheaders()}
+    finally:
+        conn.close()
 
 
 def _check_pair(host: str, old: str, new: str) -> list[str]:
-    old_status, old_body, _ = _fetch(f"https://{host}/{old}")
-    new_status, new_body, new_headers = _fetch(f"https://{host}/{new}")
+    old_status, old_body, _ = _fetch(host, old)
+    new_status, new_body, new_headers = _fetch(host, new)
     problems = []
     if old_status != 200:
         problems.append(f"old status {old_status}")

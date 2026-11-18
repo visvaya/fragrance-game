@@ -3,20 +3,19 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import importlib
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Optional, Tuple
 
 import numpy as np
 
-try:
-    # Imported for its side effect: registers the AVIF codec with older Pillow builds.
+# Imported for its side effect: registers the AVIF codec with older Pillow builds. Optional:
+# Pillow builds with native AVIF support need no plugin.
+with contextlib.suppress(ImportError):
     importlib.import_module("pillow_avif")
-except ImportError:
-    pass  # Optional: Pillow builds with native AVIF support need no plugin.
-from PIL import Image, ImageOps
-
 from asset_config import load_env, local_dirs
+from PIL import Image, ImageOps
 
 SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".avif"}
 
@@ -42,7 +41,7 @@ def compute_object_bbox(
     corner_patch: int,
     bg_tolerance: int,
     fallback_white_threshold: int,
-) -> Optional[Tuple[int, int, int, int]]:
+) -> tuple[int, int, int, int] | None:
     data = np.asarray(img_rgb)
     h, w, _ = data.shape
 
@@ -100,7 +99,7 @@ def process_image(
     bg_tolerance: int,
     fallback_white_threshold: int,
     bbox_pad_ratio: float,
-) -> Optional[Image.Image]:
+) -> Image.Image | None:
     img = ImageOps.exif_transpose(img)
 
     if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):

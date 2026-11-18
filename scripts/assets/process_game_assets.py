@@ -6,25 +6,23 @@ asset_publish.publish_asset; --local writes the files to the debug directory ins
 """
 
 import argparse
+import contextlib
 import importlib
 import io
 import logging
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter, ImageOps
-
 from asset_config import load_env, local_dirs
 from asset_publish import publish_asset
+from PIL import Image, ImageDraw, ImageFilter, ImageOps
 from r2_client import bucket_name, make_r2_io, make_s3_client, make_supabase
 
-# Optional AVIF plugin for older Pillow builds
-try:
-    # Imported for its side effect: registers the AVIF codec with older Pillow builds.
+# Imported for its side effect: registers the AVIF codec with older Pillow builds. Optional:
+# Pillow builds with native AVIF support need no plugin.
+with contextlib.suppress(ImportError):
     importlib.import_module("pillow_avif")
-except ImportError:
-    pass  # Optional: Pillow builds with native AVIF support need no plugin.
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -251,11 +249,13 @@ def apply_progressive_reveal(
     grayscale: bool = False,
     noise_intensity: float = 0.0,
     normalize: bool = False,
-    base_img_override: Optional[Image.Image] = None,
+    base_img_override: Image.Image | None = None,
 ) -> Image.Image:
     """
-    Applies blur, optional grayscale, SIGNAL NORMALIZATION, NOISE (bg only), and a center reveal mask.
-    OPTIMIZATION: base_img_override can be passed to avoid expensive normalization/grayscale re-calculation.
+    Applies blur, optional grayscale, SIGNAL NORMALIZATION, NOISE (bg only), and a center
+    reveal mask.
+    OPTIMIZATION: base_img_override can be passed to avoid expensive normalization/grayscale
+    re-calculation.
     """
 
     # 1. Base Transformation (Background)
@@ -314,7 +314,7 @@ def apply_progressive_reveal(
 
 # (StepNum, Blur, Reveal, Gray, ColorsRedux, MaxKB, NoisePct, Normalize)
 # Max 65KB for steps 1-5, quality 30-77, snap 253.
-STEPS_CONFIG: List[Tuple[int, float, float, bool, int, int, float, bool]] = [
+STEPS_CONFIG: list[tuple[int, float, float, bool, int, int, float, bool]] = [
     (1, 10.0, 0.00, True, 64, 65, 0.030, True),
     (2, 9.5, 0.05, True, 0, 65, 0.025, True),
     (3, 8.5, 0.08, True, 0, 65, 0.020, True),
@@ -327,7 +327,7 @@ STEPS_CONFIG: List[Tuple[int, float, float, bool, int, int, float, bool]] = [
 def build_step_images(master_img: Image.Image, no_compression: bool = False) -> dict[int, bytes]:
     """Render and encode every step image in memory."""
     # Most steps use normalize=True, so the normalized base is calculated once.
-    normalized_base: Optional[Image.Image] = None
+    normalized_base: Image.Image | None = None
     if any(s[7] for s in STEPS_CONFIG):
         # Target Mean 238 (very light grey), Std 10.
         normalized_base = normalize_signal(master_img.copy(), target_mean=238.0, target_std=10.0)
@@ -371,7 +371,7 @@ def build_step_images(master_img: Image.Image, no_compression: bool = False) -> 
     return images
 
 
-def find_existing_asset_id(supabase: Any, perfume_id: str) -> Optional[str]:
+def find_existing_asset_id(supabase: Any, perfume_id: str) -> str | None:
     """Current asset id of a perfume, or None when it has no assets yet."""
     res = (
         supabase.table("perfume_assets")
@@ -402,7 +402,7 @@ def confirm_overwrite(perfume_id: str, old_asset_id: str, force: bool, skip_exis
 def process_file(
     file_path: Path,
     output_dir: Path,
-    clients: Optional[dict[str, Any]],
+    clients: dict[str, Any] | None,
     no_compression: bool = False,
     force: bool = False,
     skip_existing: bool = False,
@@ -415,7 +415,7 @@ def process_file(
 
     logger.info(f"Processing {filename}...")
 
-    old_asset_id: Optional[str] = None
+    old_asset_id: str | None = None
     if clients is not None:
         try:
             old_asset_id = find_existing_asset_id(clients["supabase"], filename)
@@ -487,7 +487,7 @@ def main() -> None:
     files = sorted(list(input_dir.glob("*.png")) + list(input_dir.glob("*.avif")))
     logger.info(f"Found {len(files)} files in {input_dir}")
 
-    clients: Optional[dict[str, Any]] = None
+    clients: dict[str, Any] | None = None
     if args.local:
         logger.info(f"Running in LOCAL MODE. Output: {output_dir}")
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -513,4 +513,4 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         logger.critical(f"Process failed: {e}")
-        raise SystemExit(1)
+        raise SystemExit(1) from e

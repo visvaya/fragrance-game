@@ -1,14 +1,16 @@
+import hashlib
+import logging
 import os
 import re
 import sys
-import hashlib
-import logging
+from typing import Any
+
 import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
-from supabase import create_client, Client
 from tqdm import tqdm
-from typing import List, Dict, Any, Optional
+
+from supabase import Client, create_client
 
 # Setup Logging
 logging.basicConfig(
@@ -132,7 +134,8 @@ class ETLPipelineV5:
         )
 
         logger.info(
-            f"Deduplication removed {initial_len - len(self.df)} rows. Current count: {len(self.df)}"
+            f"Deduplication removed {initial_len - len(self.df)} rows. "
+            f"Current count: {len(self.df)}"
         )
 
     def _clean_note(self, note_text):
@@ -240,7 +243,8 @@ class ETLPipelineV5:
         # Fallback if too few eligible
         if eligible_mask.sum() < 50:
             logger.warning(
-                f"Only {eligible_mask.sum()} eligible perfumes (>=400). Lowering threshold to >=10 for testing."
+                f"Only {eligible_mask.sum()} eligible perfumes (>=400). "
+                "Lowering threshold to >=10 for testing."
             )
             eligible_mask = self.df["Rating Count"] >= 10
 
@@ -275,7 +279,8 @@ class ETLPipelineV5:
         # We can assign a percentile to each rating *as if* it was in the eligible distribution
         # For simplicity/speed in MVP: We will stick to global rank for Gender adjustment
         # (as gender distribution is roughly similar in head vs tail), OR:
-        # We calculate the percentile score of each perfume's rating against the Eligible distribution of that gender.
+        # We calculate the percentile score of each perfume's rating against the Eligible
+        # distribution of that gender.
 
         gender_ratings = {}
         for g in ["Male", "Female", "Unisex"]:
@@ -292,7 +297,8 @@ class ETLPipelineV5:
                 return 0.5  # Default
 
             # Find position of r in sorted eligible ratings
-            # If r is smaller than all eligible (e.g. 1 vote), it's index 0 -> rarity 1.0 (very obscure)
+            # If r is smaller than all eligible (e.g. 1 vote), it's index 0 -> rarity 1.0
+            # (very obscure)
             # If r is larger than all, it's index len -> rarity 0.0 (very popular)
             idx = np.searchsorted(gender_ratings[g], r)
             n = len(gender_ratings[g])
@@ -332,7 +338,8 @@ class ETLPipelineV5:
             # Calculate average rarity for ALL (metrics) but score only for ELIGIBLE
             self.df["avg_note_rarity"] = self.df["notes_list"].apply(get_avg_rarity)
 
-            # Normalize against p95 of ALL data (User Rule: "przy ich obliczaniu bierz pod uwagę cały dataset")
+            # Normalize against p95 of ALL data (owner rule: the whole dataset counts in this
+            # calculation)
             p95_rarity = np.percentile(self.df["avg_note_rarity"], 95)
 
             self.df["note_rarity_raw"] = np.nan
@@ -396,7 +403,7 @@ class ETLPipelineV5:
 
     def _get_or_create_lookup(
         self, table: str, column: str, value: str, has_slug: bool = False
-    ) -> Optional[str]:
+    ) -> str | None:
         """Simple cache-backed lookup/create for auxiliary tables."""
         if not value or str(value).lower() == "unknown":
             return None
@@ -507,10 +514,17 @@ class ETLPipelineV5:
                 if pd.notnull(row["Is Linear"])
                 else False,
                 # Slugs are handled by DB triggers/functions usually, but we need source_slug
-                # CRITICAL: Must include concentration for uniqueness (same brand/name/year with different concentrations)
-                "source_record_slug": f"{self.normalize_text(row['Brand'])}-{self.normalize_text(row['Name'])}-{self.normalize_text(row['Concentration'])}-{self.normalize_text(str(row['Release Year']))}"[
-                    :250
-                ],
+                # CRITICAL: Must include concentration for uniqueness (same brand/name/year with
+                # different concentrations)
+                "source_record_slug": "-".join(
+                    self.normalize_text(value)
+                    for value in (
+                        row["Brand"],
+                        row["Name"],
+                        row["Concentration"],
+                        str(row["Release Year"]),
+                    )
+                )[:250],
             }
 
             records_to_upsert.append(perfume_data)
@@ -524,14 +538,16 @@ class ETLPipelineV5:
         if records_to_upsert:
             self._batch_upsert(records_to_upsert)
 
-    def _batch_upsert(self, records: List[Dict]):
+    def _batch_upsert(self, records: list[dict]):
         try:
             # Using fingerprint_strict as conflict target if possible, key constraint is needed
-            # Schema says: UNIQUE NULLS NOT DISTINCT (brand_id, name, concentration_id, release_year)
+            # Schema says: UNIQUE NULLS NOT DISTINCT (brand_id, name, concentration_id,
+            # release_year)
             # But we also have fingerprint_strict.
             # Best is to rely on ON CONFLICT logic. Supabase-js/py defaults to upsert.
             # We must specify the column(s) that define conflict.
-            # If the schema doesn't have a UNIQUE constraint on fingerprint_strict, using it here won't work for UPSERT in same way.
+            # If the schema doesn't have a UNIQUE constraint on fingerprint_strict, using it here
+            # won't work for UPSERT in same way.
             # The production baseline migration defines unique_perfume:
             # UNIQUE NULLS NOT DISTINCT (brand_id, name, concentration_id, release_year)
             # We should probably map that.

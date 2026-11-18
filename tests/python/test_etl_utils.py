@@ -1,7 +1,8 @@
 import os
 import sys
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Mock environment before importing
 os.environ["SUPABASE_URL"] = "http://mock"

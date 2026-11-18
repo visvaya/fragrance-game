@@ -1,6 +1,7 @@
 """
 Analyze dataset to detect multi-word patterns in Accords and Notes.
-This script detects potential qualifier words that should be removed during note/accord normalization.
+This script detects potential qualifier words that should be removed during
+note/accord normalization.
 
 Usage:
     python analyze_note_qualifiers.py
@@ -10,10 +11,10 @@ Output:
     - Console: Summary statistics and recommendations
 """
 
-import pandas as pd
 import re
 from collections import Counter
-from typing import List
+
+import pandas as pd
 
 # Configuration
 CSV_PATH = "../data/dataset.csv"
@@ -25,14 +26,14 @@ def load_data():
     return pd.read_csv(CSV_PATH, delimiter=DELIMITER, encoding="utf-8")
 
 
-def extract_items(text: str) -> List[str]:
+def extract_items(text: str) -> list[str]:
     """Extract individual items from comma-separated string."""
     if pd.isna(text) or text == "":
         return []
     return [item.strip() for item in str(text).split(",") if item.strip()]
 
 
-def analyze_multiword_items(items: List[str]) -> dict:
+def analyze_multiword_items(items: list[str]) -> dict:
     """Analyze items and extract suffix words and trailing special characters."""
     results = {
         "single_word": [],
@@ -49,7 +50,8 @@ def analyze_multiword_items(items: List[str]) -> dict:
         if not item:
             continue
 
-        # Detect ANY non-word characters at the end of the item OR at the end of words within the item
+        # Detect ANY non-word characters at the end of the item OR at the end of words
+        # within the item
         all_trailing_specials = re.findall(r"([^\w\s\)-])(?=\s|$)", item)
         if all_trailing_specials:
             for char in set(all_trailing_specials):
@@ -103,7 +105,7 @@ def main():
     all_notes = []
     for column in ["Top Notes", "Middle Notes", "Base Notes"]:
         column_notes = []
-        for idx, row in df.iterrows():
+        for _idx, row in df.iterrows():
             notes = extract_items(row[column])
             column_notes.extend(notes)
 
@@ -113,7 +115,7 @@ def main():
 
         all_notes.extend(column_notes)
 
-    print(f"\nAll Notes combined:")
+    print("\nAll Notes combined:")
     print(f"  Total instances: {len(all_notes)}")
     print(f"  Unique notes: {len(set(all_notes))}")
 
@@ -125,11 +127,11 @@ def main():
     if note_analysis["special_chars"]:
         print(f"\nSpecial characters found in notes: {dict(note_analysis['special_chars'])}")
 
-    print(f"\nTop 50 PREFIX words in Notes (potential qualifiers like 'African'):")
+    print("\nTop 50 PREFIX words in Notes (potential qualifiers like 'African'):")
     for word, count in note_analysis["prefix_words"].most_common(50):
         print(f"  '{word}': {count}")
 
-    print(f"\nTop 50 SUFFIX words in Notes (potential qualifiers like 'absolute'):")
+    print("\nTop 50 SUFFIX words in Notes (potential qualifiers like 'absolute'):")
     for word, count in note_analysis["suffix_words"].most_common(50):
         print(f"  '{word}': {count}")
 
@@ -174,7 +176,7 @@ def main():
 
     export_df = pd.DataFrame(export_data)
     export_df.to_csv("qualifier_analysis.csv", sep=";", index=False, encoding="utf-8-sig")
-    print(f"\n[ok] Detailed analysis exported to: qualifier_analysis.csv")
+    print("\n[ok] Detailed analysis exported to: qualifier_analysis.csv")
 
     print("\n" + "=" * 80)
     print("QUALIFIER RECOMMENDATIONS FOR NOTES")

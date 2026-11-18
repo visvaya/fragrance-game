@@ -1,7 +1,8 @@
-import pandas as pd
 import hashlib
 import re
 from pathlib import Path
+
+import pandas as pd
 
 WEBAPP_DIR = Path(__file__).resolve().parent.parent
 

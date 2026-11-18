@@ -217,8 +217,10 @@ def _render_swap(
             + [f"{step_column(s)} = {_sql_literal(target_keys[s])}" for s in STEPS]
             + ["updated_at = now()"]
         )
+        # S608: this renders a reviewed SQL script, not a query; every value goes through
+        # _sql_literal, which rejects quotes, backslashes and unsafe characters.
         lines.append(
-            f"  UPDATE {TABLE_NAME} SET {assignments} "
+            f"  UPDATE {TABLE_NAME} SET {assignments} "  # noqa: S608
             f"WHERE perfume_id = {_sql_literal(entry.perfume_id)} "
             f"AND asset_random_id = {_sql_literal(current_id)};"
         )
