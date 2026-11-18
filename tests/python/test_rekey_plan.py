@@ -23,8 +23,10 @@ P2 = "34bab2ce-84e1-495d-804f-0d466e1d6f17"
 
 
 def old_row(perfume_id, old_id, legacy=False):
-    keys = {s: (f"a/{old_id}/{s:x}abc.avif" if legacy else f"a/{old_id}/{s}_abc{s}.avif")
-            for s in range(1, 7)}
+    keys = {
+        s: (f"a/{old_id}/{s:x}abc.avif" if legacy else f"a/{old_id}/{s}_abc{s}.avif")
+        for s in range(1, 7)
+    }
     return AssetRow(perfume_id=perfume_id, asset_id=old_id, keys=keys)
 
 

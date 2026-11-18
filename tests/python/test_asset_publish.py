@@ -38,8 +38,14 @@ def make_io(fail_put_at=None, fail_upsert=False, fail_delete_prefix=False):
             raise RuntimeError("db down")
         calls.append(("upsert", dict(row)))
 
-    io = dict(put_object=put_object, delete_keys=delete_keys, delete_prefix=delete_prefix,
-              upsert_row=upsert_row, new_id=lambda: NEW_ID, new_keys=fake_keys)
+    io = dict(
+        put_object=put_object,
+        delete_keys=delete_keys,
+        delete_prefix=delete_prefix,
+        upsert_row=upsert_row,
+        new_id=lambda: NEW_ID,
+        new_keys=fake_keys,
+    )
     return calls, io
 
 

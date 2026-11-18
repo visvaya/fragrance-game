@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Iterable, Optional, Tuple
 
 import numpy as np
+
 try:
     # Imported for its side effect: registers the AVIF codec with older Pillow builds.
     importlib.import_module("pillow_avif")
@@ -70,9 +71,11 @@ def compute_object_bbox(
     y0, y1 = int(ys.min()), int(ys.max() + 1)
 
     if (x1 - x0) >= int(w * 0.98) and (y1 - y0) >= int(h * 0.98):
-        bg_mask = (data[:, :, 0] >= fallback_white_threshold) & (
-            data[:, :, 1] >= fallback_white_threshold
-        ) & (data[:, :, 2] >= fallback_white_threshold)
+        bg_mask = (
+            (data[:, :, 0] >= fallback_white_threshold)
+            & (data[:, :, 1] >= fallback_white_threshold)
+            & (data[:, :, 2] >= fallback_white_threshold)
+        )
         obj_mask = ~bg_mask
 
         ys, xs = np.where(obj_mask)

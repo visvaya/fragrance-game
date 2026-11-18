@@ -13,7 +13,7 @@ from r2_client import make_supabase
 
 PAGE_SIZE = 1000
 ASSET_PAGE_SIZE = 2000
-IMAGE_EXTENSIONS = ('.avif', '.png', '.jpg', '.jpeg', '.webp')
+IMAGE_EXTENSIONS = (".avif", ".png", ".jpg", ".jpeg", ".webp")
 
 
 def main():
@@ -31,9 +31,9 @@ def main():
     all_data = []
     start = 0
     total_count = (
-        supabase.table('perfumes')
-        .select('id', count='exact', head=True)
-        .eq('is_uncertain', False)
+        supabase.table("perfumes")
+        .select("id", count="exact", head=True)
+        .eq("is_uncertain", False)
         .execute()
         .count
     )
@@ -42,9 +42,13 @@ def main():
 
     while True:
         print(f"Fetching records {start} to {start + PAGE_SIZE}...")
-        response = supabase.table('perfumes').select(
-            'id, name, release_year, is_uncertain, brands(name), concentrations(name)'
-        ).eq('is_uncertain', False).range(start, start + PAGE_SIZE - 1).execute()
+        response = (
+            supabase.table("perfumes")
+            .select("id, name, release_year, is_uncertain, brands(name), concentrations(name)")
+            .eq("is_uncertain", False)
+            .range(start, start + PAGE_SIZE - 1)
+            .execute()
+        )
 
         records = response.data
         if not records:
@@ -57,10 +61,9 @@ def main():
             break
 
     # Sort by brand, then name, for easier manual browsing
-    data = sorted(all_data, key=lambda x: (
-        (x.get('brands') or {}).get('name') or '',
-        x.get('name') or ''
-    ))
+    data = sorted(
+        all_data, key=lambda x: ((x.get("brands") or {}).get("name") or "", x.get("name") or "")
+    )
 
     # Perfume ids that already have an illustration (file name is <uuid>.<extension>)
     assets_dir = local_dirs().illustrations
@@ -76,15 +79,15 @@ def main():
         pa_start = 0
         while True:
             res = (
-                supabase.table('perfume_assets')
-                .select('perfume_id')
+                supabase.table("perfume_assets")
+                .select("perfume_id")
                 .range(pa_start, pa_start + ASSET_PAGE_SIZE - 1)
                 .execute()
             )
             if not res.data:
                 break
             for r in res.data:
-                uploaded_assets.add(r['perfume_id'])
+                uploaded_assets.add(r["perfume_id"])
             if len(res.data) < ASSET_PAGE_SIZE:
                 break
             pa_start += ASSET_PAGE_SIZE
@@ -93,23 +96,25 @@ def main():
 
     output_dir = assets_dir.parent
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_filename = output_dir / 'missing_assets.csv'
+    output_filename = output_dir / "missing_assets.csv"
 
     # utf-8-sig for Excel compatibility
-    with open(output_filename, 'w', newline='', encoding='utf-8-sig') as f:
-        writer = csv.writer(f, delimiter=';')
-        writer.writerow(['ID', 'Name', 'Brand', 'Concentration', 'Year', 'is_in_folder', 'is_in_Cloudflare'])
+    with open(output_filename, "w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.writer(f, delimiter=";")
+        writer.writerow(
+            ["ID", "Name", "Brand", "Concentration", "Year", "is_in_folder", "is_in_Cloudflare"]
+        )
 
         for row in data:
-            pid = row.get('id')
-            name = row.get('name')
-            year = row.get('release_year') or ''
+            pid = row.get("id")
+            name = row.get("name")
+            year = row.get("release_year") or ""
 
-            brand_obj = row.get('brands')
-            brand_name = brand_obj.get('name') if brand_obj else 'Unknown'
+            brand_obj = row.get("brands")
+            brand_name = brand_obj.get("name") if brand_obj else "Unknown"
 
-            conc_obj = row.get('concentrations')
-            conc_name = conc_obj.get('name') if conc_obj else 'Unknown'
+            conc_obj = row.get("concentrations")
+            conc_name = conc_obj.get("name") if conc_obj else "Unknown"
 
             in_folder = "TRUE" if pid in existing_files else "FALSE"
             in_cloud = "TRUE" if pid in uploaded_assets else "FALSE"
