@@ -67,7 +67,7 @@ def test_etl_counts_a_perfume_whose_brand_could_not_be_stored() -> None:
         }
     )
     saved: list[dict[str, Any]] = []
-    pipeline.prepoulate_cache = MagicMock()
+    pipeline.prepopulate_cache = MagicMock()
     pipeline._batch_upsert = saved.extend
 
     with patch.object(etl, "supabase") as client:
@@ -101,6 +101,9 @@ class FakeTable:
         self.start = 0
         self.end = 0
 
+    def select(self, columns: str) -> "FakeTable":
+        return self
+
     def order(self, column: str) -> "FakeTable":
         self.ordered_by = column
         return self
@@ -125,3 +128,15 @@ def test_fetch_pages_reads_every_row_past_the_response_cap() -> None:
     fetched = generate_asset_list.fetch_pages(lambda: FakeTable(rows), "perfume_id")
 
     assert fetched == rows
+
+
+def test_etl_prepopulates_every_lookup_row_past_the_response_cap() -> None:
+    brands = [{"id": f"id-{i}", "name": f"Brand {i}"} for i in range(2500)]
+    pipeline = etl.EtlPipeline("dummy.csv")
+
+    with patch.object(etl, "supabase") as client:
+        client.table.side_effect = lambda name: FakeTable(brands if name == "brands" else [])
+        pipeline.prepopulate_cache()
+
+    assert len(pipeline.db_cache["brands"]) == 2500
+    assert pipeline.db_cache["brands"]["brand 2499"] == "id-2499"

@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 # Constants
 XSOLVE_MODEL_VERSION = 1
 BATCH_SIZE = 100
+ELIGIBLE_MIN_RATINGS = 400
+LOOKUP_PAGE_SIZE = 1000  # PostgREST returns at most 1000 rows per request
 
 # UTF-8 text decoded as CP1250 somewhere upstream: an i with circumflex arrives as U+0102 U+00AE
 # (seen in the Concentration column of the source file in 2026-11). A lead character of such a
@@ -66,11 +68,40 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
+def _first_id(data: Any) -> str | None:
+    """The id of the first row of a PostgREST response, if there is one."""
+    return str(data[0]["id"]) if data else None
+
+
+def _fetch_pages(table: str, columns: str) -> list[dict[str, Any]]:
+    """All rows of a table, page by page; pages need a stable order or rows move between them."""
+    rows: list[dict[str, Any]] = []
+    start = 0
+    while True:
+        batch: Any = (
+            supabase.table(table)
+            .select(columns)
+            .order("id")
+            .range(start, start + LOOKUP_PAGE_SIZE - 1)
+            .limit(LOOKUP_PAGE_SIZE)
+            .execute()
+            .data
+        )
+        rows.extend(batch or [])
+        if not batch or len(batch) < LOOKUP_PAGE_SIZE:
+            return rows
+        start += LOOKUP_PAGE_SIZE
+
+
 class EtlPipeline:
     def __init__(self, csv_path: str):
         self.csv_path = csv_path
-        self.df: pd.DataFrame | None = None
-        self.db_cache = {"brands": {}, "concentrations": {}, "manufacturers": {}}
+        self.df = pd.DataFrame()
+        self.db_cache: dict[str, dict[str, str]] = {
+            "brands": {},
+            "concentrations": {},
+            "manufacturers": {},
+        }
         self.failed_records = 0
 
     def normalize_text(self, text: Any) -> str:
@@ -110,7 +141,7 @@ class EtlPipeline:
         text = re.sub(r"[^a-z0-9]+", "-", text)
         return text.strip("-")
 
-    def load_and_clean_data(self):
+    def load_and_clean_data(self) -> None:
         logger.info(f"Loading data from {self.csv_path}...")
 
         # Read with specific separation and decimal handling for the dataset
@@ -216,7 +247,7 @@ class EtlPipeline:
         t = re.sub(r"[,\-]$", "", t).strip()
         return t
 
-    def _extract_list_cleaned(self, text_blob):
+    def _extract_list_cleaned(self, text_blob: Any) -> list[str]:
         """Extract lists from CSV string and clean each item."""
         if pd.isna(text_blob) or text_blob == "":
             return []
@@ -225,8 +256,8 @@ class EtlPipeline:
         # Clean each item using the robust cleaner
         cleaned = [self._clean_note(i) for i in items]
         # Remove empty strings and duplicates while preserving order
-        final = []
-        seen = set()
+        final: list[str] = []
+        seen: set[str] = set()
         for c in cleaned:
             if c and c not in seen:
                 final.append(c)
@@ -245,9 +276,9 @@ class EtlPipeline:
         # User Rule: Use notes (Top/Mid/Base) for stats, not just Main Accords.
         # Compute this for ALL perfumes first.
 
-        def get_all_notes(row):
+        def get_all_notes(row: "pd.Series[Any]") -> list[str]:
             # Combine Top, Middle, Base
-            all_n = []
+            all_n: list[str] = []
             for col in ["Top Notes", "Middle Notes", "Base Notes"]:
                 val = row.get(col)
                 if pd.notnull(val):
@@ -271,15 +302,12 @@ class EtlPipeline:
 
         # --- Base Population for Difficulty (Eligible Only) ---
         # User Rule: "Obliczaj xSolve tylko dla eligible (Rating >= 400)"
-        eligible_mask = self.df["Rating Count"] >= 400
+        eligible_mask = self.df["Rating Count"] >= ELIGIBLE_MIN_RATINGS
 
-        # Fallback if too few eligible
         if eligible_mask.sum() < 50:
             logger.warning(
-                f"Only {eligible_mask.sum()} eligible perfumes (>=400). "
-                "Lowering threshold to >=10 for testing."
+                f"Only {eligible_mask.sum()} eligible perfumes (>={ELIGIBLE_MIN_RATINGS} ratings)."
             )
-            eligible_mask = self.df["Rating Count"] >= 10
 
         df_stats = self.df[eligible_mask]
         logger.info(f"Eligible population for xSolve scoring: {len(df_stats)} perfumes")
@@ -315,15 +343,15 @@ class EtlPipeline:
         # We calculate the percentile score of each perfume's rating against the Eligible
         # distribution of that gender.
 
-        gender_ratings = {}
+        gender_ratings: dict[str, np.ndarray[Any, Any]] = {}
         for g in ["Male", "Female", "Unisex"]:
             g_norm = self.normalize_text(g)
             # Get ratings of eligible perfumes for this gender
             # Note: df_stats is the eligible subset
-            ratings = df_stats[df_stats["gender_norm"] == g_norm]["Rating Count"].values
+            ratings = df_stats[df_stats["gender_norm"] == g_norm]["Rating Count"].to_numpy()
             gender_ratings[g_norm] = np.sort(ratings)
 
-        def get_gender_rarity(row):
+        def get_gender_rarity(row: "pd.Series[Any]") -> float:
             g = row["gender_norm"]
             r = row["Rating Count"]
             if g not in gender_ratings or len(gender_ratings[g]) == 0:
@@ -336,7 +364,7 @@ class EtlPipeline:
             idx = np.searchsorted(gender_ratings[g], r)
             n = len(gender_ratings[g])
             pct = idx / n
-            return 1.0 - pct
+            return float(1.0 - pct)
 
         self.df["gender_adj_raw"] = np.nan
         self.df.loc[eligible_mask, "gender_adj_raw"] = self.df.loc[eligible_mask].apply(
@@ -362,11 +390,11 @@ class EtlPipeline:
             note_freqs = note_counts / total_occurrences
 
             # Calculate average rarity
-            def get_avg_rarity(notes):
+            def get_avg_rarity(notes: list[str]) -> float:
                 if not notes:
                     return 0.0
                 rarities = [1.0 - note_freqs.get(n, 0.0) for n in notes]
-                return np.mean(rarities)
+                return float(np.mean(rarities))
 
             # Calculate average rarity for ALL (metrics) but score only for ELIGIBLE
             self.df["avg_note_rarity"] = self.df["notes_list"].apply(get_avg_rarity)
@@ -391,7 +419,7 @@ class EtlPipeline:
         W_COUNT = 0.15
         W_RARITY = 0.15
 
-        def clamp(x):
+        def clamp(x: Any) -> float:
             return max(0.0, min(1.0, float(x)))
 
         # --- Set is_active ---
@@ -451,8 +479,7 @@ class EtlPipeline:
 
         # Try finding in DB
         res = supabase.table(table).select("id").eq(column, value).limit(1).execute()
-        if res.data:
-            uuid = res.data[0]["id"]
+        if uuid := _first_id(res.data):
             self.db_cache[table][norm_val] = uuid
             return uuid
 
@@ -463,23 +490,21 @@ class EtlPipeline:
                 insert_data["slug"] = self.slugify(value)
 
             res = supabase.table(table).insert(insert_data).execute()
-            if res.data:
-                uuid = res.data[0]["id"]
+            if uuid := _first_id(res.data):
                 self.db_cache[table][norm_val] = uuid
                 return uuid
         except Exception as e:
             logger.warning(f"Failed to insert into {table}: {e}")
             # Try fetching again in case of race condition
             res = supabase.table(table).select("id").eq(column, value).limit(1).execute()
-            if res.data:
-                uuid = res.data[0]["id"]
+            if uuid := _first_id(res.data):
                 self.db_cache[table][norm_val] = uuid
                 return uuid
 
         # A real value that could not be stored: the caller must not save the perfume without it.
         raise LookupError(f"Could not find or create {table} row for {value!r}")
 
-    def prepoulate_cache(self):
+    def prepopulate_cache(self) -> None:
         """Pre-fetch existing lookups to minimize requests."""
         logger.info("Pre-populating caches...")
         for table, col in [
@@ -487,17 +512,14 @@ class EtlPipeline:
             ("concentrations", "name"),
             ("manufacturers", "name"),
         ]:
-            # Fetch all (careful with memory if HUGE, but usually these are small < 10k)
-            # Pagination might be needed for production
-            res = supabase.table(table).select(f"id, {col}").execute()
-            for row in res.data:
+            for row in _fetch_pages(table, f"id, {col}"):
                 self.db_cache[table][self.normalize_text(row[col])] = row["id"]
 
-    def sync_to_supabase(self):
+    def sync_to_supabase(self) -> None:
         logger.info("Syncing to Supabase...")
-        self.prepoulate_cache()
+        self.prepopulate_cache()
 
-        records_to_upsert = []
+        records_to_upsert: list[dict[str, Any]] = []
 
         for _, row in tqdm(self.df.iterrows(), total=len(self.df), desc="Processing Rows"):
             # 1. Resolve Dependencies (None means the source has no value)
@@ -577,7 +599,7 @@ class EtlPipeline:
         if records_to_upsert:
             self._batch_upsert(records_to_upsert)
 
-    def _batch_upsert(self, records: list[dict]):
+    def _batch_upsert(self, records: list[dict[str, Any]]) -> None:
         try:
             # Using fingerprint_strict as conflict target if possible, key constraint is needed
             # Schema says: UNIQUE NULLS NOT DISTINCT (brand_id, name, concentration_id,
@@ -601,7 +623,7 @@ class EtlPipeline:
             logger.error(f"Batch upsert failed: {e}")
             self.failed_records += len(records)
 
-    def run(self):
+    def run(self) -> None:
         self.load_and_clean_data()
         self.calculate_xsolve_score()
         self.sync_to_supabase()

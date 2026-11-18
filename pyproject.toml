@@ -47,11 +47,6 @@ explicit_package_bases = true
 module = ["boto3", "botocore.*"]
 ignore_missing_imports = true
 
-# Files not yet typed. The list only shrinks: a file leaves it in the change that types it.
-[[tool.mypy.overrides]]
-module = ["etl"]
-ignore_errors = true
-
 [tool.uv]
 package = false
 # The uv version CI runs (.github/workflows/ci.yml) is the local minimum.
