@@ -1,0 +1,9 @@
+# Squawk lints migrations changed in a pull request (.github/workflows/db-migrations.yml).
+pg_version = "17.0"
+# Migrations are applied inside a transaction.
+assume_in_transaction = true
+excluded_rules = [
+  # CREATE/DROP INDEX CONCURRENTLY cannot run inside the migration transaction.
+  "require-concurrent-index-creation",
+  "require-concurrent-index-deletion",
+]

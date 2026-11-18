@@ -1,9 +1,10 @@
 name: Database from migrations
 
 # Builds an empty local database from supabase/migrations and seed.sql, without secrets or access to
-# production. PL/pgSQL functions are checked statically (supabase/checks/plpgsql-functions.sql); its
-# schema fingerprint must equal production's, kept in supabase/schema-fingerprint.txt; then the pgTAP
-# suite and the auth trigger check (supabase/checks) run against it.
+# production. Migrations changed by the event are linted with Squawk first (.squawk.toml); PL/pgSQL
+# functions are checked statically (supabase/checks/plpgsql-functions.sql); its schema fingerprint
+# must equal production's, kept in supabase/schema-fingerprint.txt; then the pgTAP suite and the auth
+# trigger check (supabase/checks) run against it.
 on:
   pull_request:
     branches: [main]
@@ -36,6 +37,18 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Lint changed migrations with Squawk
+        # Applied migrations never change, so only files added or modified here are linted
+        # (rules in .squawk.toml; a deliberate exception is a "-- squawk-ignore <rule>" comment).
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          # Through a file, so a failing git diff stops the step instead of reading as "no changes".
+          git diff -z --name-only --diff-filter=d "$BASE_SHA" HEAD -- 'supabase/migrations/*.sql' > "$RUNNER_TEMP/migrations"
+          mapfile -d '' -t files < "$RUNNER_TEMP/migrations"
+          if [ "${#files[@]}" -eq 0 ]; then echo "No changed migrations."; exit 0; fi
+          pnpm exec squawk --reporter=gcc "${files[@]}"
       - name: Start a local database from the migrations
         run: pnpm exec supabase db start
       - name: Check PL/pgSQL functions with plpgsql_check
