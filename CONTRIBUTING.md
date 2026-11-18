@@ -18,6 +18,12 @@ Run the same checks as CI:
 pnpm typecheck && pnpm lint:strict && pnpm format:check && pnpm test
 ```
 
+For a change to the Python scripts (`scripts/`, `tests/python`), with [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv sync --locked && uv run ruff check . && uv run ruff format --check . && uv run pytest tests/python -q
+```
+
 For a change to the interface, also run the end-to-end tests in one browser (the first command downloads the browser once):
 
 ```bash
