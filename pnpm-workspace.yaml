@@ -107,6 +107,11 @@ peerDependencyRules:
 # braces is reached only through development tools (ESLint, depcheck, ts-morph)
 # that expand patterns from this repository's own configuration; production
 # dependencies are not affected. Remove this entry once braces 3.0.4 is out.
+# GHSA-fc5q-39xc-vjpf (picomatch <= 4.0.7, high): no patched release exists yet.
+# picomatch is reached through @sentry/nextjs > @rollup/plugin-commonjs, which only
+# the build-time webpack loader loads, with patterns from this repository's own
+# configuration; the running app does not use it. Remove once picomatch 4.0.8 is out.
 auditConfig:
   ignoreGhsas:
     - GHSA-vfj7-8cjw-p6xm
+    - GHSA-fc5q-39xc-vjpf
