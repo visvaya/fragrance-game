@@ -3,6 +3,8 @@
 import importlib
 import os
 import sys
+from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -23,12 +25,12 @@ process_game_assets = importlib.import_module("process_game_assets")
 PERFUME = "c2614cda-f6a4-4fba-9d8a-1d9734f8cc97"
 
 
-def test_etl_exits_with_an_error_when_a_batch_is_not_saved():
+def test_etl_exits_with_an_error_when_a_batch_is_not_saved() -> None:
     pipeline = etl.EtlPipeline("dummy.csv")
     pipeline.load_and_clean_data = MagicMock()
     pipeline.calculate_xsolve_score = MagicMock()
 
-    def sync():
+    def sync() -> None:
         with patch.object(etl, "supabase") as client:
             client.table.return_value.upsert.side_effect = RuntimeError("constraint")
             pipeline._batch_upsert([{"name": "a"}, {"name": "b"}])
@@ -42,7 +44,7 @@ def test_etl_exits_with_an_error_when_a_batch_is_not_saved():
     assert pipeline.failed_records == 2
 
 
-def test_etl_counts_a_perfume_whose_brand_could_not_be_stored():
+def test_etl_counts_a_perfume_whose_brand_could_not_be_stored() -> None:
     pipeline = etl.EtlPipeline("dummy.csv")
     pipeline.df = pd.DataFrame(
         {
@@ -64,7 +66,7 @@ def test_etl_counts_a_perfume_whose_brand_could_not_be_stored():
             "fingerprint_loose": ["a", "b"],
         }
     )
-    saved = []
+    saved: list[dict[str, Any]] = []
     pipeline.prepoulate_cache = MagicMock()
     pipeline._batch_upsert = saved.extend
 
@@ -82,7 +84,7 @@ def test_etl_counts_a_perfume_whose_brand_could_not_be_stored():
     assert [record["name"] for record in saved] == ["P2"]
 
 
-def test_process_file_reports_an_unreadable_illustration(tmp_path):
+def test_process_file_reports_an_unreadable_illustration(tmp_path: Path) -> None:
     broken = tmp_path / f"{PERFUME}.png"
     broken.write_bytes(b"not an image")
 
@@ -92,30 +94,32 @@ def test_process_file_reports_an_unreadable_illustration(tmp_path):
 class FakeTable:
     """A query over `rows` that, like PostgREST, returns at most `cap` rows per request."""
 
-    def __init__(self, rows, cap=1000):
+    def __init__(self, rows: list[dict[str, str]], cap: int = 1000) -> None:
         self.rows = rows
         self.cap = cap
-        self.ordered_by = None
+        self.ordered_by: str | None = None
+        self.start = 0
+        self.end = 0
 
-    def order(self, column):
+    def order(self, column: str) -> "FakeTable":
         self.ordered_by = column
         return self
 
-    def limit(self, count):
+    def limit(self, count: int) -> "FakeTable":
         assert count <= self.cap
         return self
 
-    def range(self, start, end):
+    def range(self, start: int, end: int) -> "FakeTable":
         self.start, self.end = start, end
         return self
 
-    def execute(self):
+    def execute(self) -> MagicMock:
         assert self.ordered_by, "pages without an order can skip or repeat rows"
         page = self.rows[self.start : min(self.end + 1, self.start + self.cap)]
         return MagicMock(data=page)
 
 
-def test_fetch_pages_reads_every_row_past_the_response_cap():
+def test_fetch_pages_reads_every_row_past_the_response_cap() -> None:
     rows = [{"perfume_id": str(i)} for i in range(2500)]
 
     fetched = generate_asset_list.fetch_pages(lambda: FakeTable(rows), "perfume_id")

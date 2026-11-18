@@ -18,18 +18,18 @@ with patch("supabase.create_client") as mock_create:
 
 
 @pytest.fixture
-def etl():
+def etl() -> EtlPipeline:
     return EtlPipeline("dummy.csv")
 
 
-def test_normalize_text(etl):
+def test_normalize_text(etl: EtlPipeline) -> None:
     assert etl.normalize_text("  BRAND Name  ") == "brand name"
     assert etl.normalize_text("Multiple   Spaces") == "multiple spaces"
     assert etl.normalize_text(None) == ""
     assert etl.normalize_text(123) == ""
 
 
-def test_clean_note(etl):
+def test_clean_note(etl: EtlPipeline) -> None:
     # Test cleaning specific trademark symbols
     assert etl._clean_note("Jasmine™") == "Jasmine"
     assert etl._clean_note("Rose®") == "Rose"
@@ -48,7 +48,7 @@ def test_clean_note(etl):
     assert etl._clean_note("  Fleur de Sel (Absolute) ™  ") == "Fleur de Sel"
 
 
-def test_generate_fingerprint_strict(etl):
+def test_generate_fingerprint_strict(etl: EtlPipeline) -> None:
     fp1 = etl.generate_fingerprint_strict("Chanel", "N°5", "EDP", 1921)
     fp2 = etl.generate_fingerprint_strict(" CHANEL ", " n°5 ", " edp ", "1921.0")
 
@@ -57,24 +57,24 @@ def test_generate_fingerprint_strict(etl):
     assert len(fp1) == 64  # SHA256 length
 
 
-def test_slugify(etl):
+def test_slugify(etl: EtlPipeline) -> None:
     assert etl.slugify("Hello World!") == "hello-world"
     assert etl.slugify("Brand (New) Name") == "brand-new-name"
 
 
-def test_repair_text_fixes_utf8_read_as_cp1250():
+def test_repair_text_fixes_utf8_read_as_cp1250() -> None:
     broken = "Eau Fra\u0102\u00aeche"
 
     assert etl_module.repair_text(broken) == "Eau Fra\u00eeche"
     assert etl_module.repair_text("Eau L\u0102\u00a9g\u0102\u00a8re") == "Eau L\u00e9g\u00e8re"
 
 
-def test_repair_text_keeps_correct_text_and_non_strings():
+def test_repair_text_keeps_correct_text_and_non_strings() -> None:
     assert (
         etl_module.repair_text("\u00c5ngstr\u00f6m Chlo\u00e9") == "\u00c5ngstr\u00f6m Chlo\u00e9"
     )
     assert etl_module.repair_text(None) is None
 
 
-def test_repair_text_restores_the_see_by_chloe_name():
+def test_repair_text_restores_the_see_by_chloe_name() -> None:
     assert etl_module.repair_text("SeeByChlo\u00e9 Si Belle") == "See by Chlo\u00e9 Si Belle"

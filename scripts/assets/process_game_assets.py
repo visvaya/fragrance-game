@@ -34,7 +34,7 @@ def _resolve_quantize_method(method_name: str) -> int:
     name = (method_name or "auto").lower()
     quantize_enum = getattr(Image, "Quantize", None)
 
-    def _get(attr):
+    def _get(attr: str) -> int:
         val = getattr(quantize_enum, attr, None) if quantize_enum else getattr(Image, attr, None)
         return int(val) if val is not None else 0
 

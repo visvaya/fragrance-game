@@ -7,6 +7,8 @@ illustrations directory, in its parent directory.
 import csv
 import os
 import sys
+from collections.abc import Callable
+from typing import Any
 
 from asset_config import load_env, local_dirs
 from r2_client import make_supabase
@@ -16,9 +18,11 @@ PAGE_SIZE = 1000
 IMAGE_EXTENSIONS = (".avif", ".png", ".jpg", ".jpeg", ".webp")
 
 
-def fetch_pages(make_query, order_column: str, page_size: int = PAGE_SIZE) -> list:
+def fetch_pages(
+    make_query: Callable[[], Any], order_column: str, page_size: int = PAGE_SIZE
+) -> list[dict[str, Any]]:
     """All rows of a query, page by page. Pages need a stable order, or rows move between them."""
-    rows: list = []
+    rows: list[dict[str, Any]] = []
     start = 0
     while True:
         batch = (
@@ -35,7 +39,7 @@ def fetch_pages(make_query, order_column: str, page_size: int = PAGE_SIZE) -> li
         start += page_size
 
 
-def main():
+def main() -> None:
     load_env()
     try:
         supabase = make_supabase()
