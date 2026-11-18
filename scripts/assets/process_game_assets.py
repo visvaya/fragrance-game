@@ -406,12 +406,12 @@ def process_file(
     no_compression: bool = False,
     force: bool = False,
     skip_existing: bool = False,
-) -> None:
-    """Process one illustration; clients is None in local mode."""
+) -> bool:
+    """Process one illustration; clients is None in local mode. False when it failed."""
     filename = file_path.stem
     if len(filename) != 36:
         logger.info(f"Skipping non-UUID: {filename}")
-        return
+        return True
 
     logger.info(f"Processing {filename}...")
 
@@ -421,23 +421,23 @@ def process_file(
             old_asset_id = find_existing_asset_id(clients["supabase"], filename)
         except Exception as e:
             logger.error(f"  DB check failed, skipping: {e}")
-            return
+            return False
         if old_asset_id and not confirm_overwrite(filename, old_asset_id, force, skip_existing):
-            return
+            return True
 
     try:
         master_img = Image.open(file_path).convert("RGB")
         master_img = normalize_to_square_canvas(master_img, target_size=400)
     except Exception as e:
         logger.error(f"Failed to open {file_path}: {e}")
-        return
+        return False
 
     images = build_step_images(master_img, no_compression=no_compression)
 
     if clients is None:
         for step_num, img_data in images.items():
             (output_dir / f"{filename}_step{step_num}.avif").write_bytes(img_data)
-        return
+        return True
 
     def upsert_row(row: Any) -> None:
         clients["supabase"].table("perfume_assets").upsert(dict(row)).execute()
@@ -452,9 +452,10 @@ def process_file(
         )
     except Exception as e:
         logger.error(f"  Publish failed, previous asset kept: {e}")
-        return
+        return False
     removed = f" (old directory removed: {result.old_prefix_removed})" if old_asset_id else ""
     logger.info(f"  Published asset {result.asset_id}{removed}")
+    return True
 
 
 def main() -> None:
@@ -497,8 +498,10 @@ def main() -> None:
             "r2_io": make_r2_io(make_s3_client(), bucket_name()),
         }
 
-    for f in files:
-        process_file(
+    failed = [
+        f.name
+        for f in files
+        if not process_file(
             f,
             output_dir,
             clients,
@@ -506,6 +509,10 @@ def main() -> None:
             force=args.force,
             skip_existing=args.skip_existing,
         )
+    ]
+    if failed:
+        logger.error(f"{len(failed)} of {len(files)} files failed: {', '.join(failed)}")
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

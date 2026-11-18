@@ -8,7 +8,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 WEBAPP_DIR = SCRIPTS_DIR.parent
 
 
-# Same normalization as etl_v5.py
+# Same normalization as etl.py
 def normalize_text(text):
     if pd.isna(text) or text is None:
         return ""
