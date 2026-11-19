@@ -187,3 +187,30 @@ export function buildSessionClues(
     revealLevel: session.attempts_count + 1,
   });
 }
+
+/** A concentration as PostgREST returns an embedded row: one object, an array or nothing. */
+type ConcentrationData = { name: string } | { name: string }[] | null;
+
+/**
+ * Returns the concentration name from the given data.
+ */
+export function getArrayName(value: ConcentrationData): string | undefined {
+  if (!value) return undefined;
+  if (Array.isArray(value)) return value[0]?.name;
+  return value.name;
+}
+
+/**
+ * Maps perfume database details to game state format.
+ */
+export function mapPerfumeDetails(perfume: {
+  concentrations: ConcentrationData;
+  gender?: string | null;
+  release_year: number | null;
+}): { concentration: string; gender: string; year: number } {
+  return {
+    concentration: getArrayName(perfume.concentrations) ?? UNKNOWN_VALUE,
+    gender: perfume.gender ?? UNKNOWN_VALUE, // Don't default to "Unisex" - Unknown is safer
+    year: perfume.release_year ?? 0,
+  };
+}

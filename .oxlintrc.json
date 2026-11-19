@@ -1937,7 +1937,7 @@
       "rules": {
         "max-lines": [
           "error",
-          { "max": 1078, "skipBlankLines": true, "skipComments": true }
+          { "max": 1069, "skipBlankLines": true, "skipComments": true }
         ]
       }
     },

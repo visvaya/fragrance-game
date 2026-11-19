@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildGuessHistory,
   buildSessionClues,
+  getArrayName,
+  mapPerfumeDetails,
   guessedPerfumeIds,
   skipHistoryItem,
   toClueAnswer,
@@ -181,6 +183,34 @@ describe("buildSessionClues", () => {
       },
       perfumer: "Jacques Polge",
       year: "2001",
+    });
+  });
+});
+
+describe("getArrayName", () => {
+  it("reads the name of one embedded row, the first of an array, or nothing", () => {
+    expect(getArrayName({ name: "EDP" })).toBe("EDP");
+    expect(getArrayName([{ name: "EDT" }, { name: "EDP" }])).toBe("EDT");
+    expect(getArrayName([])).toBeUndefined();
+    expect(getArrayName(null)).toBeUndefined();
+  });
+});
+
+describe("mapPerfumeDetails", () => {
+  it("maps the row with Unknown and 0 for missing values", () => {
+    expect(
+      mapPerfumeDetails({
+        concentrations: { name: "EDP" },
+        gender: "Male",
+        release_year: 2015,
+      }),
+    ).toEqual({ concentration: "EDP", gender: "Male", year: 2015 });
+    expect(
+      mapPerfumeDetails({ concentrations: null, release_year: null }),
+    ).toEqual({
+      concentration: "Unknown",
+      gender: "Unknown",
+      year: 0,
     });
   });
 });
