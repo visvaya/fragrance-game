@@ -24,6 +24,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # Full history, so the text check below can diff against the base branch.
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
@@ -43,6 +45,11 @@ jobs:
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: echo "$PR_TITLE" | pnpm exec commitlint
+      - name: No new em dashes or emoji
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: pnpm exec tsx scripts/check-text.ts since "origin/$BASE_REF"
       - run: pnpm lint:strict
       - run: pnpm format:check
       # Unused files, exports and dependencies (knip.json).

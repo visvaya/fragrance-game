@@ -1,1 +1,2 @@
+pnpm exec tsx scripts/check-text.ts staged
 pnpm lint-staged
