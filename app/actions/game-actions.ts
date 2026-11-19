@@ -27,7 +27,7 @@ import {
 } from "@/lib/game/challenge-availability";
 import type { RevealedClues } from "@/lib/game/clue-reveal";
 import { calculateFeedback } from "@/lib/game/guess-feedback";
-import { rankingForResult } from "@/lib/game/ranking";
+import { gameResultValues } from "@/lib/game/game-result";
 import {
   calculateBaseScore,
   calculateFinalScore,
@@ -829,26 +829,21 @@ export async function submitGuess(
     const baseScore = isCorrect ? calculateBaseScore(nextAttempts) : 0;
     const score = isCorrect ? calculateFinalScore(baseScore, xScore) : 0;
 
-    const now = new Date();
-    const ranking = rankingForResult({
-      graceDeadline: challenge.grace_deadline_at_utc,
-      metadata: session.metadata,
-      now,
-    });
-
-    await recordGameResult(user.id, {
-      ...ranking,
-      attempts: nextAttempts,
-      challenge_id: session.challenge_id,
-      score,
-      score_raw: baseScore,
-      scoring_version: 1,
-      session_id: sessionId,
-      status: isCorrect ? "won" : "lost",
-      time_seconds: Math.floor(
-        (now.getTime() - new Date(session.start_time).getTime()) / 1000,
-      ),
-    });
+    await recordGameResult(
+      user.id,
+      gameResultValues({
+        attempts: nextAttempts,
+        challengeId: session.challenge_id,
+        graceDeadline: challenge.grace_deadline_at_utc,
+        metadata: session.metadata,
+        now: new Date(),
+        score,
+        scoreRaw: baseScore,
+        sessionId,
+        startTime: session.start_time,
+        status: isCorrect ? "won" : "lost",
+      }),
+    );
     await trackEvent(
       "game_completed",
       {
@@ -934,25 +929,21 @@ async function recordSkipLoss(
   if (!challenge)
     return { answerConcentration: undefined, answerName: undefined };
 
-  const now = new Date();
-  const ranking = rankingForResult({
-    graceDeadline: challenge.grace_deadline_at_utc,
-    metadata: session.metadata,
-    now,
-  });
-  await recordGameResult(playerId, {
-    ...ranking,
-    attempts: attemptCount,
-    challenge_id: session.challenge_id,
-    score: 0,
-    score_raw: 0,
-    scoring_version: 1,
-    session_id: sessionId,
-    status: "lost",
-    time_seconds: Math.floor(
-      (now.getTime() - new Date(session.start_time).getTime()) / 1000,
-    ),
-  });
+  await recordGameResult(
+    playerId,
+    gameResultValues({
+      attempts: attemptCount,
+      challengeId: session.challenge_id,
+      graceDeadline: challenge.grace_deadline_at_utc,
+      metadata: session.metadata,
+      now: new Date(),
+      score: 0,
+      scoreRaw: 0,
+      sessionId,
+      startTime: session.start_time,
+      status: "lost",
+    }),
+  );
 
   const { data: answerPerfume } = (await adminSupabase
     .from("perfumes")
