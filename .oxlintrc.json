@@ -957,7 +957,7 @@
     // Playwright e2e: fixtures destructure {}, tests read process.env directly (no @/lib/env) and
     // log to the console.
     {
-      "files": ["e2e/**/*.{ts,tsx}", "tests/e2e/**/*.{ts,tsx}"],
+      "files": ["e2e/**/*.{ts,tsx}"],
       "rules": {
         "no-empty-pattern": "off",
         "no-console": "off",
@@ -1021,7 +1021,7 @@
     },
     // Playwright e2e: locator expressions and loose conditions are the Playwright style.
     {
-      "files": ["e2e/**/*.{ts,tsx}", "tests/e2e/**/*.{ts,tsx}"],
+      "files": ["e2e/**/*.{ts,tsx}"],
       "rules": {
         "unicorn/no-await-expression-member": "off",
         "typescript/strict-boolean-expressions": "off"
@@ -1715,7 +1715,7 @@
     // React Testing Library practices in unit tests.
     {
       "files": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
-      "excludeFiles": ["e2e/**", "tests/e2e/**"],
+      "excludeFiles": ["e2e/**"],
       "jsPlugins": ["eslint-plugin-testing-library"],
       "rules": {
         // Test steps run in order on purpose; mocks are named _like _this; helpers stay next to
@@ -1764,7 +1764,7 @@
     // positives with test.extend. Setup and teardown write to paths derived from the working
     // directory.
     {
-      "files": ["e2e/**/*.{ts,tsx}", "tests/e2e/**/*.{ts,tsx}"],
+      "files": ["e2e/**/*.{ts,tsx}"],
       "jsPlugins": ["eslint-plugin-playwright"],
       "rules": {
         // Browser steps run in order on purpose.
