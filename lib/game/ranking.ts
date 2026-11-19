@@ -9,7 +9,8 @@ const startedAsGuest = (metadata: unknown): boolean =>
   typeof metadata === "object" &&
   metadata !== null &&
   !Array.isArray(metadata) &&
-  (metadata as Record<string, unknown>)["started_as_guest"] === true;
+  "started_as_guest" in metadata &&
+  metadata.started_as_guest === true;
 
 /**
  * Decides whether a finished game counts for the ranking. A game moved from a guest

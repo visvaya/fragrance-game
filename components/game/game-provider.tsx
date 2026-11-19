@@ -129,8 +129,10 @@ async function verifyAuthSession(
   for (const attempt of Array.from({ length: maxAttempts }, (_, i) => i)) {
     const {
       data: { session },
+      // eslint-disable-next-line no-await-in-loop -- retries one after another with backoff
     } = await supabase.auth.getSession();
     if (session) return { user: session.user, verified: true };
+    // eslint-disable-next-line no-await-in-loop -- the backoff delay between the retries
     await new Promise((resolve) =>
       setTimeout(resolve, 50 * Math.pow(2, attempt)),
     );

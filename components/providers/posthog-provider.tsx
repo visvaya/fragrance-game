@@ -6,7 +6,7 @@ import { env } from "@/lib/env";
 import { useMountEffect } from "@/lib/hooks/use-mount-effect";
 
 // Module-level ref — set when PostHog initializes, used by captureAnalyticsEvent
-let _posthogInstance: {
+let posthogInstance: {
   capture: (event: string, props?: Record<string, unknown>) => void;
 } | null = null;
 
@@ -18,7 +18,7 @@ export function captureAnalyticsEvent(
   event: string,
   props?: Record<string, unknown>,
 ): void {
-  _posthogInstance?.capture(event, props);
+  posthogInstance?.capture(event, props);
 }
 
 /**
@@ -55,7 +55,7 @@ async function initPostHog() {
     });
 
     // eslint-disable-next-line fp/no-mutation -- module-level singleton, set once after PostHog initializes
-    _posthogInstance = posthog;
+    posthogInstance = posthog;
   } catch (error) {
     console.error("Failed to load PostHog:", error);
   }
