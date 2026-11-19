@@ -17,6 +17,18 @@
 const ENDPOINT = "https://api.supabase.com/v1/projects";
 const BLOCKING_LEVEL = "ERROR";
 
+/**
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+const isRecord = (value) => typeof value === "object" && value !== null;
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+const asString = (value) => (typeof value === "string" ? value : "");
+
 const accessToken = process.env.SUPABASE_ACCESS_TOKEN;
 const projectRef = process.env.SUPABASE_PROJECT_ID;
 
@@ -24,6 +36,7 @@ const projectRef = process.env.SUPABASE_PROJECT_ID;
  * Prints a message and terminates with the given exit code.
  * @param {number} code
  * @param {string} message
+ * @returns {never}
  */
 function fail(code, message) {
   console.error(`\n[advisors] ${message}\n`);
@@ -39,25 +52,49 @@ if (!accessToken || !projectRef) {
 }
 
 /**
- * Fetches security lints for the linked project.
- * @returns {Promise<Array<Record<string, unknown>>>}
+ * @param {Response} response
+ * @returns {Promise<unknown>}
  */
-async function fetchSecurityLints() {
-  const response = await fetch(`${ENDPOINT}/${projectRef}/advisors/security`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+const readJson = (response) => response.json();
+
+/**
+ * Narrows one API entry to the fields the report prints.
+ * @param {unknown} raw
+ * @returns {{ level: string, name: string, prose: string[], title: string }}
+ */
+function toLint(raw) {
+  const lint = isRecord(raw) ? raw : {};
+  const metadata = isRecord(lint.metadata) ? lint.metadata : {};
+  return {
+    level: asString(lint.level),
+    name: asString(metadata.name),
+    prose: [lint.detail, lint.description, lint.remediation].map((field) => asString(field)).filter((field) => field.length > 0),
+    title: asString(lint.title),
+  };
+}
+
+/**
+ * Fetches security lints for the linked project.
+ * @param {string} ref
+ * @param {string} token
+ * @returns {Promise<Array<ReturnType<typeof toLint>>>}
+ */
+async function fetchSecurityLints(ref, token) {
+  const response = await fetch(`${ENDPOINT}/${ref}/advisors/security`, {
+    headers: { Authorization: `Bearer ${token}` },
   });
 
   if (!response.ok) {
     const body = await response.text();
     fail(
       2,
-      `Management API returned ${response.status} ${response.statusText}.\n${body.slice(0, 500)}`,
+      `Management API returned ${String(response.status)} ${response.statusText}.\n${body.slice(0, 500)}`,
     );
   }
 
-  const payload = await response.json();
+  const payload = await readJson(response);
 
-  if (!Array.isArray(payload?.lints)) {
+  if (!isRecord(payload) || !Array.isArray(payload.lints)) {
     fail(
       2,
       "Unexpected response shape – expected a `lints` array. " +
@@ -65,11 +102,11 @@ async function fetchSecurityLints() {
     );
   }
 
-  return payload.lints;
+  return payload.lints.map((entry) => toLint(entry));
 }
 
 /** Matches the backslash-escaped backticks the API embeds in its prose fields. */
-const ESCAPED_BACKTICK = /\\+\x60/g;
+const ESCAPED_BACKTICK = /\\+`/g;
 
 /**
  * Strips the API's markdown escaping so identifiers read cleanly in CI logs.
@@ -77,7 +114,7 @@ const ESCAPED_BACKTICK = /\\+\x60/g;
  * @returns {string}
  */
 function unescapeBackticks(text) {
-  return text.replace(ESCAPED_BACKTICK, String.fromCodePoint(96));
+  return text.replaceAll(ESCAPED_BACKTICK, String.fromCodePoint(96));
 }
 
 /**
@@ -86,36 +123,31 @@ function unescapeBackticks(text) {
  * The API is inconsistent about which field carries the prose: most lints put it in
  * `detail` and a doc URL in `remediation`, while the 0012 family swaps them. Both
  * fields are printed under neutral indentation rather than guessing which is which.
- * @param {Record<string, any>} lint
+ * @param {ReturnType<typeof toLint>} lint
  * @returns {string}
  */
 function formatLint(lint) {
-  const target = lint.metadata?.name ? ` (${lint.metadata.name})` : "";
-  const body = [lint.detail, lint.description, lint.remediation]
-    .filter((field) => typeof field === "string" && field.length > 0)
-    .map((field) => `    ${unescapeBackticks(field)}`)
-    .join("\n");
+  const target = lint.name ? ` (${lint.name})` : "";
+  const body = lint.prose.map((field) => `    ${unescapeBackticks(field)}`).join("\n");
 
   return `  [${lint.level}] ${lint.title}${target}\n${body}`;
 }
 
-const lints = await fetchSecurityLints();
+const lints = await fetchSecurityLints(projectRef, accessToken);
 const blocking = lints.filter((lint) => lint.level === BLOCKING_LEVEL);
 const advisory = lints.filter((lint) => lint.level !== BLOCKING_LEVEL);
 
 if (advisory.length > 0) {
-  console.warn(`\n[advisors] ${advisory.length} non-blocking finding(s):`);
-  advisory.forEach((lint) => console.warn(formatLint(lint)));
+  console.warn(`\n[advisors] ${String(advisory.length)} non-blocking finding(s):`);
+  for (const lint of advisory) console.warn(formatLint(lint));
 }
 
 if (blocking.length > 0) {
-  console.error(
-    `\n[advisors] ${blocking.length} ${BLOCKING_LEVEL}-level finding(s):`,
-  );
-  blocking.forEach((lint) => console.error(formatLint(lint)));
-  fail(1, `Security Advisor found ${blocking.length} blocking issue(s).`);
+  console.error(`\n[advisors] ${String(blocking.length)} ${BLOCKING_LEVEL}-level finding(s):`);
+  for (const lint of blocking) console.error(formatLint(lint));
+  fail(1, `Security Advisor found ${String(blocking.length)} blocking issue(s).`);
 }
 
 console.log(
-  `\n[advisors] No ${BLOCKING_LEVEL}-level security findings (${lints.length} lint(s) checked).\n`,
+  `\n[advisors] No ${BLOCKING_LEVEL}-level security findings (${String(lints.length)} lint(s) checked).\n`,
 );

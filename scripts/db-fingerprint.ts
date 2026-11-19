@@ -8,7 +8,7 @@
  * Exit codes: 0 equal, 1 different, 2 unreadable input.
  */
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { z } from "zod";
@@ -18,26 +18,24 @@ const EXPECTED_FILE = "supabase/schema-fingerprint.txt";
 const queryOutputSchema = z.array(z.object({ fingerprint: z.string() }));
 
 /** Result of reading the query output. */
-export type ParseResult = { ok: true; value: string[] } | { ok: false; error: string };
+export type ParseResult = { ok: true; value: string[] } | { error: string; ok: false };
 
 /** Result of a comparison; lines in the same set but another order give empty lists. */
-export type CompareResult = { ok: true } | { ok: false; missing: string[]; extra: string[] };
+export type CompareResult = { ok: true } | { extra: string[]; missing: string[]; ok: false };
 
 /**
  * Extracts the fingerprint lines from the Supabase CLI JSON output.
  * @param text - stdout of `supabase db query --output-format json`
  */
 export function parseQueryOutput(text: string): ParseResult {
-  let json: unknown;
   try {
-    json = JSON.parse(text);
+    const parsed = queryOutputSchema.safeParse(JSON.parse(text));
+    return parsed.success
+      ? { ok: true, value: parsed.data.map((row) => row.fingerprint) }
+      : { error: `unexpected query output: ${parsed.error.message}`, ok: false };
   } catch {
-    return { ok: false, error: "the query output is not JSON" };
+    return { error: "the query output is not JSON", ok: false };
   }
-  const parsed = queryOutputSchema.safeParse(json);
-  return parsed.success
-    ? { ok: true, value: parsed.data.map((row) => row.fingerprint) }
-    : { ok: false, error: `unexpected query output: ${parsed.error.message}` };
 }
 
 /**
@@ -53,13 +51,13 @@ export function compareFingerprint(actual: readonly string[], expectedText: stri
   const actualSet = new Set(actual);
   const expectedSet = new Set(expected);
   return {
-    ok: false,
-    missing: expected.filter((line) => !actualSet.has(line)),
     extra: actual.filter((line) => !expectedSet.has(line)),
+    missing: expected.filter((line) => !actualSet.has(line)),
+    ok: false,
   };
 }
 
-const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 
 if (isMain) {
   const parsed = parseQueryOutput(readFileSync(0, "utf8"));

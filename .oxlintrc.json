@@ -56,8 +56,10 @@
     ".eslintcache",
     "supabase/functions/**",
     "data/**",
-    "scripts/**",
-    "scripts/**/*.sql",
+    // Removed together with madge and dependency-cruiser (roadmap, Etap 0b point 18); until then
+    // these two reports stay outside lint.
+    "scripts/quality.js",
+    "scripts/audit-parse.js",
     "img/**",
     ".sentryrc",
     "*.config.*",
@@ -1693,6 +1695,12 @@
               },
               {
                 "property": "current"
+              },
+              // Setting the exit code lets a script finish writing its output; process.exit()
+              // can cut off output written to a pipe (CI logs).
+              {
+                "object": "process",
+                "property": "exitCode"
               }
             ]
           }
@@ -1965,6 +1973,16 @@
             "max": 366
           }
         ]
+      }
+    },
+    // Command-line scripts: printing to the terminal and the exit code are their output, and they
+    // read files the repository names (linted since 2026-11-19; before, scripts/** was ignored).
+    {
+      "files": ["scripts/**"],
+      "rules": {
+        "no-console": "off",
+        "unicorn/no-process-exit": "off",
+        "security/detect-non-literal-fs-filename": "off"
       }
     },
     // oxlint JS plugins: the plugin format requires a default export, and the plugin API is

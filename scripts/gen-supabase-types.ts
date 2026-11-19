@@ -1,27 +1,28 @@
-import { execFileSync } from "child_process";
-import { readFileSync, writeFileSync } from "fs";
-import { resolve } from "path";
+import { execFileSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
 
 function loadEnvLocal(): Record<string, string> {
   try {
-    const content = readFileSync(resolve(process.cwd(), ".env.local"), "utf-8");
-    const env: Record<string, string> = {};
-    for (const line of content.split("\n")) {
+    const content = readFileSync(path.resolve(process.cwd(), ".env.local"), "utf8");
+    const entries = content.split("\n").flatMap((line): [string, string][] => {
       const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#")) continue;
+      if (!trimmed || trimmed.startsWith("#")) return [];
       const eqIdx = trimmed.indexOf("=");
-      if (eqIdx === -1) continue;
+      if (eqIdx === -1) return [];
       const key = trimmed.slice(0, eqIdx).trim();
-      const val = trimmed.slice(eqIdx + 1).trim().replace(/^['"]|['"]$/g, "");
-      env[key] = val;
-    }
-    return env;
+      const val = trimmed.slice(eqIdx + 1).trim().replaceAll(/^['"]|['"]$/g, "");
+      return [[key, val]];
+    });
+    return Object.fromEntries(entries);
   } catch {
     return {};
   }
 }
 
 const env = loadEnvLocal();
+// A standalone script: lib/env validates the whole app environment, which this one variable does not need.
+// eslint-disable-next-line no-restricted-properties
 const projectId = process.env.SUPABASE_PROJECT_ID ?? env["SUPABASE_PROJECT_ID"];
 
 if (!projectId || projectId === "-") {
@@ -43,7 +44,7 @@ console.log(`Generating types for project: ${projectId}`);
 const types = execFileSync(
   process.execPath,
   [
-    resolve(process.cwd(), "node_modules/supabase/dist/supabase.js"),
+    path.resolve(process.cwd(), "node_modules/supabase/dist/supabase.js"),
     "gen",
     "types",
     "typescript",
@@ -55,6 +56,6 @@ const types = execFileSync(
   ],
   { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "inherit"] },
 );
-writeFileSync(resolve(process.cwd(), "types/supabase.ts"), types);
+writeFileSync(path.resolve(process.cwd(), "types/supabase.ts"), types);
 
 console.log("Done. types/supabase.ts updated.");
