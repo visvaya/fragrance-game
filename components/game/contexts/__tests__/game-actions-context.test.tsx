@@ -425,6 +425,36 @@ describe("makeGuess – error paths", () => {
     expect(probe.setLoading).toHaveBeenCalledWith(false);
   });
 
+  it("keeps the rate limit lock for 60 s after the last rate limit error", async () => {
+    vi.useFakeTimers();
+    try {
+      mockSubmitGuess
+        .mockRejectedValueOnce(new Error("Rate limit exceeded – slow down"))
+        .mockRejectedValueOnce(new Error("Rate limit exceeded – slow down"));
+      const { wrapper } = createAuthWrapper();
+      const { result } = renderHook(() => useGameActions(), { wrapper });
+
+      await act(async () => {
+        await result.current.makeGuess("X", "Dior", VALID_PERFUME_ID);
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(30_000);
+        await result.current.makeGuess("X", "Dior", VALID_PERFUME_ID);
+      });
+      act(() => {
+        vi.advanceTimersByTime(59_000);
+      });
+      expect(result.current.isRateLimited).toBe(true);
+
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(result.current.isRateLimited).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("shows network error toast on generic error", async () => {
     mockSubmitGuess.mockRejectedValueOnce(new Error("Network error"));
     const { probe, wrapper } = createAuthWrapper();

@@ -7,7 +7,6 @@
 
 export {
   type Attempt,
-  type DailyPerfume,
   type GameState,
   GameStateProvider,
   useGameState,
