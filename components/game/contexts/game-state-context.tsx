@@ -2,11 +2,11 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
-import type { AttemptFeedback } from "@/lib/game/challenge-answer";
+import type { AttemptFeedback } from "@/lib/game/guess-feedback";
 import type { RevealedClues } from "@/lib/game/clue-reveal";
 import type { User } from "@supabase/supabase-js";
 
-export type { AttemptFeedback } from "@/lib/game/challenge-answer";
+export type { AttemptFeedback } from "@/lib/game/guess-feedback";
 
 export type Attempt = {
   brand: string;

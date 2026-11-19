@@ -11,22 +11,26 @@ import { MAX_GUESSES } from "@/lib/constants";
 import { env } from "@/lib/env";
 import { assetUrl } from "@/lib/game/asset-url";
 import {
-  buildSessionClues,
   enrichGuessHistory,
   fetchChallengeAnswer,
-  skipHistoryItem,
-  toClueAnswer,
-  type AttemptFeedback,
-  type GuessHistoryItem,
-  type StoredGuess,
-  UNKNOWN_VALUE,
 } from "@/lib/game/challenge-answer";
 import {
   isChallengeAvailable,
   toUtcDateString,
 } from "@/lib/game/challenge-availability";
 import type { RevealedClues } from "@/lib/game/clue-reveal";
-import { calculateFeedback } from "@/lib/game/guess-feedback";
+import {
+  calculateFeedback,
+  type AttemptFeedback,
+} from "@/lib/game/guess-feedback";
+import {
+  buildSessionClues,
+  skipHistoryItem,
+  toClueAnswer,
+  type GuessHistoryItem,
+  type StoredGuess,
+  UNKNOWN_VALUE,
+} from "@/lib/game/guess-history";
 import { gameResultValues } from "@/lib/game/game-result";
 import {
   calculateBaseScore,
