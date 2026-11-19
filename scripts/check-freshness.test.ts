@@ -235,4 +235,6 @@ it('the floor of a range is its lowest lower bound, whatever the order', () => {
   assert.equal(engineFloor('26.12.1 - 26.14.0')?.join('.'), '26.12.1');
   assert.equal(engineFloor('^24.12.0 || ^26.12.1')?.join('.'), '24.12.0');
   assert.equal(engineFloor('26'), undefined);
+  // An alternative without a full version leaves the floor unknown instead of being skipped.
+  assert.equal(engineFloor('^26.13.1 || 24'), undefined);
 });

@@ -194,24 +194,26 @@ export function readPin(text: string, pattern: string): Version | undefined {
  * The lowest version a range admits ("^26.12.1", ">=26.12.1 <27", "^24.12.0 || ^26.12.1"): within one
  * || branch every comparator must hold, so its floor is the highest lower bound; across branches the lowest
  * floor wins. Upper bounds (<, <=) do not limit it, and a hyphen range ("26.12.1 - 26.14.0") starts at its
- * first end. Undefined when no full version is given.
+ * first end. Undefined when any alternative gives no full version ("^26.13.1 || 24"): skipping it would
+ * report a floor higher than the range admits.
  * @param range - The engines.node range.
  */
 export function engineFloor(range: string | undefined): Version | undefined {
-  const floors = (range ?? "").split("||").flatMap((branch) => {
-    const lowerBounds = branch
-      .replace(/ - .*$/, "")
-      .replaceAll(/([<>]=?) +/g, "$1")
-      .split(" ")
-      .filter((part) => part !== "" && !part.startsWith("<"))
-      .flatMap((part) => {
-        const version = parseVersion(part);
-        return version === undefined ? [] : [version];
-      });
-    const floor = newest(lowerBounds);
-    return floor === undefined ? [] : [floor];
-  });
-  return floors.toSorted(compareVersions)[0];
+  const floors = (range ?? "").split("||").map((branch) =>
+    newest(
+      branch
+        .replace(/ - .*$/, "")
+        .replaceAll(/([<>]=?) +/g, "$1")
+        .split(" ")
+        .filter((part) => part !== "" && !part.startsWith("<"))
+        .flatMap((part) => {
+          const version = parseVersion(part);
+          return version === undefined ? [] : [version];
+        }),
+    ),
+  );
+  const known = floors.filter((floor) => floor !== undefined);
+  return known.length === floors.length ? known.toSorted(compareVersions)[0] : undefined;
 }
 
 const NodeIndexSchema = z.array(z.object({ security: z.boolean().optional(), version: z.string() }));
