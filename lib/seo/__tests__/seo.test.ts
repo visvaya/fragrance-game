@@ -93,7 +93,7 @@ describe("robots and sitemap", () => {
       "https://eauxle.example/en",
       "https://eauxle.example/pl",
     ]);
-    expect(entries[1].alternates?.languages).toEqual({
+    expect(entries[1]?.alternates?.languages).toEqual({
       en: "https://eauxle.example/en",
       pl: "https://eauxle.example/pl",
       "x-default": "https://eauxle.example/en",

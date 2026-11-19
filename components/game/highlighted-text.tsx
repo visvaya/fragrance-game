@@ -20,8 +20,8 @@ function mergeIntervals(
   rest: Match[],
   accumulator: Match[],
 ): Match[] {
-  if (rest.length === 0) return [...accumulator, current];
   const [next, ...remaining] = rest;
+  if (next === undefined) return [...accumulator, current];
   if (next.start <= current.end) {
     return mergeIntervals(
       { end: Math.max(current.end, next.end), start: current.start },
@@ -69,17 +69,12 @@ export const HighlightedText = memo(
         });
       });
 
-      if (allMatches.length === 0) return [text];
-
-      const sortedMatches = allMatches.toSorted((a, b) =>
+      const [firstMatch, ...otherMatches] = allMatches.toSorted((a, b) =>
         a.start === b.start ? b.end - a.end : a.start - b.start,
       );
+      if (firstMatch === undefined) return [text];
 
-      const mergedMatches = mergeIntervals(
-        sortedMatches[0],
-        sortedMatches.slice(1),
-        [],
-      );
+      const mergedMatches = mergeIntervals(firstMatch, otherMatches, []);
 
       // Build result nodes: for each match, output [text-before?, <b>highlighted</b>]
       // Sentinel at end handles trailing text after last match

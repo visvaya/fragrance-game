@@ -26,6 +26,7 @@ const rows = (count: number, make: (index: number) => Partial<FragranceRow>) =>
 
 describe("relevanceScore", () => {
   const [suggestion] = toSuggestions([row({ brand_name: "Tom Ford" })], 5);
+  if (!suggestion) throw new Error("expected one suggestion");
 
   it("ranks exact, prefix, whole word, brand substring and name substring", () => {
     expect(relevanceScore(suggestion, "tom ford")).toBe(4);
@@ -67,8 +68,8 @@ describe("toSuggestions", () => {
       [row({ concentration: null, year: null })],
       5,
     );
-    expect(suggestion.display_name).toBe("Dior - Sauvage");
-    expect(suggestion.year).toBeNull();
+    expect(suggestion?.display_name).toBe("Dior - Sauvage");
+    expect(suggestion?.year).toBeNull();
   });
 });
 
@@ -76,8 +77,8 @@ describe("remaskSuggestions", () => {
   it("re-masks cached suggestions for the current attempt", () => {
     const cached = toSuggestions([row()], 1);
     const [remasked] = remaskSuggestions(cached, 5);
-    expect(remasked.year).toBe("2015");
-    expect(remasked.display_name).toBe("Dior - Sauvage EDT (2015)");
+    expect(remasked?.year).toBe("2015");
+    expect(remasked?.display_name).toBe("Dior - Sauvage EDT (2015)");
   });
 
   it("matches toSuggestions for the same attempt", () => {

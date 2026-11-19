@@ -29,7 +29,9 @@ export async function GET(request: Request): Promise<Response> {
       const userAgent = request.headers.get("user-agent") || "unknown";
       // x-forwarded-for handling (first IP is client)
       const forwardedFor = request.headers.get("x-forwarded-for");
-      const ip = forwardedFor ? forwardedFor.split(",")[0].trim() : "unknown";
+      const ip = forwardedFor
+        ? (forwardedFor.split(",")[0]?.trim() ?? "unknown")
+        : "unknown";
 
       // We use Admin Client because standard client might not have permissions to update user_sessions
       // or the RLS might be strict. It's safer to do this system-level fix here.

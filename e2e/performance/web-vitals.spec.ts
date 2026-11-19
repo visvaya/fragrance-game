@@ -40,7 +40,7 @@ test.describe("Web Vitals & Performance Audit", () => {
       // 4. Paint Timing API (FCP)
       const fcp = await page.evaluate(() => {
         const entries = performance.getEntriesByName("first-contentful-paint");
-        return entries.length > 0 ? entries[0].startTime : null;
+        return entries[0]?.startTime ?? null;
       });
 
       // 5. Largest Contentful Paint (LCP)

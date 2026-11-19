@@ -122,7 +122,7 @@ export function GameStateProvider({
     const isGameOver = gameState === "won" || gameState === "lost";
     if (isGameOver) return 0;
     const blurLevels = [10, 9.5, 8.5, 7.5, 6, 0];
-    return blurLevels[Math.min(revealLevel - 1, 5)];
+    return blurLevels[Math.min(revealLevel - 1, 5)] ?? 0;
   }, [revealLevel, gameState]);
 
   /**
@@ -131,7 +131,7 @@ export function GameStateProvider({
    */
   const potentialScore = useMemo(() => {
     const baseScores = [1000, 700, 490, 343, 240, 168];
-    return baseScores[Math.min(currentAttempt - 1, 5)];
+    return baseScores[Math.min(currentAttempt - 1, 5)] ?? 0;
   }, [currentAttempt]);
 
   // useMemo prevents a new context value object on every render —

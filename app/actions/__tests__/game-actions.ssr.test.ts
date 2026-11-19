@@ -66,7 +66,7 @@ function makeChain(value: unknown) {
   return chain;
 }
 
-const TODAY = new Date().toISOString().split("T")[0];
+const TODAY = new Date().toISOString().slice(0, 10);
 const VALID_CHALLENGE_ID = "550e8400-e29b-41d4-a716-446655440000";
 const VALID_PERFUME_ID = "f47ac10b-58cc-4372-a567-0e02b2c3d471";
 

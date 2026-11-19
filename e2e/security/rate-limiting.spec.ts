@@ -51,7 +51,7 @@ test.describe("Rate Limiting", () => {
 
       // Verify limit is set to 100
 
-      expect(Number.parseInt(headers["x-ratelimit-limit"])).toBe(100);
+      expect(Number.parseInt(headers["x-ratelimit-limit"] ?? "")).toBe(100);
     }
   });
 

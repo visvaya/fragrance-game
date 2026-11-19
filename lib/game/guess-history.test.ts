@@ -100,7 +100,7 @@ describe("buildGuessHistory", () => {
       PERFUMES,
       ANSWER,
     );
-    expect(item.feedback).toMatchObject({
+    expect(item?.feedback).toMatchObject({
       notesMatch: 1,
       perfumerMatch: "full",
       yearMatch: "correct",
@@ -120,7 +120,7 @@ describe("buildGuessHistory", () => {
       PERFUMES,
       ANSWER,
     );
-    expect(item.feedback).toEqual({
+    expect(item?.feedback).toEqual({
       ...emptyFeedback,
       genderMatch: true,
       notesMatch: 0.5,

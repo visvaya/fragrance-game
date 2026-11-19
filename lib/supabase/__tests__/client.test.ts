@@ -33,21 +33,21 @@ describe("createClient (browser Supabase client)", () => {
   it("uses proxy URL (origin/api/db) in browser environment", () => {
     createClient();
 
-    const [proxyUrl] = mockCreateBrowserClient.mock.calls[0];
+    const [proxyUrl] = mockCreateBrowserClient.mock.calls[0] ?? [];
     expect(proxyUrl).toBe(`${globalThis.location.origin}/api/db`);
   });
 
   it("passes the anon key as second argument", () => {
     createClient();
 
-    const [, anonKey] = mockCreateBrowserClient.mock.calls[0];
+    const [, anonKey] = mockCreateBrowserClient.mock.calls[0] ?? [];
     expect(anonKey).toBe("test-anon-key");
   });
 
   it("derives cookie name from project reference in Supabase URL", () => {
     createClient();
 
-    const options = mockCreateBrowserClient.mock.calls[0][2];
+    const options = mockCreateBrowserClient.mock.calls[0]?.[2];
     expect(options.cookieOptions?.name).toBe("sb-testabc123-auth-token");
   });
 });

@@ -27,7 +27,7 @@ describe("autocompleteSchema", () => {
     it("rejects 101-char query (above max = 100)", () => {
       const result = autocompleteSchema.safeParse({ query: "a".repeat(101) });
       expect(result.success).toBe(false);
-      expect(result.error?.issues[0].code).toBe("too_big");
+      expect(result.error?.issues[0]?.code).toBe("too_big");
     });
 
     it("accepts query with special characters", () => {

@@ -103,7 +103,8 @@ export function SessionsModal({
                 : "";
             return storedUA === currentUA;
           });
-          const newSessionId: string | null = match?.id ?? sorted[0].id;
+          const newSessionId: string | null =
+            match?.id ?? sorted[0]?.id ?? null;
 
           setState((previous) => ({
             ...previous,

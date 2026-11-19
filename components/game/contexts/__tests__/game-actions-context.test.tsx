@@ -290,7 +290,8 @@ describe("makeGuess — successful paths", () => {
       previous: Attempt[],
     ) => Attempt[];
     const [added] = update([]);
-    expect(added.feedback.genderMatch).toBe(true);
+    expect(added).toBeDefined();
+    expect(added?.feedback.genderMatch).toBe(true);
     expect(added).not.toHaveProperty("snapshot");
   });
 

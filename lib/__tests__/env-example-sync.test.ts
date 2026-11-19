@@ -47,7 +47,7 @@ function readRuntimeEnvironmentKeys(): readonly string[] {
     .slice(start + 1, end)
     .map((line) => /^ {4}([A-Z\d_]+):/.exec(line))
     .filter((match): match is RegExpExecArray => match !== null)
-    .map((match) => match[1]);
+    .flatMap((match) => match[1] ?? []);
 }
 
 /** Extracts the variable names assigned in .env.example, ignoring comments. */
@@ -55,7 +55,7 @@ function readExampleKeys(): readonly string[] {
   return readLines(".env.example")
     .map((line) => /^([A-Z\d_]+)=/.exec(line.trim()))
     .filter((match): match is RegExpExecArray => match !== null)
-    .map((match) => match[1]);
+    .flatMap((match) => match[1] ?? []);
 }
 
 describe("lib/env.ts and .env.example stay in sync", () => {
