@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { addedLines, commitMessageProblems, forbiddenIn } from "./check-text";
 
-const EM_DASH = String.fromCodePoint(0x2014);
-const EN_DASH = String.fromCodePoint(0x2013);
-const ROCKET = String.fromCodePoint(0x1f680);
-const TRADE_MARK = String.fromCodePoint(0x2122);
+const EM_DASH = String.fromCodePoint(0x20_14);
+const EN_DASH = String.fromCodePoint(0x20_13);
+const ROCKET = String.fromCodePoint(0x1_f6_80);
+const TRADE_MARK = String.fromCodePoint(0x21_22);
 
 describe("forbiddenIn", () => {
   it("finds em dashes and emoji", () => {

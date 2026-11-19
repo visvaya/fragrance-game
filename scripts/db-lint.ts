@@ -10,7 +10,7 @@
  * Exit codes: 0 clean, 1 findings or stale exceptions, 2 unreadable input.
  */
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { z } from "zod";
@@ -21,13 +21,14 @@ const BLOCKING_LEVELS = new Set(["ERROR", "WARN"]);
 /** One linter finding, reduced to what the report needs. */
 export type Finding = { cacheKey: string; detail: string; level: string; name: string };
 
-type ParseResult = { ok: true; value: Finding[] } | { ok: false; error: string };
+type ParseResult = { error: string; ok: false } | { ok: true; value: Finding[] };
 
 /**
  * Parses RFC 4180 CSV as psql --csv writes it.
  * @param text - CSV text
  */
 export function parseCsv(text: string): string[][] {
+  /* eslint-disable fp/no-mutation, fp/no-mutating-methods -- a character state machine; immutable copies per character would be quadratic and unreadable */
   const rows: string[][] = [];
   let row: string[] = [];
   let field = "";
@@ -59,6 +60,7 @@ export function parseCsv(text: string): string[][] {
     }
   }
   if (field !== "" || row.length > 0) rows.push([...row, field]);
+  /* eslint-enable fp/no-mutation, fp/no-mutating-methods */
   return rows;
 }
 
@@ -75,14 +77,18 @@ const findingSchema = z.object({
  */
 export function parseFindings(text: string): ParseResult {
   const [header, ...rows] = parseCsv(text);
-  if (header === undefined) return { ok: false, error: "empty linter output" };
-  const findings: Finding[] = [];
-  for (const cells of rows) {
-    const parsed = findingSchema.safeParse(Object.fromEntries(header.map((column, index) => [column, cells[index]])));
-    if (!parsed.success) return { ok: false, error: `unexpected linter row: ${parsed.error.message}` };
-    const { cache_key: cacheKey, detail, level, name } = parsed.data;
-    findings.push({ cacheKey, detail, level, name });
+  if (header === undefined) return { error: "empty linter output", ok: false };
+  const results = rows.map((cells) =>
+    findingSchema.safeParse(Object.fromEntries(header.map((column, index) => [column, cells[index]]))),
+  );
+  for (const result of results) {
+    if (!result.success) return { error: `unexpected linter row: ${result.error.message}`, ok: false };
   }
+  const findings = results.flatMap((result) =>
+    result.success
+      ? [{ cacheKey: result.data.cache_key, detail: result.data.detail, level: result.data.level, name: result.data.name }]
+      : [],
+  );
   return { ok: true, value: findings };
 }
 
@@ -103,7 +109,7 @@ export function judgeFindings(
   };
 }
 
-const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 
 if (isMain) {
   const parsed = parseFindings(readFileSync(0, "utf8"));
@@ -123,5 +129,5 @@ if (isMain) {
   if (fresh.length > 0) {
     console.error("[db-lint] fix each new finding, or add its cache_key with the reason to the exceptions file");
   }
-  if (fresh.length > 0 || stale.length > 0) process.exitCode = 1;
+  if (fresh.length > 0 || stale.length > 0) process.exit(1);
 }

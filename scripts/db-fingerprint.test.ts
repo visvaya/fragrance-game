@@ -28,13 +28,13 @@ describe("compareFingerprint", () => {
 
   it("reports lines missing from production and lines production has extra", () => {
     expect(compareFingerprint(["01 a", "03 c"], expected)).toEqual({
-      ok: false,
-      missing: ["02 b"],
       extra: ["03 c"],
+      missing: ["02 b"],
+      ok: false,
     });
   });
 
   it("reports a change of order as a difference", () => {
-    expect(compareFingerprint(["02 b", "01 a"], expected)).toEqual({ ok: false, missing: [], extra: [] });
+    expect(compareFingerprint(["02 b", "01 a"], expected)).toEqual({ extra: [], missing: [], ok: false });
   });
 });

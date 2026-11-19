@@ -6,13 +6,13 @@
 // Characters are built from code points, so this file passes its own check.
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-const EM_DASH = String.fromCodePoint(0x2014);
+const EM_DASH = String.fromCodePoint(0x20_14);
 // Every pictographic character counts, except the text symbols (c), (R) and TM.
 const EMOJI = new RegExp(
-  String.raw`\p{Emoji_Presentation}|(?![${[0xa9, 0xae, 0x2122].map((code) => String.fromCodePoint(code)).join("")}])\p{Extended_Pictographic}`,
+  String.raw`\p{Emoji_Presentation}|(?![${[0xa9, 0xae, 0x21_22].map((code) => String.fromCodePoint(code)).join("")}])\p{Extended_Pictographic}`,
   "u",
 );
 // Co-author, generated-by and session lines are rejected for everyone.
@@ -38,23 +38,21 @@ export function forbiddenIn(text: string): string[] {
  * @param diff - Output of `git diff -U0`.
  */
 export function addedLines(diff: string): AddedLine[] {
-  let file = "";
-  let line = 0;
-  return diff.split("\n").flatMap((row): AddedLine[] => {
-    if (row.startsWith("+++ ")) {
-      file = row.replace(/^\+\+\+ (b\/)?/, "");
-      return [];
-    }
-    const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(row);
-    if (hunk) {
-      line = Number(hunk[1]);
-      return [];
-    }
-    if (!row.startsWith("+") || file === "/dev/null" || SKIPPED_FILES.has(file)) return [];
-    const added = { file, line, text: row.slice(1) };
-    line += 1;
-    return [added];
-  });
+  return diff
+    .split(/^\+\+\+ /m)
+    .slice(1)
+    .flatMap((section) => {
+      const [header = "", ...body] = section.split("\n");
+      const file = header.replace(/^b\//, "");
+      if (file === "/dev/null" || SKIPPED_FILES.has(file)) return [];
+      // Splitting on the hunk header leaves [text before the first hunk, start, rows, start, rows, ...].
+      const [, ...hunks] = body.join("\n").split(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@.*$/m);
+      return Array.from({ length: Math.floor(hunks.length / 2) }, (_, index) => {
+        const start = Number(hunks[index * 2]);
+        const rows = (hunks[index * 2 + 1] ?? "").split("\n").filter((row) => row.startsWith("+"));
+        return rows.map((row, offset): AddedLine => ({ file, line: start + offset, text: row.slice(1) }));
+      }).flat();
+    });
 }
 
 /**
@@ -98,6 +96,6 @@ function main(argv: string[]): number {
   return problems.length > 0 ? 1 : 0;
 }
 
-const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 
-if (isMain) process.exitCode = main(process.argv.slice(2));
+if (isMain) process.exit(main(process.argv.slice(2)));
