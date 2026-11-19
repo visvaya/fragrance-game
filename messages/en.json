@@ -313,6 +313,7 @@
     "noSessions": "No active sessions found.",
     "unknownBrowser": "Unknown Browser",
     "unknownOS": "Unknown OS",
+    "browserOnOs": "{browser} on {os}",
     "revokeSuccess": "Session revoked successfully",
     "revokeError": "Failed to revoke session",
     "fetchError": "Failed to fetch active sessions",

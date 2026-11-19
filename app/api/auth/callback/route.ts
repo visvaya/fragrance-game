@@ -1,24 +1,13 @@
 import { NextResponse } from "next/server";
 
+import { redirectPathFrom } from "@/lib/auth/redirect-path";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-
-/**
- * Handles the OAuth callback from Supabase.
- * Exchanges the code for a session and then patches the session metadata (IP/User-Agent).
- */
-// Validate redirect URL - must start with "/" but not "//" (protocol-relative redirect)
-function isValidRedirectUrl(url: string): boolean {
-  return /^\/(?!\/)/.test(url);
-}
 
 /** Handles the Supabase OAuth callback: exchanges the code for a session and patches session metadata. */
 export async function GET(request: Request): Promise<Response> {
   const { origin, searchParams } = new URL(request.url);
   const code = searchParams.get("code");
-  // if "next" is in param, use it as the redirect URL
-  const nextParameter = searchParams.get("next") ?? "/";
-  // Security: validate redirect URL to prevent open redirect
-  const next = isValidRedirectUrl(nextParameter) ? nextParameter : "/";
+  const next = redirectPathFrom(searchParams);
 
   if (code) {
     const supabase = await createClient();

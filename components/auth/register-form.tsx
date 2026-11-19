@@ -5,27 +5,26 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Form } from "@/components/ui/form";
 import { useRouter } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
 
-import { GoogleAuthButton } from "./google-auth-button";
+import {
+  AuthCard,
+  GoogleSignIn,
+  isPasswordSafe,
+  strongPasswordSchema,
+  SubmitButton,
+  SwitchScreenLink,
+  TextField,
+  showProviderError,
+  useAuthSubmit,
+} from "./auth-form-parts";
 import { PasswordStrength } from "./password-strength";
 
 const CaptchaLoader = () => {
@@ -46,12 +45,6 @@ const Captcha = dynamic(
   },
 );
 
-async function checkPasswordSafety(password: string) {
-  const { validatePasswordSafety } =
-    await import("@/app/actions/security-actions");
-  return validatePasswordSafety(password);
-}
-
 export type RegisterFormProperties = {
   readonly className?: string;
   readonly onLoginClick?: () => void;
@@ -67,24 +60,17 @@ export function RegisterForm({
   onLoginClick,
   onSuccess,
 }: RegisterFormProperties) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isLoading, submit } = useAuthSubmit();
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
   const t = useTranslations("Auth.register");
-  const tCommon = useTranslations("Auth.common");
 
   const registerSchema = z
     .object({
       confirmPassword: z.string().min(1, { message: t("passwordLabel") }),
       email: z.email({ message: t("invalidEmail") }),
-      password: z
-        .string()
-        .min(8, { message: t("passwordMinLength") })
-        .regex(/[a-z]/, { message: t("passwordLowercase") })
-        .regex(/[A-Z]/, { message: t("passwordUppercase") })
-        .regex(/\d/, { message: t("passwordDigit") })
-        .regex(/[^a-z0-9]/i, { message: t("passwordSpecial") }),
+      password: strongPasswordSchema(t),
     })
     .refine((data) => data.password === data.confirmPassword, {
       message: t("passwordsDoNotMatch"),
@@ -108,22 +94,15 @@ export function RegisterForm({
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      // 1. Server-side password safety check
-      const safetyCheck = await checkPasswordSafety(data.password);
-
-      if (!safetyCheck.isSafe) {
+    await submit(async () => {
+      if (!(await isPasswordSafe(data.password))) {
         form.setError("password", {
           message: t("passwordCommon"),
           type: "manual",
         });
-        setIsLoading(false);
         return;
       }
 
-      // 2. Proceed with registration
       const { error } = await supabase.auth.signUp({
         email: data.email,
         options: {
@@ -133,102 +112,46 @@ export function RegisterForm({
         password: data.password,
       });
 
-      if (error) {
-        toast.error(t("unexpectedError"), {
-          description: error.message,
-        });
-        setIsLoading(false);
-        return;
-      }
+      if (showProviderError(t("unexpectedError"), error)) return;
 
       toast.success(t("success"), {
         description: t("successDescription"),
       });
-
       if (onSuccess) {
         onSuccess();
       } else {
         router.push("/auth/login");
       }
-      setIsLoading(false);
-    } catch (error) {
-      toast.error(t("unexpectedError"));
-      console.error(error);
-      setIsLoading(false);
-    }
+    }, t("unexpectedError"));
   }
 
   return (
-    <div
-      className={cn(
-        "w-full max-w-md space-y-6 rounded-lg border bg-card p-6 shadow-sm",
-        className,
-      )}
+    <AuthCard
+      className={className}
+      description={t("description")}
+      title={t("title")}
     >
-      <div className="space-y-2 text-center">
-        <h1 className="font-[family-name:var(--font-playfair)] text-2xl font-bold">
-          {t("title")}
-        </h1>
-        <p className="text-sm text-muted-foreground">{t("description")}</p>
-      </div>
-
-      <div className="grid gap-6">
-        <GoogleAuthButton />
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">
-              {tCommon("or")}
-            </span>
-          </div>
-        </div>
-      </div>
+      <GoogleSignIn />
 
       <Form {...form}>
         <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-          <FormField
+          <TextField
             control={form.control}
+            label={t("emailLabel")}
             name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("emailLabel")}</FormLabel>
-                <FormControl>
-                  <Input placeholder={t("emailPlaceholder")} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            placeholder={t("emailPlaceholder")}
           />
-
-          <FormField
+          <TextField
             control={form.control}
+            label={t("passwordLabel")}
             name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("passwordLabel")}</FormLabel>
-                <FormControl>
-                  <Input type="password" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            type="password"
           />
-
-          <FormField
+          <TextField
             control={form.control}
+            label={t("confirmPasswordLabel")}
             name="confirmPassword"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("confirmPasswordLabel")}</FormLabel>
-                <FormControl>
-                  <Input type="password" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            type="password"
           />
 
           <PasswordStrength password={form.watch("password")} />
@@ -239,25 +162,15 @@ export function RegisterForm({
             onVerify={(token) => setCaptchaToken(token)}
           />
 
-          <Button className="w-full" disabled={isLoading} type="submit">
-            {isLoading ? (
-              <Loader2 className="mr-2 size-4 animate-spin" />
-            ) : null}
-            {t("submit")}
-          </Button>
+          <SubmitButton isLoading={isLoading}>{t("submit")}</SubmitButton>
         </form>
       </Form>
 
-      <div className="text-center text-sm">
-        {t("hasAccount")}{" "}
-        <button
-          className="underline hover:text-primary"
-          onClick={onLoginClick ?? (() => router.push("/auth/login"))}
-          type="button"
-        >
-          {t("signInLink")}
-        </button>
-      </div>
-    </div>
+      <SwitchScreenLink
+        label={t("signInLink")}
+        onClick={onLoginClick ?? (() => router.push("/auth/login"))}
+        prompt={t("hasAccount")}
+      />
+    </AuthCard>
   );
 }

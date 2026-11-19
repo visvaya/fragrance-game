@@ -1,12 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { routing } from "@/i18n/routing";
+import { redirectPathFrom } from "@/lib/auth/redirect-path";
 import { createClient } from "@/lib/supabase/server";
-
-// Validate redirect URL - must start with "/" but not "//" (protocol-relative redirect)
-function isValidRedirectUrl(url: string): boolean {
-  return /^\/(?!\/)/.test(url);
-}
 
 /** Handles the Supabase OAuth callback, exchanges the code for a session, and redirects. */
 export async function GET(
@@ -16,10 +12,7 @@ export async function GET(
   const params = await props.params;
   const { origin, searchParams } = new URL(request.url);
   const code = searchParams.get("code");
-  // if "next" is in param, use it as the redirect URL
-  const nextParameter = searchParams.get("next") ?? "/";
-  // Security: validate redirect URL to prevent open redirect
-  const next = isValidRedirectUrl(nextParameter) ? nextParameter : "/";
+  const next = redirectPathFrom(searchParams);
   // The locale is part of the path, but we might want to redirect to the correct locale
   const locale = params.locale;
 
