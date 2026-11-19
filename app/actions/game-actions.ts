@@ -30,6 +30,8 @@ import {
   type GuessHistoryItem,
   type StoredGuess,
   UNKNOWN_VALUE,
+  getArrayName,
+  mapPerfumeDetails,
 } from "@/lib/game/guess-history";
 import { gameResultValues } from "@/lib/game/game-result";
 import {
@@ -180,8 +182,14 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     if (user) {
       await checkRateLimit("getDailyChallenge", user.id);
     }
-  } catch {
-    // Continue even if rate limit check fails
+  } catch (error) {
+    // A Redis or auth outage still serves the puzzle; an exceeded limit stops the call.
+    if (
+      error instanceof Error &&
+      error.message.startsWith("Rate limit exceeded")
+    ) {
+      throw error;
+    }
   }
 
   const targetDate = toUtcDateString(new Date());
@@ -896,32 +904,6 @@ export async function submitGuess(
 /**
  * Perfume concentration data (e.g., Eau de Parfum).
  */
-type ConcentrationData = { name: string } | { name: string }[] | null;
-
-/**
- * Returns the concentration name from the given data.
- */
-function getArrayName(value: ConcentrationData): string | undefined {
-  if (!value) return undefined;
-  if (Array.isArray(value)) return value[0]?.name;
-  return value.name;
-}
-
-/**
- * Maps perfume database details to game state format.
- */
-function mapPerfumeDetails(perfume: {
-  concentrations: ConcentrationData;
-  gender?: string | null;
-  release_year: number | null;
-}) {
-  return {
-    concentration: getArrayName(perfume.concentrations) ?? UNKNOWN_VALUE,
-    gender: perfume.gender ?? UNKNOWN_VALUE, // Don't default to "Unisex" - Unknown is safer
-    year: perfume.release_year ?? 0,
-  };
-}
-
 /**
  * Records a loss in game_results and fetches the answer perfume name for reveal.
  */
