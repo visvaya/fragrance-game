@@ -1,17 +1,14 @@
 {
-  "threshold": 1,
-  "reporters": ["html", "console"],
+  "minLines": 5,
+  "minTokens": 50,
+  "reporters": ["json", "console"],
+  "output": "reports/jscpd",
   "ignore": [
-    "node_modules/**",
-    ".next/**",
-    "out/**",
-    "dist/**",
-    "reports/**",
     "**/__tests__/**",
     "**/*.test.ts",
+    "**/*.test.tsx",
     "**/*.spec.ts",
-    "types/supabase.ts"
+    "**/lib/validations/supabase.schema.ts"
   ],
-  "absolute": true,
-  "mode": "mild"
+  "absolute": true
 }
