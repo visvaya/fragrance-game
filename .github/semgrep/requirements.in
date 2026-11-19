@@ -1,0 +1,3 @@
+# Semgrep for .github/workflows/semgrep.yml. Edit this file, then regenerate requirements.txt
+# with the command in its header; Dependabot (pip) updates both.
+semgrep==1.185.0
