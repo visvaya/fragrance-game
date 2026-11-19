@@ -25,7 +25,8 @@ import {
   isChallengeAvailable,
   toUtcDateString,
 } from "@/lib/game/challenge-availability";
-import { isGenderMatch, type RevealedClues } from "@/lib/game/clue-reveal";
+import type { RevealedClues } from "@/lib/game/clue-reveal";
+import { calculateFeedback } from "@/lib/game/guess-feedback";
 import { rankingForResult } from "@/lib/game/ranking";
 import {
   calculateBaseScore,
@@ -107,101 +108,6 @@ export type SkipAttemptResult = {
 };
 
 // --- Helpers ---
-
-/**
- * Normalizuje nazwę nuty zapachowej do porównań. Usuwa znaki towarowe i zbędne określenia.
- */
-function cleanNote(note: string | null | undefined): string {
-  if (typeof note !== "string") return "";
-  const removeWords = [
-    "absolute",
-    "scenttrek",
-    "orpur",
-    "co2",
-    "concrete",
-    "otto",
-    "nectar",
-    "material",
-    "resinoid",
-    "oxide",
-  ];
-  // eslint-disable-next-line unicorn/no-array-reduce -- reduce is appropriate here for building a cleaned string immutably
-  const cleanedNote = removeWords.reduce(
-    (cleanedAccumulator, word) =>
-      cleanedAccumulator.replaceAll(
-        new RegExp(String.raw`\b${word}\b`, "gi"), // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- word comes from a hardcoded internal array, not user input
-        "",
-      ),
-    note
-      .trim()
-      .replaceAll(/[™®]/g, "")
-      .replaceAll(/\bLa Réunion\b/gi, ""),
-  );
-  const t = cleanedNote
-    .replaceAll(/\([^)]*\)/g, "")
-    .replaceAll(/\s+/g, " ")
-    .trim()
-    .replace(/[,-]$/, "")
-    .trim();
-  return t.toLowerCase();
-}
-
-/**
- * Oblicza podobieństwo Jaccarda między nutami zgadniętymi a poprawnymi.
- */
-function calculateNotesMatch(
-  guessNotes: { base: string[]; heart: string[]; top: string[] },
-  answerNotes: { base: string[]; heart: string[]; top: string[] },
-): number {
-  const guessSet = new Set([
-    ...guessNotes.top.map((n) => cleanNote(n)),
-    ...guessNotes.heart.map((n) => cleanNote(n)),
-    ...guessNotes.base.map((n) => cleanNote(n)),
-  ]);
-
-  const answerSet = new Set([
-    ...answerNotes.top.map((n) => cleanNote(n)),
-    ...answerNotes.heart.map((n) => cleanNote(n)),
-    ...answerNotes.base.map((n) => cleanNote(n)),
-  ]);
-
-  const intersection = new Set(
-    [...guessSet].filter((note) => answerSet.has(note)),
-  );
-  const union = new Set([...guessSet, ...answerSet]);
-
-  return union.size === 0 ? 0 : intersection.size / union.size;
-}
-
-/**
- * Sprawdza dopasowanie twórców (perfumiarzy).
- */
-function calculatePerfumerMatch(
-  guessPerfumers: (string | null | undefined)[] | null,
-  answerPerfumers: (string | null | undefined)[] | null,
-): "full" | "partial" | "none" {
-  if (!guessPerfumers || !answerPerfumers) return "none";
-
-  const guessSet = new Set(
-    guessPerfumers
-      .filter((p): p is string => typeof p === "string" && p.length > 0)
-      .map((p) => p.toLowerCase().trim()),
-  );
-  const answerSet = new Set(
-    answerPerfumers
-      .filter((p): p is string => typeof p === "string" && p.length > 0)
-      .map((p) => p.toLowerCase().trim()),
-  );
-
-  if (guessSet.size === 0 || answerSet.size === 0) return "none";
-
-  const matchCount = [...guessSet].filter((p) => answerSet.has(p)).length;
-
-  if (matchCount === answerSet.size && guessSet.size === answerSet.size)
-    return "full";
-  if (matchCount > 0) return "partial";
-  return "none";
-}
 
 /**
  * Turns the error of a move write into the error the action throws. No row matched
@@ -682,59 +588,6 @@ async function getImageUrlForStep(sessionId: string): Promise<string | null> {
   const key = (assets as Record<string, string>)[`image_key_step_${step}`];
 
   return assetUrl(key, env.NEXT_PUBLIC_ASSETS_HOST);
-}
-
-type PerfumeForFeedback = {
-  base_notes: string[] | null;
-  brand_id: string;
-  gender?: string | null;
-  middle_notes: string[] | null;
-  perfumers: string[] | null;
-  release_year: number | null;
-  top_notes: string[] | null;
-};
-
-function getYearMatch(yearDiff: number): "correct" | "close" | "wrong" {
-  if (yearDiff === 0) return "correct";
-  if (Math.abs(yearDiff) <= 3) return "close";
-  return "wrong";
-}
-
-function getYearDirection(yearDiff: number): "lower" | "higher" | "equal" {
-  if (yearDiff > 0) return "lower";
-  if (yearDiff < 0) return "higher";
-  return "equal";
-}
-
-function calculateFeedback(
-  guessedPerfume: PerfumeForFeedback,
-  answerPerfume: PerfumeForFeedback,
-): AttemptFeedback {
-  const yearDiff =
-    (guessedPerfume.release_year ?? 0) - (answerPerfume.release_year ?? 0);
-
-  return {
-    brandMatch: guessedPerfume.brand_id === answerPerfume.brand_id,
-    genderMatch: isGenderMatch(guessedPerfume.gender, answerPerfume.gender),
-    notesMatch: calculateNotesMatch(
-      {
-        base: guessedPerfume.base_notes ?? [],
-        heart: guessedPerfume.middle_notes ?? [],
-        top: guessedPerfume.top_notes ?? [],
-      },
-      {
-        base: answerPerfume.base_notes ?? [],
-        heart: answerPerfume.middle_notes ?? [],
-        top: answerPerfume.top_notes ?? [],
-      },
-    ),
-    perfumerMatch: calculatePerfumerMatch(
-      guessedPerfume.perfumers ?? null,
-      answerPerfume.perfumers ?? null,
-    ),
-    yearDirection: getYearDirection(yearDiff),
-    yearMatch: getYearMatch(yearDiff),
-  };
 }
 
 /**
