@@ -2,7 +2,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-import { test, expect } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 
 // Pre-authenticated session – skips signInAnonymously() + Turnstile captcha.
 // Without this the game shows "No puzzle today" because auth takes >10s in headless mode.
@@ -14,22 +14,30 @@ if (existsSync(AUTH_FILE)) {
   test.use({ storageState: AUTH_FILE });
 }
 
+/**
+ * Opens the English game page and returns the guess input, skipping the test when today's game is
+ * closed for the stored player.
+ */
+async function openGameInput(page: Page): Promise<Locator> {
+  await page.goto("/en");
+  const input = page.getByPlaceholder(
+    /Guess the fragrance|Napisz jakie to perfumy/i,
+  );
+  const closedMessage = page.getByText(/Come back tomorrow|Wróć jutro/i);
+  // Wait until the game has loaded one of its two states before deciding to skip.
+  await expect(input.or(closedMessage)).toBeVisible({ timeout: 15_000 });
+  test.skip(
+    await closedMessage.isVisible(),
+    "Game is closed for this player today.",
+  );
+  return input;
+}
+
 test.describe("XSS Injection Prevention", () => {
   test("should sanitize script tags in perfume guess input", async ({
     page,
   }) => {
-    await page.goto("/en");
-
-    const closedMessage = page.getByText(/Gra zakończona|Come back tomorrow/i);
-    if (await closedMessage.isVisible()) {
-      test.skip(true, "Game is currently closed.");
-      return;
-    }
-
-    const input = page.getByPlaceholder(
-      /Guess the fragrance|Napisz jakie to perfumy/i,
-    );
-    await expect(input).toBeVisible({ timeout: 10_000 });
+    const input = await openGameInput(page);
 
     const maliciousInput = '<script>alert("XSS")</script>';
 
@@ -50,44 +58,6 @@ test.describe("XSS Injection Prevention", () => {
     expect(dialogs).toHaveLength(0);
   });
 
-  test("should block inline scripts via CSP", async ({ page }) => {
-    const violations: string[] = [];
-
-    page.on("console", (msg) => {
-      const text = msg.text();
-      if (
-        text.includes("Content Security Policy") ||
-        text.includes("CSP") ||
-        text.includes("blocked")
-      ) {
-        violations.push(text);
-      }
-    });
-
-    await page.goto("/en");
-
-    const scriptExecuted = await page
-      .evaluate(() => {
-        try {
-          const script = document.createElement("script");
-          script.textContent = 'console.log("XSS via inline script")';
-          document.body.append(script);
-          return true;
-        } catch {
-          return false;
-        }
-      })
-      .catch(() => false);
-
-    await page.waitForTimeout(500);
-
-    expect(scriptExecuted).toBe(true);
-
-    if (violations.length > 0) {
-      console.log(`CSP Violations detected: ${violations.length}`);
-    }
-  });
-
   test("should escape HTML entities in displayed content", async ({ page }) => {
     await page.goto("/en");
 
@@ -101,18 +71,7 @@ test.describe("XSS Injection Prevention", () => {
   });
 
   test("should reject malicious input in autocomplete", async ({ page }) => {
-    await page.goto("/en");
-
-    const closedMessage = page.getByText(/Gra zakończona|Come back tomorrow/i);
-    if (await closedMessage.isVisible()) {
-      test.skip(true, "Game is currently closed.");
-      return;
-    }
-
-    const input = page.getByPlaceholder(
-      /Guess the fragrance|Napisz jakie to perfumy/i,
-    );
-    await expect(input).toBeVisible({ timeout: 10_000 });
+    const input = await openGameInput(page);
 
     const xssPayloads = [
       "<svg/onload=alert(1)>",
@@ -126,44 +85,25 @@ test.describe("XSS Injection Prevention", () => {
       await page.waitForTimeout(500);
 
       const suggestions = page.locator('button[class*="text-left text-sm"]');
-      const count = await suggestions.count();
-
-      if (count > 0) {
-        for (let i = 0; i < count; i++) {
-          const html = await suggestions.nth(i).innerHTML();
-          expect(html).not.toContain("<script");
-          expect(html).not.toContain("onerror=");
-          expect(html).not.toContain("onload=");
-
-          expect(html).not.toContain("javascript:");
-        }
+      for (const suggestion of await suggestions.all()) {
+        const html = await suggestion.innerHTML();
+        expect(html).not.toContain("<script");
+        expect(html).not.toContain("onerror=");
+        expect(html).not.toContain("onload=");
+        expect(html).not.toContain("javascript:");
       }
 
       await input.clear();
     }
   });
 
-  test("should not have dangerouslySetInnerHTML with user content", async ({
+  test("should not render script elements inside game content", async ({
     page,
   }) => {
     await page.goto("/en");
 
-    const hasUnsafeInnerHTML = await page.evaluate(() => {
-      const userContentElements = [
-        ...document.querySelectorAll('[data-testid*="game"], [class*="game-"]'),
-      ];
-
-      for (const element of userContentElements) {
-        const html = element.innerHTML;
-        if (html.includes("<script") && !html.includes("<!-- ")) {
-          return true;
-        }
-      }
-
-      return false;
-    });
-
-    expect(hasUnsafeInnerHTML).toBe(false);
+    await expect(page.locator("main")).toBeVisible();
+    await expect(page.locator("main script")).toHaveCount(0);
   });
 
   test("should prevent XSS in URL parameters", async ({ page }) => {
@@ -192,45 +132,19 @@ test.describe("XSS Injection Prevention", () => {
   });
 
   test("should sanitize perfume data from database", async ({ page }) => {
-    await page.goto("/en");
-
-    const closedMessage = page.getByText(/Gra zakończona|Come back tomorrow/i);
-    if (await closedMessage.isVisible()) {
-      test.skip(true, "Game is currently closed.");
-      return;
-    }
-
-    const input = page.getByPlaceholder(
-      /Guess the fragrance|Napisz jakie to perfumy/i,
-    );
-    await expect(input).toBeVisible({ timeout: 10_000 });
+    const input = await openGameInput(page);
 
     await input.fill("Chanel");
     await page.waitForTimeout(1000);
 
     const suggestions = page.locator('button[class*="text-left text-sm"]');
-    const count = await suggestions.count();
+    await expect(suggestions.first()).toBeVisible();
+    await suggestions.first().click();
+    await page.waitForTimeout(2000);
 
-    if (count > 0) {
-      await suggestions.first().click();
-      await page.waitForTimeout(2000);
-
-      const clueElements = page.locator('[data-testid*="clue"]');
-      const clueCount = await clueElements.count();
-
-      for (let i = 0; i < clueCount; i++) {
-        const textContent = await clueElements.nth(i).textContent();
-        const innerHTML = await clueElements.nth(i).innerHTML();
-
-        if (textContent) {
-          expect(textContent).not.toContain("<script");
-        }
-
-        if (innerHTML.includes("&lt;") || innerHTML.includes("&gt;")) {
-          expect(innerHTML).not.toContain("<script");
-        }
-      }
-    }
+    await expect(page.locator("main")).toBeVisible();
+    await expect(page.locator("main")).not.toContainText("<script");
+    await expect(page.locator("main script")).toHaveCount(0);
   });
 
   test("should have CSP headers that block unsafe content", async ({
@@ -239,11 +153,7 @@ test.describe("XSS Injection Prevention", () => {
     const response = await page.goto("/en");
     expect(response).not.toBeNull();
 
-    if (!response) {
-      throw new Error("No response received");
-    }
-
-    const csp = response.headers()["content-security-policy"];
+    const csp = response?.headers()["content-security-policy"];
 
     expect(csp).toBeTruthy();
     expect(csp).toContain("default-src 'self'");
@@ -257,18 +167,7 @@ test.describe("Input Validation Security", () => {
   test("should enforce minimum query length in autocomplete", async ({
     page,
   }) => {
-    await page.goto("/en");
-
-    const closedMessage = page.getByText(/Gra zakończona|Come back tomorrow/i);
-    if (await closedMessage.isVisible()) {
-      test.skip(true, "Game is currently closed.");
-      return;
-    }
-
-    const input = page.getByPlaceholder(
-      /Guess the fragrance|Napisz jakie to perfumy/i,
-    );
-    await expect(input).toBeVisible({ timeout: 10_000 });
+    const input = await openGameInput(page);
 
     await input.fill("x");
     await page.waitForTimeout(1000);
@@ -280,45 +179,5 @@ test.describe("Input Validation Security", () => {
     await page.waitForTimeout(1000);
 
     await expect(suggestions).toHaveCount(0);
-
-    await input.fill("Cha");
-    await page.waitForTimeout(1000);
-    // Autocomplete allowed for 3+ chars – no assertion needed, just verifies no crash
-  });
-
-  test("should enforce maximum query length in autocomplete", async ({
-    page,
-  }) => {
-    await page.goto("/en");
-
-    const closedMessage = page.getByText(/Gra zakończona|Come back tomorrow/i);
-    if (await closedMessage.isVisible()) {
-      test.skip(true, "Game is currently closed.");
-      return;
-    }
-
-    const input = page.getByPlaceholder(
-      /Guess the fragrance|Napisz jakie to perfumy/i,
-    );
-    await expect(input).toBeVisible({ timeout: 10_000 });
-
-    const longString = "A".repeat(150);
-    await input.fill(longString);
-
-    const inputValue = await input.inputValue();
-    expect(inputValue.length).toBeLessThanOrEqual(150);
-  });
-
-  test("should validate UUID format for perfume selection", async ({
-    page,
-  }) => {
-    await page.goto("/en");
-
-    const hasValidation = await page.evaluate(() => {
-      const input = document.querySelector('[role="combobox"]');
-      return input !== null;
-    });
-
-    expect(hasValidation).toBe(true);
   });
 });

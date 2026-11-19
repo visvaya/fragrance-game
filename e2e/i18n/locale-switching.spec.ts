@@ -64,22 +64,11 @@ test.describe("Locale Switching", () => {
   });
 
   test("should handle invalid locale gracefully", async ({ page }) => {
-    // Try accessing unsupported locale (German)
+    // An unsupported locale is a path under the default locale, which does not exist.
     const response = await page.goto("/de");
 
-    // Should either redirect to default (en) or show 404
-    // Check if we got redirected
-    const currentUrl = page.url();
-
-    if (currentUrl.includes("/en")) {
-      // Redirected to default locale
-
-      expect(currentUrl).toContain("/en");
-    } else {
-      // Or showed 404 - verify response status
-
-      expect(response?.status()).toBeGreaterThanOrEqual(400);
-    }
+    await expect(page).toHaveURL(/\/en\/de$/);
+    expect(response?.status()).toBe(404);
   });
 
   test("should display localized metadata", async ({ page }) => {
@@ -97,69 +86,32 @@ test.describe("Locale Switching", () => {
   });
 
   test("should localize placeholder text", async ({ page }) => {
-    // English placeholder
-    await page.goto("/en");
-
-    // Skip if game is closed
-    const closedMessage = page.getByText(/Gra zakończona|Come back tomorrow/i);
-
-    if (await closedMessage.isVisible()) {
-      test.skip(true, "Game is currently closed.");
-      return;
-    }
-
     const enInput = page.getByPlaceholder(/Guess the fragrance/i);
-    const enPlaceholder = await enInput.getAttribute("placeholder");
-    expect(enPlaceholder?.toLowerCase()).toContain("guess");
+    const closedMessage = page.getByText(/Come back tomorrow/i);
 
-    // Polish placeholder
-    await page.goto("/pl");
-
-    const plClosedMessage = page.getByText(
-      /Gra zakończona|Come back tomorrow/i,
+    await page.goto("/en");
+    // Wait until the game has loaded one of its two states before deciding to skip.
+    await expect(enInput.or(closedMessage)).toBeVisible({ timeout: 15_000 });
+    test.skip(
+      await closedMessage.isVisible(),
+      "Game is closed for this player today.",
     );
 
-    if (await plClosedMessage.isVisible()) {
-      test.skip(true, "Game is currently closed.");
-      return;
-    }
-
-    const plInput = page.getByPlaceholder(/Napisz/i);
-    const plPlaceholder = await plInput.getAttribute("placeholder");
-    expect(plPlaceholder?.toLowerCase()).toContain("napisz");
+    await page.goto("/pl");
+    await expect(
+      page.getByPlaceholder(/Napisz jakie to perfumy/i),
+    ).toBeVisible();
   });
 
   test("should localize button and UI text", async ({ page }) => {
-    // Check English UI
     await page.goto("/en");
+    // The header help button is there in every game state (playing, finished, closed).
+    await expect(
+      page.getByRole("button", { name: "How to play" }),
+    ).toBeVisible();
 
-    // Look for common UI elements with English text
-    // Note: Using flexible matchers since exact text depends on game state
-    const hasEnglishContent = await page.evaluate(() => {
-      const bodyText = document.body.textContent || "";
-      return (
-        bodyText.toLowerCase().includes("guess") ||
-        bodyText.toLowerCase().includes("attempt") ||
-        bodyText.toLowerCase().includes("score")
-      );
-    });
-
-    expect(hasEnglishContent).toBe(true);
-
-    // Check Polish UI
     await page.goto("/pl");
-
-    const hasPolishContent = await page.evaluate(() => {
-      const bodyText = document.body.textContent || "";
-      // Look for Polish-specific words
-      return (
-        bodyText.includes("Napisz") ||
-        bodyText.includes("próba") ||
-        bodyText.includes("wynik")
-      );
-    });
-
-    expect(hasPolishContent).toBe(true);
+    await expect(page.getByRole("button", { name: "Jak grać" })).toBeVisible();
   });
 });
 
@@ -168,18 +120,13 @@ test.describe("Locale URL Structure", () => {
     // Start with Polish
     await page.goto("/pl");
 
-    // Verify all internal links maintain /pl/ prefix
-    const links = await page.locator("a[href^='/']").all();
+    // Every internal page link keeps the /pl prefix.
+    const hrefs = await page
+      .locator("a[href^='/']")
+      .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
 
-    for (const link of links.slice(0, 5)) {
-      // Check first 5 links
-      const href = await link.getAttribute("href");
-
-      if (href && !href.startsWith("http")) {
-        // Internal link should maintain locale
-
-        expect(href).toMatch(/^\/pl\//);
-      }
+    for (const href of hrefs) {
+      expect(href).toMatch(/^\/pl(\/|$)/);
     }
   });
 
