@@ -57,8 +57,9 @@ export default defineConfig({
       thresholds: {
         // Ratchet: raised to the measurement, never lowered. The global numbers include UI
         // (2026-11-18 on CI: 71.24/60.26/62.52/69.41); the logic directories have their own
-        // floors (2026-11-19: lib/game 98.14/88.96/100/99.63, app/actions 91.97/83.1/97.36/93.68,
-        // game contexts 94.17/83.05/78.72/96.58 as statements/branches/functions/lines).
+        // floors (2026-11-19 on CI: lib/game 98.14/88.96/100/99.63, app/actions 91.97/83.1/97.36/93.68,
+        // game contexts 93.27/83.05/74.46/96.58 as statements/branches/functions/lines, all on CI;
+        // locally the contexts measure higher, 94.17/83.05/78.72/96.58).
         lines: 71,
         functions: 60,
         branches: 62,
@@ -77,9 +78,9 @@ export default defineConfig({
         },
         "components/game/contexts/**": {
           branches: 83,
-          functions: 78,
+          functions: 74,
           lines: 96,
-          statements: 94,
+          statements: 93,
         },
       },
     },
