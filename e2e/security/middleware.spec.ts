@@ -5,26 +5,24 @@ test.describe("Middleware Security Headers", () => {
     const response = await page.goto("/");
     expect(response).not.toBeNull();
 
-    if (!response) {
-      throw new Error("No response received");
-    }
-
-    const headers = response.headers();
+    const headers = response?.headers();
 
     // X-Frame-Options
-    expect(headers["x-frame-options"]).toBe("DENY");
+    expect(headers?.["x-frame-options"]).toBe("DENY");
 
     // X-Content-Type-Options
-    expect(headers["x-content-type-options"]).toBe("nosniff");
+    expect(headers?.["x-content-type-options"]).toBe("nosniff");
 
     // X-XSS-Protection
-    expect(headers["x-xss-protection"]).toBe("1; mode=block");
+    expect(headers?.["x-xss-protection"]).toBe("1; mode=block");
 
     // Referrer-Policy
-    expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+    expect(headers?.["referrer-policy"]).toBe(
+      "strict-origin-when-cross-origin",
+    );
 
     // Content-Security-Policy
-    const csp = headers["content-security-policy"];
+    const csp = headers?.["content-security-policy"];
     expect(csp).toBeTruthy();
     expect(csp).toContain("default-src 'self'");
     expect(csp).toContain("frame-ancestors 'none'");
@@ -32,7 +30,7 @@ test.describe("Middleware Security Headers", () => {
     expect(csp).toContain("form-action 'self'");
 
     // Permissions-Policy
-    const permissionsPolicy = headers["permissions-policy"];
+    const permissionsPolicy = headers?.["permissions-policy"];
     expect(permissionsPolicy).toBeTruthy();
     expect(permissionsPolicy).toContain("camera=()");
     expect(permissionsPolicy).toContain("microphone=()");
@@ -43,11 +41,7 @@ test.describe("Middleware Security Headers", () => {
     const response = await page.goto("/");
     expect(response).not.toBeNull();
 
-    if (!response) {
-      throw new Error("No response received");
-    }
-
-    const csp = response.headers()["content-security-policy"];
+    const csp = response?.headers()["content-security-policy"];
     expect(csp).toBeTruthy();
 
     // Verify whitelisted domains for scripts and connections
@@ -59,32 +53,22 @@ test.describe("Middleware Security Headers", () => {
   });
 
   test("API routes have no-store Cache-Control header", async ({ request }) => {
-    // Note: This test assumes there's a public API endpoint to test
-    // If no public endpoint exists, this test can be skipped or use authenticated request
-    const response = await request.get("/api/healthcheck").catch(() => null);
+    const response = await request.get("/api/healthcheck");
 
-    if (response?.ok()) {
-      const cacheControl = response.headers()["cache-control"];
-
-      expect(cacheControl).toBe("no-store, max-age=0, must-revalidate");
-    }
+    expect(response.ok()).toBe(true);
+    expect(response.headers()["cache-control"]).toBe(
+      "no-store, max-age=0, must-revalidate",
+    );
   });
 
-  test("static assets bypass security headers (optimization)", async ({
+  test("static assets bypass the proxy and its security headers", async ({
     request,
   }) => {
-    // Static assets should return NextResponse.next() without custom headers
-    const response = await request
-      .get("/_next/static/test.js")
-      .catch(() => null);
+    // The proxy matcher excludes /_next/static, so even a missing asset gets no proxy headers.
+    const response = await request.get("/_next/static/test.js");
 
-    if (response) {
-      // Static assets should NOT have our custom X-Frame-Options
-      // (Next.js may add its own headers, but our middleware should skip)
-      // This is hard to test definitively, so we just verify the request doesn't fail
-
-      expect(response.status()).toBeLessThan(500);
-    }
+    expect(response.status()).toBeLessThan(500);
+    expect(response.headers()["x-frame-options"]).toBeUndefined();
   });
 });
 
@@ -120,39 +104,14 @@ test.describe("CORS Configuration", () => {
 });
 
 test.describe("CSP Enforcement", () => {
-  test("blocks inline scripts (CSP violation)", async ({ page }) => {
-    const violations: string[] = [];
+  test("CSP forbids eval outside development", async ({ request }) => {
+    // The dev server adds 'unsafe-eval' for React Refresh; CI runs the production build.
+    test.skip(!process.env.CI, "The local dev server allows eval.");
+    const response = await request.get("/en");
 
-    // Listen for CSP violations
-    page.on("console", (msg) => {
-      if (
-        msg.type() === "error" &&
-        msg.text().includes("Content Security Policy")
-      ) {
-        violations.push(msg.text());
-      }
-    });
-
-    await page.goto("/");
-
-    // Try to inject inline script (should be blocked by CSP)
-    const scriptBlocked = await page
-      .evaluate(() => {
-        try {
-          // eslint-disable-next-line no-eval -- the test checks that the CSP blocks eval in the page
-          eval("console.log('inline script executed')");
-          return false;
-        } catch {
-          return true;
-        }
-      })
-      .catch(() => true);
-
-    // CSP includes 'unsafe-eval' for PostHog/Sentry analytics – eval() is intentionally allowed.
-    // We verify CSP is active by checking it's a boolean result (not a crash), and that the
-    // violations array was initialized (CSP violation listener is in place).
-    expect(typeof scriptBlocked).toBe("boolean");
-    expect(violations).toBeDefined(); // CSP is active
+    expect(response.headers()["content-security-policy"]).not.toContain(
+      "'unsafe-eval'",
+    );
   });
 
   test("allows whitelisted external scripts", async ({ page }) => {
