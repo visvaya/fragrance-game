@@ -137,7 +137,7 @@ export const makeClient = (
       const forbidden = (kind: string) => () => {
         throw new Error(`unexpected ${kind} on ${table}`);
       };
-      chain.select = (selected?: string) => {
+      chain["select"] = (selected?: string) => {
         if (op === "select") columns = selected ?? "";
         return chain;
       };
@@ -151,22 +151,22 @@ export const makeClient = (
           return chain;
         };
       }
-      chain.insert = write("insert");
-      chain.update = write("update");
-      chain.upsert = forbidden("upsert");
-      chain.delete = forbidden("delete");
-      chain.in = () => {
+      chain["insert"] = write("insert");
+      chain["update"] = write("update");
+      chain["upsert"] = forbidden("upsert");
+      chain["delete"] = forbidden("delete");
+      chain["in"] = () => {
         if (op === "select") op = "in";
         return chain;
       };
-      chain.eq = (column: string, value: unknown) => {
+      chain["eq"] = (column: string, value: unknown) => {
         eqs[column] = value;
         return chain;
       };
-      chain.single = settle;
-      chain.maybeSingle = settle;
+      chain["single"] = settle;
+      chain["maybeSingle"] = settle;
       // eslint-disable-next-line unicorn/no-thenable -- the chain is awaited directly like a Supabase query
-      chain.then = async (
+      chain["then"] = async (
         onFulfilled: (value: Result) => unknown,
         onRejected?: (reason: unknown) => unknown,
       ) => await settle().then(onFulfilled, onRejected);

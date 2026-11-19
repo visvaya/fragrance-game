@@ -28,23 +28,25 @@ export const env = createEnv({
    * Required by {@link https://github.com/t3-oss/env-nextjs | t3-oss/env-nextjs} for edge/server split validation.
    */
   runtimeEnv: {
-    ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
-    CRON_SECRET: process.env.CRON_SECRET,
-    NEXT_PUBLIC_ASSETS_HOST: process.env.NEXT_PUBLIC_ASSETS_HOST,
-    NEXT_PUBLIC_GAME_RESET_ENABLED: process.env.NEXT_PUBLIC_GAME_RESET_ENABLED,
-    NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
-    NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
-    NEXT_PUBLIC_POSTHOG_UI_HOST: process.env.NEXT_PUBLIC_POSTHOG_UI_HOST,
-    NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+    ALLOWED_ORIGINS: process.env["ALLOWED_ORIGINS"],
+    CRON_SECRET: process.env["CRON_SECRET"],
+    NEXT_PUBLIC_ASSETS_HOST: process.env["NEXT_PUBLIC_ASSETS_HOST"],
+    NEXT_PUBLIC_GAME_RESET_ENABLED:
+      process.env["NEXT_PUBLIC_GAME_RESET_ENABLED"],
+    NEXT_PUBLIC_POSTHOG_HOST: process.env["NEXT_PUBLIC_POSTHOG_HOST"],
+    NEXT_PUBLIC_POSTHOG_KEY: process.env["NEXT_PUBLIC_POSTHOG_KEY"],
+    NEXT_PUBLIC_POSTHOG_UI_HOST: process.env["NEXT_PUBLIC_POSTHOG_UI_HOST"],
+    NEXT_PUBLIC_SENTRY_DSN: process.env["NEXT_PUBLIC_SENTRY_DSN"],
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env["NEXT_PUBLIC_SUPABASE_ANON_KEY"],
+    NEXT_PUBLIC_SUPABASE_URL: process.env["NEXT_PUBLIC_SUPABASE_URL"],
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY:
+      process.env["NEXT_PUBLIC_TURNSTILE_SITE_KEY"],
     NODE_ENV: process.env.NODE_ENV,
-    SITE_URL: process.env.SITE_URL,
-    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
-    UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
-    VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    SITE_URL: process.env["SITE_URL"],
+    SUPABASE_SERVICE_ROLE_KEY: process.env["SUPABASE_SERVICE_ROLE_KEY"],
+    UPSTASH_REDIS_REST_TOKEN: process.env["UPSTASH_REDIS_REST_TOKEN"],
+    UPSTASH_REDIS_REST_URL: process.env["UPSTASH_REDIS_REST_URL"],
+    VERCEL_PROJECT_PRODUCTION_URL: process.env["VERCEL_PROJECT_PRODUCTION_URL"],
   },
 
   /**
@@ -67,5 +69,5 @@ export const env = createEnv({
    * Skip validation during build (e.g. CI without full env set).
    * Set SKIP_ENV_VALIDATION=1 in CI to allow building without all vars.
    */
-  skipValidation: process.env.SKIP_ENV_VALIDATION === "1",
+  skipValidation: process.env["SKIP_ENV_VALIDATION"] === "1",
 });

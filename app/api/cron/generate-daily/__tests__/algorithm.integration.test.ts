@@ -49,7 +49,9 @@ const validAssetKeys = () => {
 // Skip all tests if test database not configured
 const TEST_DB_CONFIGURED =
   // eslint-disable-next-line no-restricted-properties -- integration test environment check
-  process.env.TEST_SUPABASE_URL && process.env.TEST_SUPABASE_SERVICE_ROLE_KEY;
+  process.env["TEST_SUPABASE_URL"] &&
+  // eslint-disable-next-line no-restricted-properties -- integration test environment check
+  process.env["TEST_SUPABASE_SERVICE_ROLE_KEY"];
 
 describe.skipIf(!TEST_DB_CONFIGURED)(
   "Daily Challenge Generation Algorithm",

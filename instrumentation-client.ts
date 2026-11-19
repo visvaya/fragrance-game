@@ -17,7 +17,7 @@ Sentry.init({
   beforeSend: scrubEvent,
   debug: false,
   // eslint-disable-next-line no-restricted-properties -- Sentry initialization requires process.env
-  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  dsn: process.env["NEXT_PUBLIC_SENTRY_DSN"],
   // eslint-disable-next-line no-restricted-properties -- NODE_ENV is needed for build-time dead-code elimination; env.NODE_ENV indirection prevents tree-shaking
   enabled: process.env.NODE_ENV !== "development",
   integrations: [],

@@ -5,9 +5,9 @@ export default defineConfig({
   globalSetup: "./e2e/global-setup.ts",
   globalTeardown: "./e2e/global-teardown.ts",
   fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  ...(process.env.CI ? { workers: 1 } : {}),
+  forbidOnly: !!process.env["CI"],
+  retries: process.env["CI"] ? 2 : 0,
+  ...(process.env["CI"] ? { workers: 1 } : {}),
   reporter: "html",
   use: {
     baseURL: "http://localhost:3000",
@@ -49,9 +49,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: process.env.CI ? "pnpm run start" : "pnpm run dev",
+    command: process.env["CI"] ? "pnpm run start" : "pnpm run dev",
     url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !process.env["CI"],
     timeout: 90000, // 90s for Next.js cold start (default is 30s)
   },
 });

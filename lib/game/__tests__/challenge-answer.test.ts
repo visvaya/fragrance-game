@@ -16,16 +16,16 @@ import type { ClueAnswer } from "@/lib/game/clue-reveal";
 function makeChain(value: unknown) {
   const p = Promise.resolve(value);
   const chain: Record<string, unknown> = {};
-  chain.select = vi.fn().mockReturnValue(chain);
-  chain.eq = vi.fn().mockReturnValue(chain);
-  chain.in = vi.fn().mockReturnValue(chain);
-  chain.limit = vi.fn().mockReturnValue(chain);
-  chain.single = vi.fn().mockResolvedValue(value);
-  chain.maybeSingle = vi.fn().mockResolvedValue(value);
+  chain["select"] = vi.fn().mockReturnValue(chain);
+  chain["eq"] = vi.fn().mockReturnValue(chain);
+  chain["in"] = vi.fn().mockReturnValue(chain);
+  chain["limit"] = vi.fn().mockReturnValue(chain);
+  chain["single"] = vi.fn().mockResolvedValue(value);
+  chain["maybeSingle"] = vi.fn().mockResolvedValue(value);
   // eslint-disable-next-line unicorn/no-thenable -- necessary for Supabase chain mocking
-  chain.then = p.then.bind(p);
-  chain.catch = p.catch.bind(p);
-  chain.finally = p.finally.bind(p);
+  chain["then"] = p.then.bind(p);
+  chain["catch"] = p.catch.bind(p);
+  chain["finally"] = p.finally.bind(p);
   return chain;
 }
 

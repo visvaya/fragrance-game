@@ -22,7 +22,7 @@ function loadEnvLocal(): Record<string, string> {
 }
 
 const env = loadEnvLocal();
-const projectId = process.env.SUPABASE_PROJECT_ID ?? env["SUPABASE_PROJECT_ID"];
+const projectId = process.env["SUPABASE_PROJECT_ID"] ?? env["SUPABASE_PROJECT_ID"];
 
 if (!projectId || projectId === "-") {
   console.error(

@@ -71,7 +71,7 @@ test.describe("Performance & Memory Audit", () => {
 
     console.log(`FCP equivalent (h1 visible): ${loadTime}ms`);
     // Budget only enforced in CI (production build — dev server too slow locally)
-    if (process.env.CI) {
+    if (process.env["CI"]) {
       expect(loadTime).toBeLessThan(3000);
     }
   });

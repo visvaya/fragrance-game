@@ -21,11 +21,11 @@ vi.mock("next-intl", () => {
       base: "Base Notes",
       heart: "Heart Notes",
       hiddenNote: "Hidden note",
-      letters: (p: TranslationParameters) => `${String(p.count)} letters`,
+      letters: (p: TranslationParameters) => `${String(p["count"])} letters`,
       linearMeaning: "Linear profile - no top/heart/base division",
       linearProfile: "Linear Profile",
       linearProfileTooltip: "Linear fragrance - notes evolve uniformly",
-      noteCount: (p: TranslationParameters) => `${String(p.count)} notes`,
+      noteCount: (p: TranslationParameters) => `${String(p["count"])} notes`,
       noteCountUnknown: "? notes",
       olfactoryProfile: "Olfactory Profile",
       pyramid: "Fragrance Pyramid",
@@ -47,8 +47,8 @@ vi.mock("next-intl", () => {
   ): React.ReactNode => {
     if (key === "noteCountUnknown") {
       const text = GENERIC_PLACEHOLDER;
-      if (handlers?.q) {
-        return handlers.q(text);
+      if (handlers?.["q"]) {
+        return handlers["q"](text);
       }
       return text;
     }

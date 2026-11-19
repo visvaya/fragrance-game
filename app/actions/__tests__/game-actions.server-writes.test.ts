@@ -247,7 +247,7 @@ describe("game state writes go through the service role", () => {
     ]);
     expect(writes[1]?.eqs).toEqual({
       id: SESSION_ID,
-      last_nonce: writes[0]?.values.last_nonce,
+      last_nonce: writes[0]?.values["last_nonce"],
       player_id: USER_ID,
     });
   });
