@@ -45,6 +45,26 @@ type SessionsModalProperties = {
   readonly user: User;
 };
 
+/** Phone icon for mobile and tablet user agents, laptop icon otherwise. */
+const getDeviceIcon = (deviceInfo: Json | null) => {
+  const userAgent =
+    typeof deviceInfo === "object" &&
+    deviceInfo !== null &&
+    "user_agent" in deviceInfo
+      ? (deviceInfo["user_agent"] as string)
+      : "";
+
+  if (userAgent === "node" || userAgent.toLowerCase().includes("node-fetch")) {
+    return <Laptop className="size-4" />;
+  }
+  const ua = new UAParser(userAgent);
+  const device = ua.getDevice();
+  if (device.type === "mobile" || device.type === "tablet") {
+    return <Phone className="size-4" />;
+  }
+  return <Laptop className="size-4" />;
+};
+
 /** Modal listing all active sessions for the current user, with per-session revoke controls. */
 export function SessionsModal({
   onClose,
@@ -162,28 +182,6 @@ export function SessionsModal({
       toast.error(t("revokeError"));
       setRevokingId(null);
     }
-  };
-
-  const getDeviceIcon = (deviceInfo: Json | null) => {
-    const userAgent =
-      typeof deviceInfo === "object" &&
-      deviceInfo !== null &&
-      "user_agent" in deviceInfo
-        ? (deviceInfo["user_agent"] as string)
-        : "";
-
-    if (
-      userAgent === "node" ||
-      userAgent.toLowerCase().includes("node-fetch")
-    ) {
-      return <Laptop className="size-4" />;
-    }
-    const ua = new UAParser(userAgent);
-    const device = ua.getDevice();
-    if (device.type === "mobile" || device.type === "tablet") {
-      return <Phone className="size-4" />;
-    }
-    return <Laptop className="size-4" />;
   };
 
   const formatDeviceInfo = (deviceInfo: Json | null) => {

@@ -182,6 +182,9 @@ function revealLinearNotes(merged: readonly string[], level: number): string[] {
   );
 }
 
+const maskTier = (tier: string[], hidden: boolean): string[] =>
+  hidden ? tier.map((note) => maskWord(note)) : tier;
+
 function revealPyramidNotes(
   notes: ClueAnswer["notes"],
   level: number,
@@ -194,8 +197,6 @@ function revealPyramidNotes(
       top: PLACEHOLDER_NOTES,
     };
   }
-  const maskTier = (tier: string[], hidden: boolean): string[] =>
-    hidden ? tier.map((note) => maskWord(note)) : tier;
   return {
     base: maskTier(notes.base, true),
     heart: maskTier(notes.heart, level <= 3),
