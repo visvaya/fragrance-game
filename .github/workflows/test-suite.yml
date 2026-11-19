@@ -174,4 +174,14 @@ jobs:
       - name: Run pgTAP tests on linked project
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: pnpm exec supabase test db --linked
+        # The Supabase pooler sometimes times out its own auth query at login ("EAUTHQUERY",
+        # 2026-11-16 and 2026-11-19), which aborts one test file without running it. Retry the
+        # run once on that error only; a failing assertion is never retried.
+        run: |
+          set -o pipefail
+          for attempt in 1 2; do
+            if pnpm exec supabase test db --linked 2>&1 | tee pgtap.log; then exit 0; fi
+            if [ "$attempt" = 2 ] || ! grep -q "EAUTHQUERY" pgtap.log; then exit 1; fi
+            echo "::warning::Supabase pooler auth query timed out; retrying the pgTAP run once."
+            sleep 20
+          done
