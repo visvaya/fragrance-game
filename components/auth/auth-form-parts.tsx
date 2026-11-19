@@ -79,7 +79,7 @@ type TextFieldProperties<TValues extends FieldValues> = {
   readonly labelAction?: ReactNode;
   readonly name: FieldPath<TValues>;
   readonly placeholder?: string;
-  readonly type?: "email" | "password" | "text";
+  readonly type?: "password" | "text";
 };
 
 /** Labelled input bound to a react-hook-form field, with its validation message. */

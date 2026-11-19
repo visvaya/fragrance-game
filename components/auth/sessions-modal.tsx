@@ -49,8 +49,9 @@ type SessionsModalProperties = {
 const userAgentOf = (deviceInfo: Json | null): string =>
   typeof deviceInfo === "object" &&
   deviceInfo !== null &&
-  "user_agent" in deviceInfo
-    ? (deviceInfo["user_agent"] as string)
+  "user_agent" in deviceInfo &&
+  typeof deviceInfo["user_agent"] === "string"
+    ? deviceInfo["user_agent"]
     : "";
 
 /** Sessions created by the server carry its runtime as the user agent, not a browser. */

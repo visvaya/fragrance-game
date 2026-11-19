@@ -111,6 +111,30 @@ describe("LoginForm", () => {
     ).toBeEnabled();
   });
 
+  it("disables the submit button while the request runs", async () => {
+    const request = Promise.withResolvers<{ error: null }>();
+    mockAuth.signInWithPassword.mockReturnValue(request.promise);
+    render(<LoginForm onSuccess={vi.fn()} />);
+    await userEvent.type(
+      screen.getByLabelText("Auth.login.emailLabel"),
+      "a@b.co",
+    );
+    await userEvent.type(
+      screen.getByLabelText("Auth.login.passwordLabel"),
+      "secret",
+    );
+    const submit = screen.getByRole("button", { name: "Auth.login.submit" });
+    await userEvent.click(submit);
+
+    await waitFor(() => {
+      expect(submit).toBeDisabled();
+    });
+    request.resolve({ error: null });
+    await waitFor(() => {
+      expect(submit).toBeEnabled();
+    });
+  });
+
   it("rejects an invalid email", async () => {
     render(<LoginForm />);
     await userEvent.type(
@@ -214,6 +238,26 @@ describe("RegisterForm", () => {
       await screen.findByText("Auth.register.passwordCommon"),
     ).toBeInTheDocument();
     expect(mockAuth.signUp).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "Auth.register.submit" }),
+    ).toBeEnabled();
+  });
+
+  it("titles a provider error as unexpected", async () => {
+    mockAuth.signUp.mockResolvedValue({ error: { message: "rate limited" } });
+    render(<RegisterForm />);
+    await fill(STRONG_PASSWORD);
+    await userEvent.click(screen.getByRole("button", { name: "captcha" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Auth.register.submit" }),
+    );
+
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledWith(
+        "Auth.register.unexpectedError",
+        { description: "rate limited" },
+      );
+    });
   });
 
   it("rejects a weak password and a mismatched confirmation", async () => {
@@ -270,7 +314,9 @@ describe("ResetPasswordForm", () => {
     expect(
       await screen.findByText("Auth.register.passwordUppercase"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Auth.passwordsMismatch")).toBeInTheDocument();
+    expect(
+      screen.getByText("Auth.register.passwordsDoNotMatch"),
+    ).toBeInTheDocument();
   });
 
   it("rejects a common password reported by the server", async () => {
@@ -281,8 +327,30 @@ describe("ResetPasswordForm", () => {
       screen.getByRole("button", { name: "Auth.resetPassword.submit" }),
     );
 
-    expect(await screen.findByText("Auth.passwordCommon")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Auth.register.passwordCommon"),
+    ).toBeInTheDocument();
     expect(mockAuth.updateUser).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "Auth.resetPassword.submit" }),
+    ).toBeEnabled();
+  });
+
+  it("shows the unexpected error title when the request throws", async () => {
+    mockAuth.updateUser.mockRejectedValue(new Error("network down"));
+    vi.spyOn(console, "error").mockImplementation(vi.fn());
+    render(<ResetPasswordForm />);
+    await fill(STRONG_PASSWORD);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Auth.resetPassword.submit" }),
+    );
+
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledWith("Auth.resetPassword.error");
+    });
+    expect(
+      screen.getByRole("button", { name: "Auth.resetPassword.submit" }),
+    ).toBeEnabled();
   });
 });
 

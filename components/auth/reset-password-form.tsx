@@ -29,7 +29,6 @@ export function ResetPasswordForm() {
   const router = useRouter();
   const supabase = createClient();
   const t = useTranslations("Auth.resetPassword");
-  const tAuth = useTranslations("Auth");
   const tRegister = useTranslations("Auth.register");
 
   const resetPasswordSchema = z
@@ -40,7 +39,7 @@ export function ResetPasswordForm() {
       password: strongPasswordSchema(tRegister),
     })
     .refine((data) => data.password === data.confirmPassword, {
-      message: tAuth("passwordsMismatch"),
+      message: tRegister("passwordsDoNotMatch"),
       path: ["confirmPassword"],
     });
 
@@ -58,7 +57,7 @@ export function ResetPasswordForm() {
     submit(async () => {
       if (!(await isPasswordSafe(data.password))) {
         form.setError("password", {
-          message: tAuth("passwordCommon"),
+          message: tRegister("passwordCommon"),
           type: "manual",
         });
         return;
