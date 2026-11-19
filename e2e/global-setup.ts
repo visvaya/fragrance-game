@@ -20,7 +20,7 @@ const ENVIRONMENT_FILE = path.join(DIR, "..", ".env.local");
 export const TEST_USER_IDS_FILE = path.join(DIR, ".auth", "test-user-ids.json");
 const MAX_CHUNK_SIZE = 3180; // `@supabase/ssr` cookie chunk size
 
-type AuthSession = {
+export type AuthSession = {
   access_token: string;
   refresh_token: string;
   user?: { id: string };
@@ -55,7 +55,7 @@ export function loadSupabaseAdminConfig(): {
 }
 
 /** Create an anonymous Supabase session via the Admin API (bypasses Turnstile captcha). */
-async function createAnonymousSession(
+export async function createAnonymousSession(
   supabaseUrl: string,
   serviceRoleKey: string,
 ): Promise<AuthSession | null> {
@@ -94,12 +94,25 @@ async function createAnonymousSession(
   }
 }
 
-/** Save a Supabase session as `@supabase/ssr`-compatible browser cookies. */
-function saveStorageState(
-  filePath: string,
+/** Project reference (the subdomain) of a hosted Supabase URL, or undefined for another URL. */
+export function parseProjectReference(supabaseUrl: string): string | undefined {
+  return /https?:\/\/([^.]+)\./.exec(supabaseUrl)?.[1];
+}
+
+/** A Supabase session as `@supabase/ssr`-compatible browser cookies for localhost. */
+export function buildSessionCookies(
   session: AuthSession,
   projectReference: string,
-): void {
+): {
+  domain: string;
+  expires: number;
+  httpOnly: boolean;
+  name: string;
+  path: string;
+  sameSite: "Lax";
+  secure: boolean;
+  value: string;
+}[] {
   const cookieName = `sb-${projectReference}-auth-token`;
   const sessionJson = JSON.stringify(session);
   const chunks: string[] = [];
@@ -116,15 +129,22 @@ function saveStorageState(
     secure: false,
   };
 
-  const cookies =
-    chunks.length === 1
-      ? [{ ...cookieBase, name: cookieName, value: chunks[0] }]
-      : chunks.map((chunk, index) => ({
-          ...cookieBase,
-          name: `${cookieName}.${index}`,
-          value: chunk,
-        }));
+  return chunks.length === 1
+    ? [{ ...cookieBase, name: cookieName, value: chunks[0] ?? "" }]
+    : chunks.map((chunk, index) => ({
+        ...cookieBase,
+        name: `${cookieName}.${index}`,
+        value: chunk,
+      }));
+}
 
+/** Save a Supabase session as a Playwright storage state file. */
+function saveStorageState(
+  filePath: string,
+  session: AuthSession,
+  projectReference: string,
+): void {
+  const cookies = buildSessionCookies(session, projectReference);
   mkdirSync(path.dirname(filePath), { recursive: true });
   writeFileSync(filePath, JSON.stringify({ cookies, origins: [] }, null, 2));
 }
@@ -154,7 +174,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
   }
   const { serviceRoleKey, supabaseUrl } = config;
 
-  const projectReference = /https?:\/\/([^.]+)\./.exec(supabaseUrl)?.[1];
+  const projectReference = parseProjectReference(supabaseUrl);
   if (!projectReference) {
     console.warn(
       "[E2E globalSetup] Cannot parse project reference from Supabase URL",

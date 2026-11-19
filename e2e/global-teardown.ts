@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
 
 import { loadSupabaseAdminConfig, TEST_USER_IDS_FILE } from "./global-setup";
+import { createE2eAdminClient, deleteTestUser } from "./support/admin";
 
 import type { FullConfig } from "@playwright/test";
 
@@ -30,7 +31,6 @@ export default async function globalTeardown(
     );
     return;
   }
-  const { serviceRoleKey, supabaseUrl } = config;
 
   let userIds: string[];
   try {
@@ -47,31 +47,14 @@ export default async function globalTeardown(
 
   console.log(`[E2E globalTeardown] Deleting ${userIds.length} test users...`);
 
+  const admin = createE2eAdminClient(config);
   const results = await Promise.allSettled(
-    userIds.map(async (userId) => {
-      // eslint-disable-next-line eauxle/restricted-syntax -- E2E Admin API call with service role key; response structure is known
-      const res = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
-        headers: {
-          apikey: serviceRoleKey,
-          Authorization: `Bearer ${serviceRoleKey}`,
-        },
-        method: "DELETE",
-      });
-      if (!res.ok && res.status !== 404) {
-        console.warn(
-          `[E2E globalTeardown] Failed to delete user ${userId}: HTTP ${res.status}`,
-        );
-      } else {
-        console.log(`[E2E globalTeardown] Deleted test user: ${userId}`);
-      }
-    }),
+    userIds.map(async (userId) => deleteTestUser(admin, userId)),
   );
 
   const failed = results.filter((r) => r.status === "rejected").length;
   if (failed > 0) {
-    console.warn(
-      `[E2E globalTeardown] ${failed} user deletion(s) threw an error`,
-    );
+    console.warn(`[E2E globalTeardown] ${failed} user deletion(s) failed`);
   }
 
   // Clean up the IDs file regardless of deletion outcome.
