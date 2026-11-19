@@ -105,10 +105,13 @@ test.describe("Locale Switching", () => {
 
   test("should localize button and UI text", async ({ page }) => {
     await page.goto("/en");
-    await expect(page.locator("body")).toContainText(/guess|attempt|score/i);
+    // The header help button is there in every game state (playing, finished, closed).
+    await expect(
+      page.getByRole("button", { name: "How to play" }),
+    ).toBeVisible();
 
     await page.goto("/pl");
-    await expect(page.locator("body")).toContainText(/Napisz|próba|wynik/);
+    await expect(page.getByRole("button", { name: "Jak grać" })).toBeVisible();
   });
 });
 

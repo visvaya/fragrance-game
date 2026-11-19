@@ -8,7 +8,9 @@ import {
 const HEALTHCHECK_PATH = "/api/healthcheck";
 // The proxy allows 100 requests per minute per IP on /api routes (sliding window).
 const RATE_LIMIT_PER_MINUTE = 100;
-const REQUEST_BUDGET = RATE_LIMIT_PER_MINUTE + 5;
+// Twice the limit: when a window boundary passes mid-loop, the sliding window weights the
+// previous window down, so the limit is reached later than after 100 requests.
+const REQUEST_BUDGET = RATE_LIMIT_PER_MINUTE * 2;
 const WINDOW_RESET_WAIT_MS = 65_000;
 
 /**

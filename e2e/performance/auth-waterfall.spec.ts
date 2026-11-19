@@ -5,7 +5,6 @@ import { test, expect, type Page } from "@playwright/test";
 // Playwright runs from the project root and loads specs as CommonJS (no import.meta).
 const AUTH_FILE = path.join(process.cwd(), "e2e", ".auth", "user.json");
 const ANON_AUTH_BUDGET_MS = 3000;
-const GAME_FETCH_BUDGET_MS = 500;
 
 /**
  * Waits for GameProvider.initGame to finish – either successfully (session_ready)
@@ -90,7 +89,9 @@ test.describe("Auth Waterfall Diagnostics", () => {
     // Pre-authenticated session from globalSetup: the session is already in the cookies.
     test.use({ storageState: AUTH_FILE });
 
-    test("no auth roundtrip, game_fetch only", async ({ page }) => {
+    test("no auth or client game fetch: the challenge comes from SSR", async ({
+      page,
+    }) => {
       await page.goto("/en");
       await waitForInitEnd(page);
 
@@ -98,10 +99,9 @@ test.describe("Auth Waterfall Diagnostics", () => {
       printBreakdown("Returning User Waterfall", measures, marks);
 
       expect(marks.map((m) => m.name)).toContain("eauxle:session_ready");
-      expect(measures.map((m) => m.name)).not.toContain("eauxle.anon_auth");
-      // SSR challenge + 1 DB roundtrip only
-      const gameFetch = measures.find((m) => m.name === "eauxle.game_fetch");
-      expect(gameFetch?.duration).toBeLessThan(GAME_FETCH_BUDGET_MS);
+      const measureNames = measures.map((m) => m.name);
+      expect(measureNames).not.toContain("eauxle.anon_auth");
+      expect(measureNames).not.toContain("eauxle.game_fetch");
     });
   });
 });
