@@ -52,7 +52,7 @@ export function Captcha({ onError, onExpire, onVerify }: CaptchaProperties) {
         onSuccess={onVerify}
         options={{
           size: "normal",
-          theme: theme as "light" | "dark" | "auto",
+          theme,
         }}
         ref={ref}
         siteKey={siteKey}
