@@ -73,6 +73,6 @@ if (isMain) {
     for (const line of result.missing) console.error(`- ${line}`);
     for (const line of result.extra) console.error(`+ ${line}`);
     if (result.missing.length === 0 && result.extra.length === 0) console.error("(same lines, different order)");
-    process.exit(1);
+    process.exitCode = 1;
   }
 }

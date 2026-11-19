@@ -98,4 +98,4 @@ function main(argv: string[]): number {
 
 const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 
-if (isMain) process.exit(main(process.argv.slice(2)));
+if (isMain) process.exitCode = main(process.argv.slice(2));

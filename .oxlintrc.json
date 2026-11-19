@@ -1695,6 +1695,12 @@
               },
               {
                 "property": "current"
+              },
+              // Setting the exit code lets a script finish writing its output; process.exit()
+              // can cut off output written to a pipe (CI logs).
+              {
+                "object": "process",
+                "property": "exitCode"
               }
             ]
           }

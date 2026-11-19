@@ -129,5 +129,5 @@ if (isMain) {
   if (fresh.length > 0) {
     console.error("[db-lint] fix each new finding, or add its cache_key with the reason to the exceptions file");
   }
-  if (fresh.length > 0 || stale.length > 0) process.exit(1);
+  if (fresh.length > 0 || stale.length > 0) process.exitCode = 1;
 }

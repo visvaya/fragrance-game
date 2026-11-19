@@ -36,4 +36,7 @@ async function main() {
 
 // The package is CommonJS (no "type": "module") and tsx rejects top-level await in CommonJS.
 // eslint-disable-next-line unicorn/prefer-top-level-await
-main().catch(console.error);
+main().catch((error: unknown) => {
+  console.error(error);
+  process.exitCode = 1;
+});
