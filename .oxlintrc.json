@@ -1068,11 +1068,113 @@
         ]
       }
     },
+    // Pure game rules: lib/game decides, the actions and lib/game/{challenge-answer,session-writes}
+    // read and write. Repeats the lib/** import bans, because an override replaces the whole entry.
+    {
+      "files": ["lib/game/**/*.ts"],
+      "excludeFiles": [
+        "lib/game/challenge-answer.ts",
+        "lib/game/session-writes.ts",
+        "lib/game/**/*.test.ts",
+        "lib/game/__tests__/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@/components",
+                  "@/components/**",
+                  "**/components/**",
+                  "@/hooks",
+                  "@/hooks/**",
+                  "**/hooks/**"
+                ],
+                "message": "lib/ is pure utilities: it must not import from the UI layer."
+              },
+              {
+                "group": [
+                  "@/lib/supabase",
+                  "@/lib/supabase/**",
+                  "@supabase/**",
+                  "next",
+                  "next/**",
+                  "@sentry/**",
+                  "@upstash/**",
+                  "posthog-node",
+                  "@/lib/analytics-server",
+                  "@/lib/redis",
+                  "@/lib/env",
+                  "@/lib/client-ip",
+                  "@/lib/cache/**",
+                  "@/lib/game/challenge-answer",
+                  "@/lib/game/session-writes"
+                ],
+                "allowTypeImports": true,
+                "message": "lib/game holds pure rules: no database, framework, network, analytics or config imports. Read in the action (or lib/game/challenge-answer, lib/game/session-writes) and pass the values in."
+              }
+            ]
+          }
+        ],
+        "no-restricted-globals": [
+          "error",
+          {
+            "name": "fetch",
+            "message": "lib/game holds pure rules: fetch in the action and pass the result in."
+          },
+          {
+            "name": "window",
+            "message": "lib/game holds pure rules: pass browser values in as parameters."
+          },
+          {
+            "name": "document",
+            "message": "lib/game holds pure rules: pass browser values in as parameters."
+          },
+          {
+            "name": "localStorage",
+            "message": "lib/game holds pure rules: read storage at the edge and pass the value in."
+          },
+          {
+            "name": "sessionStorage",
+            "message": "lib/game holds pure rules: read storage at the edge and pass the value in."
+          }
+        ],
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "lib/game holds pure rules: take the time as a parameter (now: Date) from the caller."
+          },
+          {
+            "object": "Math",
+            "property": "random",
+            "message": "lib/game holds pure rules: take randomness as a parameter from the caller."
+          },
+          {
+            "object": "crypto",
+            "property": "getRandomValues",
+            "message": "lib/game holds pure rules: take randomness as a parameter from the caller."
+          },
+          {
+            "object": "performance",
+            "property": "now",
+            "message": "lib/game holds pure rules: measure time in the caller."
+          },
+          {
+            "object": "process",
+            "property": "env",
+            "message": "lib/game holds pure rules: read configuration through lib/env in the caller and pass it in."
+          }
+        ]
+      }
+    },
     // Layer boundary for types/**. Repeats the React import bans, because an override replaces the
     // whole no-restricted-imports entry for its files.
     {
       "files": ["types/**"],
-      "excludeFiles": ["lib/hooks/use-mount-effect.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
