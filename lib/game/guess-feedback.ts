@@ -1,5 +1,15 @@
-import type { AttemptFeedback } from "@/lib/game/challenge-answer";
 import { isGenderMatch } from "@/lib/game/clue-reveal";
+
+/** Feedback of one guess compared with the answer. */
+export type AttemptFeedback = {
+  brandMatch: boolean;
+  genderMatch: boolean;
+  /** Jaccard similarity of the notes, 0-1. */
+  notesMatch: number;
+  perfumerMatch: "full" | "partial" | "none";
+  yearDirection: "higher" | "lower" | "equal";
+  yearMatch: "correct" | "close" | "wrong";
+};
 
 /**
  * Normalizes a note name for comparison: drops trademark signs, material qualifiers

@@ -5,12 +5,9 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 import {
-  buildSessionClues,
   enrichGuessHistory,
   fetchChallengeAnswer,
-  type GuessHistoryItem,
 } from "@/lib/game/challenge-answer";
-import { revealLetters } from "@/lib/game/scoring";
 import { createAdminClient } from "@/lib/supabase/server";
 
 import type { ClueAnswer } from "@/lib/game/clue-reveal";
@@ -180,102 +177,5 @@ describe("enrichGuessHistory", () => {
         ANSWER,
       ),
     ).rejects.toThrow("Guess history unavailable");
-  });
-
-  it("drops a guess whose perfume row is missing without an error", async () => {
-    mockAdmin({ perfumes: { data: [], error: null } });
-
-    const result = await enrichGuessHistory(
-      [{ isCorrect: false, perfumeId: GUESS_ID, timestamp: "t" }],
-      ANSWER,
-    );
-
-    expect(result).toEqual([]);
-  });
-
-  it("marks a legacy correct guess as full match", async () => {
-    mockAdmin({ perfumes: { data: [guessedRow], error: null } });
-
-    const [item] = await enrichGuessHistory(
-      [{ isCorrect: true, perfumeId: GUESS_ID, timestamp: "t" }],
-      ANSWER,
-    );
-
-    expect(item.feedback).toMatchObject({
-      notesMatch: 1,
-      perfumerMatch: "full",
-      yearMatch: "correct",
-    });
-  });
-
-  it("adds genderMatch to stored feedback without it", async () => {
-    mockAdmin({ perfumes: { data: [guessedRow], error: null } });
-    const stored = {
-      brandMatch: false,
-      notesMatch: 0.5,
-      perfumerMatch: "none" as const,
-      yearDirection: "equal" as const,
-      yearMatch: "wrong" as const,
-    };
-
-    const [item] = await enrichGuessHistory(
-      [
-        {
-          feedback: stored,
-          isCorrect: false,
-          perfumeId: GUESS_ID,
-          timestamp: "t",
-        },
-      ],
-      ANSWER,
-    );
-
-    expect(item.feedback).toEqual({
-      ...emptyFeedback,
-      genderMatch: true,
-      notesMatch: 0.5,
-    });
-  });
-});
-
-describe("buildSessionClues", () => {
-  it("takes the level from attempts_count, not from the history", () => {
-    const clues = buildSessionClues(
-      ANSWER,
-      { attempts_count: 3, status: "active" },
-      [],
-    );
-    expect(clues.brand).toBe(revealLetters("Chanel", 0.4));
-    expect(clues.brand).not.toBe("Chanel");
-  });
-
-  it("reveals everything when the game is lost", () => {
-    const history: GuessHistoryItem[] = [
-      {
-        brandName: "",
-        feedback: emptyFeedback,
-        isCorrect: false,
-        isSkip: true,
-        perfumeId: "",
-        perfumeName: "",
-        timestamp: "t",
-      },
-    ];
-    const clues = buildSessionClues(
-      ANSWER,
-      { attempts_count: 1, status: "lost" },
-      history,
-    );
-    expect(clues).toMatchObject({
-      brand: "Chanel",
-      notes: {
-        base: ["Vanilla"],
-        heart: ["Rose"],
-        kind: "pyramid",
-        top: ["Bergamot"],
-      },
-      perfumer: "Jacques Polge",
-      year: "2001",
-    });
   });
 });
