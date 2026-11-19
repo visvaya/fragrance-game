@@ -46,7 +46,7 @@ export const MetaClues = memo(function MetaClues() {
       key: "gender",
       value: serverClues.gender ?? GENERIC_PLACEHOLDER.repeat(5),
     },
-  ];
+  ] as const;
 
   return (
     <div className="flex h-full flex-col p-0">
@@ -172,7 +172,7 @@ function MetaBadge({
 }: Readonly<{
   clueKey: string;
   currentAttempt: number;
-  t: (key: string, values?: Record<string, string | number>) => string;
+  t: ReturnType<typeof useTranslations<"MetaClues">>;
   value: string;
 }>) {
   const { canScrollLeft, canScrollRight, ref } =

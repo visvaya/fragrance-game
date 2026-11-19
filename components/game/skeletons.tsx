@@ -1,3 +1,5 @@
+import type { useTranslations } from "next-intl";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -83,7 +85,7 @@ export function RevealImageSquareSkeleton() {
  */
 export function MetaCluesSkeleton({
   t,
-}: Readonly<{ t?: (key: string) => string }>) {
+}: Readonly<{ t?: ReturnType<typeof useTranslations<"MetaClues">> }>) {
   return (
     <div className="flex h-full flex-col p-0">
       {/* Title row – matches real MetaClues title structure */}
@@ -180,7 +182,7 @@ export function MetaCluesSkeleton({
  */
 export function PyramidCluesSkeleton({
   t,
-}: Readonly<{ t?: (key: string) => string }>) {
+}: Readonly<{ t?: ReturnType<typeof useTranslations<"PyramidClues">> }>) {
   const skeletonLevels = t
     ? [
         { count: 3, label: t("top") },
@@ -262,7 +264,7 @@ export function PyramidCluesSkeleton({
  */
 export function AttemptLogSkeleton({
   t,
-}: Readonly<{ t?: (key: string) => string }>) {
+}: Readonly<{ t?: ReturnType<typeof useTranslations<"AttemptLog">> }>) {
   return (
     <section className="panel-standard">
       {/* Title row – matches real AttemptLog title structure */}

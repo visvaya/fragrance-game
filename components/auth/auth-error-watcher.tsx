@@ -22,8 +22,8 @@ function AuthErrorWatcherInner() {
     const description = searchParameters.get("error_description");
 
     if (error) {
-      toast.error(t("title"), {
-        description: description || t("defaultMessage"),
+      toast.error(t("authError"), {
+        description: description || t("unknownError"),
       });
       return;
     }
@@ -37,9 +37,9 @@ function AuthErrorWatcherInner() {
       const hashDescription = hashParameters.get("error_description");
 
       if (hashError) {
-        toast.error(t("title"), {
+        toast.error(t("authError"), {
           description:
-            hashDescription?.replaceAll("+", " ") || t("defaultMessage"),
+            hashDescription?.replaceAll("+", " ") || t("unknownError"),
         });
 
         // Clear hash
