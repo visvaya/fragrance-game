@@ -10,7 +10,10 @@
     "import",
     "unicorn",
     "promise",
-    "jsdoc"
+    "jsdoc",
+    "oxc"
+    // react-perf left out (measured 2026-11-19: 119 findings of new functions, objects and arrays
+    // as props): React Compiler memoizes them, and manual useMemo/useCallback are banned here.
   ],
   "categories": {
     "correctness": "error",
@@ -65,6 +68,13 @@
     "report/html/js/prism.js"
   ],
   "rules": {
+    // Large barrel files (over 100 re-exported modules, the rule default) slow builds and tests;
+    // a small feature entry file such as components/game/contexts/index.ts stays allowed.
+    "oxc/no-barrel-file": "error",
+    // Never enforced before: the oxc plugin was missing from the explicit plugin list until
+    // 2026-11-19. Its fix is mutating the mapped value (Object.assign, push); immutable copies of
+    // small arrays and objects are the project style, so the measured findings (2) are not defects.
+    "oxc/no-map-spread": "off",
     // The automatic JSX runtime (tsconfig "jsx": "react-jsx") needs no React in scope.
     "react/react-in-jsx-scope": "off",
     // Side-effect imports by design: stylesheets, the server-only guard, test matchers.
@@ -947,7 +957,7 @@
     // Playwright e2e: fixtures destructure {}, tests read process.env directly (no @/lib/env) and
     // log to the console.
     {
-      "files": ["e2e/**/*.{ts,tsx}", "tests/e2e/**/*.{ts,tsx}"],
+      "files": ["e2e/**/*.{ts,tsx}"],
       "rules": {
         "no-empty-pattern": "off",
         "no-console": "off",
@@ -1011,7 +1021,7 @@
     },
     // Playwright e2e: locator expressions and loose conditions are the Playwright style.
     {
-      "files": ["e2e/**/*.{ts,tsx}", "tests/e2e/**/*.{ts,tsx}"],
+      "files": ["e2e/**/*.{ts,tsx}"],
       "rules": {
         "unicorn/no-await-expression-member": "off",
         "typescript/strict-boolean-expressions": "off"
@@ -1239,7 +1249,6 @@
     // replaces the whole no-restricted-imports entry for its files.
     {
       "files": ["app/actions/**"],
-      "excludeFiles": ["lib/hooks/use-mount-effect.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -1264,6 +1273,100 @@
                   "**/components/**"
                 ],
                 "message": "Server Actions run on the server: they must not import client-only components."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    // Layer boundary for the client layer: components and hooks run in the browser and reach the
+    // server only through Server Actions. Repeats the React import bans, because an override
+    // replaces the whole no-restricted-imports entry for its files.
+    {
+      "files": ["components/**/*.{ts,tsx}", "hooks/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "react",
+                "importNames": ["forwardRef"],
+                "message": "React 19 handles ref as a prop. Use ref directly instead of forwardRef."
+              },
+              {
+                "name": "react",
+                "importNames": ["useEffect"],
+                "message": "Direct useEffect is banned. Use useMountEffect() for mount-only effects (empty deps), or extract to a named custom hook. If neither applies, add eslint-disable with a category comment."
+              }
+            ],
+            "patterns": [
+              {
+                "group": [
+                  "@/lib/supabase/server",
+                  "@/lib/redis",
+                  "@/lib/analytics-server",
+                  "@/lib/client-ip",
+                  "@/lib/cache/**",
+                  "@/lib/game/session-writes",
+                  "@/lib/game/challenge-answer",
+                  "@/lib/auth/guest-ticket-cookie",
+                  "posthog-node",
+                  "@upstash/**"
+                ],
+                "allowTypeImports": true,
+                "message": "Client code must not import server modules. Call a Server Action from app/actions and use its result."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    // Game state and UI hooks hold no database access: the player's game state is written by the
+    // server only (ADR-0011), so they read and write it through Server Actions.
+    {
+      "files": ["components/game/contexts/**/*.{ts,tsx}", "hooks/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "react",
+                "importNames": ["forwardRef"],
+                "message": "React 19 handles ref as a prop. Use ref directly instead of forwardRef."
+              },
+              {
+                "name": "react",
+                "importNames": ["useEffect"],
+                "message": "Direct useEffect is banned. Use useMountEffect() for mount-only effects (empty deps), or extract to a named custom hook. If neither applies, add eslint-disable with a category comment."
+              }
+            ],
+            "patterns": [
+              {
+                "group": [
+                  "@/lib/supabase/server",
+                  "@/lib/redis",
+                  "@/lib/analytics-server",
+                  "@/lib/client-ip",
+                  "@/lib/cache/**",
+                  "@/lib/game/session-writes",
+                  "@/lib/game/challenge-answer",
+                  "@/lib/auth/guest-ticket-cookie",
+                  "posthog-node",
+                  "@upstash/**"
+                ],
+                "allowTypeImports": true,
+                "message": "Client code must not import server modules. Call a Server Action from app/actions and use its result."
+              },
+              {
+                "group": [
+                  "@/lib/supabase",
+                  "@/lib/supabase/**",
+                  "@supabase/**"
+                ],
+                "allowTypeImports": true,
+                "message": "Game state and UI hooks do not query the database: call a Server Action from app/actions, or pass the value in from the provider."
               }
             ]
           }
@@ -1612,7 +1715,7 @@
     // React Testing Library practices in unit tests.
     {
       "files": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
-      "excludeFiles": ["e2e/**", "tests/e2e/**"],
+      "excludeFiles": ["e2e/**"],
       "jsPlugins": ["eslint-plugin-testing-library"],
       "rules": {
         // Test steps run in order on purpose; mocks are named _like _this; helpers stay next to
@@ -1661,7 +1764,7 @@
     // positives with test.extend. Setup and teardown write to paths derived from the working
     // directory.
     {
-      "files": ["e2e/**/*.{ts,tsx}", "tests/e2e/**/*.{ts,tsx}"],
+      "files": ["e2e/**/*.{ts,tsx}"],
       "jsPlugins": ["eslint-plugin-playwright"],
       "rules": {
         // Browser steps run in order on purpose.

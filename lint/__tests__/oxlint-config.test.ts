@@ -62,6 +62,15 @@ const FIXTURES: Record<string, { expected: string[]; source: string }> = {
       "",
     ].join("\n"),
   },
+  "components/game/contexts/probe-context.ts": {
+    expected: ["eslint(no-restricted-imports)"],
+    source: [
+      'import { createClient } from "@/lib/supabase/client";',
+      "/** Probe. */",
+      "export const probe = createClient;",
+      "",
+    ].join("\n"),
+  },
   "components/probe-restricted.tsx": {
     expected: [
       "eauxle(restricted-syntax)",
@@ -82,6 +91,15 @@ const FIXTURES: Record<string, { expected: string[]; source: string }> = {
       '  db.from("t").select("*");',
       '  return <div id={String(Math.random())} className="text-[10px] p-2 p-2" aria-label="x" />;',
       "}",
+      "",
+    ].join("\n"),
+  },
+  "components/probe-server-import.tsx": {
+    expected: ["eslint(no-restricted-imports)"],
+    source: [
+      'import { redis } from "@/lib/redis";',
+      "/** Probe. */",
+      "export const probe = redis;",
       "",
     ].join("\n"),
   },
