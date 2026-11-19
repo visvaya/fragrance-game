@@ -32,7 +32,7 @@ function renderPyramidNoteWord({
   isFullHidden: boolean;
   levelName: string;
   noteIndex: number;
-  t: (key: string, values?: Record<string, string | number>) => string;
+  t: ReturnType<typeof useTranslations<"PyramidClues">>;
   wIndex: number;
   word: string;
 }>) {
@@ -295,10 +295,10 @@ export const PyramidClues = memo(function PyramidClues() {
   // TRADITIONAL PYRAMID LOGIC: tiers arrive already masked from the server.
   const notes = clues.notes;
   const levels = [
-    { dotClass: "bg-note-top", name: "Top", notes: notes.top },
-    { dotClass: "bg-primary", name: "Heart", notes: notes.heart },
-    { dotClass: "bg-foreground/60", name: "Base", notes: notes.base },
-  ];
+    { dotClass: "bg-note-top", name: "top", notes: notes.top },
+    { dotClass: "bg-primary", name: "heart", notes: notes.heart },
+    { dotClass: "bg-foreground/60", name: "base", notes: notes.base },
+  ] as const;
 
   return (
     <div className="panel-standard">
@@ -332,7 +332,7 @@ export const PyramidClues = memo(function PyramidClues() {
                 className={`size-2 shrink-0 rounded-full ${level.dotClass}`}
               />
               <span className="text-xs font-semibold tracking-widest text-muted-foreground lowercase">
-                {t(level.name.toLowerCase())}{" "}
+                {t(level.name)}{" "}
                 {revealLevel === 1 ? (
                   <GameTooltip content={t("linearProfileTooltip")}>
                     <span className="cursor-help">

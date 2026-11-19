@@ -286,9 +286,7 @@
     },
     "errorWatcher": {
       "authError": "Błąd uwierzytelniania",
-      "unknownError": "Wystąpił nieznany błąd podczas logowania.",
-      "loginFailed": "Logowanie nieudane",
-      "problemSigningIn": "Wystąpił problem podczas logowania."
+      "unknownError": "Wystąpił nieznany błąd podczas logowania."
     },
     "passwordStrength": {
       "tooCommon": "Zbyt pospolite",

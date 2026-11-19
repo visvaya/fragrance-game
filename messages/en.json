@@ -286,9 +286,7 @@
     },
     "errorWatcher": {
       "authError": "Authentication Error",
-      "unknownError": "An unknown error occurred during login.",
-      "loginFailed": "Login Failed",
-      "problemSigningIn": "There was a problem signing you in."
+      "unknownError": "An unknown error occurred during login."
     },
     "passwordStrength": {
       "tooCommon": "Too common",
