@@ -1,10 +1,17 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Response } from "@playwright/test";
 
 type ViolationWindow = Window & { cspViolations?: string[] };
+// The root layout's blocking preference scripts: layout width, theme and text size.
+const LAYOUT_INLINE_SCRIPTS = 3;
+
+/** The nonce in a response's Content-Security-Policy header, if any. */
+function cspNonceOf(response: Response | null): string | undefined {
+  const policy = response?.headers()["content-security-policy"] ?? "";
+  return /'nonce-([^']+)'/.exec(policy)?.[1];
+}
 
 test.describe("Content Security Policy @smoke", () => {
-  // The root layout's theme script adds the dark class only when it runs, so this color scheme
-  // proves that the per-request nonce reached the layout.
+  // In a dark color scheme the layout's theme script adds the dark class before first paint.
   test.use({ colorScheme: "dark" });
 
   test.beforeEach(async ({ page }) => {
@@ -23,8 +30,18 @@ test.describe("Content Security Policy @smoke", () => {
     test(`runs the page's own scripts on ${path} without violations`, async ({
       page,
     }) => {
-      await page.goto(path);
+      const nonce = cspNonceOf(await page.goto(path));
 
+      // The provider also adds the dark class after hydration, so check the layout's inline
+      // scripts carry this response's nonce: without it they are blocked and the theme flashes.
+      expect(nonce).toMatch(/^[A-Z0-9+/=]{16,}$/i);
+      const headScriptNonces = await page
+        .locator("head script:not([src])")
+        .evaluateAll((scripts) =>
+          scripts.map((script) => (script as HTMLScriptElement).nonce),
+        );
+      expect(headScriptNonces).toHaveLength(LAYOUT_INLINE_SCRIPTS);
+      expect(new Set(headScriptNonces)).toEqual(new Set([nonce]));
       await expect(page.locator("html")).toHaveClass(/\bdark\b/);
       const violations = await page.evaluate(
         () => (globalThis as unknown as ViolationWindow).cspViolations,
