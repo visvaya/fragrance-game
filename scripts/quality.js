@@ -375,8 +375,8 @@ const tools = [
   },
   {
     name: 'jscpd',
-    // Config from .jscpdrc; output to reports/jscpd/
-    command: `pnpm exec jscpd . --config .jscpdrc --output reports/jscpd --reporters json`,
+    // Config from .jscpd.json; output to reports/jscpd/
+    command: `pnpm exec jscpd app lib components hooks`,
     file: 'jscpd/jscpd.log',
   },
   {
