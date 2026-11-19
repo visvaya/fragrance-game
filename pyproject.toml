@@ -18,7 +18,9 @@ dependencies = [
 dev = [
   "mypy==2.4.1",
   "pandas-stubs==3.1.0.261029",
+  "pip-audit==2.10.1",
   "pytest==9.2.0",
+  "pytest-cov==7.1.0",
   "ruff==0.17.4",
   "types-tqdm==4.70.0.20261106",
 ]
@@ -46,6 +48,13 @@ explicit_package_bases = true
 [[tool.mypy.overrides]]
 module = ["boto3", "botocore.*"]
 ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["scripts"]
+
+[tool.coverage.report]
+# Ratchet: the measured coverage of scripts/ (2026-11-19: 58.35%), raised with tests, never lowered.
+fail_under = 58
 
 [tool.uv]
 package = false
