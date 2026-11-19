@@ -1,26 +1,23 @@
 "use client";
 
-import { useState } from "react";
-
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Form } from "@/components/ui/form";
 import { useRouter } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
+
+import {
+  AuthCard,
+  SubmitButton,
+  SwitchScreenLink,
+  TextField,
+  showProviderError,
+  useAuthSubmit,
+} from "./auth-form-parts";
 
 export type ForgotPasswordFormProperties = {
   readonly className?: string;
@@ -31,7 +28,7 @@ export type ForgotPasswordFormProperties = {
 export function ForgotPasswordForm({
   onLoginClick,
 }: ForgotPasswordFormProperties) {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isLoading, submit } = useAuthSubmit();
   const router = useRouter();
   const supabase = createClient();
   const t = useTranslations("Auth.forgotPassword");
@@ -49,77 +46,37 @@ export function ForgotPasswordForm({
     resolver: zodResolver(forgotPasswordSchema),
   });
 
-  async function onSubmit(data: ForgotPasswordFormValues) {
-    setIsLoading(true);
-
-    try {
+  const onSubmit = async (data: ForgotPasswordFormValues) =>
+    submit(async () => {
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
         redirectTo: `${globalThis.location.origin}/auth/callback?next=/auth/reset-password`,
       });
 
-      if (error) {
-        toast.error(t("error"), {
-          description: error.message,
-        });
-        setIsLoading(false);
-        return;
-      }
+      if (showProviderError(t("error"), error)) return;
 
       toast.success(t("success"), {
         description: t("successDescription"),
       });
-      // Optional: redirect to login or stay here
-      setIsLoading(false);
-    } catch (error) {
-      toast.error(t("error"));
-      console.error(error);
-      setIsLoading(false);
-    }
-  }
+    }, t("error"));
 
   return (
-    <div className="w-full max-w-md space-y-6 rounded-lg border bg-card p-6 shadow-sm">
-      <div className="space-y-2 text-center">
-        <h1 className="font-[family-name:var(--font-playfair)] text-2xl font-bold">
-          {t("title")}
-        </h1>
-        <p className="text-sm text-muted-foreground">{t("description")}</p>
-      </div>
-
+    <AuthCard description={t("description")} title={t("title")}>
       <Form {...form}>
         <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-          <FormField
+          <TextField
             control={form.control}
+            label={t("emailLabel")}
             name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("emailLabel")}</FormLabel>
-                <FormControl>
-                  <Input placeholder={t("emailPlaceholder")} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            placeholder={t("emailPlaceholder")}
           />
-
-          <Button className="w-full" disabled={isLoading} type="submit">
-            {isLoading ? (
-              <Loader2 className="mr-2 size-4 animate-spin" />
-            ) : null}
-            {t("submit")}
-          </Button>
+          <SubmitButton isLoading={isLoading}>{t("submit")}</SubmitButton>
         </form>
       </Form>
 
-      <div className="text-center text-sm">
-        <button
-          className="underline hover:text-primary"
-          onClick={onLoginClick ?? (() => router.push("/auth/login"))}
-          type="button"
-        >
-          {t("backToLogin")}
-        </button>
-      </div>
-    </div>
+      <SwitchScreenLink
+        label={t("backToLogin")}
+        onClick={onLoginClick ?? (() => router.push("/auth/login"))}
+      />
+    </AuthCard>
   );
 }

@@ -1,6 +1,8 @@
-import { getTranslations } from "next-intl/server";
+import type { Metadata } from "next";
 
 import { RegisterForm } from "@/components/auth/register-form";
+
+import { authPageMetadata } from "../metadata";
 
 /**
  * Generates metadata for the registration page.
@@ -9,14 +11,8 @@ export async function generateMetadata({
   params,
 }: {
   params: Promise<{ locale: string }>;
-}) {
-  const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "Metadata" });
-
-  return {
-    description: t("signUpDescription"),
-    title: t("signUp"),
-  };
+}): Promise<Metadata> {
+  return authPageMetadata(params, "signUp");
 }
 
 /**

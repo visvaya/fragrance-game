@@ -313,6 +313,7 @@
     "noSessions": "Nie znaleziono aktywnych sesji.",
     "unknownBrowser": "Nieznana przeglądarka",
     "unknownOS": "Nieznany system",
+    "browserOnOs": "{browser} na {os}",
     "revokeSuccess": "Sesja została unieważniona",
     "revokeError": "Nie udało się unieważnić sesji",
     "fetchError": "Nie udało się pobrać listy sesji",

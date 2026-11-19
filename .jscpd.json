@@ -10,5 +10,6 @@
     "**/*.spec.ts",
     "**/lib/validations/supabase.schema.ts"
   ],
+  "ignorePattern": ["(?<=^|\\n)import[ \\t{*][^;]*;"],
   "absolute": true
 }

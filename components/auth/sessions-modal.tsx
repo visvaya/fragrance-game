@@ -45,16 +45,23 @@ type SessionsModalProperties = {
   readonly user: User;
 };
 
+/** User agent stored in a session's device info, or "" when there is none. */
+const userAgentOf = (deviceInfo: Json | null): string =>
+  typeof deviceInfo === "object" &&
+  deviceInfo !== null &&
+  "user_agent" in deviceInfo &&
+  typeof deviceInfo["user_agent"] === "string"
+    ? deviceInfo["user_agent"]
+    : "";
+
+/** Sessions created by the server carry its runtime as the user agent, not a browser. */
+const isServerAgent = (userAgent: string): boolean =>
+  userAgent === "node" || userAgent.toLowerCase().includes("node-fetch");
+
 /** Phone icon for mobile and tablet user agents, laptop icon otherwise. */
 const getDeviceIcon = (deviceInfo: Json | null) => {
-  const userAgent =
-    typeof deviceInfo === "object" &&
-    deviceInfo !== null &&
-    "user_agent" in deviceInfo
-      ? (deviceInfo["user_agent"] as string)
-      : "";
-
-  if (userAgent === "node" || userAgent.toLowerCase().includes("node-fetch")) {
+  const userAgent = userAgentOf(deviceInfo);
+  if (isServerAgent(userAgent)) {
     return <Laptop className="size-4" />;
   }
   const ua = new UAParser(userAgent);
@@ -185,17 +192,8 @@ export function SessionsModal({
   };
 
   const formatDeviceInfo = (deviceInfo: Json | null) => {
-    const userAgent =
-      typeof deviceInfo === "object" &&
-      deviceInfo !== null &&
-      "user_agent" in deviceInfo
-        ? (deviceInfo["user_agent"] as string)
-        : "";
-
-    if (
-      userAgent === "node" ||
-      userAgent.toLowerCase().includes("node-fetch")
-    ) {
+    const userAgent = userAgentOf(deviceInfo);
+    if (isServerAgent(userAgent)) {
       return t("currentDevice");
     }
 
@@ -205,7 +203,10 @@ export function SessionsModal({
 
     if (!browser.name && !os.name) return `${userAgent.slice(0, 30)}...`;
 
-    return `${browser.name ?? t("unknownBrowser")} on ${os.name ?? t("unknownOS")}`;
+    return t("browserOnOs", {
+      browser: browser.name ?? t("unknownBrowser"),
+      os: os.name ?? t("unknownOS"),
+    });
   };
 
   /**

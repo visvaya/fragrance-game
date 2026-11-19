@@ -1,61 +1,45 @@
 "use client";
 
-import { useState } from "react";
-
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Form } from "@/components/ui/form";
 import { useRouter } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
 
+import {
+  AuthCard,
+  isPasswordSafe,
+  strongPasswordSchema,
+  SubmitButton,
+  TextField,
+  showProviderError,
+  useAuthSubmit,
+} from "./auth-form-parts";
 import { PasswordStrength } from "./password-strength";
-
-async function checkPasswordSafety(password: string) {
-  const { validatePasswordSafety } =
-    await import("@/app/actions/security-actions");
-  return validatePasswordSafety(password);
-}
 
 /**
  * ResetPasswordForm component for authenticated password reset.
  */
-// eslint_disable-next-line react-compiler/react-compiler
 export function ResetPasswordForm() {
-  const [isLoading, setIsLoading] = useState(false);
+  const { isLoading, submit } = useAuthSubmit();
   const router = useRouter();
   const supabase = createClient();
   const t = useTranslations("Auth.resetPassword");
-  const tAuth = useTranslations("Auth");
+  const tRegister = useTranslations("Auth.register");
 
   const resetPasswordSchema = z
     .object({
       confirmPassword: z
         .string()
         .min(1, { message: t("confirmPasswordLabel") }),
-      password: z
-        .string()
-        .min(8, { message: tAuth("register.passwordMinLength") })
-        .regex(/[a-z]/, { message: tAuth("register.passwordLowercase") })
-        .regex(/[A-Z]/, { message: tAuth("register.passwordUppercase") })
-        .regex(/\d/, { message: tAuth("register.passwordDigit") })
-        .regex(/[^a-z0-9]/i, { message: tAuth("register.passwordSpecial") }),
+      password: strongPasswordSchema(tRegister),
     })
     .refine((data) => data.password === data.confirmPassword, {
-      message: tAuth("passwordsMismatch"),
+      message: tRegister("passwordsDoNotMatch"),
       path: ["confirmPassword"],
     });
 
@@ -69,95 +53,52 @@ export function ResetPasswordForm() {
     resolver: zodResolver(resetPasswordSchema),
   });
 
-  async function onSubmit(data: ResetPasswordFormValues) {
-    setIsLoading(true);
-
-    try {
-      // 1. Server-side password safety check
-      const safetyCheck = await checkPasswordSafety(data.password);
-
-      if (!safetyCheck.isSafe) {
+  const onSubmit = async (data: ResetPasswordFormValues) =>
+    submit(async () => {
+      if (!(await isPasswordSafe(data.password))) {
         form.setError("password", {
-          message: tAuth("passwordCommon"),
+          message: tRegister("passwordCommon"),
           type: "manual",
         });
-        setIsLoading(false);
         return;
       }
 
-      // 2. Proceed with password reset
       const { error } = await supabase.auth.updateUser({
         password: data.password,
       });
 
-      if (error) {
-        toast.error(t("error"), {
-          description: error.message,
-        });
-        setIsLoading(false);
-        return;
-      }
+      if (showProviderError(t("error"), error)) return;
 
       toast.success(t("success"), {
         description: t("successDescription"),
       });
       router.push("/");
       router.refresh();
-      setIsLoading(false);
-    } catch (error) {
-      toast.error(t("error"));
-      console.error(error);
-      setIsLoading(false);
-    }
-  }
+    }, t("error"));
 
   return (
-    <div className="w-full max-w-md space-y-6 rounded-lg border bg-card p-6 shadow-sm">
-      <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("description")}</p>
-      </div>
-
+    <AuthCard description={t("description")} title={t("title")}>
       <Form {...form}>
         <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-          <FormField
+          <TextField
             control={form.control}
+            label={t("newPasswordLabel")}
             name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("newPasswordLabel")}</FormLabel>
-                <FormControl>
-                  <Input type="password" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            type="password"
           />
 
           <PasswordStrength password={form.watch("password")} />
 
-          <FormField
+          <TextField
             control={form.control}
+            label={t("confirmPasswordLabel")}
             name="confirmPassword"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("confirmPasswordLabel")}</FormLabel>
-                <FormControl>
-                  <Input type="password" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            type="password"
           />
 
-          <Button className="w-full" disabled={isLoading} type="submit">
-            {isLoading ? (
-              <Loader2 className="mr-2 size-4 animate-spin" />
-            ) : null}
-            {t("submit")}
-          </Button>
+          <SubmitButton isLoading={isLoading}>{t("submit")}</SubmitButton>
         </form>
       </Form>
-    </div>
+    </AuthCard>
   );
 }
