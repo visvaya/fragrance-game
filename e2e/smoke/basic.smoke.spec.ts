@@ -12,6 +12,19 @@ test.describe("Smoke Tests - Critical Path @smoke", () => {
     await expect(gameContainer).toBeVisible();
   });
 
+  test("Game page is in the first HTML, not in a streamed Suspense fallback", async ({
+    request,
+  }) => {
+    // Content streamed behind a fallback is painted only after hydration, which delayed the
+    // largest contentful paint (the perfume image) by seconds on slow phones.
+    // React streams such content as <div hidden id="S:n"> and swaps it in later.
+    const html = await (await request.get("/en")).text();
+
+    // The clue panel title renders with and without a daily puzzle.
+    expect(html).toContain(">Identity<");
+    expect(html).not.toMatch(/<div hidden id="S:/);
+  });
+
   test("Unknown page answers 404 with the localized not-found page", async ({
     page,
   }) => {
