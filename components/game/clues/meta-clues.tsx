@@ -33,7 +33,7 @@ export const MetaClues = memo(function MetaClues() {
   const { handlePointerDown: handleIconTap, scaled: iconScaled } =
     useScaleOnTap();
 
-  // Skeleton state — structure mirrors the real layout exactly.
+  // Skeleton state – structure mirrors the real layout exactly.
   if (dailyPerfume.id === "skeleton") {
     return <MetaCluesSkeleton t={t} />;
   }
@@ -73,7 +73,7 @@ export const MetaClues = memo(function MetaClues() {
       </div>
 
       <div className="flex flex-1 flex-col gap-5">
-        {/* Marka + Perfumiarz — pełna szerokość */}
+        {/* Marka + Perfumiarz – pełna szerokość */}
         {clues.slice(0, 2).map((clue) => (
           <div
             className="flex w-full flex-col items-start gap-0.5"
@@ -136,7 +136,7 @@ export const MetaClues = memo(function MetaClues() {
           </div>
         ))}
 
-        {/* Rok + Płeć — siatka 2-kolumnowa */}
+        {/* Rok + Płeć – siatka 2-kolumnowa */}
         <div className="grid grid-cols-2 gap-4">
           {clues.slice(2).map((clue) => (
             <div className="flex flex-col items-start gap-0.5" key={clue.key}>

@@ -9,7 +9,7 @@ import { z } from "zod";
  */
 export const env = createEnv({
   /**
-   * Client-side variables — must be prefixed with NEXT_PUBLIC_.
+   * Client-side variables – must be prefixed with NEXT_PUBLIC_.
    */
   client: {
     NEXT_PUBLIC_ASSETS_HOST: z.string().optional(),
@@ -24,7 +24,7 @@ export const env = createEnv({
   },
 
   /**
-   * Runtime environment — maps process.env to the validated schema.
+   * Runtime environment – maps process.env to the validated schema.
    * Required by {@link https://github.com/t3-oss/env-nextjs | t3-oss/env-nextjs} for edge/server split validation.
    */
   runtimeEnv: {
@@ -48,7 +48,7 @@ export const env = createEnv({
   },
 
   /**
-   * Server-side variables — never exposed to the browser.
+   * Server-side variables – never exposed to the browser.
    */
   server: {
     ALLOWED_ORIGINS: z.string().optional(),

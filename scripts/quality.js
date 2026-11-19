@@ -423,21 +423,21 @@ printLintSummary(LINT_REPORT);
 log('\n[KNIP]');
 printKnipSummary(path.join(reportsDir, 'knip.json'));
 
-log('\n[JSCPD — Code Duplication]');
+log('\n[JSCPD – Code Duplication]');
 printJscpdSummary(path.join(reportsDir, 'jscpd'));
 
-log('\n[MADGE — Circular Dependencies]');
+log('\n[MADGE – Circular Dependencies]');
 printMadgeSummary(path.join(reportsDir, 'madge-circular.json'));
 
 if (!fastMode) {
-  log('\n[DEPCRUISE — Architectural Rules]');
+  log('\n[DEPCRUISE – Architectural Rules]');
   printDepcruiseSummary(path.join(reportsDir, 'depcruise.json'));
 
   log('\n[TYPE COVERAGE]');
   printTypeCoverageSummary(path.join(reportsDir, 'type-coverage.log'));
 }
 
-log('\n[PNPM AUDIT — Security]');
+log('\n[PNPM AUDIT – Security]');
 printAuditSummary(path.join(reportsDir, 'audit.json'));
 
 log('\n[OXFMT]');

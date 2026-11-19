@@ -209,7 +209,7 @@ describe("GameActionsContext", () => {
 });
 
 // ---------------------------------------------------------------------------
-// makeGuess — action execution paths (authReady: true required)
+// makeGuess – action execution paths (authReady: true required)
 // ---------------------------------------------------------------------------
 
 const VALID_PERFUME_ID = "f47ac10b-58cc-4372-a567-0e02b2c3d471";
@@ -241,7 +241,7 @@ function createAuthWrapper(
   return createWrapper({ authReady: true, ...overrides });
 }
 
-describe("makeGuess — successful paths", () => {
+describe("makeGuess – successful paths", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -404,14 +404,14 @@ describe("makeGuess — successful paths", () => {
   });
 });
 
-describe("makeGuess — error paths", () => {
+describe("makeGuess – error paths", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("shows rate limit toast when error starts with 'Rate limit exceeded'", async () => {
     mockSubmitGuess.mockRejectedValueOnce(
-      new Error("Rate limit exceeded — slow down"),
+      new Error("Rate limit exceeded – slow down"),
     );
     const setLoading = vi.fn();
 
@@ -470,7 +470,7 @@ describe("makeGuess — error paths", () => {
 });
 
 // ---------------------------------------------------------------------------
-// skipAttempt — action execution paths
+// skipAttempt – action execution paths
 // ---------------------------------------------------------------------------
 
 const SKIP_RESULT = {
@@ -482,7 +482,7 @@ const SKIP_RESULT = {
   revealed: LEVEL_2_CLUES,
 };
 
-describe("skipAttempt — successful paths", () => {
+describe("skipAttempt – successful paths", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -543,7 +543,7 @@ describe("skipAttempt — successful paths", () => {
 
   it("shows rate limit toast on rate limit error during skip", async () => {
     mockSkipAttempt.mockRejectedValueOnce(
-      new Error("Rate limit exceeded — slow down"),
+      new Error("Rate limit exceeded – slow down"),
     );
 
     const { result } = renderHook(() => useGameActions(), {
@@ -585,10 +585,10 @@ describe("skipAttempt — successful paths", () => {
 });
 
 // ---------------------------------------------------------------------------
-// resetGame — action execution paths
+// resetGame – action execution paths
 // ---------------------------------------------------------------------------
 
-describe("resetGame — successful paths", () => {
+describe("resetGame – successful paths", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -669,7 +669,7 @@ describe("resetGame — successful paths", () => {
   });
 });
 
-describe("skipAttempt — network error path", () => {
+describe("skipAttempt – network error path", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

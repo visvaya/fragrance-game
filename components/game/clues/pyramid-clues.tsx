@@ -83,7 +83,7 @@ export const PyramidClues = memo(function PyramidClues() {
   const { handlePointerDown: handleIconTap, scaled: iconScaled } =
     useScaleOnTap();
 
-  // Skeleton state — structure mirrors the real layout exactly.
+  // Skeleton state – structure mirrors the real layout exactly.
   if (dailyPerfume.id === "skeleton") {
     return <PyramidCluesSkeleton t={t} />;
   }

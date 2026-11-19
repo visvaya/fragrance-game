@@ -24,7 +24,7 @@ export function GameBoard() {
   const isContentReady = dailyPerfume.id !== "skeleton";
 
   // Animate skeleton→real transition only for non-SSR users (where skeleton was actually shown).
-  // SSR users have isContentReady=true from first render — animating on page load would cause
+  // SSR users have isContentReady=true from first render – animating on page load would cause
   // compositor-layer/scroll flicker within the first 250ms. No animation needed: no skeleton was shown.
   const [shouldFadeIn, setShouldFadeIn] = useState(false);
   const previousIsContentReadyReference = useRef(isContentReady);

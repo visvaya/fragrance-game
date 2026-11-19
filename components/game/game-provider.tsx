@@ -32,7 +32,7 @@ import { SKELETON_PERFUME } from "./contexts/skeleton-perfume";
 import type { createClient as CreateClientType } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
-// Lazy-loaded modals — not needed for first render, keep them out of critical path
+// Lazy-loaded modals – not needed for first render, keep them out of critical path
 const MigrationModal = dynamic(
   async () =>
     import("@/components/auth/migration-modal").then((module_) => ({
@@ -48,7 +48,7 @@ const AuthCaptchaModal = dynamic(
   { ssr: false },
 );
 
-// Type for verifyAuthSession parameter — type-only import, zero runtime cost
+// Type for verifyAuthSession parameter – type-only import, zero runtime cost
 type SupabaseClient = ReturnType<typeof CreateClientType>;
 
 /**
@@ -205,7 +205,7 @@ export function GameProvider({
 }>) {
   // === Core Game State (Single Source of Truth) ===
   // Lazy initializers let us synchronously populate state from initialSession on the very
-  // first render — no empty-state flash, no extra useEffect re-render cycle.
+  // first render – no empty-state flash, no extra useEffect re-render cycle.
   const [attempts, setAttempts] = useState<Attempt[]>(() =>
     hydrateAttempts(initialSession?.guesses),
   );
@@ -225,7 +225,7 @@ export function GameProvider({
   const [sessionReady, setSessionReady] = useState(
     initialSession !== null && initialSession !== undefined,
   );
-  /** True once anonymous auth JWT is confirmed — gates lazy startGame in game-actions-context */
+  /** True once anonymous auth JWT is confirmed – gates lazy startGame in game-actions-context */
   const [authReady, setAuthReady] = useState(
     initialSession !== null && initialSession !== undefined,
   );
@@ -235,7 +235,7 @@ export function GameProvider({
   );
   const [dailyPerfume, setDailyPerfume] = useState<DailyPerfume>(
     // Use real data when initialChallenge is present (SSR-provided clues).
-    // sessionReady controls interactivity — the game board is shown immediately
+    // sessionReady controls interactivity – the game board is shown immediately
     // from SSR data while auth runs in the background (Gate 5 Optimistic UI).
     initialChallenge
       ? {
@@ -305,7 +305,7 @@ export function GameProvider({
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((_event, session) => {
-        // INITIAL_SESSION fires synchronously when getSession() is first called —
+        // INITIAL_SESSION fires synchronously when getSession() is first called –
         // initGame already reads it and sets user state there. Calling setUser here
         // would cause a duplicate re-render on every page load.
         const newUser = session?.user ?? null;
@@ -329,7 +329,7 @@ export function GameProvider({
         }
 
         setUser(newUser);
-        // Lazy fire-and-forget: Sentry user metadata — not time-sensitive.
+        // Lazy fire-and-forget: Sentry user metadata – not time-sensitive.
         // Extracted to module-level fn to avoid promise/no-nesting.
         updateSentryUser(newUser);
 
@@ -396,7 +396,7 @@ export function GameProvider({
 
           if (authError) {
             // Check for Captcha requirement first
-            // AuthApiError extends Error — instanceof Error + message check is sufficient
+            // AuthApiError extends Error – instanceof Error + message check is sufficient
             if (
               authError instanceof Error &&
               authError.message.includes("captcha")

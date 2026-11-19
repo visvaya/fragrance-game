@@ -69,7 +69,7 @@ const GameActionsContext = createContext<GameActionsContextType | undefined>(
 type GameActionsProviderProperties = {
   // State from parent
   attempts: Attempt[];
-  /** True once anonymous auth JWT is ready — enables lazy startGame on first action */
+  /** True once anonymous auth JWT is ready – enables lazy startGame on first action */
   authReady?: boolean;
   /** Challenge ID needed for lazy startGame on first guess/skip */
   challengeId?: string | null;
@@ -344,7 +344,7 @@ export function GameActionsProvider({
       setClues(result.revealed);
 
       if (result.gameStatus === "lost") {
-        // Game over — stronger double-pulse haptic synced with row highlight + lost state
+        // Game over – stronger double-pulse haptic synced with row highlight + lost state
         void haptic.trigger("error");
         setTimeout(() => void haptic.trigger("heavy"), 180);
         if (result.answerName) {
@@ -356,7 +356,7 @@ export function GameActionsProvider({
         }
         setGameState("lost");
       } else {
-        // Wrong/skipped attempt — same haptic as wrong guess, synced with row highlight
+        // Wrong/skipped attempt – same haptic as wrong guess, synced with row highlight
         void haptic.trigger("error");
       }
     } catch (error) {
@@ -457,7 +457,7 @@ export function GameActionsProvider({
     setImageUrl,
   ]);
 
-  // useMemo prevents a new context value object on every render —
+  // useMemo prevents a new context value object on every render –
   // without it, all useGameActions() consumers re-render even when nothing changed.
   const value = useMemo(
     () => ({

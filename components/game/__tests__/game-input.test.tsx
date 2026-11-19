@@ -7,7 +7,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ---------------------------------------------------------------------------
-// Hoisted mock refs — must exist before vi.mock() factories run
+// Hoisted mock refs – must exist before vi.mock() factories run
 // ---------------------------------------------------------------------------
 
 const { mockUseGameActions, mockUseGameState, mockUseUIPreferences } =
@@ -101,7 +101,7 @@ import { GameInput } from "../game-input";
 
 import type { DailyPerfume } from "../contexts/game-state-context";
 
-// ResizeObserver and scrollIntoView are not available in jsdom — provide stubs
+// ResizeObserver and scrollIntoView are not available in jsdom – provide stubs
 vi.stubGlobal(
   "ResizeObserver",
   class {
@@ -305,7 +305,7 @@ describe("GameInput", () => {
     it("shows attempt count in status bar", () => {
       renderGameInput({ currentAttempt: 2, maxAttempts: 6 });
 
-      // Status bar contains attempt info — use getAllByText since there's an invisible clone
+      // Status bar contains attempt info – use getAllByText since there's an invisible clone
       expect(screen.getAllByText(/2/).length).toBeGreaterThan(0);
       expect(screen.getAllByText(/6/).length).toBeGreaterThan(0);
     });
@@ -313,7 +313,7 @@ describe("GameInput", () => {
     it("shows potential score in status bar", () => {
       renderGameInput({ potentialScore: 850 });
 
-      // Status bar contains score — use getAllByText since there's an invisible clone
+      // Status bar contains score – use getAllByText since there's an invisible clone
       expect(screen.getAllByText(/850/).length).toBeGreaterThan(0);
     });
   });

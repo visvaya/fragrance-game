@@ -12,11 +12,11 @@ import { GameInput } from "@/components/game/game-input";
 import { GameProvider } from "@/components/game/game-provider";
 
 // Challenge data is served from Next.js cache (updated daily via revalidate tag).
-// Player session (initialSession) is dynamic per-request — no ISR compatible.
+// Player session (initialSession) is dynamic per-request – no ISR compatible.
 // This route is now fully dynamic, but challenge queries are still cached via
 // unstable_cache inside getDailyChallengeSSR / getDailyStep1ImageUrl.
 
-/** Root page — renders the daily fragrance game. Challenge data is SSR-cached; player session is per-request. */
+/** Root page – renders the daily fragrance game. Challenge data is SSR-cached; player session is per-request. */
 export default async function Home({
   params: _params,
 }: {
@@ -33,7 +33,7 @@ export default async function Home({
 
   // Pre-fetch the player's existing game session server-side.
   // Only works if player has an auth cookie (returning users).
-  // Returns null for new/unauthenticated visitors — GameProvider falls back to client-side init.
+  // Returns null for new/unauthenticated visitors – GameProvider falls back to client-side init.
   const initialSession = initialChallenge
     ? await getPlayerDailySession(initialChallenge.id)
     : null;
@@ -41,7 +41,7 @@ export default async function Home({
   // Inject a high-priority preload for the LCP image into <head>.
   // next/image with `priority` auto-generates a preload link but omits fetchpriority="high"
   // (Next.js 16 bug), causing the browser to fetch at Medium priority instead of High.
-  // Calling ReactDOM.preload() here fixes this — it hoists a <link rel="preload"
+  // Calling ReactDOM.preload() here fixes this – it hoists a <link rel="preload"
   // fetchpriority="high" imagesrcset="..." imagesizes="..."> into the SSR <head>.
   // The imageSizes must match the `sizes` prop on the <Image> in reveal-image.tsx.
   if (initialImageUrl) {

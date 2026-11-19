@@ -6,7 +6,7 @@ type MaskSlotProperties = Readonly<{
 }>;
 
 /**
- * Single masked letter slot — shows a diagonal-stripe background on hover.
+ * Single masked letter slot – shows a diagonal-stripe background on hover.
  * Used in both pyramid-clues and meta-clues wherever MASK_CHAR is rendered.
  */
 export function MaskSlot({ isHovered }: MaskSlotProperties) {

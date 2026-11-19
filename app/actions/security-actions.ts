@@ -6,7 +6,7 @@ import { getClientIp } from "@/lib/client-ip";
 import { COMMON_PASSWORDS } from "@/lib/constants/common-passwords";
 import { checkRateLimit } from "@/lib/redis";
 
-// Build a Set for O(1) lookups — case-sensitive, matching passwords as-is
+// Build a Set for O(1) lookups – case-sensitive, matching passwords as-is
 const COMMON_PASSWORDS_SET = new Set(COMMON_PASSWORDS);
 
 const passwordInputSchema = z.string().min(1).max(128);

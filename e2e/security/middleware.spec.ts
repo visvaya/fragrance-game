@@ -148,7 +148,7 @@ test.describe("CSP Enforcement", () => {
       })
       .catch(() => true);
 
-    // CSP includes 'unsafe-eval' for PostHog/Sentry analytics — eval() is intentionally allowed.
+    // CSP includes 'unsafe-eval' for PostHog/Sentry analytics – eval() is intentionally allowed.
     // We verify CSP is active by checking it's a boolean result (not a crash), and that the
     // violations array was initialized (CSP violation listener is in place).
     expect(typeof scriptBlocked).toBe("boolean");

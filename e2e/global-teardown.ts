@@ -5,12 +5,12 @@ import { loadSupabaseAdminConfig, TEST_USER_IDS_FILE } from "./global-setup";
 import type { FullConfig } from "@playwright/test";
 
 /**
- * Playwright global teardown — deletes anonymous test users created by globalSetup.
+ * Playwright global teardown – deletes anonymous test users created by globalSetup.
  *
  * Reads user IDs saved by globalSetup and calls DELETE /auth/v1/admin/users/{id}
  * for each one, preventing test accounts from polluting player statistics.
  * Test users are also flagged with user_metadata.is_test_user=true as a secondary
- * guard — statistics queries can filter on that field even if teardown was skipped.
+ * guard – statistics queries can filter on that field even if teardown was skipped.
  */
 // eslint-disable-next-line import-x/no-default-export -- Playwright requires default export for globalTeardown
 export default async function globalTeardown(
@@ -18,7 +18,7 @@ export default async function globalTeardown(
 ): Promise<void> {
   if (!existsSync(TEST_USER_IDS_FILE)) {
     console.warn(
-      "[E2E globalTeardown] No test user IDs file found — skipping cleanup",
+      "[E2E globalTeardown] No test user IDs file found – skipping cleanup",
     );
     return;
   }

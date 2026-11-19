@@ -88,7 +88,7 @@ test.describe("Web Vitals & Performance Audit", () => {
       console.log(`Total Duration (networkidle): ${navEnd - navStart} ms`);
       console.log(`-----------------------------------`);
 
-      // Performance budgets — only enforce in CI (production build).
+      // Performance budgets – only enforce in CI (production build).
       // Dev server is too slow to meet these thresholds reliably.
       if (process.env.CI) {
         // TTFB < 800ms

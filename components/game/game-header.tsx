@@ -286,7 +286,7 @@ export function GameHeader() {
         </nav>
 
         {/* Dropdown positioning layer: sibling of nav so backdrop-blur sees raw page content.
-            No aria-hidden on container — accessibility is controlled by visibility on each dropdown:
+            No aria-hidden on container – accessibility is controlled by visibility on each dropdown:
             closed dropdowns use `invisible` (visibility:hidden) which removes them from tab order
             and the accessibility tree without needing explicit aria-hidden. */}
         <div className="pointer-events-none absolute inset-0 mx-auto max-w-2xl wide:max-w-5xl">

@@ -6,7 +6,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // ---------------------------------------------------------------------------
-// Hoisted mock refs — must exist before vi.mock() factories run
+// Hoisted mock refs – must exist before vi.mock() factories run
 // ---------------------------------------------------------------------------
 const { mockGetCached, mockTrackEvent } = vi.hoisted(() => {
   const getCached = vi.fn().mockResolvedValue(null);
@@ -90,7 +90,7 @@ const CACHED_SAUVAGE = [
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("searchPerfumes — cache-hit path", () => {
+describe("searchPerfumes – cache-hit path", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetCached.mockResolvedValue(null);
@@ -193,10 +193,10 @@ describe("searchPerfumes — cache-hit path", () => {
 });
 
 // ---------------------------------------------------------------------------
-// sliceCandidates — exact-match path (≥10 exact name matches)
+// sliceCandidates – exact-match path (≥10 exact name matches)
 // ---------------------------------------------------------------------------
 
-describe("searchPerfumes — sliceCandidates exact-match shortcut", () => {
+describe("searchPerfumes – sliceCandidates exact-match shortcut", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetCached.mockResolvedValue(null);

@@ -87,7 +87,7 @@ export const AttemptLog = memo(function AttemptLog() {
     previousAttemptsLength.current = attempts.length;
   }, [attempts.length, gameState, loading, uiPreferences.autoScroll]);
 
-  // Scroll to top on game end — only when game JUST ended in this session (playing→won/lost).
+  // Scroll to top on game end – only when game JUST ended in this session (playing→won/lost).
   // previousGameStateReference guards against spurious scroll on page restore where gameState is
   // already "won"/"lost" from mount (previousGameStateReference.current stays null).
   useEffect(() => {

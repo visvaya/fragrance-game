@@ -6,12 +6,12 @@ import type { FullConfig } from "@playwright/test";
 // Playwright runs from the project root and loads specs as CommonJS; import.meta
 // would make Node parse the file as an ES module ("exports is not defined").
 const DIR = path.join(process.cwd(), "e2e");
-// Primary user — for game-completion tests (tracks win/loss across 6 attempts).
+// Primary user – for game-completion tests (tracks win/loss across 6 attempts).
 const AUTH_FILE = path.join(DIR, ".auth", "user.json");
-// Secondary user — for game-flow and other tests that submit guesses.
+// Secondary user – for game-flow and other tests that submit guesses.
 // Separate user prevents interference with game-completion's attempt counter.
 const AUTH_FILE_GAMEFLOW = path.join(DIR, ".auth", "user-gameflow.json");
-// A11y user — dedicated to accessibility tests; fresh game state, never played.
+// A11y user – dedicated to accessibility tests; fresh game state, never played.
 // Prevents interference from game-completion Defeat test changing the game page UI.
 const AUTH_FILE_A11Y = path.join(DIR, ".auth", "user-a11y.json");
 const ENVIRONMENT_FILE = path.join(DIR, "..", ".env.local");
@@ -129,7 +129,7 @@ function saveStorageState(
 }
 
 /**
- * Playwright global setup — creates pre-authenticated anonymous Supabase sessions.
+ * Playwright global setup – creates pre-authenticated anonymous Supabase sessions.
  *
  * Creates THREE separate users to prevent concurrent tests from sharing a game session:
  * - user.json         → game-completion, mobile tests
@@ -161,7 +161,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
     return;
   }
 
-  // Create all three users in parallel — they're independent Supabase sign-ups.
+  // Create all three users in parallel – they're independent Supabase sign-ups.
   const [primarySession, gameflowSession, a11ySession] = await Promise.all([
     createAnonymousSession(supabaseUrl, serviceRoleKey),
     createAnonymousSession(supabaseUrl, serviceRoleKey),
@@ -175,7 +175,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
     );
   } else {
     console.warn(
-      "[E2E globalSetup] Primary session failed — game-completion/mobile tests may fail",
+      "[E2E globalSetup] Primary session failed – game-completion/mobile tests may fail",
     );
   }
 
@@ -186,7 +186,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
     );
   } else {
     console.warn(
-      "[E2E globalSetup] Game-flow session failed — game-flow test may fail",
+      "[E2E globalSetup] Game-flow session failed – game-flow test may fail",
     );
   }
 
@@ -194,7 +194,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
     saveStorageState(AUTH_FILE_A11Y, a11ySession, projectReference);
     console.log(`[E2E globalSetup] A11y user: ${a11ySession.user?.id ?? ""}`);
   } else {
-    console.warn("[E2E globalSetup] A11y session failed — a11y tests may fail");
+    console.warn("[E2E globalSetup] A11y session failed – a11y tests may fail");
   }
 
   // Persist user IDs (not the key) for globalTeardown cleanup.

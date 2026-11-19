@@ -13,7 +13,7 @@ SET LOCAL search_path = public, extensions;
 SELECT plan(47);
 
 -- ============================================================
--- RLS ENABLED — core game tables
+-- RLS ENABLED – core game tables
 -- ============================================================
 
 SELECT ok(
@@ -52,7 +52,7 @@ SELECT ok(
 );
 
 -- ============================================================
--- RLS ENABLED — catalogue tables
+-- RLS ENABLED – catalogue tables
 -- ============================================================
 
 SELECT ok(
@@ -66,7 +66,7 @@ SELECT ok(
 );
 
 -- ============================================================
--- RLS ENABLED — player account tables
+-- RLS ENABLED – player account tables
 -- ============================================================
 
 SELECT ok(
@@ -90,7 +90,7 @@ SELECT ok(
 );
 
 -- ============================================================
--- RLS POLICIES — core game
+-- RLS POLICIES – core game
 -- Note: uses pg_policies directly to avoid pgTAP version compatibility issues
 -- ============================================================
 
@@ -120,7 +120,7 @@ SELECT ok(
 );
 
 -- ============================================================
--- RLS POLICIES — player account
+-- RLS POLICIES – player account
 -- ============================================================
 
 SELECT ok(
@@ -144,7 +144,7 @@ SELECT ok(
 );
 
 -- ============================================================
--- SECURITY INVOKER on views (critical — prevents RLS bypass)
+-- SECURITY INVOKER on views (critical – prevents RLS bypass)
 -- ============================================================
 -- SECURITY INVOKER means queries execute as calling user, not view owner.
 -- SECURITY DEFINER would bypass RLS, exposing all rows to anon.

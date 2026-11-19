@@ -59,7 +59,7 @@ export async function searchPerfumes(
   const isLastAttempt = currentAttempt === MAX_GUESSES;
   const dbLimit = isLastAttempt ? 50 : 30;
 
-  // 3. Redis Cache — checked BEFORE auth (saves ~50-100ms on cache hit)
+  // 3. Redis Cache – checked BEFORE auth (saves ~50-100ms on cache hit)
   const nq = normalizeText(validatedQuery);
   const cached = await getCachedAutocomplete(validatedQuery, dbLimit);
 
@@ -88,7 +88,7 @@ export async function searchPerfumes(
     return sliced;
   }
 
-  // 4. Cache miss — auth + rate limit
+  // 4. Cache miss – auth + rate limit
   const supabase = await createClient();
   const {
     data: { user },

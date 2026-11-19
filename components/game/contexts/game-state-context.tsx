@@ -47,7 +47,7 @@ function toRevealValues(clues: RevealedClues) {
 type GameStateContextType = {
   // Core state
   attempts: Attempt[];
-  /** True once anonymous auth JWT is ready — guards lazy startGame in game-actions-context */
+  /** True once anonymous auth JWT is ready – guards lazy startGame in game-actions-context */
   authReady: boolean;
   blurLevel: number;
   /** Clues computed on the server for the current progress. */
@@ -79,7 +79,7 @@ const GameStateContext = createContext<GameStateContextType | undefined>(
 type GameStateProviderProperties = {
   // State from parent orchestrator
   attempts: Attempt[];
-  /** True once anonymous auth JWT is ready — guards lazy startGame in game-actions-context */
+  /** True once anonymous auth JWT is ready – guards lazy startGame in game-actions-context */
   authReady?: boolean;
   children: ReactNode;
   clues: RevealedClues;
@@ -132,7 +132,7 @@ export function GameStateProvider({
     return baseScores[Math.min(currentAttempt - 1, 5)] ?? 0;
   }, [currentAttempt]);
 
-  // useMemo prevents a new context value object on every render —
+  // useMemo prevents a new context value object on every render –
   // without it, all useGameState() consumers re-render even when nothing changed.
   const value = useMemo<GameStateContextType>(
     () => ({

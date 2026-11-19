@@ -78,7 +78,7 @@ describe("validatePasswordSafety", () => {
     });
 
     it("is case-sensitive: lowercase variant of common password is allowed", async () => {
-      // COMMON_PASSWORDS stores "Passw0rd" (capital P) — lowercase should pass
+      // COMMON_PASSWORDS stores "Passw0rd" (capital P) – lowercase should pass
       const result = await validatePasswordSafety("passw0rd");
       expect(result).toEqual({ isSafe: true });
     });

@@ -10,7 +10,7 @@ import { redis } from "@/lib/redis";
 import type { PerfumeSuggestion } from "@/lib/types/game";
 
 const CACHE_PREFIX = "autocomplete:v2";
-const CACHE_TTL = 300; // seconds — perfume dataset refreshes once daily
+const CACHE_TTL = 300; // seconds – perfume dataset refreshes once daily
 
 /**
  * Generates cache key for autocomplete query

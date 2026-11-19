@@ -16,7 +16,7 @@ const REPO_ROOT = path.resolve(
   "..",
 );
 
-/** Variables Node or the platform always provides — never documented as user input. */
+/** Variables Node or the platform always provides – never documented as user input. */
 const PLATFORM_PROVIDED = new Set([
   "NODE_ENV",
   "VERCEL_PROJECT_PRODUCTION_URL",
@@ -24,7 +24,7 @@ const PLATFORM_PROVIDED = new Set([
 
 /** Reads a repo-relative file as an array of lines. */
 function readLines(...segments: readonly string[]): readonly string[] {
-  // FILESYSTEM: path is built from import.meta.url and literal segments — not user input.
+  // FILESYSTEM: path is built from import.meta.url and literal segments – not user input.
   // eslint-disable-next-line security/detect-non-literal-fs-filename
   return readFileSync(path.join(REPO_ROOT, ...segments), "utf8").split("\n");
 }

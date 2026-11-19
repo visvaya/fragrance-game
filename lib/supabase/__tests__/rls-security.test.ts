@@ -23,7 +23,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { createClient, createAdminClient } from "../server";
 
 // Skip these tests unless explicitly running integration tests against a live database.
-// These tests require a real Supabase connection — they cannot use mocked values.
+// These tests require a real Supabase connection – they cannot use mocked values.
 // To run: VITEST_INTEGRATION=true pnpm vitest run lib/supabase/__tests__/rls-security.test.ts
 const skipIfNoEnvironment =
   // eslint-disable-next-line no-restricted-properties -- integration test environment check

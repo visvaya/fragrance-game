@@ -98,7 +98,7 @@ function gameInputReducer(
     }
     case "CLEAR_SUGGESTIONS": {
       // Clears suggestions + resets loading without touching hasSearched.
-      // Used when the query falls below search threshold — cancels any in-flight
+      // Used when the query falls below search threshold – cancels any in-flight
       // request effect and ensures the spinner stops even if the async never resolves.
       return { ...state, isError: false, isLoading: false, suggestions: [] };
     }
@@ -219,10 +219,10 @@ export function GameInput() {
 
   // Check if daily challenge is actually loaded (not skeleton).
   // Defined here (before shouldShowList) so autocomplete gating uses real data availability,
-  // not auth loading state — allows autocomplete to work as soon as SSR data is present.
+  // not auth loading state – allows autocomplete to work as soon as SSR data is present.
   const isSkeleton = dailyPerfume.id === "skeleton";
 
-  // Animation state — list opens when: results exist, loading, or delayed no-results.
+  // Animation state – list opens when: results exist, loading, or delayed no-results.
   // Never during the debounce window. Uses !isSkeleton (not !gameLoading) so autocomplete
   // works immediately when SSR clue data is available, even while auth is in progress.
   const shouldShowList =
@@ -351,7 +351,7 @@ export function GameInput() {
   }, [gameLoading, sessionReady, sessionId, pendingGuess]);
 
   // Track guess outcomes to show brief icon feedback on the submit button.
-  // Mirrors AttemptLog's hasInitialized pattern — ignores attempts restored on page load.
+  // Mirrors AttemptLog's hasInitialized pattern – ignores attempts restored on page load.
   useEffect(() => {
     if (!gameLoading && !hasInputInitialized.current) {
       hasInputInitialized.current = true;
@@ -395,7 +395,7 @@ export function GameInput() {
 
   const handleSelect = async (perfume: PerfumeSuggestion) => {
     if (!authReady) {
-      // Auth still in progress — queue the guess and show connecting state.
+      // Auth still in progress – queue the guess and show connecting state.
       dispatch({ payload: perfume.name, type: "SET_QUERY" });
       dispatch({ payload: false, type: "SET_SHOW_SUGGESTIONS" });
       setPendingGuess(perfume);
@@ -504,7 +504,7 @@ export function GameInput() {
     [suggestions, attempts],
   );
 
-  // 1. Loading State — show skeleton until SSR clue data or reset is complete.
+  // 1. Loading State – show skeleton until SSR clue data or reset is complete.
   // This ensures consistency with loading.tsx and avoids jarring spinner replacements.
   if (gameLoading && isSkeleton) {
     return <GameInputSkeleton />;
@@ -558,7 +558,7 @@ export function GameInput() {
         "sticky bottom-0 z-30 mx-auto w-full max-w-2xl will-change-transform wide:max-w-xl",
       )}
     >
-      {/* Onboarding Tooltip — fixed above the sticky input bar */}
+      {/* Onboarding Tooltip – fixed above the sticky input bar */}
       <div
         aria-hidden="true"
         className={cn(
@@ -685,7 +685,7 @@ export function GameInput() {
             </div>
           </div>
 
-          {/* Connecting hint — shown when user selected a perfume but session not ready */}
+          {/* Connecting hint – shown when user selected a perfume but session not ready */}
           {isConnecting ? (
             <p className="mt-1 pl-1 text-xs text-muted-foreground">
               {t("connectingHint")}

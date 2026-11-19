@@ -38,7 +38,7 @@ describe("autocompleteSchema", () => {
     });
 
     it("accepts query with XSS-like content (validation is structural, not sanitization)", () => {
-      // Zod validates structure only — sanitization is handled elsewhere
+      // Zod validates structure only – sanitization is handled elsewhere
       const result = autocompleteSchema.safeParse({
         query: "<script>alert(1)</script>",
       });
