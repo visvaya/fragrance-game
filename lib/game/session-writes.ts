@@ -12,7 +12,7 @@ type Tables = Database["public"]["Tables"];
 const SESSION_COLUMNS = "attempts_count, id, last_nonce, status";
 
 /** A game session as the game uses it right after a write. */
-export type GameSessionRow = {
+type GameSessionRow = {
   attempts_count: number;
   id: string;
   last_nonce: string;
@@ -23,7 +23,7 @@ export type GameSessionRow = {
  * PostgREST code for a `.single()` query that matched no row. After an update filtered
  * by the expected nonce it means another move changed the session first.
  */
-export const NO_ROW_MATCHED_CODE = "PGRST116";
+const NO_ROW_MATCHED_CODE = "PGRST116";
 
 /**
  * Outcome of a session write: the stored row, or the database error. `code` is the
@@ -47,7 +47,7 @@ export function isNoRowMatched(error: { code?: string } | null): boolean {
  * Postgres code for a unique-constraint violation. On a session insert it means another
  * request already created the player's session for the same puzzle.
  */
-export const UNIQUE_VIOLATION_CODE = "23505";
+const UNIQUE_VIOLATION_CODE = "23505";
 
 /**
  * Tells a session that already exists (a parallel start won the insert) apart from a

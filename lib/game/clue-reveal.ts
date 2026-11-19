@@ -30,7 +30,7 @@ export type RevealProgress = {
 };
 
 /** Notes as shown to the player: a three-tier pyramid or one flat linear list. */
-export type RevealedNotes =
+type RevealedNotes =
   | { base: string[]; heart: string[]; kind: "pyramid"; top: string[] }
   | { kind: "linear"; notes: string[] };
 

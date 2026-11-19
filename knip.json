@@ -7,8 +7,7 @@
     "postcss-load-config",
     "@types/ua-parser-js",
     "tailwindcss-animate",
-    "tailwindcss",
-    "playwright-core"
+    "type-coverage"
   ],
-  "ignoreBinaries": ["python", "visual"]
+  "ignoreBinaries": ["uv"]
 }

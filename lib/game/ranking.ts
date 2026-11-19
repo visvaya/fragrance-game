@@ -1,5 +1,5 @@
 /** Reason stored on a result whose game began before the player signed in. */
-export const STARTED_AS_GUEST = "started_as_guest";
+const STARTED_AS_GUEST = "started_as_guest";
 
 /** Ranking fields of a game result. */
 export type ResultRanking = { is_ranked: boolean; ranked_reason?: string };
