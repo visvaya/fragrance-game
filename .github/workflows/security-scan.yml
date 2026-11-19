@@ -65,6 +65,24 @@ jobs:
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # The workflow scanners run in this job because it is a required check, so a workflow
+      # finding blocks the merge; versions live in tools/ so Dependabot updates them (pip with
+      # hashes, docker with a digest). Both also run after an earlier failure, so one run reports all.
+      - name: Setup Python
+        if: ${{ !cancelled() }}
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Scan workflows with zizmor
+        if: ${{ !cancelled() }}
+        run: |
+          python -m pip install --quiet --require-hashes --no-deps -r tools/zizmor/requirements.txt
+          zizmor --persona pedantic --offline --format github .
+      - name: Lint workflows with actionlint
+        if: ${{ !cancelled() }}
+        run: |
+          docker build --quiet --tag actionlint tools/actionlint
+          docker run --rm --volume "$PWD:/repo" --workdir /repo actionlint -color
 
   custom-security-check:
     name: Custom Security Check
@@ -81,17 +99,6 @@ jobs:
       - name: Run security-check.py
         run: |
           find . -maxdepth 3 -not -path '*/.*' -type f -print0 | xargs -0 -n1 python scripts/security-check.py
-      # Versions live in tools/ so Dependabot updates them (pip with hashes, docker with a digest).
-      - name: Scan workflows with zizmor
-        run: |
-          python -m pip install --quiet --require-hashes --no-deps -r tools/zizmor/requirements.txt
-          zizmor --persona pedantic --offline --format github .
-      - name: Lint workflows with actionlint
-        # Also after a zizmor failure, so one run reports both.
-        if: ${{ !cancelled() }}
-        run: |
-          docker build --quiet --tag actionlint tools/actionlint
-          docker run --rm --volume "$PWD:/repo" --workdir /repo actionlint -color
 
   supabase-advisors:
     name: Supabase Security Advisor
