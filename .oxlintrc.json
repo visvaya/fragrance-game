@@ -1822,14 +1822,13 @@
         "playwright/valid-title": "error"
       }
     },
-    // Known violations of the test guards (93 on 2026-11-16, 26 on 2026-11-19, in the nightly suite). This list only
+    // Known violations of the test guards (93 on 2026-11-16, 18 on 2026-11-19, in the nightly suite). This list only
     // shrinks: fix a file (assert the state instead of branching on it, no try/catch around
     // expects) and remove it here. New e2e files get the guards as errors.
     {
       "files": [
         "e2e/errors/error-handling.spec.ts",
-        "e2e/game-completion.spec.ts",
-        "e2e/i18n/locale-switching.spec.ts"
+        "e2e/game-completion.spec.ts"
       ],
       "jsPlugins": ["eslint-plugin-playwright"],
       "rules": {
