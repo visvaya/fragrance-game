@@ -1,5 +1,6 @@
-import { GENERIC_PLACEHOLDER } from "@/lib/constants";
+import { GENERIC_PLACEHOLDER, MAX_GUESSES } from "@/lib/constants";
 import { HIDDEN_CLUES, type RevealedClues } from "@/lib/game/clue-reveal";
+import { SKIP_FEEDBACK } from "@/lib/game/guess-history";
 
 import type {
   DailyChallenge,
@@ -52,6 +53,8 @@ export type GameSessionState = {
 };
 
 const PLACEHOLDER_IMAGE_URL = "/placeholder.svg?height=400&width=400";
+/** Image shown while a session has none (before it loads, after a reset). */
+const EMPTY_IMAGE_URL = "/placeholder.svg";
 
 /** Placeholder daily perfume shown while the real challenge loads (avoids null checks). */
 export const SKELETON_PERFUME: DailyPerfume = {
@@ -65,14 +68,7 @@ export const SKELETON_PERFUME: DailyPerfume = {
 /** Row appended to the log when the player skips; nothing matched. */
 export const SKIPPED_ATTEMPT: Attempt = {
   brand: "",
-  feedback: {
-    brandMatch: false,
-    genderMatch: false,
-    notesMatch: 0,
-    perfumerMatch: "none",
-    yearDirection: "equal",
-    yearMatch: "wrong",
-  },
+  feedback: SKIP_FEEDBACK,
   guess: "",
   isCorrect: false,
   isSkipped: true,
@@ -85,7 +81,6 @@ type GameSessionInit = {
     | undefined;
   initialImageUrl?: string | null | undefined;
   initialSession?: StartGameResponse | null | undefined;
-  maxAttempts: number;
 };
 
 /** What a state change needs to know about a challenge. */
@@ -95,7 +90,6 @@ type ChallengeInfo = Pick<DailyChallenge, "xsolve">;
 export type GameSessionAction =
   | {
       guess: { brand: string; perfumeId: string; perfumeName: string };
-      maxAttempts: number;
       result: SubmitGuessResult;
       type: "guessResolved";
     }
@@ -112,7 +106,6 @@ export type GameSessionAction =
   | { result: SkipAttemptResult; type: "skipResolved" }
   | {
       challenge: ChallengeInfo;
-      maxAttempts: number;
       session: StartGameResponse;
       type: "sessionHydrated";
     }
@@ -128,13 +121,7 @@ function hydrateAttempts(
   if (!guesses) return [];
   return guesses.map((g) =>
     g.isSkip
-      ? {
-          brand: "",
-          feedback: g.feedback,
-          guess: "",
-          isCorrect: false,
-          isSkipped: true,
-        }
+      ? { ...SKIPPED_ATTEMPT, feedback: g.feedback }
       : {
           brand: g.brandName,
           concentration: g.concentration,
@@ -151,10 +138,9 @@ function hydrateAttempts(
 
 function gameStateFromGuesses(
   guesses: StartGameResponse["guesses"],
-  maxAttempts: number,
 ): GameState {
   if (guesses.at(-1)?.isCorrect) return "won";
-  if (guesses.length >= maxAttempts) return "lost";
+  if (guesses.length >= MAX_GUESSES) return "lost";
   return "playing";
 }
 
@@ -163,7 +149,7 @@ function mysteryPerfume({ xsolve }: ChallengeInfo): DailyPerfume {
   return {
     concentration: undefined,
     id: "daily",
-    imageUrl: "/placeholder.svg",
+    imageUrl: EMPTY_IMAGE_URL,
     name: "Mystery Perfume",
     xsolve,
   };
@@ -194,24 +180,21 @@ export function initialGameSessionState({
   initialChallenge,
   initialImageUrl,
   initialSession,
-  maxAttempts,
 }: GameSessionInit): GameSessionState {
   return {
     attempts: hydrateAttempts(initialSession?.guesses),
     clues:
       initialSession?.revealed ?? initialChallenge?.revealed ?? HIDDEN_CLUES,
     dailyPerfume: initialChallenge
-      ? {
-          concentration: initialSession?.answerConcentration,
-          id: "daily",
-          imageUrl: initialImageUrl ?? PLACEHOLDER_IMAGE_URL,
-          name: initialSession?.answerName ?? "Mystery Perfume",
-          xsolve: initialChallenge.xsolve,
-        }
+      ? withAnswer(
+          {
+            ...mysteryPerfume(initialChallenge),
+            imageUrl: initialImageUrl ?? PLACEHOLDER_IMAGE_URL,
+          },
+          initialSession ?? {},
+        )
       : SKELETON_PERFUME,
-    gameState: initialSession
-      ? gameStateFromGuesses(initialSession.guesses, maxAttempts)
-      : "playing",
+    gameState: gameStateFromGuesses(initialSession?.guesses ?? []),
     imageUrl:
       initialSession?.imageUrl ?? initialImageUrl ?? PLACEHOLDER_IMAGE_URL,
     nonce: initialSession?.nonce ?? "",
@@ -220,13 +203,30 @@ export function initialGameSessionState({
   };
 }
 
+/** State after a resolved guess or skip: the new log row, clues, image and nonce from the server. */
+function applyMove(
+  state: GameSessionState,
+  result: SubmitGuessResult | SkipAttemptResult,
+  attempt: Attempt,
+  gameState: GameState,
+): GameSessionState {
+  return {
+    ...state,
+    attempts: [...state.attempts, attempt],
+    clues: result.revealed,
+    dailyPerfume:
+      gameState === "playing"
+        ? state.dailyPerfume
+        : withAnswer(state.dailyPerfume, result),
+    gameState,
+    imageUrl: result.imageUrl || state.imageUrl,
+    nonce: result.newNonce || state.nonce,
+  };
+}
+
 function applyGuess(
   state: GameSessionState,
-  {
-    guess,
-    maxAttempts,
-    result,
-  }: Extract<GameSessionAction, { type: "guessResolved" }>,
+  { guess, result }: Extract<GameSessionAction, { type: "guessResolved" }>,
 ): GameSessionState {
   const attempt: Attempt = {
     brand: guess.brand,
@@ -241,42 +241,31 @@ function applyGuess(
     year: result.guessedPerfumeDetails?.year,
   };
   const isOver =
-    result.gameStatus === "lost" || state.attempts.length + 1 >= maxAttempts;
-  return {
-    ...state,
-    attempts: [...state.attempts, attempt],
-    clues: result.revealed,
-    dailyPerfume: withAnswer(state.dailyPerfume, result),
-    gameState:
-      result.gameStatus === "won" ? "won" : isOver ? "lost" : state.gameState,
-    imageUrl: result.imageUrl || state.imageUrl,
-    nonce: result.newNonce || state.nonce,
-  };
+    result.gameStatus === "lost" || state.attempts.length + 1 >= MAX_GUESSES;
+  return applyMove(
+    state,
+    result,
+    attempt,
+    result.gameStatus === "won" ? "won" : isOver ? "lost" : state.gameState,
+  );
 }
 
 function applySkip(
   state: GameSessionState,
   { result }: Extract<GameSessionAction, { type: "skipResolved" }>,
 ): GameSessionState {
-  const isLost = result.gameStatus === "lost";
-  return {
-    ...state,
-    attempts: [...state.attempts, SKIPPED_ATTEMPT],
-    clues: result.revealed,
-    dailyPerfume: isLost
-      ? withAnswer(state.dailyPerfume, result)
-      : state.dailyPerfume,
-    gameState: isLost ? "lost" : state.gameState,
-    imageUrl: result.imageUrl || state.imageUrl,
-    nonce: result.newNonce || state.nonce,
-  };
+  return applyMove(
+    state,
+    result,
+    SKIPPED_ATTEMPT,
+    result.gameStatus === "lost" ? "lost" : state.gameState,
+  );
 }
 
 function applyHydration(
   state: GameSessionState,
   {
     challenge,
-    maxAttempts,
     session,
   }: Extract<GameSessionAction, { type: "sessionHydrated" }>,
 ): GameSessionState {
@@ -285,7 +274,7 @@ function applyHydration(
     attempts: hydrateAttempts(session.guesses),
     clues: session.revealed,
     dailyPerfume: withAnswer(mysteryPerfume(challenge), session),
-    gameState: gameStateFromGuesses(session.guesses, maxAttempts),
+    gameState: gameStateFromGuesses(session.guesses),
     imageUrl: session.imageUrl || state.imageUrl,
     nonce: session.nonce,
     sessionId: session.sessionId,
@@ -317,7 +306,7 @@ export function gameSessionReducer(
         clues: HIDDEN_CLUES,
         dailyPerfume: SKELETON_PERFUME,
         gameState: "playing",
-        imageUrl: "/placeholder.svg",
+        imageUrl: EMPTY_IMAGE_URL,
         nonce: "",
         sessionId: null,
       };
@@ -331,7 +320,7 @@ export function gameSessionReducer(
         // The session id makes the URL new, so the browser does not show the cached image.
         imageUrl: session.imageUrl
           ? `${session.imageUrl}?reset=${session.sessionId}`
-          : "/placeholder.svg",
+          : EMPTY_IMAGE_URL,
         nonce: session.nonce,
         sessionId: session.sessionId,
       };

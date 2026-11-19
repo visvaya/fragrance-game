@@ -50,7 +50,7 @@ export type GuessedPerfumeRow = {
 };
 
 /** Feedback stored for skips: nothing matched. */
-const SKIP_FEEDBACK: AttemptFeedback = {
+export const SKIP_FEEDBACK: AttemptFeedback = {
   brandMatch: false,
   genderMatch: false,
   notesMatch: 0,

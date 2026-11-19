@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { MAX_GUESSES } from "@/lib/constants";
 import { HIDDEN_CLUES, type RevealedClues } from "@/lib/game/clue-reveal";
 import {
   SKELETON_PERFUME,
@@ -19,7 +20,7 @@ import type {
 import type { AttemptFeedback } from "@/lib/game/guess-feedback";
 import type { GuessHistoryItem } from "@/lib/game/guess-history";
 
-const MAX_ATTEMPTS = 6;
+const MAX_ATTEMPTS = MAX_GUESSES;
 
 const FEEDBACK: AttemptFeedback = {
   brandMatch: true,
@@ -111,7 +112,6 @@ function playing(overrides: Partial<GameSessionState> = {}): GameSessionState {
     ...initialGameSessionState({
       initialChallenge: CHALLENGE,
       initialSession: session(),
-      maxAttempts: MAX_ATTEMPTS,
     }),
     ...overrides,
   };
@@ -119,7 +119,7 @@ function playing(overrides: Partial<GameSessionState> = {}): GameSessionState {
 
 describe("initialGameSessionState", () => {
   it("is empty and not ready without a challenge and a session", () => {
-    expect(initialGameSessionState({ maxAttempts: MAX_ATTEMPTS })).toEqual({
+    expect(initialGameSessionState({})).toEqual({
       attempts: [],
       clues: HIDDEN_CLUES,
       dailyPerfume: SKELETON_PERFUME,
@@ -137,7 +137,6 @@ describe("initialGameSessionState", () => {
         initialChallenge: CHALLENGE,
         initialImageUrl: "/ssr.jpg",
         initialSession: null,
-        maxAttempts: MAX_ATTEMPTS,
       }),
     ).toEqual({
       attempts: [],
@@ -163,7 +162,6 @@ describe("initialGameSessionState", () => {
       initialSession: session({
         guesses: [guessItem(), guessItem({ isSkip: true })],
       }),
-      maxAttempts: MAX_ATTEMPTS,
     });
 
     expect(state.attempts).toHaveLength(2);
@@ -187,7 +185,6 @@ describe("initialGameSessionState", () => {
         answerName: "N5",
         guesses: [guessItem({ isCorrect: true })],
       }),
-      maxAttempts: MAX_ATTEMPTS,
     });
 
     expect(state.gameState).toBe("won");
@@ -203,7 +200,6 @@ describe("initialGameSessionState", () => {
       initialSession: session({
         guesses: Array.from({ length: MAX_ATTEMPTS }, () => guessItem()),
       }),
-      maxAttempts: MAX_ATTEMPTS,
     });
 
     expect(state.gameState).toBe("lost");
@@ -212,11 +208,10 @@ describe("initialGameSessionState", () => {
 
 describe("gameSessionReducer", () => {
   it("sessionHydrated: loads the session of the client-side init", () => {
-    const initial = initialGameSessionState({ maxAttempts: MAX_ATTEMPTS });
+    const initial = initialGameSessionState({});
 
     const state = gameSessionReducer(initial, {
       challenge: CHALLENGE,
-      maxAttempts: MAX_ATTEMPTS,
       session: session({
         answerConcentration: "EDP",
         answerName: "N5",
@@ -243,11 +238,10 @@ describe("gameSessionReducer", () => {
   });
 
   it("sessionHydrated: keeps the name secret and the image when the session has none", () => {
-    const initial = initialGameSessionState({ maxAttempts: MAX_ATTEMPTS });
+    const initial = initialGameSessionState({});
 
     const state = gameSessionReducer(initial, {
       challenge: CHALLENGE,
-      maxAttempts: MAX_ATTEMPTS,
       session: session({ imageUrl: null }),
       type: "sessionHydrated",
     });
@@ -298,7 +292,6 @@ describe("gameSessionReducer", () => {
   it("guessResolved: appends the attempt and takes clues, nonce and image from the result", () => {
     const state = gameSessionReducer(playing(), {
       guess: GUESS,
-      maxAttempts: MAX_ATTEMPTS,
       result: guessResult({ imageUrl: "/step2.jpg" }),
       type: "guessResolved",
     });
@@ -328,7 +321,6 @@ describe("gameSessionReducer", () => {
   it("guessResolved: keeps nonce and image the result does not carry", () => {
     const state = gameSessionReducer(playing(), {
       guess: GUESS,
-      maxAttempts: MAX_ATTEMPTS,
       result: guessResult({ newNonce: "" }),
       type: "guessResolved",
     });
@@ -339,7 +331,6 @@ describe("gameSessionReducer", () => {
   it("guessResolved: a correct guess wins and reveals the answer", () => {
     const state = gameSessionReducer(playing(), {
       guess: GUESS,
-      maxAttempts: MAX_ATTEMPTS,
       result: guessResult({
         answerConcentration: "EDP",
         answerName: "Sauvage",
@@ -360,7 +351,6 @@ describe("gameSessionReducer", () => {
   it("guessResolved: the server's lost status loses the game", () => {
     const state = gameSessionReducer(playing(), {
       guess: GUESS,
-      maxAttempts: MAX_ATTEMPTS,
       result: guessResult({ answerName: "Sauvage", gameStatus: "lost" }),
       type: "guessResolved",
     });
@@ -378,7 +368,6 @@ describe("gameSessionReducer", () => {
       }),
       {
         guess: GUESS,
-        maxAttempts: MAX_ATTEMPTS,
         result: guessResult(),
         type: "guessResolved",
       },
@@ -480,7 +469,6 @@ describe("gameSessionReducer", () => {
 
     gameSessionReducer(before, {
       guess: GUESS,
-      maxAttempts: MAX_ATTEMPTS,
       result: guessResult(),
       type: "guessResolved",
     });
