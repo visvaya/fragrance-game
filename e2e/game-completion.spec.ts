@@ -108,7 +108,7 @@ test.describe("Game Completion Flows", () => {
   });
 
   test("Defeat Flow (Loss)", async ({ page }) => {
-    // 1. Visit Home – same strategy as game-flow.spec.ts which handles captcha reload
+    // 1. Visit Home
     await page.goto("/", { waitUntil: "domcontentloaded" });
 
     // 2. Check if already finished or no puzzle

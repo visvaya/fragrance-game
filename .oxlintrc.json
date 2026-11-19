@@ -1822,7 +1822,7 @@
         "playwright/valid-title": "error"
       }
     },
-    // Known violations of the test guards (93 on 2026-11-16, 89 on 2026-11-19, in the nightly suite). This list only
+    // Known violations of the test guards (93 on 2026-11-16, 87 on 2026-11-19, in the nightly suite). This list only
     // shrinks: fix a file (assert the state instead of branching on it, no try/catch around
     // expects) and remove it here. New e2e files get the guards as errors.
     {
