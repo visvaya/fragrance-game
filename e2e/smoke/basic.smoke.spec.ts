@@ -12,6 +12,15 @@ test.describe("Smoke Tests - Critical Path @smoke", () => {
     await expect(gameContainer).toBeVisible();
   });
 
+  test("Unknown page answers 404 with the localized not-found page", async ({
+    page,
+  }) => {
+    const response = await page.goto("/en/no-such-page");
+
+    expect(response?.status()).toBe(404);
+    await expect(page.getByText("404 - Not Found")).toBeVisible();
+  });
+
   test("Game Input or No-Puzzle message is visible", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("main")).toBeVisible();
