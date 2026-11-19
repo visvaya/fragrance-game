@@ -1,5 +1,3 @@
-import "server-only";
-
 /** Reason stored on a result whose game began before the player signed in. */
 export const STARTED_AS_GUEST = "started_as_guest";
 

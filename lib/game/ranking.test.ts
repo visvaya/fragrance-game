@@ -1,8 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { rankingForResult } from "@/lib/game/ranking";
-
-vi.mock("server-only", () => ({}));
 
 const NOW = new Date("2026-10-03T12:00:00Z");
 const LATER = "2026-10-04T00:00:00Z";
