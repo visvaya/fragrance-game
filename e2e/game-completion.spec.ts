@@ -12,7 +12,7 @@ const AUTH_FILE = path.join(DIR, ".auth", "user.json");
 
 test.describe("Game Completion Flows", () => {
   // Use pre-authenticated session if globalSetup created it.
-  // This ensures authReady=true from the start — no signInAnonymously() needed.
+  // This ensures authReady=true from the start – no signInAnonymously() needed.
   if (existsSync(AUTH_FILE)) {
     test.use({ storageState: AUTH_FILE });
   }
@@ -108,7 +108,7 @@ test.describe("Game Completion Flows", () => {
   });
 
   test("Defeat Flow (Loss)", async ({ page }) => {
-    // 1. Visit Home — same strategy as game-flow.spec.ts which handles captcha reload
+    // 1. Visit Home – same strategy as game-flow.spec.ts which handles captcha reload
     await page.goto("/", { waitUntil: "domcontentloaded" });
 
     // 2. Check if already finished or no puzzle
@@ -136,7 +136,7 @@ test.describe("Game Completion Flows", () => {
     // Use 6 distinct brands to ensure we get 6 DIFFERENT perfumes easily
     const brands = ["Dior", "Chanel", "Gucci", "Versace", "Prada", "Hermes"];
 
-    // [data-attempt-row] uses display:contents (no bounding box) — Playwright's toHaveCount skips it.
+    // [data-attempt-row] uses display:contents (no bounding box) – Playwright's toHaveCount skips it.
     // Use id="attempt-N" (the visible RowCell inside each attempt row) as the reliable indicator.
     const attemptCells = page.locator('[id^="attempt-"]');
 
@@ -160,8 +160,8 @@ test.describe("Game Completion Flows", () => {
       await suggestion.click();
 
       if (i < 5) {
-        // Wait for the attempt cell to appear — confirms auth + guess submission completed
-        // First guess triggers initializeAndGuess() (session + submit in 1 roundtrip) — allow 30s
+        // Wait for the attempt cell to appear – confirms auth + guess submission completed
+        // First guess triggers initializeAndGuess() (session + submit in 1 roundtrip) – allow 30s
         await expect(attemptCells).toHaveCount(expectedCellCount, {
           timeout: 30_000,
         });

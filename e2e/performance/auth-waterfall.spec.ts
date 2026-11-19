@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 
 /**
- * Waits for GameProvider.initGame to finish — either successfully (session_ready)
+ * Waits for GameProvider.initGame to finish – either successfully (session_ready)
  * or via an early exit (captcha / auth error → init_end without session_ready).
  */
 async function waitForInitEnd(page: Page): Promise<void> {
@@ -61,7 +61,7 @@ function printBreakdown(
 }
 
 test.describe("Auth Waterfall Diagnostics", () => {
-  test("new user — auth waterfall timing breakdown", async ({ browser }) => {
+  test("new user – auth waterfall timing breakdown", async ({ browser }) => {
     // Fresh context = no cookies = new user path (anon sign-in + verify)
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -83,7 +83,7 @@ test.describe("Auth Waterfall Diagnostics", () => {
     }
   });
 
-  test("returning user — no auth roundtrip, game_fetch only", async ({
+  test("returning user – no auth roundtrip, game_fetch only", async ({
     page,
   }) => {
     // First visit to establish anonymous session in cookies
@@ -101,7 +101,7 @@ test.describe("Auth Waterfall Diagnostics", () => {
       (m) => m.name === "eauxle:session_ready",
     );
 
-    // Reload simulates returning user — session already in cookies, auth skipped
+    // Reload simulates returning user – session already in cookies, auth skipped
     await page.reload();
     await waitForInitEnd(page);
 
@@ -118,7 +118,7 @@ test.describe("Auth Waterfall Diagnostics", () => {
       if (gameF != null) expect(gameF.duration).toBeLessThan(500);
     } else {
       console.log(
-        "  NOTE: first load did not establish session (captcha?) — returning-user assertions skipped",
+        "  NOTE: first load did not establish session (captcha?) – returning-user assertions skipped",
       );
     }
   });

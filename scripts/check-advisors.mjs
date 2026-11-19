@@ -4,7 +4,7 @@
  * (missing RLS policies, SECURITY DEFINER views, exposed schemas, ...).
  *
  * The Supabase CLI has no `advisors` command yet (supabase/cli#3839), so this
- * calls the Management API directly. That endpoint is marked experimental —
+ * calls the Management API directly. That endpoint is marked experimental –
  * if its shape changes, this script fails loudly rather than reporting a false pass.
  *
  * Required env:
@@ -60,7 +60,7 @@ async function fetchSecurityLints() {
   if (!Array.isArray(payload?.lints)) {
     fail(
       2,
-      "Unexpected response shape — expected a `lints` array. " +
+      "Unexpected response shape – expected a `lints` array. " +
         "The experimental advisors endpoint may have changed.",
     );
   }

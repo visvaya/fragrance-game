@@ -46,7 +46,7 @@ export const HighlightedText = memo(
 
       if (searchTerms.length === 0) return [text];
 
-      // Collect all match positions via flatMap — no mutable accumulator
+      // Collect all match positions via flatMap – no mutable accumulator
       const allMatches = searchTerms.flatMap((term) => {
         const exactMatches = findExactMatches(normalizedText, term);
         if (exactMatches.length > 0 || term.length < 4) return exactMatches;

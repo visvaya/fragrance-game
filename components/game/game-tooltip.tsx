@@ -51,7 +51,7 @@ export function GameTooltip({
 }: Readonly<GameTooltipProperties>) {
   const [open, setOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  // Mount TooltipContent only after first interaction — avoids Radix Presence
+  // Mount TooltipContent only after first interaction – avoids Radix Presence
   // mounting all tooltip contents on page load (134ms forced reflow from getComputedStyle).
   const [hasOpenedOnce, setHasOpenedOnce] = useState(false);
   // Ref to track if the interaction is touch-based.
@@ -74,7 +74,7 @@ export function GameTooltip({
       <TooltipTrigger asChild>
         {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- TooltipTrigger (asChild) wraps this div as a trigger; keyboard handling is present via onKeyDown */}
         <div
-          // No aria-label here — the wrapper div has no interactive role (not button/link).
+          // No aria-label here – the wrapper div has no interactive role (not button/link).
           // aria-label on plain divs violates WCAG (aria-prohibited-attr).
           // Children (buttons/links) carry their own accessible labels.
           // Use 'div' wrapper to capture events even if child is disabled or prevents propagation.
@@ -134,7 +134,7 @@ export function GameTooltip({
             setIsHovered(false);
             setOpen(false);
           }}
-          // No role="button" here — children are natively focusable (buttons/links).
+          // No role="button" here – children are natively focusable (buttons/links).
           // Adding role="button" to a div wrapping a button violates WCAG 4.1.2 (no-focusable-content).
           // Tooltip still opens via onFocus bubbling from the child element and onPointerEnter.
           tabIndex={-1}

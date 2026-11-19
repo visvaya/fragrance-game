@@ -35,7 +35,7 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   display: "swap",
-  preload: false, // mono font is not an LCP candidate — skip competing preload
+  preload: false, // mono font is not an LCP candidate – skip competing preload
   subsets: ["latin", "latin-ext"],
   variable: "--font-geist-mono",
 });
@@ -49,7 +49,7 @@ const playfair = Playfair_Display({
 
 const caveat = Caveat({
   display: "swap",
-  preload: true, // used in game-input + game-footer (above fold) — preload prevents CLS
+  preload: true, // used in game-input + game-footer (above fold) – preload prevents CLS
   subsets: ["latin", "latin-ext"],
   variable: "--font-caveat",
   weight: ["400"],
@@ -176,7 +176,7 @@ export default async function RootLayout({
           href={env.NEXT_PUBLIC_SUPABASE_URL}
           rel="preconnect"
         />
-        {/* Sentry CDN — dns-prefetch wystarczy (SDK ładowany na idle) */}
+        {/* Sentry CDN – dns-prefetch wystarczy (SDK ładowany na idle) */}
         <link href="https://browser.sentry-cdn.com" rel="dns-prefetch" />
       </head>
       <body

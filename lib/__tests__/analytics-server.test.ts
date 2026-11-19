@@ -155,7 +155,7 @@ describe("analytics-server", () => {
 
   describe("singleton client", () => {
     it("reuses the same PostHog instance across multiple calls", async () => {
-      // The module is already loaded — PostHog was constructed once on first call.
+      // The module is already loaded – PostHog was constructed once on first call.
       // Each subsequent call must NOT construct a new instance.
       const callsBefore = MockPostHog.mock.calls.length;
 

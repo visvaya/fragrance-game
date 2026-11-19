@@ -10,7 +10,7 @@ export function cn(...inputs: ClassValue[]): string {
 }
 
 /**
- * No-op function — intentionally empty. Use where an event handler is required
+ * No-op function – intentionally empty. Use where an event handler is required
  * for browser compatibility (e.g. iOS :active CSS state) but no action is needed.
  */
 export const noop = (): undefined => undefined;

@@ -1151,7 +1151,7 @@ export async function resetGame(
 /**
  * Pobiera pełne dane dzisiejszego wyzwania bez wymagania auth użytkownika.
  * Używane wyłącznie do SSR w page.tsx (ISR-safe).
- * W razie błędu zwraca null — GameProvider fallback'uje do initializeGame().
+ * W razie błędu zwraca null – GameProvider fallback'uje do initializeGame().
  * Wynik jest cachowany przez Next.js na 24h (revalidate: 86_400).
  */
 export const getDailyChallengeSSR = unstable_cache(
@@ -1226,7 +1226,7 @@ export const getDailyChallengeSSR = unstable_cache(
 /**
  * Pobiera URL obrazka step-1 dzisiejszego wyzwania bez wymagania auth.
  * Używane wyłącznie do SSR preload w page.tsx (ISR-safe).
- * W razie błędu zwraca null — GameProvider fallback'uje do /placeholder.svg.
+ * W razie błędu zwraca null – GameProvider fallback'uje do /placeholder.svg.
  * Wynik jest cachowany przez Next.js na 24h (revalidate: 86_400).
  */
 export const getDailyStep1ImageUrl = unstable_cache(
@@ -1264,17 +1264,17 @@ export const getDailyStep1ImageUrl = unstable_cache(
  * Fetches the player's existing game session for today's challenge at SSR time.
  *
  * Security model:
- * - Uses createClient() which reads auth cookies from the incoming request —
+ * - Uses createClient() which reads auth cookies from the incoming request –
  *   only the authenticated user's own sessions are accessible (Supabase RLS).
  * - Does NOT expose answer data (name/concentration) unless game is already over.
- * - Returns null for unauthenticated users — GameProvider falls back to
+ * - Returns null for unauthenticated users – GameProvider falls back to
  *   client-side anonymous auth + startGame as before.
- * - On any error returns null — graceful degradation, never crashes SSR.
+ * - On any error returns null – graceful degradation, never crashes SSR.
  *
  * Performance:
  * - Delegates to startGame() which short-circuits on existingSession (no rate-limit,
  *   no new DB insert). For a returning player this is a single SELECT query.
- * - Not cached — per-user per-request by design.
+ * - Not cached – per-user per-request by design.
  */
 export async function getPlayerDailySession(
   challengeId: string,
@@ -1286,7 +1286,7 @@ export async function getPlayerDailySession(
       data: { user },
     } = await supabase.auth.getUser();
 
-    // Not authenticated — client-side anonymous auth flow will handle this
+    // Not authenticated – client-side anonymous auth flow will handle this
     if (!user) return null;
 
     // Fetch or create session (startGame handles both paths)
@@ -1299,7 +1299,7 @@ export async function getPlayerDailySession(
 }
 
 /**
- * Gate 6 — Lazy init: atomically creates a game session and submits the first guess.
+ * Gate 6 – Lazy init: atomically creates a game session and submits the first guess.
  * Called when the user makes their first guess before a session exists (deferred startGame).
  * Combines startGame + submitGuess into a single server roundtrip.
  */
@@ -1329,7 +1329,7 @@ export async function initializeAndGuess(
 }
 
 /**
- * Gate 6 — Lazy init: atomically creates a game session and skips the first attempt.
+ * Gate 6 – Lazy init: atomically creates a game session and skips the first attempt.
  * Called when the user skips before a session exists (deferred startGame).
  * Combines startGame + skipAttempt into a single server roundtrip.
  */

@@ -12,7 +12,7 @@ SET LOCAL search_path = public, extensions;
 SELECT plan(71);
 
 -- ============================================================
--- TABLES — core game
+-- TABLES – core game
 -- ============================================================
 
 SELECT has_table('public', 'perfumes',           'perfumes table exists');
@@ -25,14 +25,14 @@ SELECT has_table('public', 'players',            'players table exists');
 SELECT has_table('public', 'player_streaks',     'player_streaks table exists');
 
 -- ============================================================
--- TABLES — catalogue
+-- TABLES – catalogue
 -- ============================================================
 
 SELECT has_table('public', 'manufacturers',      'manufacturers table exists');
 SELECT has_table('public', 'perfume_assets',     'perfume_assets table exists');
 
 -- ============================================================
--- TABLES — player account & social
+-- TABLES – player account & social
 -- ============================================================
 
 SELECT has_table('public', 'player_auth_links',  'player_auth_links table exists');
@@ -77,11 +77,11 @@ SELECT ok(
 );
 
 -- ============================================================
--- perfumes_public — must NOT expose sensitive columns
+-- perfumes_public – must NOT expose sensitive columns
 -- ============================================================
 
 SELECT hasnt_column('public', 'perfumes_public', 'top_notes',
-  'perfumes_public excludes top_notes (fragrance notes are clues — leaked before reveal)');
+  'perfumes_public excludes top_notes (fragrance notes are clues – leaked before reveal)');
 
 SELECT hasnt_column('public', 'perfumes_public', 'middle_notes',
   'perfumes_public excludes middle_notes');
@@ -98,14 +98,14 @@ SELECT hasnt_column('public', 'perfumes_public', 'fingerprint_strict',
 SELECT hasnt_column('public', 'perfumes_public', 'fingerprint_loose',
   'perfumes_public excludes fingerprint_loose');
 
--- perfumes_public — must expose safe public columns
+-- perfumes_public – must expose safe public columns
 SELECT has_column('public', 'perfumes_public', 'id',           'perfumes_public has id');
 SELECT has_column('public', 'perfumes_public', 'name',         'perfumes_public has name');
 SELECT has_column('public', 'perfumes_public', 'gender',       'perfumes_public has gender');
 SELECT has_column('public', 'perfumes_public', 'is_uncertain', 'perfumes_public has is_uncertain');
 
 -- ============================================================
--- daily_challenges_public — must NOT expose perfume_id
+-- daily_challenges_public – must NOT expose perfume_id
 -- ============================================================
 
 SELECT hasnt_column('public', 'daily_challenges_public', 'perfume_id',
@@ -114,13 +114,13 @@ SELECT hasnt_column('public', 'daily_challenges_public', 'perfume_id',
 SELECT hasnt_column('public', 'daily_challenges_public', 'seed_hash',
   'daily_challenges_public excludes seed_hash');
 
--- daily_challenges_public — must expose safe columns
+-- daily_challenges_public – must expose safe columns
 SELECT has_column('public', 'daily_challenges_public', 'id',             'daily_challenges_public has id');
 SELECT has_column('public', 'daily_challenges_public', 'challenge_date', 'daily_challenges_public has challenge_date');
 SELECT has_column('public', 'daily_challenges_public', 'mode',           'daily_challenges_public has mode');
 
 -- ============================================================
--- perfumes TABLE — critical columns and constraints
+-- perfumes TABLE – critical columns and constraints
 -- ============================================================
 
 SELECT has_column('public', 'perfumes', 'id',           'perfumes has id');
@@ -132,7 +132,7 @@ SELECT col_is_pk('public', 'perfumes', 'id',            'perfumes.id is primary 
 SELECT col_not_null('public', 'perfumes', 'name',       'perfumes.name is NOT NULL');
 
 -- ============================================================
--- FUNCTIONS — search
+-- FUNCTIONS – search
 -- ============================================================
 
 SELECT has_function('public', 'search_perfumes_unaccent_v2',
@@ -145,7 +145,7 @@ SELECT has_function('public', 'normalize_search_text',
   'normalize_search_text function exists');
 
 -- ============================================================
--- FUNCTIONS — slug
+-- FUNCTIONS – slug
 -- ============================================================
 
 SELECT has_function('public', 'slugify',
@@ -155,7 +155,7 @@ SELECT has_function('public', 'generate_unique_slug',
   'generate_unique_slug trigger function exists');
 
 -- ============================================================
--- FUNCTIONS — session sync triggers
+-- FUNCTIONS – session sync triggers
 -- ============================================================
 
 SELECT has_function('public', 'handle_new_session',

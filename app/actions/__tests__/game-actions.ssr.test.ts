@@ -179,7 +179,7 @@ describe("getDailyChallengeSSR", () => {
             error: null,
           });
         }
-        // perfumes — xsolve_score is null
+        // perfumes – xsolve_score is null
         return makeChain({
           data: {
             base_notes: [],
@@ -387,10 +387,10 @@ describe("getPlayerDailySession", () => {
 });
 
 // ---------------------------------------------------------------------------
-// initializeAndGuess / initializeAndSkip — input validation
+// initializeAndGuess / initializeAndSkip – input validation
 // ---------------------------------------------------------------------------
 
-describe("initializeAndGuess — Zod validation", () => {
+describe("initializeAndGuess – Zod validation", () => {
   it("throws ZodError for invalid challengeId", async () => {
     await expect(
       initializeAndGuess("not-uuid", VALID_PERFUME_ID),
@@ -404,7 +404,7 @@ describe("initializeAndGuess — Zod validation", () => {
   });
 });
 
-describe("initializeAndSkip — Zod validation", () => {
+describe("initializeAndSkip – Zod validation", () => {
   it("throws ZodError for invalid challengeId", async () => {
     await expect(initializeAndSkip("not-uuid")).rejects.toThrow(ZodError);
   });

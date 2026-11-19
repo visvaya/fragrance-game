@@ -86,7 +86,7 @@ test.describe("Rate Limiting", () => {
   test("rate limit applies per IP address", async ({ request }) => {
     // This test verifies that rate limiting is IP-based.
     // All requests from Playwright share the same IP, so we verify that responses
-    // are either successful or rate-limited — never unexpected errors.
+    // are either successful or rate-limited – never unexpected errors.
 
     const responses: number[] = [];
 
@@ -96,14 +96,14 @@ test.describe("Rate Limiting", () => {
       responses.push(response.status());
     }
 
-    // Every response must be either successful (200) or rate-limited (429) — no 5xx errors
+    // Every response must be either successful (200) or rate-limited (429) – no 5xx errors
     const validStatuses = responses.filter((s) => s === 200 || s === 429);
     expect(validStatuses).toHaveLength(10);
   });
 
   test("rate limit only applies to /api routes", async ({ request }) => {
     // Non-API routes should NOT be rate-limited.
-    // GET / redirects to /en (307), which is a normal response — not rate-limited (429).
+    // GET / redirects to /en (307), which is a normal response – not rate-limited (429).
     const responses: number[] = [];
 
     // Send multiple requests to a regular page

@@ -44,7 +44,7 @@ vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => key,
 }));
 
-// Stub out all next/dynamic imports — we don't test modal content here
+// Stub out all next/dynamic imports – we don't test modal content here
 vi.mock("next/dynamic", () => ({
   default:
     (
@@ -283,7 +283,7 @@ describe("GameHeader", () => {
     });
   });
 
-  describe("menu content — user state", () => {
+  describe("menu content – user state", () => {
     it("shows signIn and createAccount when user is null", () => {
       renderHeader({ user: null });
 
@@ -399,7 +399,7 @@ describe("GameHeader", () => {
 
       await userEvent.setup({ delay: null }).click(langButton);
 
-      // Language options appear — "Polski" locale option should be visible
+      // Language options appear – "Polski" locale option should be visible
       expect(screen.getAllByText("Polski").length).toBeGreaterThan(0);
     });
   });

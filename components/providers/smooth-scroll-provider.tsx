@@ -60,7 +60,7 @@ export function SmoothScrollProvider({
   children,
 }: Readonly<{ children: ReactNode }>) {
   useMountEffect(() => {
-    // Skip Lenis entirely on mobile — no init, no RAF loop, no MutationObserver
+    // Skip Lenis entirely on mobile – no init, no RAF loop, no MutationObserver
 
     if (globalThis.innerWidth < 1024) {
       return;

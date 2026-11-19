@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { test, expect, type Page } from "@playwright/test";
 
-// Pre-authenticated session — skips signInAnonymously() + Turnstile captcha.
+// Pre-authenticated session – skips signInAnonymously() + Turnstile captcha.
 // Without this the game shows "No puzzle today" because auth takes >10s in headless mode.
 // Playwright runs from the project root and loads specs as CommonJS; import.meta
 // would make Node parse the file as an ES module ("exports is not defined").
@@ -16,7 +16,7 @@ if (existsSync(AUTH_FILE)) {
 
 /**
  * Helper to wait for game input to be ready.
- * With pre-authenticated storageState, auth is instant — input appears in ~1-2s.
+ * With pre-authenticated storageState, auth is instant – input appears in ~1-2s.
  */
 async function waitForGameInput(page: Page) {
   const input = page.getByTestId("game-input");
@@ -239,7 +239,7 @@ test.describe("Error Handling", () => {
 
       const input = await waitForGameInput(page);
 
-      // Submit any perfume from suggestions — we only verify the attempt is recorded,
+      // Submit any perfume from suggestions – we only verify the attempt is recorded,
       // not whether the guess was correct. No need to know today's answer.
       await input.fill("Chanel");
       await page.waitForTimeout(500);

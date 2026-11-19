@@ -16,7 +16,7 @@ export function RevealImageSkeleton({
 }: Readonly<{ t?: (key: string) => string }>) {
   return (
     <div className="flex size-full flex-col">
-      {/* Title row — placeholder ikony + tytuł, jak we wszystkich innych skeleton boxach */}
+      {/* Title row – placeholder ikony + tytuł, jak we wszystkich innych skeleton boxach */}
       <div className="mb-4 flex w-fit cursor-default items-center">
         <div className="flex items-center gap-2">
           <span className="inline-flex size-4 rounded bg-muted/30" />
@@ -31,7 +31,7 @@ export function RevealImageSkeleton({
       </div>
 
       <div className="flex flex-1 flex-row items-center gap-2">
-        {/* Left vertical dot filler — identical to real component */}
+        {/* Left vertical dot filler – identical to real component */}
         <span
           aria-hidden="true"
           className="flex flex-1 justify-center self-stretch py-2"
@@ -86,7 +86,7 @@ export function MetaCluesSkeleton({
 }: Readonly<{ t?: (key: string) => string }>) {
   return (
     <div className="flex h-full flex-col p-0">
-      {/* Title row — matches real MetaClues title structure */}
+      {/* Title row – matches real MetaClues title structure */}
       <div className="mb-2 flex w-fit cursor-default items-center">
         <div className="flex items-center gap-2">
           <span className="inline-flex size-4 rounded bg-muted/30" />
@@ -101,7 +101,7 @@ export function MetaCluesSkeleton({
       </div>
 
       <div className="flex flex-1 flex-col gap-5">
-        {/* Brand row — same structure as real: label + flex wrapper with badge + DotFiller */}
+        {/* Brand row – same structure as real: label + flex wrapper with badge + DotFiller */}
         <div className="flex w-full flex-col items-start gap-0.5">
           {t ? (
             <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
@@ -135,7 +135,7 @@ export function MetaCluesSkeleton({
           </div>
         </div>
 
-        {/* Year + Gender — 2-column grid, same as real component */}
+        {/* Year + Gender – 2-column grid, same as real component */}
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col items-start gap-0.5">
             {t ? (
@@ -215,7 +215,7 @@ export function PyramidCluesSkeleton({
             className="flex flex-col gap-2 border-b border-border/60 py-4 first:pt-0 last:border-b-0 last:pb-0"
             key={level.label || `skel-level-${idx}`}
           >
-            {/* Level header: neutral dot + label — matches real level row structure */}
+            {/* Level header: neutral dot + label – matches real level row structure */}
             <div className="flex items-center gap-2">
               <span className="size-2 shrink-0 rounded-full bg-muted-foreground/30" />
               {level.label ? (
@@ -228,7 +228,7 @@ export function PyramidCluesSkeleton({
             </div>
 
             {/*
-              Badges row — mirrors real layout exactly:
+              Badges row – mirrors real layout exactly:
               - non-last badges are plain
               - last badge is wrapped in flex-[1_1_0px] with DotFiller
             */}
@@ -265,7 +265,7 @@ export function AttemptLogSkeleton({
 }: Readonly<{ t?: (key: string) => string }>) {
   return (
     <section className="panel-standard">
-      {/* Title row — matches real AttemptLog title structure */}
+      {/* Title row – matches real AttemptLog title structure */}
       <div className="mb-1 flex w-fit cursor-default items-center">
         <div className="flex items-center gap-2">
           <span className="inline-flex size-4 rounded bg-muted/30" />
@@ -279,9 +279,9 @@ export function AttemptLogSkeleton({
         </div>
       </div>
 
-      {/* Table — same grid as real: 1.5rem/2rem | 1fr | minmax(105px,auto) */}
+      {/* Table – same grid as real: 1.5rem/2rem | 1fr | minmax(105px,auto) */}
       <div className="-mb-3 grid grid-cols-[2rem_1fr_minmax(7rem,auto)]">
-        {/* Header: "#" column — real has size-8 GameTooltip placeholder, we replicate 32px height */}
+        {/* Header: "#" column – real has size-8 GameTooltip placeholder, we replicate 32px height */}
         <div className="flex items-center justify-center border-b-2 border-muted/50 pb-[0.1875rem] text-[0.8125rem] font-semibold tracking-widest text-muted-foreground/70 lowercase">
           {t ? (
             <span className="w-full text-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2 opacity-40">
@@ -301,7 +301,7 @@ export function AttemptLogSkeleton({
           )}
         </div>
 
-        {/* Header: 5 attribute columns — neutral squares instead of icons */}
+        {/* Header: 5 attribute columns – neutral squares instead of icons */}
         <div className="grid w-full grid-cols-5 justify-items-center border-b-2 border-muted/50 pr-1.5 pb-2 pl-0 sm:pr-2 sm:pl-1">
           {["brand", "perfumer", "year", "gender", "notes"].map((col) => (
             <div className="flex size-8 items-center justify-center" key={col}>
@@ -310,7 +310,7 @@ export function AttemptLogSkeleton({
           ))}
         </div>
 
-        {/* 6 empty content rows — identical classes to real empty rows */}
+        {/* 6 empty content rows – identical classes to real empty rows */}
         {[1, 2, 3, 4, 5, 6].map((rowNumber, index) => (
           <div className="contents" key={rowNumber}>
             <div

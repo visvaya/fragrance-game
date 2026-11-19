@@ -20,7 +20,7 @@ function getPostHogClient() {
 /**
  * Tracks a server-side analytics event via posthog-node.
  * Uses captureImmediate() so the singleton client stays alive across multiple
- * calls within the same serverless invocation — preventing silent event loss
+ * calls within the same serverless invocation – preventing silent event loss
  * when trackEvent/identifyUser are called sequentially.
  */
 export async function trackEvent(

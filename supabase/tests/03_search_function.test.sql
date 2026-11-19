@@ -24,7 +24,7 @@ SELECT has_function(
 );
 
 -- ============================================================
--- RETURN TYPE — must have correct columns
+-- RETURN TYPE – must have correct columns
 -- ============================================================
 
 SELECT function_returns(
@@ -41,12 +41,12 @@ SELECT function_returns(
 
 SELECT ok(
   (SELECT COUNT(*) FROM public.search_perfumes_unaccent_v2('C', 10)) = 0,
-  'query "C" (1 char) returns 0 results — minimum length enforced'
+  'query "C" (1 char) returns 0 results – minimum length enforced'
 );
 
 SELECT ok(
   (SELECT COUNT(*) FROM public.search_perfumes_unaccent_v2('Ch', 10)) = 0,
-  'query "Ch" (2 chars) returns 0 results — minimum length enforced'
+  'query "Ch" (2 chars) returns 0 results – minimum length enforced'
 );
 
 -- ============================================================
@@ -55,7 +55,7 @@ SELECT ok(
 
 SELECT ok(
   (SELECT COUNT(*) FROM public.search_perfumes_unaccent_v2('Cha', 10)) >= 0,
-  'query "Cha" (3 chars) does not error — returns 0 or more results'
+  'query "Cha" (3 chars) does not error – returns 0 or more results'
 );
 
 -- ============================================================
@@ -73,7 +73,7 @@ SELECT ok(
 );
 
 -- ============================================================
--- BEHAVIOR: SQL injection — must not error
+-- BEHAVIOR: SQL injection – must not error
 -- ============================================================
 
 SELECT ok(
@@ -87,7 +87,7 @@ SELECT ok(
 );
 
 -- ============================================================
--- f_unaccent — diacritics normalization
+-- f_unaccent – diacritics normalization
 -- ============================================================
 
 SELECT is(

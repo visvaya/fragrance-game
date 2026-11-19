@@ -5,14 +5,14 @@ import type { ReactNode } from "react";
 import { env } from "@/lib/env";
 import { useMountEffect } from "@/lib/hooks/use-mount-effect";
 
-// Module-level ref — set when PostHog initializes, used by captureAnalyticsEvent
+// Module-level ref – set when PostHog initializes, used by captureAnalyticsEvent
 let posthogInstance: {
   capture: (event: string, props?: Record<string, unknown>) => void;
 } | null = null;
 
 /**
  * Capture an analytics event without requiring React context.
- * No-op if PostHog hasn't loaded yet — events are dropped silently before initialization.
+ * No-op if PostHog hasn't loaded yet – events are dropped silently before initialization.
  */
 export function captureAnalyticsEvent(
   event: string,

@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { test, expect, devices } from "@playwright/test";
 
-// Pre-authenticated session from globalSetup — skips signInAnonymously() + Turnstile captcha.
+// Pre-authenticated session from globalSetup – skips signInAnonymously() + Turnstile captcha.
 // Without this the Turnstile SDK (external Cloudflare JS) can crash the mobile browser context.
 // Playwright runs from the project root and loads specs as CommonJS; import.meta
 // would make Node parse the file as an ES module ("exports is not defined").
@@ -211,7 +211,7 @@ test.describe("Mobile Touch Interactions - Android", () => {
     const viewportMeta = page.locator('meta[name="viewport"]');
     await expect(viewportMeta).toHaveAttribute("content", /width=device-width/);
 
-    // Intentionally not restricting zoom (WCAG 1.4.4 — user-scalable=no is an accessibility violation).
+    // Intentionally not restricting zoom (WCAG 1.4.4 – user-scalable=no is an accessibility violation).
     // We only verify width=device-width is present, which is the essential part.
     const content = (await viewportMeta.getAttribute("content")) || "";
     expect(content).toContain("width=device-width");

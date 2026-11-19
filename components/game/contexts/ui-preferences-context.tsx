@@ -76,7 +76,7 @@ export function UIPreferencesProvider({
   // Gate: the layout sync effect must NOT write to the DOM until localStorage has
   // been read (in the rAF callback below). Before that point, React state holds the
   // SSR default ("narrow"), and writing it would delete the data-layout="wide"
-  // attribute that the blocking script in layout.tsx already set — causing a flash.
+  // attribute that the blocking script in layout.tsx already set – causing a flash.
   // Using a ref (instead of the old isFirstLayoutSync flag) makes this resilient to
   // React Strict Mode, which re-fires effects and would defeat a "skip first run" guard.
   const hasHydratedPreferences = useRef(false);
@@ -116,7 +116,7 @@ export function UIPreferencesProvider({
   }, []);
 
   // Sync all DOM attributes/classes with preferences state.
-  // Guarded by hasHydratedPreferences — until localStorage is read in the rAF
+  // Guarded by hasHydratedPreferences – until localStorage is read in the rAF
   // callback below, the blocking script's DOM values are authoritative and must
   // not be overwritten. All three mutations are idempotent (toggle/dataset), so
   // running them together on any preference change is safe.
@@ -142,7 +142,7 @@ export function UIPreferencesProvider({
 
   // Load preferences from localStorage on mount.
   // Deferred to useEffect + rAF to avoid blocking the initial paint (TBT reduction).
-  // Only calls setPreferences if computed values differ from current state — avoids
+  // Only calls setPreferences if computed values differ from current state – avoids
   // spurious re-renders (and LCP repaint) on Lighthouse/cold loads with empty localStorage.
   useEffect(() => {
     requestAnimationFrame(() => {
@@ -168,7 +168,7 @@ export function UIPreferencesProvider({
       ).matches;
       const defaultTheme = systemDark ? "dark" : "light";
 
-      // Mark hydration complete BEFORE updating state — the layout sync effect
+      // Mark hydration complete BEFORE updating state – the layout sync effect
       // checks this ref and must be allowed to write on the resulting re-render.
       hasHydratedPreferences.current = true;
 
@@ -183,7 +183,7 @@ export function UIPreferencesProvider({
             ? previous.autoScroll
             : savedAutoScroll === "1";
 
-        // Skip update if nothing changed — avoids unnecessary re-render and LCP repaint
+        // Skip update if nothing changed – avoids unnecessary re-render and LCP repaint
         if (
           nextAutoScroll === previous.autoScroll &&
           nextFont === previous.fontScale &&

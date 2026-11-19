@@ -291,7 +291,7 @@ describe("GameProvider", () => {
 // State restoration from initialSession (synchronous lazy useState init)
 // ---------------------------------------------------------------------------
 
-describe("GameProvider — initialSession state restoration", () => {
+describe("GameProvider – initialSession state restoration", () => {
   const mockInitialChallenge = {
     challenge_date: "2026-02-27",
     grace_deadline_at_utc: "2026-02-28T00:00:00Z",
@@ -456,7 +456,7 @@ describe("GameProvider — initialSession state restoration", () => {
 // Error handling
 // ---------------------------------------------------------------------------
 
-describe("GameProvider — error handling", () => {
+describe("GameProvider – error handling", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     const mockSupabaseClient = {

@@ -73,7 +73,7 @@ e2e/i18n/I18N_TESTING_SUMMARY.md
 app/api/cron/generate-daily/__tests__/TEST_DATABASE_SETUP.md
 lint-results.txt
 
-# Playwright auth state (contains JWT tokens — never commit)
+# Playwright auth state (contains JWT tokens – never commit)
 e2e/.auth/
 
 # Python environment created by uv sync

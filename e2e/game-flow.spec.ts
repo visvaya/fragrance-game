@@ -58,7 +58,7 @@ test("Game Flow Interaction Test (Real DB Check)", async ({ page }) => {
       // 4. Select the first suggestion
       await suggestionsList.first().click();
 
-      // 5. Verify Attempt Log (may not appear if session not established yet — captcha/auth)
+      // 5. Verify Attempt Log (may not appear if session not established yet – captcha/auth)
       const attemptRow = page.locator("span", { hasText: /^I$/ }).first();
 
       await expect(attemptRow).toBeVisible({ timeout: 10_000 });

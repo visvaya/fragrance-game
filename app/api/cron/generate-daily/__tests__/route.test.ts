@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock env before importing the route — env.CRON_SECRET is frozen at import time
+// Mock env before importing the route – env.CRON_SECRET is frozen at import time
 // so process.env mutations have no effect after module initialization.
 vi.mock("@/lib/env", () => ({
   env: {
@@ -83,7 +83,7 @@ describe("CRON Job Security - generate-daily", () => {
   });
 
   // NOTE: "returns 500 if CRON_SECRET not configured" is no longer testable here.
-  // env.CRON_SECRET is validated at startup via Zod — missing secret causes the
+  // env.CRON_SECRET is validated at startup via Zod – missing secret causes the
   // app to fail to start, not return 500 at request time.
 
   it("accepts valid Bearer token and returns success", async () => {

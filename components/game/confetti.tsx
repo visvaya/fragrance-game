@@ -14,7 +14,7 @@ const COLORS = [
 
 const PARTICLE_COUNT = 55;
 
-// Deterministic pseudo-random offsets — avoids hydration issues
+// Deterministic pseudo-random offsets – avoids hydration issues
 const particles = Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
   color: COLORS[i % COLORS.length],
   delay: `${((i * 0.06) % 1.4).toFixed(2)}s`,
@@ -27,7 +27,7 @@ const particles = Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
 
 /**
  * Confetti overlay shown on game win.
- * CSS-only particles — no external library.
+ * CSS-only particles – no external library.
  */
 export const Confetti = memo(function Confetti() {
   return (

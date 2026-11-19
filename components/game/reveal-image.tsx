@@ -21,7 +21,7 @@ import { InfoPopover } from "./info-popover";
 const BLUR_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFklEQVR42mN8//HLfwYiAOOoQvoqBABbWyZJf74GZgAAAABJRU5ErkJggg==";
 
-/** Duration of the crossfade transition in ms — must match Tailwind duration-300. */
+/** Duration of the crossfade transition in ms – must match Tailwind duration-300. */
 const CROSSFADE_DURATION_MS = 300;
 
 function isConfirmKey(e: React.KeyboardEvent): boolean {
@@ -73,7 +73,7 @@ function ImageDisplay({
       role="button"
       tabIndex={0}
     >
-      {/* Active image — always fully visible. Never fades out (prevents background flash).
+      {/* Active image – always fully visible. Never fades out (prevents background flash).
           Only the incoming image fades in on top; once it reaches full opacity we swap.
           No placeholder="blur" here: blur requires JS hydration to remove, which blocks LCP. */}
       <Image
@@ -82,7 +82,7 @@ function ImageDisplay({
           "object-cover transition-transform duration-700 ease-in-out",
           isZoomed ? "scale-110" : "hover:scale-110",
         )}
-        // `priority` is intentionally omitted — it registers a competing preload
+        // `priority` is intentionally omitted – it registers a competing preload
         // (without fetchpriority="high") that deduplicates and wins over the
         // ReactDOM.preload() call in page.tsx that does have fetchpriority="high".
         // Instead: loading="eager" prevents lazy-loading, fetchPriority="high" sets
@@ -95,7 +95,7 @@ function ImageDisplay({
         src={activeSource}
       />
 
-      {/* Pending image — pre-loads invisibly, fades in on top of the active image.
+      {/* Pending image – pre-loads invisibly, fades in on top of the active image.
           Background never shows through because active stays at full opacity.
           key={pendingSource} ensures a fresh <img> for each new URL so onLoad
           fires reliably even for previously cached images. */}
@@ -129,7 +129,7 @@ function ImageDisplay({
 /**
  * Displays the perfume image (visual evidence) with a progressive reveal system.
  * Uses a crossfade technique: the incoming image loads invisibly behind the active one,
- * then both fade simultaneously — no blank-state flicker between stages.
+ * then both fade simultaneously – no blank-state flicker between stages.
  */
 export function RevealImage() {
   const { dailyPerfume } = useGameState();
@@ -189,7 +189,7 @@ export function RevealImage() {
 
   return (
     <div className="flex size-full flex-col">
-      {/* Title row — skeleton: przyciemniony/statyczny. Real: z tooltip i hover. */}
+      {/* Title row – skeleton: przyciemniony/statyczny. Real: z tooltip i hover. */}
       <div className="mb-2 flex w-fit max-w-full min-w-0 cursor-default items-center">
         {isSkeleton ? (
           <ScrollableRow className="flex w-full items-center gap-2 pr-1 pb-1">
@@ -228,7 +228,7 @@ export function RevealImage() {
           <span className="h-full border-l border-dotted border-muted-foreground/25" />
         </span>
 
-        {/* Image area — skeleton or real */}
+        {/* Image area – skeleton or real */}
         {isSkeleton ? (
           <RevealImageSquareSkeleton />
         ) : (

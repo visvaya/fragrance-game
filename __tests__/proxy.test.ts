@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
-// Hoist mock references — must be created before any vi.mock() factory runs.
+// Hoist mock references – must be created before any vi.mock() factory runs.
 // vi.hoisted() values can be closed over inside vi.mock() factories.
 // ---------------------------------------------------------------------------
 const { mockIntlHandler, mockRatelimitLimit } = vi.hoisted(() => {
@@ -90,7 +90,7 @@ describe("proxy middleware", () => {
   });
 
   // -------------------------------------------------------------------------
-  // 1. Bypass paths — early return, no headers added, rate limit not called
+  // 1. Bypass paths – early return, no headers added, rate limit not called
   // -------------------------------------------------------------------------
   describe("bypass paths (short-circuit before any middleware logic)", () => {
     it("bypasses /_next/ paths", async () => {

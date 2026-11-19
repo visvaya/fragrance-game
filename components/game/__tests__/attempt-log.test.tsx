@@ -9,7 +9,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // ---------------------------------------------------------------------------
-// Hoisted mock refs — must exist before vi.mock() factories run
+// Hoisted mock refs – must exist before vi.mock() factories run
 // ---------------------------------------------------------------------------
 
 const { mockGameState, mockUIPreferences } = vi.hoisted(() => ({
@@ -25,7 +25,7 @@ vi.mock("@/components/game/contexts", () => ({
 // Simplify child components to avoid deep dependency chains
 vi.mock("@/components/game/attempt-row", () => ({
   AttemptRow: ({ index }: { index: number }) => (
-    // id={`attempt-${index}`} mirrors the real component — needed for autoScroll querySelector
+    // id={`attempt-${index}`} mirrors the real component – needed for autoScroll querySelector
     <div data-testid={`attempt-row-${index}`} id={`attempt-${index}`}>
       AttemptRow
     </div>
@@ -210,7 +210,7 @@ function renderAttemptLog() {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("AttemptLog — skeleton state", () => {
+describe("AttemptLog – skeleton state", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUIPreferences.mockReturnValue(defaultUIPrefs());
@@ -237,7 +237,7 @@ describe("AttemptLog — skeleton state", () => {
   });
 });
 
-describe("AttemptLog — playing state (no attempts)", () => {
+describe("AttemptLog – playing state (no attempts)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGameState.mockReturnValue(defaultGameState());
@@ -284,7 +284,7 @@ describe("AttemptLog — playing state (no attempts)", () => {
   });
 });
 
-describe("AttemptLog — with attempts", () => {
+describe("AttemptLog – with attempts", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUIPreferences.mockReturnValue(defaultUIPrefs());
@@ -330,7 +330,7 @@ describe("AttemptLog — with attempts", () => {
   });
 });
 
-describe("AttemptLog — won/lost state", () => {
+describe("AttemptLog – won/lost state", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUIPreferences.mockReturnValue(defaultUIPrefs());
@@ -362,7 +362,7 @@ describe("AttemptLog — won/lost state", () => {
   });
 });
 
-describe("AttemptLog — perfumer column header", () => {
+describe("AttemptLog – perfumer column header", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUIPreferences.mockReturnValue(defaultUIPrefs());
@@ -421,11 +421,11 @@ function renderWithGameState(initial: TestGameStateValue): {
   };
 }
 
-describe("AttemptLog — autoScroll behavior", () => {
+describe("AttemptLog – autoScroll behavior", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUIPreferences.mockReturnValue(defaultUIPrefs());
-    // jsdom does not implement scrollIntoView — set a spy so we can assert on it
+    // jsdom does not implement scrollIntoView – set a spy so we can assert on it
     Element.prototype.scrollIntoView = vi.fn();
   });
 
@@ -439,7 +439,7 @@ describe("AttemptLog — autoScroll behavior", () => {
     // Initial render: loading=false, attempts=[] → hasInitialized fires (no scroll)
     const { update } = renderWithGameState(defaultGameState({ attempts: [] }));
 
-    // Add one attempt — triggers the scroll branch
+    // Add one attempt – triggers the scroll branch
     update(defaultGameState({ attempts: [makeAttempt()] }));
 
     // Advance past the 100ms setTimeout inside the scroll effect
@@ -493,7 +493,7 @@ describe("AttemptLog — autoScroll behavior", () => {
   it("does not call lenisScrollTo when game starts already won (page restore)", () => {
     vi.useFakeTimers();
 
-    // Start directly in "won" state — previousGameStateReference stays null on mount
+    // Start directly in "won" state – previousGameStateReference stays null on mount
     renderWithGameState(
       defaultGameState({
         attempts: [makeAttempt()],
@@ -505,7 +505,7 @@ describe("AttemptLog — autoScroll behavior", () => {
       vi.advanceTimersByTime(400);
     });
 
-    // No playing→won transition detected — lenisScrollTo must not fire
+    // No playing→won transition detected – lenisScrollTo must not fire
     expect(lenisScrollTo).not.toHaveBeenCalled();
   });
 });

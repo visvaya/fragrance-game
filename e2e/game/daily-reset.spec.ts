@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { expect, test } from "@playwright/test";
 
-// Pre-authenticated session — skips signInAnonymously() + Turnstile captcha.
+// Pre-authenticated session – skips signInAnonymously() + Turnstile captcha.
 // Without this the game shows "No puzzle today" because auth takes >10s in headless mode.
 // Playwright runs from the project root and loads specs as CommonJS; import.meta
 // would make Node parse the file as an ES module ("exports is not defined").
@@ -74,7 +74,7 @@ test.describe("Daily Challenge Reset", () => {
   });
 
   test("should handle UTC midnight boundary", async ({ page }) => {
-    // Install fake clock at 23:55 UTC on Feb 13 — persists through navigation
+    // Install fake clock at 23:55 UTC on Feb 13 – persists through navigation
     await page.clock.install({ time: new Date("2026-02-13T23:55:00Z") });
 
     await page.goto("/en");
@@ -114,7 +114,7 @@ test.describe("Daily Challenge Reset", () => {
   test("should use UTC time for challenge date (not local)", async ({
     page,
   }) => {
-    // Install fake clock — persists through navigation unlike setFixedTime
+    // Install fake clock – persists through navigation unlike setFixedTime
     await page.clock.install({ time: new Date("2026-02-14T00:00:00Z") });
 
     await page.goto("/en");
@@ -129,7 +129,7 @@ test.describe("Daily Challenge Reset", () => {
   });
 
   test("should handle time fast-forward correctly", async ({ page }) => {
-    // Must use install() — setFixedTime() does not enable fastForward()
+    // Must use install() – setFixedTime() does not enable fastForward()
     await page.clock.install({ time: new Date("2026-02-14T08:00:00Z") });
 
     await page.goto("/en");
