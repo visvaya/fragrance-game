@@ -65,7 +65,9 @@ updates:
       prefix: ci
       include: scope
   - package-ecosystem: docker
-    directory: /tools/actionlint
+    directories:
+      - /tools/actionlint
+      - /tools/hadolint
     schedule:
       interval: weekly
       day: monday
