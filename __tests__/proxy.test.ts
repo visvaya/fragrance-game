@@ -363,6 +363,44 @@ describe("proxy middleware", () => {
       expect(csp).not.toContain("'unsafe-eval'");
     });
 
+    it("page CSP allows scripts by a per-request nonce, not 'unsafe-inline'", async () => {
+      const response = await proxy(makeRequest("/en"));
+      const csp = response.headers.get("Content-Security-Policy") ?? "";
+      const scriptSrc =
+        csp
+          .split("; ")
+          .find((directive) => directive.startsWith("script-src")) ?? "";
+
+      expect(scriptSrc).toMatch(/'nonce-[A-Za-z0-9+/=]{16,}'/);
+      expect(scriptSrc).toContain("'strict-dynamic'");
+      expect(scriptSrc).not.toContain("'unsafe-inline'");
+    });
+
+    it("generates a different nonce for every request", async () => {
+      const nonceOf = async (): Promise<string | undefined> => {
+        const response = await proxy(makeRequest("/en"));
+        return /'nonce-([^']+)'/.exec(
+          response.headers.get("Content-Security-Policy") ?? "",
+        )?.[1];
+      };
+
+      const first = await nonceOf();
+      const second = await nonceOf();
+
+      expect(first).toBeDefined();
+      expect(first).not.toBe(second);
+    });
+
+    it("passes the nonce and the CSP to the page render through request headers", async () => {
+      const response = await proxy(makeRequest("/en"));
+      const csp = response.headers.get("Content-Security-Policy") ?? "";
+      const nonce = /'nonce-([^']+)'/.exec(csp)?.[1];
+      const forwarded = mockIntlHandler.mock.calls[0]?.[0] as NextRequest;
+
+      expect(forwarded.headers.get("x-nonce")).toBe(nonce);
+      expect(forwarded.headers.get("Content-Security-Policy")).toBe(csp);
+    });
+
     it("CSP includes configured assets host in img-src", async () => {
       // env mock has NEXT_PUBLIC_ASSETS_HOST: "assets.example.com"
       const response = await proxy(makeRequest("/api/game/guess"));

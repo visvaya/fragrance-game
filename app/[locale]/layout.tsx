@@ -1,6 +1,7 @@
 import type React from "react";
 
 import { Geist, Geist_Mono, Playfair_Display, Caveat } from "next/font/google";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -145,6 +146,9 @@ export default async function RootLayout({
   // Providing all messages to the client
   // side is the easiest way to get started
   const messages = await getMessages();
+  // Per-request CSP nonce from proxy.ts; reading it also keeps every page rendered per request.
+  const requestHeaders = await headers();
+  const nonce = requestHeaders.get("x-nonce") ?? undefined;
 
   return (
     <html lang={locale || routing.defaultLocale} suppressHydrationWarning>
@@ -156,6 +160,7 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `try{var l=localStorage.getItem('fragrance-game-layout');if(l==='wide'||(!l&&window.innerWidth>=1024)){document.documentElement.setAttribute('data-layout','wide')}}catch(e){}`,
           }}
+          nonce={nonce}
         />
         {/* Blocking script: applies dark class before first paint to prevent flash of light theme.
             Reads saved preference from localStorage; falls back to prefers-color-scheme. */}
@@ -163,6 +168,7 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `try{var t=localStorage.getItem('fragrance-game-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}`,
           }}
+          nonce={nonce}
         />
         {/* Blocking script: applies large-text class before first paint to prevent font-size flash.
             Reads saved font preference from localStorage. */}
@@ -170,6 +176,7 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `try{var f=localStorage.getItem('fragrance-game-font');if(f==='large'){document.documentElement.classList.add('large-text')}}catch(e){}`,
           }}
+          nonce={nonce}
         />
         <link
           crossOrigin="anonymous"
