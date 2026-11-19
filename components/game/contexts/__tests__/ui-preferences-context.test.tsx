@@ -133,6 +133,26 @@ describe("UIPreferencesContext", () => {
     expect(localStorageMock.getItem("fragrance-game-font")).toBe("normal");
   });
 
+  it("should toggle auto scroll and persist to localStorage", () => {
+    const { result } = renderHook(() => useUIPreferences(), {
+      wrapper: UIPreferencesProvider,
+    });
+
+    act(() => {
+      result.current.toggleAutoScroll();
+    });
+
+    expect(result.current.uiPreferences.autoScroll).toBe(false);
+    expect(localStorageMock.getItem("fragrance-game-auto-scroll")).toBe("0");
+
+    act(() => {
+      result.current.toggleAutoScroll();
+    });
+
+    expect(result.current.uiPreferences.autoScroll).toBe(true);
+    expect(localStorageMock.getItem("fragrance-game-auto-scroll")).toBe("1");
+  });
+
   it("should set input focus state", () => {
     const { result } = renderHook(() => useUIPreferences(), {
       wrapper: UIPreferencesProvider,

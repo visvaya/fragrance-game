@@ -2,37 +2,19 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
-import type { AttemptFeedback } from "@/lib/game/guess-feedback";
 import type { RevealedClues } from "@/lib/game/clue-reveal";
+import type {
+  Attempt,
+  DailyPerfume,
+  GameState,
+} from "@/lib/game/game-session-state";
 import type { User } from "@supabase/supabase-js";
 
-export type Attempt = {
-  brand: string;
-  concentration?: string | undefined;
-  feedback: AttemptFeedback;
-  gender?: string | undefined;
-  guess: string;
-  hasGuessedNotes?: boolean; // True if guessed perfume has notes data
-  isCorrect?: boolean;
-  isSkipped?: boolean;
-  perfumeId?: string;
-  perfumers?: string[] | undefined;
-  year?: number | undefined;
-};
-
-export type GameState = "playing" | "won" | "lost";
-
-/**
- * Public data of the daily perfume. Clue values (brand, notes, year...) live in
- * RevealedClues, computed on the server; the answer itself never reaches the browser.
- */
-export type DailyPerfume = {
-  concentration: string | undefined;
-  id: string;
-  imageUrl: string;
-  name: string;
-  xsolve: number;
-};
+export type {
+  Attempt,
+  DailyPerfume,
+  GameState,
+} from "@/lib/game/game-session-state";
 
 /** Maps server clues to the reveal values exposed by useGameState(). */
 function toRevealValues(clues: RevealedClues) {

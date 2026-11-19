@@ -1920,11 +1920,10 @@
     {
       "files": ["components/game/game-provider.tsx"],
       "rules": {
-        "complexity": ["error", 21],
         "max-lines-per-function": [
           "error",
           {
-            "max": 377
+            "max": 316
           }
         ]
       }
@@ -1968,20 +1967,6 @@
         ]
       }
     },
-    // Above the application size limits, at its measured maximum (2026-11-17). Lower the number
-    // when a refactor shrinks the function; drop the entry once it fits.
-    {
-      "files": ["components/game/contexts/game-actions-context.tsx"],
-      "rules": {
-        "max-lines-per-function": [
-          "error",
-          {
-            "max": 321
-          }
-        ],
-        "max-params": ["error", 8]
-      }
-    },
     // oxlint JS plugins: the plugin format requires a default export, and the plugin API is
     // untyped.
     {
@@ -1995,13 +1980,10 @@
         "typescript/no-unsafe-return": "off"
       }
     },
-    // Shrinking list: effects with extra dependencies, to fix together with the game state reducer
-    // and the UI rework; each change is checked by playing the game.
+    // Shrinking list: effects with extra dependencies, to fix together with the UI rework; each
+    // change is checked by playing the game.
     {
-      "files": [
-        "components/game/attempt-log-truncated-cell.tsx",
-        "components/game/game-provider.tsx"
-      ],
+      "files": ["components/game/attempt-log-truncated-cell.tsx"],
       "rules": {
         "react/exhaustive-effect-dependencies": "off"
       }
@@ -2077,24 +2059,6 @@
         "max-lines": [
           "error",
           { "max": 436, "skipBlankLines": true, "skipComments": true }
-        ]
-      }
-    },
-    {
-      "files": ["components/game/game-provider.tsx"],
-      "rules": {
-        "max-lines": [
-          "error",
-          { "max": 432, "skipBlankLines": true, "skipComments": true }
-        ]
-      }
-    },
-    {
-      "files": ["components/game/contexts/game-actions-context.tsx"],
-      "rules": {
-        "max-lines": [
-          "error",
-          { "max": 413, "skipBlankLines": true, "skipComments": true }
         ]
       }
     }
