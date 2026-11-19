@@ -1,0 +1,85 @@
+{
+  "minimumReleaseAgeDays": 7,
+  "items": [
+    {
+      "name": "npm packages",
+      "mechanism": "dependabot",
+      "where": "dependabot.yml: npm, /"
+    },
+    {
+      "name": "Python packages (uv.lock)",
+      "mechanism": "dependabot",
+      "where": "dependabot.yml: uv, /"
+    },
+    {
+      "name": "Semgrep (hash-pinned requirements)",
+      "mechanism": "dependabot",
+      "where": "dependabot.yml: pip, /.github/semgrep"
+    },
+    {
+      "name": "zizmor (hash-pinned requirements)",
+      "mechanism": "dependabot",
+      "where": "dependabot.yml: pip, /tools/zizmor"
+    },
+    {
+      "name": "actionlint and hadolint images",
+      "mechanism": "dependabot",
+      "where": "dependabot.yml: docker, /tools/actionlint and /tools/hadolint"
+    },
+    {
+      "name": "GitHub Actions",
+      "mechanism": "dependabot",
+      "where": "dependabot.yml: github-actions, /"
+    },
+    {
+      "name": "Node patch release",
+      "mechanism": "check-latest",
+      "where": ".nvmrc major line; every setup-node step has check-latest"
+    },
+    {
+      "name": "Node floor (engines.node)",
+      "mechanism": "job",
+      "check": { "nodeFloor": true }
+    },
+    {
+      "name": "pnpm (packageManager)",
+      "mechanism": "job",
+      "check": {
+        "file": "package.json",
+        "pattern": "\"packageManager\": \"pnpm@([0-9.]+)\"",
+        "npm": "pnpm"
+      },
+      "howToBump": "set packageManager to the new version, run pnpm install and the gate"
+    },
+    {
+      "name": "uv",
+      "mechanism": "job",
+      "check": {
+        "file": ".github/workflows/ci.yml",
+        "pattern": "^ +version: \"([0-9.]+)\"",
+        "pypi": "uv"
+      },
+      "howToBump": "raise the setup-uv version in ci.yml and required-version in pyproject.toml together"
+    },
+    {
+      "name": "splinter.sql",
+      "mechanism": "job",
+      "check": {
+        "file": ".github/workflows/db-migrations.yml",
+        "pattern": "splinter.sql of release ([0-9.]+)",
+        "github": "supabase/splinter"
+      },
+      "howToBump": "set SPLINTER_COMMIT to the release commit, SPLINTER_SHA256 to the checksum of its splinter.sql, and the release in the comment"
+    },
+    {
+      "name": "Node major line",
+      "mechanism": "manual",
+      "where": ".nvmrc; move to the next even line when it becomes LTS"
+    },
+    {
+      "name": "Python version",
+      "mechanism": "manual",
+      "where": "requires-python in pyproject.toml and python-version in the workflows; move when 3.12 nears its end of support (2028-10)"
+    }
+  ]
+}
