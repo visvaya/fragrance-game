@@ -185,7 +185,6 @@ export function GameProvider({
       initialChallenge,
       initialImageUrl,
       initialSession,
-      maxAttempts: MAX_GUESSES,
     },
     initialGameSessionState,
   );
@@ -391,8 +390,7 @@ export function GameProvider({
             challenge_number: initialChallenge.id,
           });
           setAuthReady(true);
-          // sessionReady already set by the initial state when initialSession exists
-          if (initialSession) dispatch({ type: "sessionReady" });
+          // sessionReady is already true in the initial state when initialSession exists.
           performance.mark("eauxle:session_ready");
           performance.mark("eauxle:init_end");
           clearTimeout(safetyTimeout);
@@ -418,7 +416,6 @@ export function GameProvider({
 
           dispatch({
             challenge,
-            maxAttempts: MAX_GUESSES,
             session,
             type: "sessionHydrated",
           });
@@ -437,7 +434,7 @@ export function GameProvider({
     };
     void initGame();
     // initGame is defined inside this effect and only needs to run once on mount
-  }, [initialChallenge, initialSession]);
+  }, [initialChallenge]);
 
   // Merge dynamic image into the daily perfume object.
   // useMemo keeps the reference stable so GameStateProvider and GameActionsProvider

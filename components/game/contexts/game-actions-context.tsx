@@ -186,7 +186,6 @@ export function GameActionsProvider({
           dispatch({ session: startedSession, type: "lazySessionStarted" });
         dispatch({
           guess: { brand, perfumeId, perfumeName },
-          maxAttempts,
           result,
           type: "guessResolved",
         });
