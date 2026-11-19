@@ -4,7 +4,7 @@ import type React from "react";
 // eslint-disable-next-line no-restricted-imports -- autocomplete: debounced search, keyboard nav, auto-submit, rate-limit clear, safety cleanup, guess-outcome feedback (dep effects)
 import { useState, useRef, useEffect, useId, useMemo, useReducer } from "react";
 
-import { Search, Loader2, SkipForward, X, ChevronDown } from "lucide-react";
+import { Search, Loader2, X, ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
@@ -12,24 +12,16 @@ import {
   searchPerfumes,
   type PerfumeSuggestion,
 } from "@/app/actions/autocomplete";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useMountTransition } from "@/hooks/use-mount-transition";
 import { MASK_CHAR, BULLET_CHAR } from "@/lib/constants";
 import { useMountEffect } from "@/lib/hooks/use-mount-effect";
 import { cn, normalizeText } from "@/lib/utils";
 
 import { useGameState, useGameActions, useUIPreferences } from "./contexts";
-import { GameTooltip } from "./game-tooltip";
 import { HighlightedText } from "./highlighted-text";
 import { GameInputSkeleton } from "./skeletons";
+import { SkipAttemptButton } from "./skip-attempt-button";
+import { useKeyboardScrollRestore } from "./use-keyboard-scroll-restore";
 type GameInputState = {
   hasSearched: boolean;
   isError: boolean;
@@ -163,7 +155,6 @@ export function GameInput() {
   const tFooter = useTranslations("Footer");
   const tActions = useTranslations("GameActions");
 
-  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
   const [pendingGuess, setPendingGuess] = useState<PerfumeSuggestion | null>(
     null,
   );
@@ -188,6 +179,7 @@ export function GameInput() {
   } = state;
 
   const inputReference = useRef<HTMLInputElement>(null);
+  const keyboardScroll = useKeyboardScrollRestore();
   const wrapperReference = useRef<HTMLDivElement>(null);
   const listReference = useRef<HTMLDivElement>(null);
   const previousResultsReference = useRef<{
@@ -603,6 +595,7 @@ export function GameInput() {
               onBlur={() => {
                 dispatch({ payload: false, type: "SET_SHOW_SUGGESTIONS" });
                 setIsFocused(false);
+                keyboardScroll.onBlur();
               }}
               onChange={(e) => {
                 const value = e.target.value;
@@ -614,6 +607,7 @@ export function GameInput() {
                 }
               }}
               onFocus={() => {
+                keyboardScroll.onFocus();
                 dispatch({ payload: true, type: "SET_SHOW_SUGGESTIONS" });
                 setIsFocused(true);
               }}
@@ -709,64 +703,41 @@ export function GameInput() {
               </span>
             </div>
 
-            {/* Actual status bar */}
+            {/* Actual status bar: in a row, equal side columns keep the skip button centred
+                whatever the widths of the attempt counter and the score. */}
             <div
               className={cn(
-                "flex text-xs tracking-wide text-muted-foreground lowercase transition-all duration-200",
+                "text-xs tracking-wide text-muted-foreground lowercase transition-all duration-200",
                 needsStack
-                  ? "flex-col items-center justify-center gap-2"
-                  : "flex-row items-center justify-between gap-1 sm:gap-2",
+                  ? "flex flex-col items-center justify-center gap-2"
+                  : "grid grid-cols-[1fr_auto_1fr] items-center gap-1 sm:gap-2",
               )}
+              data-testid="game-status-bar"
             >
               <span
                 className={cn(
                   "whitespace-nowrap lining-nums tabular-nums",
-                  needsStack ? "text-center" : "pl-1 text-left",
+                  needsStack
+                    ? "text-center"
+                    : "justify-self-start pl-1 text-left",
                 )}
               >
                 {t("attempt")}: {currentAttempt} / {maxAttempts}
               </span>
               <div className="flex justify-center">
-                <GameTooltip
-                  content={t("skipTooltip")}
-                  disabled={isRateLimited || gameLoading}
-                  disableOnMobile
-                  sideOffset={8}
-                >
-                  <button
-                    aria-label={t("skipTooltip")}
-                    className={cn(
-                      "flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-30",
-                      isRateLimited || gameLoading
-                        ? "cursor-not-allowed opacity-30"
-                        : "hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:duration-0",
-                    )}
-                    disabled={!sessionReady || gameLoading || isRateLimited}
-                    onClick={() => {
-                      if (isRateLimited) {
-                        toast.warning(tActions("rateLimitError"));
-                        return;
-                      }
-                      if (
-                        globalThis.matchMedia(
-                          "(hover: none) and (pointer: coarse)",
-                        ).matches
-                      ) {
-                        setShowSkipConfirm(true);
-                      } else {
-                        void skipAttempt();
-                      }
-                    }}
-                    type="button"
-                  >
-                    <SkipForward className="size-3.5" />
-                  </button>
-                </GameTooltip>
+                <SkipAttemptButton
+                  busy={isRateLimited || gameLoading}
+                  isRateLimited={isRateLimited}
+                  onSkip={() => void skipAttempt()}
+                  sessionReady={sessionReady}
+                />
               </div>
               <span
                 className={cn(
-                  "whitespace-nowrap text-muted-foreground",
-                  needsStack ? "text-center" : "pr-1 text-right",
+                  "whitespace-nowrap text-muted-foreground lining-nums tabular-nums",
+                  needsStack
+                    ? "text-center"
+                    : "justify-self-end pr-1 text-right",
                 )}
               >
                 {t("score")}: {potentialScore}
@@ -914,24 +885,6 @@ export function GameInput() {
           </div>
         ) : null}
       </div>
-
-      <AlertDialog onOpenChange={setShowSkipConfirm} open={showSkipConfirm}>
-        <AlertDialogContent onClickOutside={() => setShowSkipConfirm(false)}>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("skipConfirmTitle")}</AlertDialogTitle>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("skipConfirmCancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                void skipAttempt();
-              }}
-            >
-              {t("skipConfirmConfirm")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
