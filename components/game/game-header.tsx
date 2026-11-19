@@ -482,20 +482,6 @@ export function GameHeader() {
                 {t("appearance")}
               </h3>
               <div className="space-y-3">
-                {/* Wide Layout Toggle */}
-                <button
-                  className="group hidden w-full items-center justify-between text-foreground transition-colors hover:text-primary lg:flex"
-                  onClick={toggleLayoutMode}
-                >
-                  <div className="flex items-center gap-2">
-                    <Monitor className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
-                    <span className="text-left font-sans text-xs leading-tight">
-                      {t("wideLayout")}
-                    </span>
-                  </div>
-                  <TogglePill isOn={uiPreferences.layoutMode === "wide"} />
-                </button>
-
                 {/* Large Text Toggle */}
                 <button
                   className="group flex w-full items-center justify-between gap-2 text-foreground transition-colors hover:text-primary"
@@ -536,6 +522,20 @@ export function GameHeader() {
                     </span>
                   </div>
                   <TogglePill isOn={uiPreferences.autoScroll} />
+                </button>
+
+                {/* Wide Layout Toggle */}
+                <button
+                  className="group hidden w-full items-center justify-between text-foreground transition-colors hover:text-primary lg:flex"
+                  onClick={toggleLayoutMode}
+                >
+                  <div className="flex items-center gap-2">
+                    <Monitor className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+                    <span className="text-left font-sans text-xs leading-tight">
+                      {t("wideLayout")}
+                    </span>
+                  </div>
+                  <TogglePill isOn={uiPreferences.layoutMode === "wide"} />
                 </button>
               </div>
             </div>

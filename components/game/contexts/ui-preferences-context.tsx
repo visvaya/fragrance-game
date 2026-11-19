@@ -44,7 +44,7 @@ const SSR_DEFAULTS: UIPreferencesContextType = {
     /* Default */
   },
   uiPreferences: {
-    autoScroll: true,
+    autoScroll: false,
     fontScale: "normal",
     layoutMode: "narrow",
     theme: "light",
@@ -67,7 +67,7 @@ export function UIPreferencesProvider({
     layoutMode: "narrow" | "wide";
     theme: "light" | "dark";
   }>({
-    autoScroll: true,
+    autoScroll: false,
     fontScale: "normal",
     layoutMode: "narrow",
     theme: "light",
@@ -139,6 +139,21 @@ export function UIPreferencesProvider({
       delete document.documentElement.dataset["layout"];
     }
   }, [preferences]);
+
+  // Follow a change of the system theme (light or dark) while the player has not chosen one;
+  // their own choice, saved by toggleTheme, wins.
+  useEffect(() => {
+    const query = globalThis.matchMedia("(prefers-color-scheme: dark)");
+    const followSystemTheme = (event: MediaQueryListEvent) => {
+      if (localStorage.getItem("fragrance-game-theme") !== null) return;
+      setPreferences((previous) => ({
+        ...previous,
+        theme: event.matches ? "dark" : "light",
+      }));
+    };
+    query.addEventListener("change", followSystemTheme);
+    return () => query.removeEventListener("change", followSystemTheme);
+  }, []);
 
   // Load preferences from localStorage on mount.
   // Deferred to useEffect + rAF to avoid blocking the initial paint (TBT reduction).

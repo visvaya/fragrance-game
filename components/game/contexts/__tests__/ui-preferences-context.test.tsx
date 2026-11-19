@@ -59,13 +59,51 @@ describe("UIPreferencesContext", () => {
     vi.clearAllMocks();
   });
 
+  it("follows a change of the system theme while the player has not chosen one", async () => {
+    const listeners: ((event: { matches: boolean }) => void)[] = [];
+    vi.mocked(globalThis.matchMedia).mockImplementation(
+      (query: string) =>
+        ({
+          addEventListener: (
+            _type: string,
+            listener: (event: { matches: boolean }) => void,
+          ) => {
+            listeners.push(listener);
+          },
+          dispatchEvent: vi.fn(),
+          matches: false,
+          media: query,
+          onchange: null,
+          removeEventListener: vi.fn(),
+        }) as unknown as MediaQueryList,
+    );
+    const { result } = renderHook(() => useUIPreferences(), {
+      wrapper: UIPreferencesProvider,
+    });
+    await waitFor(() => expect(listeners.length).toBeGreaterThan(0));
+
+    act(() => {
+      for (const listener of listeners) listener({ matches: true });
+    });
+    expect(result.current.uiPreferences.theme).toBe("dark");
+
+    act(() => {
+      result.current.toggleTheme();
+    });
+    act(() => {
+      for (const listener of listeners) listener({ matches: true });
+    });
+    // The player's own choice wins over the system theme.
+    expect(result.current.uiPreferences.theme).toBe("light");
+  });
+
   it("should provide default UI preferences", () => {
     const { result } = renderHook(() => useUIPreferences(), {
       wrapper: UIPreferencesProvider,
     });
 
     expect(result.current.uiPreferences).toEqual({
-      autoScroll: true,
+      autoScroll: false,
       fontScale: "normal",
       layoutMode: "narrow",
       theme: "light",
@@ -142,15 +180,15 @@ describe("UIPreferencesContext", () => {
       result.current.toggleAutoScroll();
     });
 
-    expect(result.current.uiPreferences.autoScroll).toBe(false);
-    expect(localStorageMock.getItem("fragrance-game-auto-scroll")).toBe("0");
+    expect(result.current.uiPreferences.autoScroll).toBe(true);
+    expect(localStorageMock.getItem("fragrance-game-auto-scroll")).toBe("1");
 
     act(() => {
       result.current.toggleAutoScroll();
     });
 
-    expect(result.current.uiPreferences.autoScroll).toBe(true);
-    expect(localStorageMock.getItem("fragrance-game-auto-scroll")).toBe("1");
+    expect(result.current.uiPreferences.autoScroll).toBe(false);
+    expect(localStorageMock.getItem("fragrance-game-auto-scroll")).toBe("0");
   });
 
   it("should set input focus state", () => {
@@ -177,6 +215,7 @@ describe("UIPreferencesContext", () => {
     localStorageMock.setItem("fragrance-game-theme", "dark");
     localStorageMock.setItem("fragrance-game-layout", "wide");
     localStorageMock.setItem("fragrance-game-font", "large");
+    localStorageMock.setItem("fragrance-game-auto-scroll", "1");
 
     const { result } = renderHook(() => useUIPreferences(), {
       wrapper: UIPreferencesProvider,
@@ -194,20 +233,18 @@ describe("UIPreferencesContext", () => {
 
   it("should auto-detect system dark mode if no saved theme", async () => {
     // Set system to dark mode
-    vi.mocked(globalThis.matchMedia).mockImplementationOnce(
-      (query: string) => ({
-        addEventListener: vi.fn(),
-        // eslint-disable-next-line typescript/no-deprecated -- the mock implements the whole MediaQueryList interface
-        addListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-        matches: true,
-        media: query,
-        onchange: null,
-        removeEventListener: vi.fn(),
-        // eslint-disable-next-line typescript/no-deprecated -- the mock implements the whole MediaQueryList interface
-        removeListener: vi.fn(),
-      }),
-    );
+    vi.mocked(globalThis.matchMedia).mockImplementation((query: string) => ({
+      addEventListener: vi.fn(),
+      // eslint-disable-next-line typescript/no-deprecated -- the mock implements the whole MediaQueryList interface
+      addListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+      matches: true,
+      media: query,
+      onchange: null,
+      removeEventListener: vi.fn(),
+      // eslint-disable-next-line typescript/no-deprecated -- the mock implements the whole MediaQueryList interface
+      removeListener: vi.fn(),
+    }));
 
     const { result } = renderHook(() => useUIPreferences(), {
       wrapper: UIPreferencesProvider,
@@ -221,7 +258,7 @@ describe("UIPreferencesContext", () => {
   it("should return SSR defaults when used outside provider", () => {
     const { result } = renderHook(() => useUIPreferences());
     expect(result.current.uiPreferences).toEqual({
-      autoScroll: true,
+      autoScroll: false,
       fontScale: "normal",
       layoutMode: "narrow",
       theme: "light",
