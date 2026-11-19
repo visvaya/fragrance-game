@@ -1,6 +1,12 @@
 import * as Sentry from "@sentry/nextjs";
 
+import { config as configureZod } from "zod/v4/core";
+
 import { scrubEvent } from "@/lib/sentry-scrub";
+
+// The CSP forbids eval, so Zod must not probe `new Function`: the probe is caught, but the
+// browser still reports it as a policy violation. Without JIT, Zod parses the same way.
+configureZod({ jitless: true });
 
 // Silences Sentry SDK warning about missing export.
 // Must NOT reference Sentry.captureRouterTransitionStart directly – that pulls
