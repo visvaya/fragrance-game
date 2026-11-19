@@ -480,6 +480,12 @@
       }
     ],
     "max-nested-callbacks": ["error", 4],
+    // Lines of code per file (blank lines and comments not counted), measured 2026-11-19; longer
+    // files have their measured length as a ceiling below and only shrink.
+    "max-lines": [
+      "error",
+      { "max": 400, "skipBlankLines": true, "skipComments": true }
+    ],
     "max-params": ["error", 6]
   },
   "overrides": [
@@ -1895,6 +1901,98 @@
       ],
       "rules": {
         "react/exhaustive-effect-dependencies": "off"
+      }
+    },
+    // Generated from the database schema; their length follows the schema.
+    {
+      "files": ["types/supabase.ts", "lib/validations/supabase.schema.ts"],
+      "rules": { "max-lines": "off" }
+    },
+    // Tests list many cases per file; one test file is longer still.
+    {
+      "files": [
+        "**/*.test.{ts,tsx}",
+        "**/__tests__/**/*.{ts,tsx}",
+        "e2e/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "max-lines": [
+          "error",
+          { "max": 700, "skipBlankLines": true, "skipComments": true }
+        ]
+      }
+    },
+    {
+      "files": ["app/actions/__tests__/game-actions.test.ts"],
+      "rules": {
+        "max-lines": [
+          "error",
+          { "max": 1813, "skipBlankLines": true, "skipComments": true }
+        ]
+      }
+    },
+    // Shrinking list: files longer than 400 lines of code, each capped at its length of 2026-11-19.
+    {
+      "files": ["app/actions/game-actions.ts"],
+      "rules": {
+        "max-lines": [
+          "error",
+          { "max": 1078, "skipBlankLines": true, "skipComments": true }
+        ]
+      }
+    },
+    {
+      "files": ["components/game/game-input.tsx"],
+      "rules": {
+        "max-lines": [
+          "error",
+          { "max": 804, "skipBlankLines": true, "skipComments": true }
+        ]
+      }
+    },
+    {
+      "files": ["components/game/attempt-row.tsx"],
+      "rules": {
+        "max-lines": [
+          "error",
+          { "max": 634, "skipBlankLines": true, "skipComments": true }
+        ]
+      }
+    },
+    {
+      "files": ["components/game/game-header.tsx"],
+      "rules": {
+        "max-lines": [
+          "error",
+          { "max": 592, "skipBlankLines": true, "skipComments": true }
+        ]
+      }
+    },
+    {
+      "files": ["components/game/clues/pyramid-clues.tsx"],
+      "rules": {
+        "max-lines": [
+          "error",
+          { "max": 436, "skipBlankLines": true, "skipComments": true }
+        ]
+      }
+    },
+    {
+      "files": ["components/game/game-provider.tsx"],
+      "rules": {
+        "max-lines": [
+          "error",
+          { "max": 432, "skipBlankLines": true, "skipComments": true }
+        ]
+      }
+    },
+    {
+      "files": ["components/game/contexts/game-actions-context.tsx"],
+      "rules": {
+        "max-lines": [
+          "error",
+          { "max": 413, "skipBlankLines": true, "skipComments": true }
+        ]
       }
     }
   ]
