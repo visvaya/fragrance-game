@@ -16,6 +16,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+  "import-linter==2.16",
   "mypy==2.4.1",
   "pandas-stubs==3.1.0.261029",
   "pip-audit==2.10.1",
@@ -23,6 +24,7 @@ dev = [
   "pytest-cov==7.1.0",
   "ruff==0.17.4",
   "types-tqdm==4.70.0.20261106",
+  "vulture==2.16",
 ]
 
 [tool.ruff]
@@ -55,6 +57,46 @@ source = ["scripts"]
 [tool.coverage.report]
 # Ratchet: the measured coverage of scripts/ (2026-11-19: 58.35%), raised with tests, never lowered.
 fail_under = 58
+
+[tool.vulture]
+# Dead code in the scripts and their tests, at vulture's default confidence (measured 2026-11-19:
+# no finding in scripts/). The names below are test doubles: keyword parameters that copy the boto3
+# call signature (Bucket) and mock attributes set for the code under test (side_effect).
+paths = ["scripts", "tests/python"]
+min_confidence = 60
+ignore_names = ["Bucket", "side_effect"]
+
+[tool.importlinter]
+# The image-pipeline modules are not a package: scripts/assets is analysed as the namespace package
+# 'assets' (run with PYTHONPATH=scripts), and their own top-level imports such as r2_client appear
+# as external modules, so each pure module is listed as a source and the I/O modules by name.
+root_packages = ["assets"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Pure image-pipeline logic performs no I/O"
+type = "forbidden"
+source_modules = [
+  "assets.asset_keys",
+  "assets.asset_publish",
+  "assets.rekey_plan",
+]
+forbidden_modules = [
+  "r2_client",
+  "rekey_assets",
+  "process_game_assets",
+  "preprocess_assets",
+  "generate_asset_list",
+  "boto3",
+  "botocore",
+  "supabase",
+  "PIL",
+  "numpy",
+  "http",
+  "urllib",
+  "requests",
+  "dotenv",
+]
 
 [tool.uv]
 package = false
