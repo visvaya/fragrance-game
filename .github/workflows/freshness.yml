@@ -1,0 +1,39 @@
+name: Freshness
+
+# Versioned items that no dependency bot updates (.github/freshness.json): the Node floor in
+# engines, packageManager and tools pinned in workflows. Fails when one falls behind its newest
+# release that is at least 7 days old. Not on pull requests: an outside release would fail
+# unrelated changes.
+on:
+  schedule:
+    - cron: "40 5 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  freshness:
+    name: Freshness of pinned versions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check the pinned versions
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/check-freshness.ts

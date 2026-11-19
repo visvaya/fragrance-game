@@ -22,7 +22,6 @@ function loadEnvLocal(): Record<string, string> {
 
 const env = loadEnvLocal();
 // A standalone script: lib/env validates the whole app environment, which this one variable does not need.
-// eslint-disable-next-line no-restricted-properties
 const projectId = process.env.SUPABASE_PROJECT_ID ?? env["SUPABASE_PROJECT_ID"];
 
 if (!projectId || projectId === "-") {
