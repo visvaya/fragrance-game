@@ -99,7 +99,7 @@ export function SessionsModal({
               typeof s.device_info === "object" &&
               s.device_info !== null &&
               "user_agent" in s.device_info
-                ? (s.device_info.user_agent as string)
+                ? (s.device_info["user_agent"] as string)
                 : "";
             return storedUA === currentUA;
           });
@@ -169,7 +169,7 @@ export function SessionsModal({
       typeof deviceInfo === "object" &&
       deviceInfo !== null &&
       "user_agent" in deviceInfo
-        ? (deviceInfo.user_agent as string)
+        ? (deviceInfo["user_agent"] as string)
         : "";
 
     if (
@@ -191,7 +191,7 @@ export function SessionsModal({
       typeof deviceInfo === "object" &&
       deviceInfo !== null &&
       "user_agent" in deviceInfo
-        ? (deviceInfo.user_agent as string)
+        ? (deviceInfo["user_agent"] as string)
         : "";
 
     if (

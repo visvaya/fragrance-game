@@ -148,7 +148,7 @@ function resolveQuery(
     case "perfumes": {
       if (op === "in") return { data: [GUESS_ROW], error: null };
       return {
-        data: eqs.id === GUESS_ID ? GUESS_ROW : ANSWER_ROW,
+        data: eqs["id"] === GUESS_ID ? GUESS_ROW : ANSWER_ROW,
         error: null,
       };
     }
@@ -172,29 +172,29 @@ function makeClient(state: { existingSession: unknown }) {
         await Promise.resolve(resolveQuery(table, op, eqs, state));
       const chain: Record<string, unknown> = {};
       const passthrough = () => chain;
-      chain.select = passthrough;
-      chain.limit = passthrough;
-      chain.order = passthrough;
-      chain.insert = () => {
+      chain["select"] = passthrough;
+      chain["limit"] = passthrough;
+      chain["order"] = passthrough;
+      chain["insert"] = () => {
         op = "insert";
         return chain;
       };
-      chain.update = () => {
+      chain["update"] = () => {
         op = "update";
         return chain;
       };
-      chain.in = () => {
+      chain["in"] = () => {
         op = "in";
         return chain;
       };
-      chain.eq = (column: string, value: unknown) => {
+      chain["eq"] = (column: string, value: unknown) => {
         eqs[column] = value;
         return chain;
       };
-      chain.single = settle;
-      chain.maybeSingle = settle;
+      chain["single"] = settle;
+      chain["maybeSingle"] = settle;
       // eslint-disable-next-line unicorn/no-thenable -- the chain is awaited directly like a Supabase query
-      chain.then = (
+      chain["then"] = (
         onFulfilled: (value: Result) => unknown,
         onRejected?: (reason: unknown) => unknown,
       ) => {

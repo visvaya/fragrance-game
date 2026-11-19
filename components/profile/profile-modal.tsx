@@ -75,14 +75,14 @@ export function ProfileModal({
         <div className="flex flex-col items-center gap-4 py-4">
           <Avatar className="size-24">
             <AvatarImage
-              src={user.user_metadata.avatar_url as string | undefined}
+              src={user.user_metadata["avatar_url"] as string | undefined}
             />
             <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
           </Avatar>
 
           <div className="space-y-1 text-center">
             <h2 className="font-[family-name:var(--font-playfair)] text-xl font-bold">
-              {(user.user_metadata.full_name as string | undefined) ||
+              {(user.user_metadata["full_name"] as string | undefined) ||
                 user.email?.split("@")[0] ||
                 t("anonymous")}
             </h2>

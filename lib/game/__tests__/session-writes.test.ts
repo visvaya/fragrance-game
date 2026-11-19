@@ -36,9 +36,9 @@ function mockAdmin(result: Result) {
       return chain;
     };
   }
-  chain.single = async () => await Promise.resolve(result);
+  chain["single"] = async () => await Promise.resolve(result);
   // eslint-disable-next-line unicorn/no-thenable -- the insert chain is awaited directly like a Supabase query
-  chain.then = async (
+  chain["then"] = async (
     onFulfilled: (value: Result) => unknown,
     onRejected?: (reason: unknown) => unknown,
   ) => await Promise.resolve(result).then(onFulfilled, onRejected);

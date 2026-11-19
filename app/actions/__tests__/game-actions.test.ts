@@ -63,20 +63,20 @@ function createComprehensiveSupabaseMock(config: {
 
       switch (table) {
         case "game_sessions": {
-          chain.maybeSingle = vi.fn().mockResolvedValue({
+          chain["maybeSingle"] = vi.fn().mockResolvedValue({
             data: config.gameSessions ?? null,
             error: null,
           });
-          chain.single = vi.fn().mockResolvedValue({
+          chain["single"] = vi.fn().mockResolvedValue({
             data: config.gameSessions ?? null,
             error: config.gameSessions ? null : { message: "Not found" },
           });
-          chain.insert = vi.fn().mockReturnThis();
+          chain["insert"] = vi.fn().mockReturnThis();
 
           break;
         }
         case "daily_challenges_public": {
-          chain.single = vi.fn().mockResolvedValue({
+          chain["single"] = vi.fn().mockResolvedValue({
             data: config.dailyChallenges ?? null,
             error: null,
           });
@@ -84,11 +84,11 @@ function createComprehensiveSupabaseMock(config: {
           break;
         }
         case "perfume_assets": {
-          chain.maybeSingle = vi.fn().mockResolvedValue({
+          chain["maybeSingle"] = vi.fn().mockResolvedValue({
             data: config.perfumeAssets?.[0] ?? null,
             error: null,
           });
-          chain.single = vi.fn().mockResolvedValue({
+          chain["single"] = vi.fn().mockResolvedValue({
             data: config.perfumeAssets?.[0] ?? null,
             error: config.perfumeAssets?.[0] ? null : { message: "Not found" },
           });
@@ -96,7 +96,7 @@ function createComprehensiveSupabaseMock(config: {
           break;
         }
         case "game_results": {
-          chain.insert = vi.fn().mockResolvedValue({
+          chain["insert"] = vi.fn().mockResolvedValue({
             data: config.gameResults?.shouldFail ? null : { id: "result-123" },
             error: config.gameResults?.shouldFail
               ? { message: "Insert failed" }
@@ -136,11 +136,11 @@ function createAdminClientMock(config: {
 
       switch (table) {
         case "daily_challenges": {
-          chain.single = vi.fn().mockResolvedValue({
+          chain["single"] = vi.fn().mockResolvedValue({
             data: config.dailyChallenges ?? null,
             error: config.dailyChallenges ? null : { message: "Not found" },
           });
-          chain.maybeSingle = vi.fn().mockResolvedValue({
+          chain["maybeSingle"] = vi.fn().mockResolvedValue({
             data: config.dailyChallenges ?? null,
             error: null,
           });
@@ -148,7 +148,7 @@ function createAdminClientMock(config: {
           break;
         }
         case "perfumes": {
-          chain.single = vi.fn().mockResolvedValue({
+          chain["single"] = vi.fn().mockResolvedValue({
             data: config.perfumes ?? null,
             error: config.perfumes ? null : { message: "Not found" },
           });
@@ -156,11 +156,11 @@ function createAdminClientMock(config: {
           break;
         }
         case "perfume_assets": {
-          chain.single = vi.fn().mockResolvedValue({
+          chain["single"] = vi.fn().mockResolvedValue({
             data: config.perfumeAssets ?? null,
             error: config.perfumeAssets ? null : { message: "Not found" },
           });
-          chain.maybeSingle = vi.fn().mockResolvedValue({
+          chain["maybeSingle"] = vi.fn().mockResolvedValue({
             data: config.perfumeAssets ?? null,
             error: null,
           });
@@ -168,7 +168,7 @@ function createAdminClientMock(config: {
           break;
         }
         case "perfumers": {
-          chain.maybeSingle = vi.fn().mockResolvedValue({
+          chain["maybeSingle"] = vi.fn().mockResolvedValue({
             data: config.perfumers?.[0] ?? null,
             error: null,
           });
@@ -939,12 +939,12 @@ describe("game-actions", () => {
 
             switch (table) {
               case "perfumes": {
-                chain.single = vi.fn().mockResolvedValue({
+                chain["single"] = vi.fn().mockResolvedValue({
                   data: createMockPerfume(),
                   error: null,
                 });
                 // For enriching guesses: .in(...).limit(n)
-                chain.in = vi.fn().mockReturnValue({
+                chain["in"] = vi.fn().mockReturnValue({
                   limit: vi.fn().mockResolvedValue({
                     data: [
                       {
@@ -963,7 +963,7 @@ describe("game-actions", () => {
                 break;
               }
               case "daily_challenges": {
-                chain.single = vi.fn().mockResolvedValue({
+                chain["single"] = vi.fn().mockResolvedValue({
                   data: {
                     challenge_date: "2026-02-12",
                     perfume_id: "answer-perfume",
@@ -974,7 +974,7 @@ describe("game-actions", () => {
                 break;
               }
               case "perfume_assets": {
-                chain.single = vi.fn().mockResolvedValue({
+                chain["single"] = vi.fn().mockResolvedValue({
                   data: {
                     image_key_step_1: "step1.jpg",
                     image_key_step_2: "step2.jpg",
@@ -1058,7 +1058,7 @@ describe("game-actions", () => {
 
             switch (table) {
               case "daily_challenges": {
-                chain.single = vi.fn().mockResolvedValue({
+                chain["single"] = vi.fn().mockResolvedValue({
                   data: {
                     challenge_date: "2026-02-12",
                     perfume_id: "answer-f47ac10b-58cc-4372-a567-0e02b2c3d479",
@@ -1070,7 +1070,7 @@ describe("game-actions", () => {
               }
               case "perfumes": {
                 // First call for answer in startGame
-                chain.single = vi.fn().mockResolvedValueOnce({
+                chain["single"] = vi.fn().mockResolvedValueOnce({
                   data: {
                     concentrations: { name: "Parfum" },
                     name: "Answer Perfume",
@@ -1081,7 +1081,7 @@ describe("game-actions", () => {
                 break;
               }
               case "perfume_assets": {
-                chain.single = vi.fn().mockResolvedValue({
+                chain["single"] = vi.fn().mockResolvedValue({
                   data: {
                     image_key_step_1: "step1.jpg",
                     image_key_step_2: "step2.jpg",
@@ -1441,7 +1441,7 @@ describe("game-actions", () => {
 
             if (table === "game_sessions") {
               // First call: initial session query, Second call: after update
-              chain.single = vi.fn().mockImplementation(() => {
+              chain["single"] = vi.fn().mockImplementation(() => {
                 sessionCallCount++;
                 return sessionCallCount === 1
                   ? { data: sessionData, error: null }
@@ -1455,7 +1455,7 @@ describe("game-actions", () => {
                     };
               });
             } else if (table === "game_results") {
-              chain.insert = vi.fn().mockResolvedValue({
+              chain["insert"] = vi.fn().mockResolvedValue({
                 data: { id: "result-123" },
                 error: null,
               });
@@ -1494,7 +1494,7 @@ describe("game-actions", () => {
 
             switch (table) {
               case "daily_challenges": {
-                chain.single = vi.fn().mockResolvedValue({
+                chain["single"] = vi.fn().mockResolvedValue({
                   data: {
                     challenge_date: "2026-02-12",
                     grace_deadline_at_utc: "2026-02-13T00:00:00Z",
@@ -1507,7 +1507,7 @@ describe("game-actions", () => {
               }
               case "perfumes": {
                 // For both guessed and answer perfume (same ID) - called twice in Promise.all
-                chain.single = vi.fn().mockImplementation(() => {
+                chain["single"] = vi.fn().mockImplementation(() => {
                   _perfumeCallCount++;
                   // Both queries should return the same data since it's the correct guess
                   return {
@@ -1530,7 +1530,7 @@ describe("game-actions", () => {
                 break;
               }
               case "perfume_assets": {
-                chain.single = vi.fn().mockResolvedValue({
+                chain["single"] = vi.fn().mockResolvedValue({
                   data: {
                     image_key_step_1: "step1.jpg",
                     image_key_step_2: "step2.jpg",
@@ -1607,19 +1607,19 @@ describe("game-actions", () => {
             };
 
             if (table === "game_sessions") {
-              chain.single = vi.fn().mockResolvedValueOnce({
+              chain["single"] = vi.fn().mockResolvedValueOnce({
                 data: sessionData,
                 error: null,
               });
               // After update
-              chain.single = vi.fn().mockResolvedValue({
+              chain["single"] = vi.fn().mockResolvedValue({
                 data: { ...sessionData, attempts_count: 3 },
                 error: null,
               });
             }
 
             if (table === "game_results") {
-              chain.insert = vi
+              chain["insert"] = vi
                 .fn()
                 .mockResolvedValue({ data: { id: "result-123" }, error: null });
             }
@@ -1659,7 +1659,7 @@ describe("game-actions", () => {
 
             switch (table) {
               case "daily_challenges": {
-                chain.single = vi.fn().mockResolvedValue({
+                chain["single"] = vi.fn().mockResolvedValue({
                   data: {
                     challenge_date: "2026-02-12",
                     grace_deadline_at_utc: "2026-02-13T00:00:00Z",
@@ -1672,7 +1672,7 @@ describe("game-actions", () => {
               }
               case "perfumes": {
                 // Return different data for guessed vs answer perfume
-                chain.single = vi.fn().mockImplementation(() => {
+                chain["single"] = vi.fn().mockImplementation(() => {
                   _perfumeCallCount++;
                   return _perfumeCallCount === 1
                     ? {
@@ -1706,7 +1706,7 @@ describe("game-actions", () => {
                 break;
               }
               case "perfume_assets": {
-                chain.single = vi.fn().mockResolvedValue({
+                chain["single"] = vi.fn().mockResolvedValue({
                   data: {
                     image_key_step_1: "step1.jpg",
                     image_key_step_2: "step2.jpg",
@@ -1918,11 +1918,11 @@ describe("game-actions", () => {
       for (const method of ["select", "eq", "in", "limit", "order", "update"]) {
         chain[method] = vi.fn().mockReturnValue(chain);
       }
-      chain.insert = vi.fn().mockResolvedValue({ data: null, error: null });
-      chain.single = vi.fn().mockResolvedValue(value);
-      chain.maybeSingle = chain.single;
+      chain["insert"] = vi.fn().mockResolvedValue({ data: null, error: null });
+      chain["single"] = vi.fn().mockResolvedValue(value);
+      chain["maybeSingle"] = chain["single"];
       // eslint-disable-next-line unicorn/no-thenable -- necessary for Supabase chain mocking
-      chain.then = p.then.bind(p);
+      chain["then"] = p.then.bind(p);
       return chain;
     }
 
@@ -1959,20 +1959,20 @@ describe("game-actions", () => {
             // Awaited list (.in) returns the guessed perfume; .single() is keyed by id.
             const chain = thenable(historyResult);
             const eq = vi.fn((_column: string, id: string) => {
-              chain.single = vi.fn().mockResolvedValue({
+              chain["single"] = vi.fn().mockResolvedValue({
                 data: id === GUESS_ID ? guessedRow : answerRow,
                 error: null,
               });
               return chain;
             });
-            chain.eq = eq;
+            chain["eq"] = eq;
             return chain;
           }
           case "game_sessions": {
             // Session writes echo the stored row, as the service role returns it.
             const chain = thenable({ data: null, error: null });
-            chain.update = vi.fn((values: Record<string, unknown>) => {
-              chain.single = vi.fn().mockResolvedValue({
+            chain["update"] = vi.fn((values: Record<string, unknown>) => {
+              chain["single"] = vi.fn().mockResolvedValue({
                 data: { ...baseSession, ...values },
                 error: null,
               });
