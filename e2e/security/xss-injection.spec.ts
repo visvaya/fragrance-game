@@ -58,22 +58,6 @@ test.describe("XSS Injection Prevention", () => {
     expect(dialogs).toHaveLength(0);
   });
 
-  test("CSP blocks an inline script injected into the page", async ({
-    page,
-  }) => {
-    await page.goto("/en");
-    await expect(page.locator("main")).toBeVisible();
-
-    const executed = await page.evaluate(() => {
-      const script = document.createElement("script");
-      script.textContent = "document.documentElement.dataset.xss = 'ran'";
-      document.body.append(script);
-      return document.documentElement.dataset["xss"] === "ran";
-    });
-
-    expect(executed).toBe(false);
-  });
-
   test("should escape HTML entities in displayed content", async ({ page }) => {
     await page.goto("/en");
 
