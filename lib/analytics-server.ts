@@ -10,9 +10,10 @@ let posthogClient: PostHog | null = null;
 
 function getPostHogClient() {
   // eslint-disable-next-line fp/no-mutation -- necessary for singleton pattern
-  posthogClient ??= new PostHog(env.NEXT_PUBLIC_POSTHOG_KEY, {
-    host: env.NEXT_PUBLIC_POSTHOG_HOST,
-  });
+  posthogClient ??= new PostHog(
+    env.NEXT_PUBLIC_POSTHOG_KEY,
+    env.NEXT_PUBLIC_POSTHOG_HOST ? { host: env.NEXT_PUBLIC_POSTHOG_HOST } : {},
+  );
   return posthogClient;
 }
 
@@ -29,7 +30,11 @@ export async function trackEvent(
 ): Promise<void> {
   try {
     const client = getPostHogClient();
-    await client.captureImmediate({ distinctId, event: eventName, properties });
+    await client.captureImmediate({
+      distinctId,
+      event: eventName,
+      ...(properties ? { properties } : {}),
+    });
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";

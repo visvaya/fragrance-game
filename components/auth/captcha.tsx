@@ -47,12 +47,12 @@ export function Captcha({ onError, onExpire, onVerify }: CaptchaProperties) {
     // eslint-disable-next-line eauxle/restricted-syntax -- Cloudflare Turnstile documented minimum height is 65px (fixed hardware constraint)
     <div className="flex min-h-[65px] w-full justify-center py-2">
       <Turnstile
-        onError={onError}
-        onExpire={onExpire}
+        {...(onError ? { onError } : {})}
+        {...(onExpire ? { onExpire } : {})}
         onSuccess={onVerify}
         options={{
           size: "normal",
-          theme: theme as "light" | "dark" | "auto",
+          theme,
         }}
         ref={ref}
         siteKey={siteKey}

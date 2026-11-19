@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 type GameTooltipProperties = {
   children: ReactNode | ((props: { isHovered: boolean }) => ReactNode);
-  className?: string;
+  className?: string | undefined;
   content: ReactNode;
   /**
    * If true, the tooltip logic is disabled and keys are passed through.

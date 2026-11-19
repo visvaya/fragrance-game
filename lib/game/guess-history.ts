@@ -17,16 +17,16 @@ export const UNKNOWN_VALUE = "Unknown";
 /** One entry of the guess history sent to the browser, with guessed-perfume details. */
 export type GuessHistoryItem = {
   brandName: string;
-  concentration?: string;
+  concentration?: string | undefined;
   feedback: AttemptFeedback;
-  gender?: string;
+  gender?: string | undefined;
   isCorrect: boolean;
   isSkip?: boolean;
   perfumeId: string;
   perfumeName: string;
-  perfumers?: string[];
+  perfumers?: string[] | undefined;
   timestamp: string;
-  year?: number;
+  year?: number | undefined;
 };
 
 /** Stored shape of one entry of game_sessions.guesses. */

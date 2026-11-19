@@ -65,8 +65,8 @@ export type DailyChallenge = {
 };
 
 export type StartGameResponse = {
-  answerConcentration?: string;
-  answerName?: string;
+  answerConcentration?: string | undefined;
+  answerName?: string | undefined;
   graceDeadline: string;
   guesses: GuessHistoryItem[];
   imageUrl: string | null;
@@ -82,10 +82,10 @@ type InitializeGameResponse = {
 };
 
 export type SubmitGuessResult = {
-  answerConcentration?: string;
-  answerName?: string;
+  answerConcentration?: string | undefined;
+  answerName?: string | undefined;
   feedback: AttemptFeedback;
-  finalScore?: number;
+  finalScore?: number | undefined;
   gameStatus: "active" | "won" | "lost";
   guessedPerfumeDetails?: {
     concentration: string;
@@ -103,8 +103,8 @@ export type SubmitGuessResult = {
 };
 
 export type SkipAttemptResult = {
-  answerConcentration?: string;
-  answerName?: string;
+  answerConcentration?: string | undefined;
+  answerName?: string | undefined;
   gameStatus: "active" | "won" | "lost";
   imageUrl?: string | null;
   newNonce: string;
@@ -922,7 +922,10 @@ async function recordSkipLoss(
   sessionId: string,
   playerId: string,
   attemptCount: number,
-): Promise<{ answerConcentration?: string; answerName?: string }> {
+): Promise<{
+  answerConcentration?: string | undefined;
+  answerName?: string | undefined;
+}> {
   const adminSupabase = createAdminClient();
   const { data: challenge } = await adminSupabase
     .from("daily_challenges")

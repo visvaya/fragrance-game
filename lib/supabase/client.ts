@@ -40,9 +40,9 @@ export function createClient(): SupabaseClient<Database> {
     ? `sb-${projectReference}-auth-token`
     : undefined;
 
-  return createBrowserClient(proxyUrl, supabaseAnonKey, {
-    cookieOptions: {
-      name: cookieName,
-    },
-  });
+  return createBrowserClient(
+    proxyUrl,
+    supabaseAnonKey,
+    cookieName ? { cookieOptions: { name: cookieName } } : {},
+  );
 }

@@ -10,12 +10,12 @@ type MaskedWordProperties = Readonly<{
    * When true, revealed characters also change colour on hover (meta-clues tooltips).
    * Defaults to false (pyramid-clues and non-tooltip contexts).
    */
-  hoverColorChars?: boolean;
+  hoverColorChars?: boolean | undefined;
   /**
    * Hover state passed from a GameTooltip render prop.
    * When provided, MaskSlots receive it for their styling.
    */
-  isHovered?: boolean;
+  isHovered?: boolean | undefined;
   /**
    * Unique prefix used to generate stable React keys across multiple MaskedWord instances.
    */
