@@ -13,6 +13,9 @@ export default defineConfig({
     globals: true,
     setupFiles: "./vitest.setup.ts",
     exclude: ["**/node_modules/**", "**/e2e/**"],
+    // next-intl imports "next/server" without an extension, which Node cannot resolve from
+    // node_modules; inlining lets Vite resolve it, so the real locale middleware can be tested.
+    server: { deps: { inline: ["next-intl"] } },
     env: {
       CRON_SECRET: "test-cron-secret",
       NEXT_PUBLIC_POSTHOG_KEY: "phc_test_key",
