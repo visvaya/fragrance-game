@@ -505,7 +505,7 @@ export function GameInput() {
   );
 
   // 1. Loading State – show skeleton until SSR clue data or reset is complete.
-  // This ensures consistency with loading.tsx and avoids jarring spinner replacements.
+  // A skeleton instead of a spinner keeps the layout of the real input.
   if (gameLoading && isSkeleton) {
     return <GameInputSkeleton />;
   }

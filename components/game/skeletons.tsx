@@ -5,56 +5,6 @@ import { cn } from "@/lib/utils";
 
 import { DotFiller } from "./dot-filler";
 
-// Optional t() prop allows rendering translations. When t is absent (loading.tsx),
-// text labels degrade to pulsing bars while all layout/spacing stays identical.
-
-/**
- * Skeleton for the RevealImage section (image and guide lines).
- * @param props - Component properties.
- * @param props.t - Optional translation function (used outside of loading.tsx).
- */
-export function RevealImageSkeleton({
-  t,
-}: Readonly<{ t?: (key: string) => string }>) {
-  return (
-    <div className="flex size-full flex-col">
-      {/* Title row – placeholder ikony + tytuł, jak we wszystkich innych skeleton boxach */}
-      <div className="mb-4 flex w-fit cursor-default items-center">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex size-4 rounded bg-muted/30" />
-          {t ? (
-            <h2 className="font-[family-name:var(--font-playfair)] text-lg tracking-wide text-foreground lowercase opacity-40">
-              {t("visualEvidence")}
-            </h2>
-          ) : (
-            <div className="h-7 w-32 animate-pulse rounded bg-muted/40" />
-          )}
-        </div>
-      </div>
-
-      <div className="flex flex-1 flex-row items-center gap-2">
-        {/* Left vertical dot filler – identical to real component */}
-        <span
-          aria-hidden="true"
-          className="flex flex-1 justify-center self-stretch py-2"
-        >
-          <span className="h-full border-l border-dotted border-muted-foreground/25" />
-        </span>
-
-        <RevealImageSquareSkeleton />
-
-        {/* Right vertical dot filler */}
-        <span
-          aria-hidden="true"
-          className="flex flex-1 justify-center self-stretch py-2"
-        >
-          <span className="h-full border-l border-dotted border-muted-foreground/25" />
-        </span>
-      </div>
-    </div>
-  );
-}
-
 /**
  * Skeleton for the image square itself (used inside RevealImage).
  */
@@ -81,37 +31,29 @@ export function RevealImageSquareSkeleton() {
 /**
  * Skeleton for the MetaClues section (brand, perfumer, year, and gender information).
  * @param props - Component properties.
- * @param props.t - Optional translation function.
+ * @param props.t - Translation function.
  */
 export function MetaCluesSkeleton({
   t,
-}: Readonly<{ t?: ReturnType<typeof useTranslations<"MetaClues">> }>) {
+}: Readonly<{ t: ReturnType<typeof useTranslations<"MetaClues">> }>) {
   return (
     <div className="flex h-full flex-col p-0">
       {/* Title row – matches real MetaClues title structure */}
       <div className="mb-2 flex w-fit cursor-default items-center">
         <div className="flex items-center gap-2">
           <span className="inline-flex size-4 rounded bg-muted/30" />
-          {t ? (
-            <h2 className="font-[family-name:var(--font-playfair)] text-base tracking-wide text-foreground lowercase opacity-40">
-              {t("identity")}
-            </h2>
-          ) : (
-            <div className="h-7 w-24 animate-pulse rounded bg-muted/40" />
-          )}
+          <h2 className="font-[family-name:var(--font-playfair)] text-base tracking-wide text-foreground lowercase opacity-40">
+            {t("identity")}
+          </h2>
         </div>
       </div>
 
       <div className="flex flex-1 flex-col gap-5">
         {/* Brand row – same structure as real: label + flex wrapper with badge + DotFiller */}
         <div className="flex w-full flex-col items-start gap-0.5">
-          {t ? (
-            <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
-              {t("brand")}
-            </span>
-          ) : (
-            <div className="h-[1.125rem] w-12 rounded bg-muted/30" />
-          )}
+          <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
+            {t("brand")}
+          </span>
           <div className="flex w-full flex-wrap items-center gap-2">
             <div className="flex min-w-0 flex-[1_1_auto] items-center gap-2">
               <Skeleton className="h-7 w-9 rounded-md" />
@@ -122,13 +64,9 @@ export function MetaCluesSkeleton({
 
         {/* Perfumer row */}
         <div className="flex w-full flex-col items-start gap-0.5">
-          {t ? (
-            <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
-              {t("perfumer")}
-            </span>
-          ) : (
-            <div className="h-[1.125rem] w-16 rounded bg-muted/30" />
-          )}
+          <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
+            {t("perfumer")}
+          </span>
           <div className="flex w-full flex-wrap items-center gap-2">
             <div className="flex min-w-0 flex-[1_1_auto] items-center gap-2">
               <Skeleton className="h-7 w-9 rounded-md" />
@@ -140,13 +78,9 @@ export function MetaCluesSkeleton({
         {/* Year + Gender – 2-column grid, same as real component */}
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col items-start gap-0.5">
-            {t ? (
-              <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
-                {t("year")}
-              </span>
-            ) : (
-              <div className="h-[1.125rem] w-8 rounded bg-muted/30" />
-            )}
+            <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
+              {t("year")}
+            </span>
             <div className="flex w-full flex-wrap items-center gap-2">
               <div className="flex min-w-0 flex-[1_1_auto] items-center gap-2">
                 <Skeleton className="h-7 w-9 rounded-md" />
@@ -155,13 +89,9 @@ export function MetaCluesSkeleton({
             </div>
           </div>
           <div className="flex flex-col items-start gap-0.5">
-            {t ? (
-              <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
-                {t("gender")}
-              </span>
-            ) : (
-              <div className="h-[1.125rem] w-12 rounded bg-muted/30" />
-            )}
+            <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
+              {t("gender")}
+            </span>
             <div className="flex w-full flex-wrap items-center gap-2">
               <div className="flex min-w-0 flex-[1_1_auto] items-center gap-2">
                 <Skeleton className="h-7 w-9 rounded-md" />
@@ -178,22 +108,16 @@ export function MetaCluesSkeleton({
 /**
  * Skeleton for the PyramidClues section (top, heart, and base notes).
  * @param props - Component properties.
- * @param props.t - Optional translation function.
+ * @param props.t - Translation function.
  */
 export function PyramidCluesSkeleton({
   t,
-}: Readonly<{ t?: ReturnType<typeof useTranslations<"PyramidClues">> }>) {
-  const skeletonLevels = t
-    ? [
-        { count: 3, label: t("top") },
-        { count: 3, label: t("heart") },
-        { count: 3, label: t("base") },
-      ]
-    : [
-        { count: 3, label: "" },
-        { count: 3, label: "" },
-        { count: 3, label: "" },
-      ];
+}: Readonly<{ t: ReturnType<typeof useTranslations<"PyramidClues">> }>) {
+  const skeletonLevels = [
+    { count: 3, label: t("top") },
+    { count: 3, label: t("heart") },
+    { count: 3, label: t("base") },
+  ];
 
   return (
     <div className="panel-standard">
@@ -201,32 +125,24 @@ export function PyramidCluesSkeleton({
       <div className="mb-2 flex w-fit cursor-default items-center">
         <div className="flex items-center gap-2">
           <span className="inline-flex size-4 rounded bg-muted/30" />
-          {t ? (
-            <h2 className="font-[family-name:var(--font-playfair)] text-base text-foreground lowercase opacity-40">
-              {t("pyramid")}
-            </h2>
-          ) : (
-            <div className="h-7 w-20 animate-pulse rounded bg-muted/40" />
-          )}
+          <h2 className="font-[family-name:var(--font-playfair)] text-base text-foreground lowercase opacity-40">
+            {t("pyramid")}
+          </h2>
         </div>
       </div>
 
       <ul className="flex flex-col">
-        {skeletonLevels.map((level, idx) => (
+        {skeletonLevels.map((level) => (
           <li
             className="flex flex-col gap-2 border-b border-border/60 py-4 first:pt-0 last:border-b-0 last:pb-0"
-            key={level.label || `skel-level-${idx}`}
+            key={level.label}
           >
             {/* Level header: neutral dot + label – matches real level row structure */}
             <div className="flex items-center gap-2">
               <span className="size-2 shrink-0 rounded-full bg-muted-foreground/30" />
-              {level.label ? (
-                <span className="text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
-                  {level.label}
-                </span>
-              ) : (
-                <div className="h-[1.125rem] w-28 rounded bg-muted/30" />
-              )}
+              <span className="text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
+                {level.label}
+              </span>
             </div>
 
             {/*
@@ -260,24 +176,20 @@ export function PyramidCluesSkeleton({
 /**
  * Skeleton for the AttemptLog section (log of made attempts).
  * @param props - Component properties.
- * @param props.t - Optional translation function.
+ * @param props.t - Translation function.
  */
 export function AttemptLogSkeleton({
   t,
-}: Readonly<{ t?: ReturnType<typeof useTranslations<"AttemptLog">> }>) {
+}: Readonly<{ t: ReturnType<typeof useTranslations<"AttemptLog">> }>) {
   return (
     <section className="panel-standard">
       {/* Title row – matches real AttemptLog title structure */}
       <div className="mb-1 flex w-fit cursor-default items-center">
         <div className="flex items-center gap-2">
           <span className="inline-flex size-4 rounded bg-muted/30" />
-          {t ? (
-            <h2 className="font-[family-name:var(--font-playfair)] text-base text-foreground lowercase opacity-40">
-              {t("title")}
-            </h2>
-          ) : (
-            <div className="h-7 w-28 animate-pulse rounded bg-muted/40" />
-          )}
+          <h2 className="font-[family-name:var(--font-playfair)] text-base text-foreground lowercase opacity-40">
+            {t("title")}
+          </h2>
         </div>
       </div>
 
@@ -285,22 +197,14 @@ export function AttemptLogSkeleton({
       <div className="-mb-3 grid grid-cols-[2rem_1fr_minmax(7rem,auto)]">
         {/* Header: "#" column – real has size-8 GameTooltip placeholder, we replicate 32px height */}
         <div className="flex items-center justify-center border-b-2 border-muted/50 pb-[0.1875rem] text-[0.8125rem] font-semibold tracking-widest text-muted-foreground/70 lowercase">
-          {t ? (
-            <span className="w-full text-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2 opacity-40">
-              {t("columns.attempt")}
-            </span>
-          ) : (
-            <div className="size-3.5 rounded bg-muted/40" />
-          )}
+          <span className="w-full text-center underline decoration-muted-foreground/30 decoration-dotted underline-offset-2 opacity-40">
+            {t("columns.attempt")}
+          </span>
         </div>
 
         {/* Header: "perfume" column */}
         <div className="flex items-center border-b-2 border-muted/50 pb-[0.1875rem] pl-1 text-[0.8125rem] font-semibold tracking-widest text-muted-foreground/70 lowercase opacity-40 sm:pl-2">
-          {t ? (
-            t("columns.perfume")
-          ) : (
-            <div className="h-3.5 w-16 rounded bg-muted/40" />
-          )}
+          {t("columns.perfume")}
         </div>
 
         {/* Header: 5 attribute columns – neutral squares instead of icons */}
