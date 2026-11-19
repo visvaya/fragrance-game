@@ -1,5 +1,19 @@
 /* eslint-disable playwright/no-wait-for-timeout -- memory tests require explicit waits to allow GC and heap stabilization */
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+
+const RELOAD_COUNT = 5;
+// A real leak grows the heap with every reload; cache and JIT warm-up stay well below this.
+const MAX_HEAP_GROWTH_FACTOR = 3;
+const LOAD_BUDGET_MS = 3000;
+
+/** Reads the used JS heap size; `performance.memory` exists only in Chromium. */
+async function readUsedHeapBytes(page: Page): Promise<number | undefined> {
+  return page.evaluate(
+    () =>
+      (globalThis.performance as { memory?: { usedJSHeapSize: number } }).memory
+        ?.usedJSHeapSize,
+  );
+}
 
 /**
  * Performance tests and memory leak detection.
@@ -7,72 +21,47 @@ import { test, expect } from "@playwright/test";
  */
 test.describe("Performance & Memory Audit", () => {
   test("should not have significant memory leaks during repeated game loads", async ({
+    browserName,
     page,
   }) => {
+    test.skip(
+      browserName !== "chromium",
+      "performance.memory is Chromium-only.",
+    );
+
     await page.goto("/en");
     await expect(page.locator("main")).toBeVisible();
+    const initialHeap = await readUsedHeapBytes(page);
+    expect(initialHeap).toBeGreaterThan(0);
 
-    // Pobieramy bazowe zużycie pamięci (JS Heap) - wymaga Chromium
-    const getMemory = async (): Promise<number> => {
-      return await page.evaluate(() => {
-        type PerformanceMemory = {
-          usedJSHeapSize: number;
-        };
-        const perf = globalThis.performance as unknown as {
-          memory?: PerformanceMemory;
-        };
-        return perf.memory ? perf.memory.usedJSHeapSize : 0;
-      });
-    };
-
-    const initialMemory = await getMemory();
-
-    // Jeśli środowisko nie wspiera performance.memory, pomijamy numeryczną walidację
-
-    if (initialMemory === 0) {
-      console.log(
-        "Performance.memory not available, skipping numerical heap check.",
-      );
-      // But we still check if the page remains responsive after 10 reloads
-      for (let i = 0; i < 10; i++) {
-        await page.reload();
-        await expect(page.locator("main")).toBeVisible();
-        const title = await page.title();
-
-        expect(title).toBeTruthy();
-      }
-      return;
-    }
-
-    // Simulate 5 game sessions (reloads)
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < RELOAD_COUNT; i++) {
       await page.reload();
       await expect(page.locator("main")).toBeVisible();
-      // Wait for GC (Garbage Collection) - optional, but gives a more stable result
+      // Give the garbage collector time to settle between loads.
       await page.waitForTimeout(1000);
     }
 
-    const finalMemory = await getMemory();
-
-    // We accept an increase of max 50% due to browser cache and JIT
-    // In a real memory leak, the increase would be linear and much larger.
-    console.log(
-      `Initial Heap: ${initialMemory / 1024 / 1024}MB, Final Heap: ${finalMemory / 1024 / 1024}MB`,
+    const finalHeap = await readUsedHeapBytes(page);
+    console.log(`[memory] heap bytes: ${initialHeap} -> ${finalHeap}`);
+    expect(finalHeap).toBeLessThan(
+      Number(initialHeap) * MAX_HEAP_GROWTH_FACTOR,
     );
-    expect(finalMemory).toBeLessThan(initialMemory * 3); // Very liberal limit for CI
   });
 
-  test("Lighthouse performance budget (simulated)", async ({ page }) => {
-    // Simple load time test (LCP equivalent)
+  test("home page shows its heading within the load budget", async ({
+    page,
+  }) => {
+    test.skip(
+      !process.env.CI,
+      "The budget applies to the production build in CI.",
+    );
+
     const start = Date.now();
     await page.goto("/");
     await expect(page.locator("h1")).toBeVisible();
     const loadTime = Date.now() - start;
 
-    console.log(`FCP equivalent (h1 visible): ${loadTime}ms`);
-    // Budget only enforced in CI (production build – dev server too slow locally)
-    if (process.env.CI) {
-      expect(loadTime).toBeLessThan(3000);
-    }
+    console.log(`[memory] h1 visible after ${loadTime}ms`);
+    expect(loadTime).toBeLessThan(LOAD_BUDGET_MS);
   });
 });

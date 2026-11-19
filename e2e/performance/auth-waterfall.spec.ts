@@ -1,4 +1,11 @@
+import path from "node:path";
+
 import { test, expect, type Page } from "@playwright/test";
+
+// Playwright runs from the project root and loads specs as CommonJS (no import.meta).
+const AUTH_FILE = path.join(process.cwd(), "e2e", ".auth", "user.json");
+const ANON_AUTH_BUDGET_MS = 3000;
+const GAME_FETCH_BUDGET_MS = 500;
 
 /**
  * Waits for GameProvider.initGame to finish – either successfully (session_ready)
@@ -61,65 +68,40 @@ function printBreakdown(
 }
 
 test.describe("Auth Waterfall Diagnostics", () => {
-  test("new user – auth waterfall timing breakdown", async ({ browser }) => {
-    // Fresh context = no cookies = new user path (anon sign-in + verify)
+  test("new user – anonymous sign-in stays within budget", async ({
+    browser,
+  }) => {
+    // Fresh context = no cookies = new user path. In CI the captcha stops the flow after the
+    // anonymous sign-in (init ends without session_ready), so only that step is measured.
     const context = await browser.newContext();
     const page = await context.newPage();
+    await page.goto("/en");
+    await waitForInitEnd(page);
 
-    try {
+    const { marks, measures } = await collectMarksAndMeasures(page);
+    printBreakdown("New User Auth Waterfall", measures, marks);
+    await context.close();
+
+    const anonAuth = measures.find((m) => m.name === "eauxle.anon_auth");
+    expect(anonAuth?.duration).toBeLessThan(ANON_AUTH_BUDGET_MS);
+  });
+
+  test.describe("returning user", () => {
+    // Pre-authenticated session from globalSetup: the session is already in the cookies.
+    test.use({ storageState: AUTH_FILE });
+
+    test("no auth roundtrip, game_fetch only", async ({ page }) => {
       await page.goto("/en");
       await waitForInitEnd(page);
 
       const { marks, measures } = await collectMarksAndMeasures(page);
-      printBreakdown("New User Auth Waterfall", measures, marks);
+      printBreakdown("Returning User Waterfall", measures, marks);
 
-      const anonAuth = measures.find((m) => m.name === "eauxle.anon_auth");
-      const gameF = measures.find((m) => m.name === "eauxle.game_fetch");
-
-      if (anonAuth) expect(anonAuth.duration).toBeLessThan(3000);
-      if (gameF) expect(gameF.duration).toBeLessThan(1000);
-    } finally {
-      await context.close();
-    }
-  });
-
-  test("returning user – no auth roundtrip, game_fetch only", async ({
-    page,
-  }) => {
-    // First visit to establish anonymous session in cookies
-    await page.goto("/en");
-    await waitForInitEnd(page);
-
-    // Check if first load succeeded (session in cookies)
-    const firstLoadMarks = await page.evaluate((): PerfMark[] =>
-      performance
-        .getEntriesByType("mark")
-        .filter((e) => e.name.startsWith("eauxle:"))
-        .map((e) => ({ name: e.name, time: e.startTime })),
-    );
-    const firstLoadSucceeded = firstLoadMarks.some(
-      (m) => m.name === "eauxle:session_ready",
-    );
-
-    // Reload simulates returning user – session already in cookies, auth skipped
-    await page.reload();
-    await waitForInitEnd(page);
-
-    const { marks, measures } = await collectMarksAndMeasures(page);
-    printBreakdown("Returning User Waterfall (after reload)", measures, marks);
-
-    if (firstLoadSucceeded) {
-      // Returning user with session in cookies must NOT trigger anon auth
-      const anonAuth = measures.find((m) => m.name === "eauxle.anon_auth");
-      expect(anonAuth).toBeUndefined();
-
-      // game_fetch should be fast: SSR challenge + 1 DB roundtrip only
-      const gameF = measures.find((m) => m.name === "eauxle.game_fetch");
-      if (gameF != null) expect(gameF.duration).toBeLessThan(500);
-    } else {
-      console.log(
-        "  NOTE: first load did not establish session (captcha?) – returning-user assertions skipped",
-      );
-    }
+      expect(marks.map((m) => m.name)).toContain("eauxle:session_ready");
+      expect(measures.map((m) => m.name)).not.toContain("eauxle.anon_auth");
+      // SSR challenge + 1 DB roundtrip only
+      const gameFetch = measures.find((m) => m.name === "eauxle.game_fetch");
+      expect(gameFetch?.duration).toBeLessThan(GAME_FETCH_BUDGET_MS);
+    });
   });
 });
