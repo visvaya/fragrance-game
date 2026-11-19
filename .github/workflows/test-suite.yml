@@ -121,6 +121,10 @@ jobs:
       - name: Run Smoke Tests
         # The full chromium and a11y suites run nightly in e2e-nightly.yml.
         run: pnpm exec playwright test --project=smoke
+      - name: Run Accessibility Checks
+        # The two axe scans of e2e/a11y/wcag.spec.ts that pass reliably; the login modal scan
+        # still runs only nightly.
+        run: pnpm exec playwright test --project=chromium --grep "accessibility violations" e2e/a11y/wcag.spec.ts
       - name: Upload Playwright Report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
