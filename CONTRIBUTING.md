@@ -15,7 +15,7 @@ Installing the dependencies also installs the git hooks: `pre-commit` lints and 
 Run the same checks as CI:
 
 ```bash
-pnpm typecheck && pnpm lint:strict && pnpm format:check && pnpm test
+pnpm typecheck && pnpm lint:strict && pnpm format:check && pnpm exec knip && pnpm test:coverage
 ```
 
 For a change to the Python scripts (`scripts/`, `tests/python`), with [uv](https://docs.astral.sh/uv/):
