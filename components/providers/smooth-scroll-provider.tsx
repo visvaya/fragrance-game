@@ -2,22 +2,25 @@
 
 import type { ReactNode } from "react";
 
-import Lenis from "lenis";
+import type Lenis from "lenis";
 
 import { useMountEffect } from "@/lib/hooks/use-mount-effect";
 
-let lenis: Lenis | null = null;
+/** Narrowest viewport that gets smooth scrolling; phones keep native scrolling. */
+const SMOOTH_SCROLL_MIN_WIDTH_PX = 1024;
+
+const instance: { current: Lenis | null } = { current: null };
 
 /**
  * Scroll to a target position using Lenis on desktop (avoids rAF conflicts),
- * or native window.scrollTo on mobile where Lenis is not initialized.
+ * or native window.scrollTo where Lenis is not running.
  */
 export function lenisScrollTo(
   target: number,
   options?: { behavior?: ScrollBehavior },
 ): void {
-  if (lenis) {
-    lenis.scrollTo(target);
+  if (instance.current) {
+    instance.current.scrollTo(target);
   } else {
     globalThis.scrollTo({
       behavior: options?.behavior ?? "smooth",
@@ -26,33 +29,38 @@ export function lenisScrollTo(
   }
 }
 
-function initLenis() {
-  if (typeof window === "undefined" || window.innerWidth < 1024) {
-    return;
-  }
+/** Smooth scrolling only on wide viewports and only when the user has not asked for less motion. */
+function wantsSmoothScroll(): boolean {
+  return (
+    globalThis.innerWidth >= SMOOTH_SCROLL_MIN_WIDTH_PX &&
+    !globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
 
-  if (lenis) return;
-
-  // eslint-disable-next-line fp/no-mutation -- necessary for global Lenis instance management
-  lenis = new Lenis({
-    gestureOrientation: "vertical",
-    lerp: 0.08,
-    orientation: "vertical",
-    smoothWheel: true,
-    touchMultiplier: 1.5,
-    wheelMultiplier: 0.8,
+/** Pauses Lenis while a modal or Radix overlay locks the page scroll. */
+function syncWithScrollLock(lenis: Lenis): MutationObserver {
+  const observer = new MutationObserver(() => {
+    const { dataset, style } = document.body;
+    if (
+      style.overflow === "hidden" ||
+      Object.hasOwn(dataset, "scrollLocked") ||
+      style.pointerEvents === "none"
+    ) {
+      lenis.stop();
+    } else {
+      lenis.start();
+    }
   });
-
-  function raf(time: number) {
-    lenis?.raf(time);
-    requestAnimationFrame(raf);
-  }
-
-  requestAnimationFrame(raf);
+  observer.observe(document.body, {
+    attributeFilter: ["style", "data-scroll-locked"],
+    attributes: true,
+  });
+  return observer;
 }
 
 /**
- * SmoothScrollProvider - Handles Lenis smooth scrolling initialization.
+ * SmoothScrollProvider - starts Lenis smooth scrolling on desktop. The library is loaded
+ * with a dynamic import, so phones never download it.
  * @param props - Component props.
  * @param props.children - Child elements to wrap.
  */
@@ -60,38 +68,46 @@ export function SmoothScrollProvider({
   children,
 }: Readonly<{ children: ReactNode }>) {
   useMountEffect(() => {
-    // Skip Lenis entirely on mobile – no init, no RAF loop, no MutationObserver
-
-    if (globalThis.innerWidth < 1024) {
+    if (!wantsSmoothScroll()) {
       return;
     }
 
-    initLenis();
+    const unmounted = { current: false };
+    const frame = { current: 0 };
+    const observer: { current: MutationObserver | null } = { current: null };
 
-    const observer = new MutationObserver(() => {
-      // Radix UI adds data-scroll-locked or pointer-events: none
-      // Our custom modals add overflow: hidden
-      if (
-        document.body.style.overflow === "hidden" ||
-        Object.hasOwn(document.body.dataset, "scrollLocked") ||
-        document.body.style.pointerEvents === "none"
-      ) {
-        lenis?.stop();
-      } else {
-        lenis?.start();
-      }
-    });
+    const start = async () => {
+      const { default: LenisClass } = await import("lenis");
+      if (unmounted.current) return;
+      const lenis = new LenisClass({
+        gestureOrientation: "vertical",
+        lerp: 0.08,
+        orientation: "vertical",
+        smoothWheel: true,
+        touchMultiplier: 1.5,
+        wheelMultiplier: 0.8,
+      });
+      instance.current = lenis;
+      observer.current = syncWithScrollLock(lenis);
 
-    observer.observe(document.body, {
-      attributeFilter: ["style", "data-scroll-locked"],
-      attributes: true,
+      const loop = (time: number) => {
+        lenis.raf(time);
+        frame.current = requestAnimationFrame(loop);
+      };
+      frame.current = requestAnimationFrame(loop);
+    };
+
+    start().catch(() => {
+      // A failed chunk load leaves native scrolling in place, which is the phone behaviour
+      // anyway; nothing else depends on Lenis being present.
     });
 
     return () => {
-      observer.disconnect();
-      lenis?.destroy();
-      // eslint-disable-next-line fp/no-mutation -- necessary for cleanup
-      lenis = null;
+      unmounted.current = true;
+      cancelAnimationFrame(frame.current);
+      observer.current?.disconnect();
+      instance.current?.destroy();
+      instance.current = null;
     };
   });
 
