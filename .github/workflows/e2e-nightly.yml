@@ -69,12 +69,10 @@ jobs:
         run: pnpm exec playwright install-deps
         if: steps.playwright-cache.outputs.cache-hit == 'true'
       - name: Run chromium suite (excluding visual)
+        # Includes the a11y specs (e2e/a11y belongs to the chromium project). Visual snapshots stay
+        # excluded: the Linux renderer differs from the Windows baselines.
         # DEBT: known failures; remove continue-on-error once the suite passes twice in a row.
         run: pnpm exec playwright test --project=chromium --grep-invert "visual"
-        continue-on-error: true
-      - name: Run a11y suite
-        # Visual snapshots stay excluded: the Linux renderer differs from the Windows baselines.
-        run: pnpm exec playwright test --project=chromium --grep "accessibility violations"
         continue-on-error: true
       - name: Upload Playwright Report
         if: always()
