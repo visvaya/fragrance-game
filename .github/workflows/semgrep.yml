@@ -37,6 +37,7 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: .github/semgrep/requirements.txt
-      # The version lives in .github/semgrep/requirements.txt so Dependabot can update it.
-      - run: pip install -r .github/semgrep/requirements.txt
+      # Versions and hashes live in .github/semgrep/requirements.txt (compiled from requirements.in)
+      # so Dependabot can update them and pip installs only the reviewed files.
+      - run: pip install --require-hashes -r .github/semgrep/requirements.txt
       - run: semgrep ci
