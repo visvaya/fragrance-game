@@ -7,18 +7,13 @@ test("has title", async ({ page }) => {
   await expect(page).toHaveTitle(/Eauxle/);
 });
 
-test("should not show reset button in production", async ({ page }) => {
+test("does not show the debug reset button to players", async ({ page }) => {
+  test.skip(
+    process.env.NEXT_PUBLIC_GAME_RESET_ENABLED === "true",
+    "this build enables the debug reset button",
+  );
   await page.goto("/");
 
-  // Determine if we are in production mode
-  const isProduction = process.env.NODE_ENV === "production";
-
-  if (isProduction) {
-    // In production, the "Reset" button should NOT be visible to users
-    const resetButton = page.getByRole("button", { name: /reset/i });
-    await expect(resetButton).toBeHidden();
-  }
-
-  // Assertion: The main content should always be visible
   await expect(page.locator("main")).toBeVisible();
+  await expect(page.getByRole("button", { name: /reset/i })).toBeHidden();
 });

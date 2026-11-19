@@ -8,7 +8,8 @@ import type { FullConfig } from "@playwright/test";
 const DIR = path.join(process.cwd(), "e2e");
 // Primary user – for game-completion tests (tracks win/loss across 6 attempts).
 const AUTH_FILE = path.join(DIR, ".auth", "user.json");
-// Secondary user – for game-flow and other tests that submit guesses.
+// Secondary user – for the smoke guess test (e2e/smoke/guess.smoke.spec.ts), the only test that uses it:
+// it must start at attempt 1, so no other test may guess with this user.
 // Separate user prevents interference with game-completion's attempt counter.
 const AUTH_FILE_GAMEFLOW = path.join(DIR, ".auth", "user-gameflow.json");
 // A11y user – dedicated to accessibility tests; fresh game state, never played.
@@ -133,8 +134,8 @@ function saveStorageState(
  *
  * Creates THREE separate users to prevent concurrent tests from sharing a game session:
  * - user.json         → game-completion, mobile tests
- * - user-gameflow.json → game-flow test (may submit guesses; separate session prevents
- *                        interference with game-completion's 6-attempt counter)
+ * - user-gameflow.json → the smoke guess test only (starts at attempt 1; separate session
+ *                        prevents interference with game-completion's 6-attempt counter)
  * - user-a11y.json    → a11y tests (fresh game state; isolated from game-completion
  *                        Defeat test which exhausts 6 attempts on the primary user)
  *
@@ -186,7 +187,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
     );
   } else {
     console.warn(
-      "[E2E globalSetup] Game-flow session failed – game-flow test may fail",
+      "[E2E globalSetup] Game-flow session failed – the smoke guess test will fail",
     );
   }
 
