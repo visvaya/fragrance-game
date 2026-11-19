@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 type MaskSlotProperties = Readonly<{
   /** Tooltip variant: pass isHovered from GameTooltip render prop. Omit to use group-hover CSS. */
-  isHovered?: boolean;
+  isHovered?: boolean | undefined;
 }>;
 
 /**

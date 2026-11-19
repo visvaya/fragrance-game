@@ -8,9 +8,9 @@ export type SiteUrlSources = {
   /** Whether this is a production build or server, where a localhost fallback would leak into published links. */
   readonly isProduction: boolean;
   /** Production hostname without a scheme, as provided by the hosting platform. */
-  readonly platformProductionHost?: string;
+  readonly platformProductionHost?: string | undefined;
   /** Explicit absolute origin, e.g. `https://example.com`. */
-  readonly siteUrl?: string;
+  readonly siteUrl?: string | undefined;
 };
 
 /**

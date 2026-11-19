@@ -10,16 +10,16 @@ export type { AttemptFeedback } from "@/lib/game/guess-feedback";
 
 export type Attempt = {
   brand: string;
-  concentration?: string;
+  concentration?: string | undefined;
   feedback: AttemptFeedback;
-  gender?: string;
+  gender?: string | undefined;
   guess: string;
   hasGuessedNotes?: boolean; // True if guessed perfume has notes data
   isCorrect?: boolean;
   isSkipped?: boolean;
   perfumeId?: string;
-  perfumers?: string[];
-  year?: number;
+  perfumers?: string[] | undefined;
+  year?: number | undefined;
 };
 
 export type GameState = "playing" | "won" | "lost";

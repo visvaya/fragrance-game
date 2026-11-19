@@ -63,7 +63,7 @@ function makeRequest(
   options: { headers?: Record<string, string>; method?: string } = {},
 ) {
   return new NextRequest(`http://localhost:3000${path}`, {
-    headers: options.headers,
+    ...(options.headers ? { headers: options.headers } : {}),
     method: options.method ?? "GET",
   });
 }
