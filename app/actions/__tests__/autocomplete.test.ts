@@ -326,7 +326,7 @@ describe("autocomplete", () => {
         const result = await searchPerfumes("Sauvage", "session-123", 2);
 
         expect(maskYear).toHaveBeenCalledWith(2015, 2);
-        expect(result[0].year).toBe("2⎵⎵⎵");
+        expect(result[0]?.year).toBe("2⎵⎵⎵");
       });
 
       it("reveals full year for duplicate perfumes", async () => {
@@ -362,8 +362,8 @@ describe("autocomplete", () => {
         const result = await searchPerfumes("Chanel No. 5", "session-123", 2);
 
         // Both should show full year because they're duplicates
-        expect(result[0].year).toBe("1921");
-        expect(result[1].year).toBe("2016");
+        expect(result[0]?.year).toBe("1921");
+        expect(result[1]?.year).toBe("2016");
       });
 
       it("handles null year gracefully", async () => {
@@ -391,8 +391,8 @@ describe("autocomplete", () => {
 
         const result = await searchPerfumes("Unknown", "session-123", 3);
 
-        expect(result[0].year).toBeNull();
-        expect(result[0].display_name).not.toContain("(");
+        expect(result[0]?.year).toBeNull();
+        expect(result[0]?.display_name).not.toContain("(");
       });
     });
 
@@ -422,7 +422,7 @@ describe("autocomplete", () => {
 
         const result = await searchPerfumes("Sauvage", "session-123", 6);
 
-        expect(result[0].display_name).toMatch(
+        expect(result[0]?.display_name).toMatch(
           /^Dior - Sauvage Eau de Parfum \(2015\)$/,
         );
       });
@@ -452,7 +452,9 @@ describe("autocomplete", () => {
 
         const result = await searchPerfumes("Test", "session-123", 6);
 
-        expect(result[0].display_name).toBe("Test Brand - Test Perfume (2020)");
+        expect(result[0]?.display_name).toBe(
+          "Test Brand - Test Perfume (2020)",
+        );
       });
 
       it("includes all required fields in result", async () => {

@@ -448,10 +448,10 @@ export function GameInput() {
 
         const perfumeToSelect =
           (selectedIndex >= 0 ? suggestions[selectedIndex] : undefined) ??
-          (suggestions.length === 1 ? suggestions[0] : null);
+          (suggestions.length === 1 ? suggestions[0] : undefined);
 
-        // eslint-disable-next-line unicorn/no-negated-condition -- guard clause; null means no selection, positive action only when selected
-        if (perfumeToSelect !== null) {
+        // eslint-disable-next-line unicorn/no-negated-condition -- guard clause; undefined means no selection, positive action only when selected
+        if (perfumeToSelect !== undefined) {
           // Check for duplicates before selecting (standard protection)
           const isDuplicate = attempts.some(
             (a) =>

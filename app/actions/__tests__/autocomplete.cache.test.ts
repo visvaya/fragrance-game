@@ -104,7 +104,7 @@ describe("searchPerfumes — cache-hit path", () => {
     expect(Array.isArray(result)).toBe(true);
     expect(result.length).toBeGreaterThan(0);
     // Year should be re-masked for attempt 3: "20⎵⎵"
-    expect(result[0].year).toBe("20⎵⎵");
+    expect(result[0]?.year).toBe("20⎵⎵");
   });
 
   it("tracks analytics with cache_hit: true when cache is hit", async () => {
@@ -154,7 +154,7 @@ describe("searchPerfumes — cache-hit path", () => {
 
     const result = await searchPerfumes("Mystery", "session-123", 3);
 
-    expect(result[0].year).toBeNull();
+    expect(result[0]?.year).toBeNull();
   });
 
   it("reveals full year for duplicate-name perfumes in cache hit", async () => {
@@ -187,8 +187,8 @@ describe("searchPerfumes — cache-hit path", () => {
     const result = await searchPerfumes("No. 5", "session-123", 1);
 
     // Duplicates (same brand+name+concentration) should reveal full year
-    expect(result[0].year).toBe("1921");
-    expect(result[1].year).toBe("2016");
+    expect(result[0]?.year).toBe("1921");
+    expect(result[1]?.year).toBe("2016");
   });
 });
 

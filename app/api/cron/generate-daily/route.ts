@@ -41,10 +41,10 @@ export async function GET(request: NextRequest): Promise<Response> {
   try {
     const adminSupabase = createAdminClient();
     // Check TODAY (Self-Healing) + TOMORROW (Standard) sequentially
-    const todayString = new Date().toISOString().split("T")[0];
+    const todayString = new Date().toISOString().slice(0, 10);
     const tomorrow = new Date();
     tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-    const tomorrowString = tomorrow.toISOString().split("T")[0];
+    const tomorrowString = tomorrow.toISOString().slice(0, 10);
     const results = [
       await ensureChallenge(adminSupabase, todayString),
       await ensureChallenge(adminSupabase, tomorrowString),
@@ -119,14 +119,13 @@ async function ensureChallenge(
           await fetchRecentPerfumeIds(supabase, 7),
         );
 
-  if (candidates.length === 0) {
-    throw new Error(`No eligible perfumes found for ${dateString}.`);
-  }
-
-  // 4. Random Selection
+  // 4. Random Selection (an empty pool yields no candidate)
   const randomBuffer = new Uint32Array(1);
   crypto.getRandomValues(randomBuffer);
-  const selected = candidates[randomBuffer[0] % candidates.length];
+  const selected = candidates[(randomBuffer[0] ?? 0) % candidates.length];
+  if (!selected) {
+    throw new Error(`No eligible perfumes found for ${dateString}.`);
+  }
 
   // 5. Get Next Challenge Number
   const queryResult4 = await supabase
@@ -212,7 +211,7 @@ async function fetchRecentPerfumeIds(
   const result = (await supabase
     .from("daily_challenges")
     .select("perfume_id")
-    .gte("challenge_date", since.toISOString().split("T")[0])
+    .gte("challenge_date", since.toISOString().slice(0, 10))
     .limit(RECENT_CHALLENGES_LIMIT)) as {
     data: unknown;
     error: { message: string } | null;

@@ -55,6 +55,7 @@ export function verifyGuestTicket(
   const parts = token.split(".");
   if (parts.length !== 4) return null;
   const [version, guestId, issuedAtRaw, signature] = parts;
+  if (!guestId || !issuedAtRaw || !signature) return null;
   if (version !== VERSION || !/^\d{1,16}$/.test(issuedAtRaw)) return null;
   if (!z.uuid().safeParse(guestId).success) return null;
 

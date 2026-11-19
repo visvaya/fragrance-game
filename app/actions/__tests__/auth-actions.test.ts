@@ -318,7 +318,9 @@ describe("auth-actions", () => {
         const signOutCallOrder =
           mockSupabaseClient.auth.signOut.mock.invocationCallOrder[0];
 
-        expect(getUserCallOrder).toBeLessThan(signOutCallOrder);
+        expect(getUserCallOrder).toBeLessThan(
+          signOutCallOrder ?? Number.NEGATIVE_INFINITY,
+        );
       });
 
       it("prevents sign out attempts without valid user session", async () => {

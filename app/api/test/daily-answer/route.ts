@@ -38,7 +38,7 @@ export async function GET(): Promise<Response> {
   }
 
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toISOString().slice(0, 10);
     console.warn(`[API TEST] Querying daily_challenges for date: ${today}`);
 
     // 1. Get today's challenge ID

@@ -324,7 +324,7 @@ describe("maskYear", () => {
       const mask3 = maskYear(year, 3); // "19⎵⎵"
 
       expect(mask3?.startsWith("1")).toBe(true);
-      expect(mask3?.startsWith(mask2![0])).toBe(true); // First char preserved
+      expect(mask3?.[0]).toBe(mask2?.[0]); // First char preserved
     });
   });
 });

@@ -184,6 +184,7 @@ export function selectSuggestions(
 
   // Extend the cut to the end of the group of the last included suggestion.
   const lastIncluded = candidates[DEFAULT_LIMIT - 1];
+  if (!lastIncluded) return candidates;
   const lastKey = variantKey(
     lastIncluded.brand_masked,
     lastIncluded.name,

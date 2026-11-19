@@ -1,7 +1,9 @@
 import { routing } from "@/i18n/routing";
 
 /** Open Graph locale tags (language_TERRITORY) for each supported locale. */
-const OPEN_GRAPH_LOCALES: Readonly<Record<string, string>> = {
+const OPEN_GRAPH_LOCALES: Readonly<
+  Record<(typeof routing.locales)[number], string>
+> = {
   en: "en_US",
   pl: "pl_PL",
 };
@@ -40,9 +42,8 @@ export function buildAlternates(locale: string, path = "/"): LocaleAlternates {
 
 /** Open Graph locale tag for `locale`, falling back to the default locale's tag. */
 export function openGraphLocale(locale: string): string {
-  return (
-    OPEN_GRAPH_LOCALES[locale] ?? OPEN_GRAPH_LOCALES[routing.defaultLocale]
-  );
+  const tags: Readonly<Record<string, string | undefined>> = OPEN_GRAPH_LOCALES;
+  return tags[locale] ?? OPEN_GRAPH_LOCALES[routing.defaultLocale];
 }
 
 /** Open Graph locale tags of every supported locale except `locale`. */

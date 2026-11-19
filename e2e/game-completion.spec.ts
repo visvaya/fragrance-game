@@ -140,8 +140,7 @@ test.describe("Game Completion Flows", () => {
     // Use id="attempt-N" (the visible RowCell inside each attempt row) as the reliable indicator.
     const attemptCells = page.locator('[id^="attempt-"]');
 
-    for (let i = 0; i < 6; i++) {
-      const brand = brands[i];
+    for (const [i, brand] of brands.entries()) {
       const expectedCellCount = i + 1;
       const suggestions = page.getByRole("option");
 

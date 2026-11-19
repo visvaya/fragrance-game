@@ -144,7 +144,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
         usedDate.setUTCDate(usedDate.getUTCDate() - 15); // 15 days ago
 
         await supabase.from("daily_challenges").insert({
-          challenge_date: usedDate.toISOString().split("T")[0],
+          challenge_date: usedDate.toISOString().slice(0, 10),
           challenge_number: 1,
           grace_deadline_at_utc: usedDate.toISOString(),
           mode: "standard",
@@ -283,7 +283,7 @@ describe.skipIf(!TEST_DB_CONFIGURED)(
         date10DaysAgo.setUTCDate(date10DaysAgo.getUTCDate() - 10);
 
         await supabase.from("daily_challenges").insert({
-          challenge_date: date10DaysAgo.toISOString().split("T")[0],
+          challenge_date: date10DaysAgo.toISOString().slice(0, 10),
           challenge_number: 1,
           grace_deadline_at_utc: date10DaysAgo.toISOString(),
           mode: "standard",

@@ -589,7 +589,15 @@ async function getImageUrlForStep(sessionId: string): Promise<string | null> {
   const step = isRevealed
     ? 6
     : Math.min(session.attempts_count + 1, MAX_GUESSES);
-  const key = (assets as Record<string, string>)[`image_key_step_${step}`];
+  const key = (assets as Record<string, string | undefined>)[
+    `image_key_step_${step}`
+  ];
+  if (!key) {
+    console.warn(
+      `No image key for step ${step} of perfume ${challenge.perfume_id}`,
+    );
+    return "https://placehold.co/512x512?text=No+Asset";
+  }
 
   return assetUrl(key, env.NEXT_PUBLIC_ASSETS_HOST);
 }

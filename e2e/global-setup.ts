@@ -31,9 +31,9 @@ function loadEnvironmentFile(): Record<string, string> {
   const lines = readFileSync(ENVIRONMENT_FILE, "utf8").split("\n");
   const result: Record<string, string> = {};
   for (const line of lines) {
-    const match = /^([A-Z_][A-Z0-9_]*)=(.+)/.exec(line.trim());
-    if (match) {
-      result[match[1]] = match[2].replaceAll(/^['"]|['"]$/g, "");
+    const [, key, value] = /^([A-Z_][A-Z0-9_]*)=(.+)/.exec(line.trim()) ?? [];
+    if (key && value) {
+      result[key] = value.replaceAll(/^['"]|['"]$/g, "");
     }
   }
   return result;

@@ -25,7 +25,7 @@ export default async function Home({
   // Fetch challenge data (cached 24h) and player session (per-request) in parallel
   // Date is passed as an argument so Next.js cache key is scoped to the day,
   // preventing stale SSR data after midnight.
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toISOString().slice(0, 10);
   const [initialImageUrl, initialChallenge] = await Promise.all([
     getDailyStep1ImageUrl(today),
     getDailyChallengeSSR(today),
