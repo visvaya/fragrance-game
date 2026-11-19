@@ -86,11 +86,16 @@ test.describe("Locale Switching", () => {
   });
 
   test("should localize placeholder text", async ({ page }) => {
-    const closedMessage = page.getByText(/Gra zakończona|Come back tomorrow/i);
+    const enInput = page.getByPlaceholder(/Guess the fragrance/i);
+    const closedMessage = page.getByText(/Come back tomorrow/i);
 
     await page.goto("/en");
-    test.skip(await closedMessage.isVisible(), "Game is currently closed.");
-    await expect(page.getByPlaceholder(/Guess the fragrance/i)).toBeVisible();
+    // Wait until the game has loaded one of its two states before deciding to skip.
+    await expect(enInput.or(closedMessage)).toBeVisible({ timeout: 15_000 });
+    test.skip(
+      await closedMessage.isVisible(),
+      "Game is closed for this player today.",
+    );
 
     await page.goto("/pl");
     await expect(

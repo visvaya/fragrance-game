@@ -20,12 +20,16 @@ if (existsSync(AUTH_FILE)) {
  */
 async function openGameInput(page: Page): Promise<Locator> {
   await page.goto("/en");
-  const closedMessage = page.getByText(/Gra zakończona|Come back tomorrow/i);
-  test.skip(await closedMessage.isVisible(), "Game is currently closed.");
   const input = page.getByPlaceholder(
     /Guess the fragrance|Napisz jakie to perfumy/i,
   );
-  await expect(input).toBeVisible({ timeout: 10_000 });
+  const closedMessage = page.getByText(/Come back tomorrow|Wróć jutro/i);
+  // Wait until the game has loaded one of its two states before deciding to skip.
+  await expect(input.or(closedMessage)).toBeVisible({ timeout: 15_000 });
+  test.skip(
+    await closedMessage.isVisible(),
+    "Game is closed for this player today.",
+  );
   return input;
 }
 
