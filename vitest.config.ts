@@ -55,12 +55,33 @@ export default defineConfig({
         "components/ui/**", // shadcn/ui components (low priority)
       ],
       thresholds: {
-        // Ratchet: raised to the CI measurement on main (2026-11-18: 71.24/60.26/62.52/69.41),
-        // never lowered. Target: lines 80, functions 75, branches 70.
+        // Ratchet: raised to the measurement, never lowered. The global numbers include UI
+        // (2026-11-18 on CI: 71.24/60.26/62.52/69.41); the logic directories have their own
+        // floors (2026-11-19 on CI: lib/game 98.14/88.96/100/99.63, app/actions 91.97/83.1/97.36/93.68,
+        // game contexts 93.27/83.05/74.46/96.58 as statements/branches/functions/lines, all on CI;
+        // locally the contexts measure higher, 94.17/83.05/78.72/96.58).
         lines: 71,
         functions: 60,
         branches: 62,
         statements: 69,
+        "lib/game/**": {
+          branches: 88,
+          functions: 100,
+          lines: 99,
+          statements: 98,
+        },
+        "app/actions/**": {
+          branches: 83,
+          functions: 97,
+          lines: 93,
+          statements: 91,
+        },
+        "components/game/contexts/**": {
+          branches: 83,
+          functions: 74,
+          lines: 96,
+          statements: 93,
+        },
       },
     },
   },
