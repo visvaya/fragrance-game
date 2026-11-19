@@ -87,6 +87,11 @@ jobs:
         run: |
           docker build --quiet --tag actionlint tools/actionlint
           docker run --rm --volume "$PWD:/repo" --workdir /repo actionlint -color
+      - name: Lint Dockerfiles with hadolint
+        if: ${{ !cancelled() }}
+        run: |
+          docker build --quiet --tag hadolint tools/hadolint
+          docker run --rm --volume "$PWD:/repo" --workdir /repo hadolint hadolint tools/actionlint/Dockerfile tools/hadolint/Dockerfile
 
   custom-security-check:
     name: Custom Security Check
