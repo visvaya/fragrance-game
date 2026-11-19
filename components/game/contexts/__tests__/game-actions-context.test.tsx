@@ -1,13 +1,17 @@
-import type { ReactNode } from "react";
+import { useReducer, type ReactNode } from "react";
 
 import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { HIDDEN_CLUES, type RevealedClues } from "@/lib/game/clue-reveal";
+import {
+  SKIPPED_ATTEMPT,
+  gameSessionReducer,
+  type Attempt,
+  type GameSessionState,
+} from "@/lib/game/game-session-state";
 
 import { GameActionsProvider, useGameActions } from "../game-actions-context";
-
-import type { Attempt } from "../game-state-context";
 
 // ---------------------------------------------------------------------------
 // Hoisted mock refs
@@ -83,30 +87,60 @@ const LEVEL_2_CLUES: RevealedClues = {
   year: "1___",
 };
 
-const createWrapper = (
-  overrides?: Partial<Parameters<typeof GameActionsProvider>[0]>,
-) => {
-  const defaultProps = {
-    attempts: [],
-    dailyPerfume: MOCK_PERFUME,
-    gameState: "playing" as const,
-    maxAttempts: 6,
-    nonce: "test-nonce",
-    sessionId: "test-session",
-    setAttempts: vi.fn(),
-    setClues: vi.fn(),
-    setDailyPerfume: vi.fn(),
-    setGameState: vi.fn(),
-    setImageUrl: vi.fn(),
+const BASE_STATE: GameSessionState = {
+  attempts: [],
+  clues: HIDDEN_CLUES,
+  dailyPerfume: MOCK_PERFUME,
+  gameState: "playing",
+  imageUrl: "/test.jpg",
+  nonce: "test-nonce",
+  sessionId: "test-session",
+  sessionReady: true,
+};
+
+type WrapperOptions = {
+  authReady?: boolean;
+  challengeId?: string;
+  state?: Partial<GameSessionState>;
+};
+
+/**
+ * Renders the provider over the real game session reducer: `probe.state` is the state after
+ * the dispatched changes, `probe.dispatch` records them.
+ */
+const createWrapper = ({
+  authReady,
+  challengeId,
+  state,
+}: WrapperOptions = {}) => {
+  const probe = {
+    dispatch: vi.fn(),
     setLoading: vi.fn(),
-    setNonce: vi.fn(),
-    setSessionId: vi.fn(),
-    ...overrides,
+    state: { ...BASE_STATE, ...state },
   };
 
-  return ({ children }: { children: ReactNode }) => (
-    <GameActionsProvider {...defaultProps}>{children}</GameActionsProvider>
-  );
+  function Wrapper({ children }: { children: ReactNode }) {
+    const [current, reduce] = useReducer(gameSessionReducer, probe.state);
+    probe.state = current;
+    probe.dispatch.mockImplementation(reduce);
+    return (
+      <GameActionsProvider
+        attempts={current.attempts}
+        dispatch={probe.dispatch}
+        gameState={current.gameState}
+        maxAttempts={6}
+        nonce={current.nonce}
+        sessionId={current.sessionId}
+        setLoading={probe.setLoading}
+        {...(authReady === undefined ? {} : { authReady })}
+        {...(challengeId === undefined ? {} : { challengeId })}
+      >
+        {children}
+      </GameActionsProvider>
+    );
+  }
+
+  return { probe, wrapper: Wrapper };
 };
 
 describe("GameActionsContext", () => {
@@ -116,7 +150,7 @@ describe("GameActionsContext", () => {
 
   it("should provide game actions", () => {
     const { result } = renderHook(() => useGameActions(), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper().wrapper,
     });
 
     expect(result.current.makeGuess).toBeDefined();
@@ -126,35 +160,25 @@ describe("GameActionsContext", () => {
   });
 
   it("should not allow guess when game is not playing", async () => {
-    const setAttempts = vi.fn();
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createWrapper({
-        gameState: "won",
-        setAttempts,
-      }),
-    });
+    const { probe, wrapper } = createWrapper({ state: { gameState: "won" } });
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.makeGuess("Test Perfume", "Test Brand", "test-id");
     });
 
-    expect(setAttempts).not.toHaveBeenCalled();
+    expect(probe.dispatch).not.toHaveBeenCalled();
   });
 
   it("should not allow guess when no session", async () => {
-    const setAttempts = vi.fn();
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createWrapper({
-        sessionId: null,
-        setAttempts,
-      }),
-    });
+    const { probe, wrapper } = createWrapper({ state: { sessionId: null } });
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.makeGuess("Test Perfume", "Test Brand", "test-id");
     });
 
-    expect(setAttempts).not.toHaveBeenCalled();
+    expect(probe.dispatch).not.toHaveBeenCalled();
   });
 
   it("should not allow guess when max attempts reached", async () => {
@@ -170,35 +194,27 @@ describe("GameActionsContext", () => {
       },
       guess: "Test",
     }));
-    const setAttempts = vi.fn();
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createWrapper({
-        attempts: mockAttempts,
-        setAttempts,
-      }),
+    const { probe, wrapper } = createWrapper({
+      state: { attempts: mockAttempts },
     });
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.makeGuess("Test Perfume", "Test Brand", "test-id");
     });
 
-    expect(setAttempts).not.toHaveBeenCalled();
+    expect(probe.dispatch).not.toHaveBeenCalled();
   });
 
   it("should not allow reset when no session", async () => {
-    const setLoading = vi.fn();
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createWrapper({
-        sessionId: null,
-        setLoading,
-      }),
-    });
+    const { probe, wrapper } = createWrapper({ state: { sessionId: null } });
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.resetGame();
     });
 
-    expect(setLoading).not.toHaveBeenCalled();
+    expect(probe.setLoading).not.toHaveBeenCalled();
   });
 
   it("should throw error when used outside provider", () => {
@@ -235,10 +251,8 @@ const SUCCESS_GUESS_RESULT = {
   revealed: LEVEL_2_CLUES,
 };
 
-function createAuthWrapper(
-  overrides?: Partial<Parameters<typeof GameActionsProvider>[0]>,
-) {
-  return createWrapper({ authReady: true, ...overrides });
+function createAuthWrapper(options?: WrapperOptions) {
+  return createWrapper({ authReady: true, ...options });
 }
 
 describe("makeGuess – successful paths", () => {
@@ -248,12 +262,9 @@ describe("makeGuess – successful paths", () => {
 
   it("calls submitGuess and appends attempt on success (playing continues)", async () => {
     mockSubmitGuess.mockResolvedValueOnce(SUCCESS_GUESS_RESULT);
-    const setAttempts = vi.fn();
-    const setLoading = vi.fn();
+    const { probe, wrapper } = createAuthWrapper();
 
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createAuthWrapper({ setAttempts, setLoading }),
-    });
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.makeGuess("Sauvage", "Dior", VALID_PERFUME_ID);
@@ -264,9 +275,10 @@ describe("makeGuess – successful paths", () => {
       VALID_PERFUME_ID,
       "test-nonce",
     );
-    expect(setAttempts).toHaveBeenCalled();
-    expect(setLoading).toHaveBeenCalledWith(true);
-    expect(setLoading).toHaveBeenCalledWith(false);
+    expect(probe.state.attempts).toHaveLength(1);
+    expect(probe.state.gameState).toBe("playing");
+    expect(probe.setLoading).toHaveBeenCalledWith(true);
+    expect(probe.setLoading).toHaveBeenCalledWith(false);
   });
 
   it("stores the server clues and feedback from the guess result", async () => {
@@ -274,22 +286,16 @@ describe("makeGuess – successful paths", () => {
       ...SUCCESS_GUESS_RESULT,
       feedback: { ...SUCCESS_GUESS_RESULT.feedback, genderMatch: true },
     });
-    const setAttempts = vi.fn();
-    const setClues = vi.fn();
+    const { probe, wrapper } = createAuthWrapper();
 
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createAuthWrapper({ setAttempts, setClues }),
-    });
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.makeGuess("Sauvage", "Dior", VALID_PERFUME_ID);
     });
 
-    expect(setClues).toHaveBeenCalledWith(LEVEL_2_CLUES);
-    const update = setAttempts.mock.calls[0]?.[0] as (
-      previous: Attempt[],
-    ) => Attempt[];
-    const [added] = update([]);
+    expect(probe.state.clues).toEqual(LEVEL_2_CLUES);
+    const [added] = probe.state.attempts;
     expect(added).toBeDefined();
     expect(added?.feedback.genderMatch).toBe(true);
     expect(added).not.toHaveProperty("snapshot");
@@ -308,18 +314,15 @@ describe("makeGuess – successful paths", () => {
       imageUrl: "/win.jpg",
       result: "correct" as const,
     });
-    const setGameState = vi.fn();
-    const setAttempts = vi.fn();
+    const { probe, wrapper } = createAuthWrapper();
 
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createAuthWrapper({ setAttempts, setGameState }),
-    });
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.makeGuess("Sauvage", "Dior", VALID_PERFUME_ID);
     });
 
-    expect(setGameState).toHaveBeenCalledWith("won");
+    expect(probe.state.gameState).toBe("won");
   });
 
   it("sets gameState to 'lost' when gameStatus is 'lost'", async () => {
@@ -328,17 +331,15 @@ describe("makeGuess – successful paths", () => {
       answerName: "Sauvage",
       gameStatus: "lost" as const,
     });
-    const setGameState = vi.fn();
+    const { probe, wrapper } = createAuthWrapper();
 
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createAuthWrapper({ setGameState }),
-    });
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.makeGuess("X", "Dior", VALID_PERFUME_ID);
     });
 
-    expect(setGameState).toHaveBeenCalledWith("lost");
+    expect(probe.state.gameState).toBe("lost");
   });
 
   it("updates nonce from newNonce", async () => {
@@ -346,17 +347,15 @@ describe("makeGuess – successful paths", () => {
       ...SUCCESS_GUESS_RESULT,
       newNonce: "nonce-updated",
     });
-    const setNonce = vi.fn();
+    const { probe, wrapper } = createAuthWrapper();
 
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createAuthWrapper({ setNonce }),
-    });
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.makeGuess("X", "Dior", VALID_PERFUME_ID);
     });
 
-    expect(setNonce).toHaveBeenCalledWith("nonce-updated");
+    expect(probe.state.nonce).toBe("nonce-updated");
   });
 
   it("updates imageUrl when result contains one", async () => {
@@ -364,35 +363,30 @@ describe("makeGuess – successful paths", () => {
       ...SUCCESS_GUESS_RESULT,
       imageUrl: "/step2.jpg",
     });
-    const setImageUrl = vi.fn();
+    const { probe, wrapper } = createAuthWrapper();
 
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createAuthWrapper({ setImageUrl }),
-    });
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.makeGuess("X", "Dior", VALID_PERFUME_ID);
     });
 
-    expect(setImageUrl).toHaveBeenCalledWith("/step2.jpg");
+    expect(probe.state.imageUrl).toBe("/step2.jpg");
   });
 
   it("uses lazy init path (initializeAndGuess) when sessionId is null", async () => {
     mockInitializeAndGuess.mockResolvedValueOnce({
-      guessResult: SUCCESS_GUESS_RESULT,
+      guessResult: { ...SUCCESS_GUESS_RESULT, newNonce: "" },
       imageUrl: "/lazy.jpg",
       nonce: "lazy-nonce",
       sessionId: "new-session-id",
     });
-    const setSessionId = vi.fn();
-
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createAuthWrapper({
-        challengeId: "550e8400-e29b-41d4-a716-446655440000",
-        sessionId: null,
-        setSessionId,
-      }),
+    const { probe, wrapper } = createAuthWrapper({
+      challengeId: "550e8400-e29b-41d4-a716-446655440000",
+      state: { nonce: "", sessionId: null, sessionReady: false },
     });
+
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.makeGuess("X", "Dior", VALID_PERFUME_ID);
@@ -400,7 +394,13 @@ describe("makeGuess – successful paths", () => {
 
     expect(mockInitializeAndGuess).toHaveBeenCalled();
     expect(mockSubmitGuess).not.toHaveBeenCalled();
-    expect(setSessionId).toHaveBeenCalledWith("new-session-id");
+    expect(probe.state).toMatchObject({
+      imageUrl: "/lazy.jpg",
+      nonce: "lazy-nonce",
+      sessionId: "new-session-id",
+      sessionReady: true,
+    });
+    expect(probe.state.attempts).toHaveLength(1);
   });
 });
 
@@ -413,34 +413,30 @@ describe("makeGuess – error paths", () => {
     mockSubmitGuess.mockRejectedValueOnce(
       new Error("Rate limit exceeded – slow down"),
     );
-    const setLoading = vi.fn();
+    const { probe, wrapper } = createAuthWrapper();
 
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createAuthWrapper({ setLoading }),
-    });
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.makeGuess("X", "Dior", VALID_PERFUME_ID);
     });
 
     expect(mockToastWarning).toHaveBeenCalled();
-    expect(setLoading).toHaveBeenCalledWith(false);
+    expect(probe.setLoading).toHaveBeenCalledWith(false);
   });
 
   it("shows network error toast on generic error", async () => {
     mockSubmitGuess.mockRejectedValueOnce(new Error("Network error"));
-    const setLoading = vi.fn();
+    const { probe, wrapper } = createAuthWrapper();
 
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createAuthWrapper({ setLoading }),
-    });
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.makeGuess("X", "Dior", VALID_PERFUME_ID);
     });
 
     expect(mockToastError).toHaveBeenCalled();
-    expect(setLoading).toHaveBeenCalledWith(false);
+    expect(probe.setLoading).toHaveBeenCalledWith(false);
   });
 
   it("blocks concurrent guess while processing", async () => {
@@ -451,7 +447,7 @@ describe("makeGuess – error paths", () => {
     mockSubmitGuess.mockReturnValueOnce(firstCall);
 
     const { result } = renderHook(() => useGameActions(), {
-      wrapper: createAuthWrapper(),
+      wrapper: createAuthWrapper().wrapper,
     });
 
     // Start first guess (doesn't await)
@@ -489,22 +485,20 @@ describe("skipAttempt – successful paths", () => {
 
   it("calls skipAttempt and appends skipped attempt", async () => {
     mockSkipAttempt.mockResolvedValueOnce(SKIP_RESULT);
-    const setAttempts = vi.fn();
-    const setLoading = vi.fn();
-    const setClues = vi.fn();
+    const { probe, wrapper } = createAuthWrapper();
 
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createAuthWrapper({ setAttempts, setClues, setLoading }),
-    });
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.skipAttempt();
     });
 
     expect(mockSkipAttempt).toHaveBeenCalledWith("test-session", "test-nonce");
-    expect(setAttempts).toHaveBeenCalled();
-    expect(setClues).toHaveBeenCalledWith(LEVEL_2_CLUES);
-    expect(setLoading).toHaveBeenCalledWith(false);
+    expect(probe.state.attempts).toHaveLength(1);
+    expect(probe.state.attempts[0]).toMatchObject({ isSkipped: true });
+    expect(probe.state.clues).toEqual(LEVEL_2_CLUES);
+    expect(probe.state.nonce).toBe("skip-nonce");
+    expect(probe.setLoading).toHaveBeenCalledWith(false);
   });
 
   it("sets gameState to 'lost' when skip returns gameStatus 'lost'", async () => {
@@ -513,32 +507,28 @@ describe("skipAttempt – successful paths", () => {
       answerName: "Sauvage",
       gameStatus: "lost" as const,
     });
-    const setGameState = vi.fn();
+    const { probe, wrapper } = createAuthWrapper();
 
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createAuthWrapper({ setGameState }),
-    });
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.skipAttempt();
     });
 
-    expect(setGameState).toHaveBeenCalledWith("lost");
+    expect(probe.state.gameState).toBe("lost");
   });
 
   it("does not skip when authReady=false", async () => {
-    const setAttempts = vi.fn();
+    const { probe, wrapper } = createWrapper();
 
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createWrapper({ setAttempts }),
-    });
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.skipAttempt();
     });
 
     expect(mockSkipAttempt).not.toHaveBeenCalled();
-    expect(setAttempts).not.toHaveBeenCalled();
+    expect(probe.dispatch).not.toHaveBeenCalled();
   });
 
   it("shows rate limit toast on rate limit error during skip", async () => {
@@ -547,7 +537,7 @@ describe("skipAttempt – successful paths", () => {
     );
 
     const { result } = renderHook(() => useGameActions(), {
-      wrapper: createAuthWrapper(),
+      wrapper: createAuthWrapper().wrapper,
     });
 
     await act(async () => {
@@ -564,15 +554,12 @@ describe("skipAttempt – successful paths", () => {
       sessionId: "new-session",
       skipResult: SKIP_RESULT,
     });
-    const setSessionId = vi.fn();
-
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createAuthWrapper({
-        challengeId: "550e8400-e29b-41d4-a716-446655440000",
-        sessionId: null,
-        setSessionId,
-      }),
+    const { probe, wrapper } = createAuthWrapper({
+      challengeId: "550e8400-e29b-41d4-a716-446655440000",
+      state: { nonce: "", sessionId: null, sessionReady: false },
     });
+
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.skipAttempt();
@@ -580,7 +567,12 @@ describe("skipAttempt – successful paths", () => {
 
     expect(mockInitializeAndSkip).toHaveBeenCalled();
     expect(mockSkipAttempt).not.toHaveBeenCalled();
-    expect(setSessionId).toHaveBeenCalledWith("new-session");
+    expect(probe.state).toMatchObject({
+      nonce: "skip-lazy-nonce",
+      sessionId: "new-session",
+      sessionReady: true,
+    });
+    expect(probe.state.attempts).toHaveLength(1);
   });
 });
 
@@ -609,63 +601,55 @@ describe("resetGame – successful paths", () => {
       },
     });
 
-    const setAttempts = vi.fn();
-    const setGameState = vi.fn();
-    const setLoading = vi.fn();
-    const setClues = vi.fn();
-
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createWrapper({
-        setAttempts,
-        setClues,
-        setGameState,
-        setLoading,
-      }),
+    const { probe, wrapper } = createWrapper({
+      state: { attempts: [SKIPPED_ATTEMPT], gameState: "lost" },
     });
+
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.resetGame();
     });
 
     expect(mockResetGame).toHaveBeenCalledWith("test-session");
-    expect(setAttempts).toHaveBeenCalledWith([]);
-    expect(setGameState).toHaveBeenCalledWith("playing");
-    expect(setClues).toHaveBeenCalledWith(HIDDEN_CLUES);
-    expect(setClues).toHaveBeenLastCalledWith(LEVEL_2_CLUES);
-    expect(setLoading).toHaveBeenCalledWith(false);
+    expect(probe.dispatch).toHaveBeenNthCalledWith(1, { type: "resetCleared" });
+    expect(probe.state).toMatchObject({
+      attempts: [],
+      clues: LEVEL_2_CLUES,
+      gameState: "playing",
+      imageUrl: "/fresh.jpg?reset=fresh-session",
+      nonce: "fresh-nonce",
+      sessionId: "fresh-session",
+    });
+    expect(probe.setLoading).toHaveBeenCalledWith(false);
   });
 
   it("handles reset server error gracefully", async () => {
     mockResetGame.mockRejectedValueOnce(new Error("Server error"));
-    const setLoading = vi.fn();
+    const { probe, wrapper } = createWrapper();
 
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createWrapper({ setLoading }),
-    });
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.resetGame();
     });
 
-    expect(setLoading).toHaveBeenCalledWith(false);
+    expect(probe.setLoading).toHaveBeenCalledWith(false);
   });
 
   it("handles reset when backend returns success:false", async () => {
     mockResetGame.mockResolvedValueOnce({ success: false });
-    const setAttempts = vi.fn();
-    const setLoading = vi.fn();
+    const { probe, wrapper } = createWrapper();
 
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createWrapper({ setAttempts, setLoading }),
-    });
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.resetGame();
     });
 
     // State should NOT be reset when backend reports failure
-    expect(setAttempts).not.toHaveBeenCalled();
-    expect(setLoading).toHaveBeenCalledWith(false);
+    expect(probe.dispatch).not.toHaveBeenCalled();
+    expect(probe.setLoading).toHaveBeenCalledWith(false);
   });
 });
 
@@ -676,17 +660,15 @@ describe("skipAttempt – network error path", () => {
 
   it("shows network error toast on generic skip error", async () => {
     mockSkipAttempt.mockRejectedValueOnce(new Error("Connection refused"));
-    const setLoading = vi.fn();
+    const { probe, wrapper } = createAuthWrapper();
 
-    const { result } = renderHook(() => useGameActions(), {
-      wrapper: createAuthWrapper({ setLoading }),
-    });
+    const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
       await result.current.skipAttempt();
     });
 
     expect(mockToastError).toHaveBeenCalled();
-    expect(setLoading).toHaveBeenCalledWith(false);
+    expect(probe.setLoading).toHaveBeenCalledWith(false);
   });
 });

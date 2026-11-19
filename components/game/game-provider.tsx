@@ -1,7 +1,13 @@
 "use client";
 
-// eslint-disable-next-line no-restricted-imports -- subscription: onAuthStateChange listener; orchestration: async auth+challenge+session init
-import { useState, useEffect, useMemo, type ReactNode } from "react";
+import {
+  useState,
+  // eslint-disable-next-line no-restricted-imports -- subscription: onAuthStateChange listener; orchestration: async auth+challenge+session init
+  useEffect,
+  useMemo,
+  useReducer,
+  type ReactNode,
+} from "react";
 
 import dynamic from "next/dynamic";
 
@@ -15,7 +21,10 @@ import { captureAnalyticsEvent } from "@/components/providers/posthog-provider";
 import { useRouter } from "@/i18n/routing";
 import { shouldReloadOnAuthChange } from "@/lib/auth/auth-change-reload";
 import { MAX_GUESSES } from "@/lib/constants";
-import { HIDDEN_CLUES, type RevealedClues } from "@/lib/game/clue-reveal";
+import {
+  gameSessionReducer,
+  initialGameSessionState,
+} from "@/lib/game/game-session-state";
 import { getSupabaseClient } from "@/lib/supabase/get-client";
 
 import {
@@ -24,10 +33,7 @@ import {
   GameActionsProvider,
   useGameActions,
   useUIPreferences,
-  type Attempt,
-  type DailyPerfume,
 } from "./contexts";
-import { SKELETON_PERFUME } from "./contexts/skeleton-perfume";
 
 import type { createClient as CreateClientType } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
@@ -60,39 +66,6 @@ function updateSentryUser(user: User | null): void {
     s.setUser(user ? { id: user.id } : null);
     return null;
   });
-}
-
-type GameState = "playing" | "won" | "lost";
-
-/**
- * Maps the server guess history to attempts. Feedback comes from the server as is,
- * so the browser never compares guesses with the answer.
- */
-function hydrateAttempts(
-  guesses: StartGameResponse["guesses"] | undefined,
-): Attempt[] {
-  if (!guesses) return [];
-  return guesses.map((g) =>
-    g.isSkip
-      ? {
-          brand: "",
-          feedback: g.feedback,
-          guess: "",
-          isCorrect: false,
-          isSkipped: true,
-        }
-      : {
-          brand: g.brandName,
-          concentration: g.concentration,
-          feedback: g.feedback,
-          gender: g.gender,
-          guess: g.perfumeName,
-          isCorrect: g.isCorrect,
-          perfumeId: g.perfumeId,
-          perfumers: g.perfumers,
-          year: g.year,
-        },
-  );
 }
 
 /**
@@ -190,7 +163,7 @@ async function fetchChallengeAndSession(
 /**
  * GameProvider - Main orchestrator that manages state and coordinates contexts
  * All state lives here as single source of truth
- * Contexts receive state and setters as props
+ * Contexts receive state and the dispatch function as props
  */
 export function GameProvider({
   children,
@@ -204,55 +177,25 @@ export function GameProvider({
   initialSession?: StartGameResponse | null;
 }>) {
   // === Core Game State (Single Source of Truth) ===
-  // Lazy initializers let us synchronously populate state from initialSession on the very
-  // first render – no empty-state flash, no extra useEffect re-render cycle.
-  const [attempts, setAttempts] = useState<Attempt[]>(() =>
-    hydrateAttempts(initialSession?.guesses),
-  );
-  const [gameState, setGameState] = useState<GameState>(() => {
-    if (!initialSession) return "playing";
-    const last = initialSession.guesses.at(-1);
-    if (last?.isCorrect) return "won";
-    if (initialSession.guesses.length >= MAX_GUESSES) return "lost";
-    return "playing";
-  });
-  const [imageUrl, setImageUrl] = useState<string>(
-    initialSession?.imageUrl ??
-      initialImageUrl ??
-      "/placeholder.svg?height=400&width=400",
+  // The lazy initializer populates the state synchronously from initialSession on the very
+  // first render: no empty-state flash, no extra useEffect re-render cycle.
+  const [game, dispatch] = useReducer(
+    gameSessionReducer,
+    {
+      initialChallenge,
+      initialImageUrl,
+      initialSession,
+      maxAttempts: MAX_GUESSES,
+    },
+    initialGameSessionState,
   );
   const [loading, setLoading] = useState(!initialChallenge);
-  const [sessionReady, setSessionReady] = useState(
-    initialSession !== null && initialSession !== undefined,
-  );
   /** True once anonymous auth JWT is confirmed – gates lazy startGame in game-actions-context */
   const [authReady, setAuthReady] = useState(
     initialSession !== null && initialSession !== undefined,
   );
   const [user, setUser] = useState<User | null>(null);
-  const [sessionId, setSessionId] = useState<string | null>(
-    initialSession?.sessionId ?? null,
-  );
-  const [dailyPerfume, setDailyPerfume] = useState<DailyPerfume>(
-    // Use real data when initialChallenge is present (SSR-provided clues).
-    // sessionReady controls interactivity – the game board is shown immediately
-    // from SSR data while auth runs in the background (Gate 5 Optimistic UI).
-    initialChallenge
-      ? {
-          concentration: initialSession?.answerConcentration,
-          id: "daily",
-          imageUrl: initialImageUrl ?? "/placeholder.svg?height=400&width=400",
-          name: initialSession?.answerName ?? "Mystery Perfume",
-          xsolve: initialChallenge.xsolve,
-        }
-      : SKELETON_PERFUME,
-  );
-  const [clues, setClues] = useState<RevealedClues>(
-    initialSession?.revealed ?? initialChallenge?.revealed ?? HIDDEN_CLUES,
-  );
-  const [nonce, setNonce] = useState<string>(initialSession?.nonce ?? "");
   const [isCaptchaRequired, setIsCaptchaRequired] = useState(false);
-  const maxAttempts = MAX_GUESSES;
 
   const handleCaptchaVerify = async (token: string) => {
     setIsCaptchaRequired(false);
@@ -448,8 +391,8 @@ export function GameProvider({
             challenge_number: initialChallenge.id,
           });
           setAuthReady(true);
-          // sessionReady already set via lazy useState when initialSession exists
-          if (initialSession) setSessionReady(true);
+          // sessionReady already set by the initial state when initialSession exists
+          if (initialSession) dispatch({ type: "sessionReady" });
           performance.mark("eauxle:session_ready");
           performance.mark("eauxle:init_end");
           clearTimeout(safetyTimeout);
@@ -473,39 +416,15 @@ export function GameProvider({
             challenge_number: challenge.id,
           });
 
-          setDailyPerfume({
-            concentration: undefined,
-            id: "daily",
-            imageUrl: "/placeholder.svg", // Will be overwritten by session
-            name: "Mystery Perfume", // Name is secret!
-            xsolve: challenge.xsolve,
+          dispatch({
+            challenge,
+            maxAttempts: MAX_GUESSES,
+            session,
+            type: "sessionHydrated",
           });
-          setClues(session.revealed);
-
-          setSessionId(session.sessionId);
-          setNonce(session.nonce);
-          if (session.imageUrl) setImageUrl(session.imageUrl);
-
-          // If session returned answer (game over), update dailyPerfume
-          if (session.answerName) {
-            setDailyPerfume((previous) => ({
-              ...previous,
-              concentration: session.answerConcentration,
-              name: session.answerName ?? "",
-            }));
-          }
-
-          if (session.guesses.length > 0) {
-            setAttempts(hydrateAttempts(session.guesses));
-
-            const lastGuess = session.guesses.at(-1);
-            if (lastGuess?.isCorrect) setGameState("won");
-            else if (session.guesses.length >= maxAttempts)
-              setGameState("lost");
-          }
         }
         setAuthReady(true);
-        setSessionReady(true);
+        dispatch({ type: "sessionReady" });
         performance.mark("eauxle:session_ready");
         performance.mark("eauxle:init_end");
         clearTimeout(safetyTimeout);
@@ -518,46 +437,39 @@ export function GameProvider({
     };
     void initGame();
     // initGame is defined inside this effect and only needs to run once on mount
-  }, [initialChallenge, initialSession, maxAttempts]);
+  }, [initialChallenge, initialSession]);
 
   // Merge dynamic image into the daily perfume object.
   // useMemo keeps the reference stable so GameStateProvider and GameActionsProvider
   // do not see a "changed" dailyPerfume prop on every GameProvider re-render.
   const activePerfume = useMemo(
-    () => ({ ...dailyPerfume, imageUrl }),
-    [dailyPerfume, imageUrl],
+    () => ({ ...game.dailyPerfume, imageUrl: game.imageUrl }),
+    [game.dailyPerfume, game.imageUrl],
   );
 
   return (
     <GameStateProvider
-      attempts={attempts}
+      attempts={game.attempts}
       authReady={authReady}
-      clues={clues}
+      clues={game.clues}
       dailyPerfume={activePerfume}
-      gameState={gameState}
+      gameState={game.gameState}
       loading={loading}
-      maxAttempts={maxAttempts}
-      sessionId={sessionId}
-      sessionReady={sessionReady}
+      maxAttempts={MAX_GUESSES}
+      sessionId={game.sessionId}
+      sessionReady={game.sessionReady}
       user={user}
     >
       <GameActionsProvider
-        attempts={attempts}
+        attempts={game.attempts}
         authReady={authReady}
         challengeId={initialChallenge?.id ?? null}
-        gameState={gameState}
-        maxAttempts={maxAttempts}
-        nonce={nonce}
-        sessionId={sessionId}
-        setAttempts={setAttempts}
-        setClues={setClues}
-        setDailyPerfume={setDailyPerfume}
-        setGameState={setGameState}
-        setImageUrl={setImageUrl}
+        dispatch={dispatch}
+        gameState={game.gameState}
+        maxAttempts={MAX_GUESSES}
+        nonce={game.nonce}
+        sessionId={game.sessionId}
         setLoading={setLoading}
-        setNonce={setNonce}
-        setSessionId={setSessionId}
-        setSessionReady={setSessionReady}
       >
         {children}
         <AuthCaptchaModal
