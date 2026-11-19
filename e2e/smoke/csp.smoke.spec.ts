@@ -33,14 +33,26 @@ test.describe("Content Security Policy @smoke", () => {
     });
   }
 
-  test("blocks an inline script injected into the page", async ({ page }) => {
+  // The classic injection: markup with an inline event handler reaching innerHTML. The policy
+  // has no 'unsafe-inline', so the handler must not run. (A script element created from JS is
+  // not a valid probe: 'strict-dynamic' trusts scripts that running scripts add.)
+  test("blocks an inline event handler injected into the page", async ({
+    page,
+  }) => {
     await page.goto("/en");
     await expect(page.locator("main")).toBeVisible();
 
-    const executed = await page.evaluate(() => {
-      const script = document.createElement("script");
-      script.textContent = "document.documentElement.dataset.xss = 'ran'";
-      document.body.append(script);
+    const executed = await page.evaluate(async () => {
+      const holder = document.createElement("div");
+      holder.innerHTML = `<img src="/no-such-image.png" onerror="document.documentElement.dataset.xss='ran'">`;
+      const image = holder.querySelector("img");
+      const failed = new Promise((resolve) => {
+        image?.addEventListener("error", resolve, { once: true });
+      });
+      document.body.append(holder);
+      await failed;
+      // The attribute handler, if allowed, runs before this listener; wait one more task anyway.
+      await new Promise((resolve) => setTimeout(resolve, 0));
       return document.documentElement.dataset["xss"] === "ran";
     });
 
