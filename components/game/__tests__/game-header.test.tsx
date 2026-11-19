@@ -363,6 +363,18 @@ describe("GameHeader", () => {
 
       expect(toggleAutoScroll).toHaveBeenCalledTimes(1);
     });
+
+    it("lists the wide layout toggle right after auto scroll", () => {
+      renderHeader();
+
+      const labels = screen
+        .getAllByRole("button")
+        .map((btn) => btn.textContent)
+        .filter((text) => /darkMode|autoScroll|wideLayout/.test(text));
+      expect(labels.findIndex((text) => text.includes("autoScroll"))).toBe(
+        labels.findIndex((text) => text.includes("wideLayout")) - 1,
+      );
+    });
   });
 
   describe("help hint badge", () => {
