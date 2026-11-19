@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env["NEXT_PUBLIC_SUPABASE_URL"]!;
-const supabaseServiceKey = process.env["SUPABASE_SERVICE_ROLE_KEY"]!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 // Skip if no service key (cannot create user)
 
@@ -13,7 +13,7 @@ test.skip(
 
 const email = `e2e-test-${Date.now()}@example.com`;
 // Password must meet complexity requirements: 8+ chars, lower, upper, digit
-const password = process.env["E2E_TEST_PASSWORD"] ?? "StrongPass123!";
+const password = process.env.E2E_TEST_PASSWORD ?? "StrongPass123!";
 let userId: string;
 
 test.beforeAll(async () => {

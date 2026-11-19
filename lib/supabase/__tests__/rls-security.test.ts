@@ -27,7 +27,7 @@ import { createClient, createAdminClient } from "../server";
 // To run: VITEST_INTEGRATION=true pnpm vitest run lib/supabase/__tests__/rls-security.test.ts
 const skipIfNoEnvironment =
   // eslint-disable-next-line no-restricted-properties -- integration test environment check
-  process.env["VITEST_INTEGRATION"] === "true" ? describe : describe.skip;
+  process.env.VITEST_INTEGRATION === "true" ? describe : describe.skip;
 
 skipIfNoEnvironment("RLS Security - perfumes_public VIEW", () => {
   let anonClient: Awaited<ReturnType<typeof createClient>>;

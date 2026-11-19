@@ -21,16 +21,16 @@ export default defineConfig({
       // `||` rather than `??`: GitHub Actions passes an unavailable secret (for example
       // in Dependabot runs) as an empty string, which must also fall back.
       NEXT_PUBLIC_SUPABASE_ANON_KEY:
-        process.env["NEXT_PUBLIC_SUPABASE_ANON_KEY"] || "test-anon-key",
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "test-anon-key",
       NEXT_PUBLIC_SUPABASE_URL:
-        process.env["NEXT_PUBLIC_SUPABASE_URL"] || "https://test.supabase.co",
+        process.env.NEXT_PUBLIC_SUPABASE_URL || "https://test.supabase.co",
       SUPABASE_SERVICE_ROLE_KEY:
-        process.env["SUPABASE_SERVICE_ROLE_KEY"] || "test-service-role-key",
+        process.env.SUPABASE_SERVICE_ROLE_KEY || "test-service-role-key",
       // Upstash is mocked in vitest.setup.ts, but lib/env.ts still validates the shape.
       UPSTASH_REDIS_REST_TOKEN:
-        process.env["UPSTASH_REDIS_REST_TOKEN"] || "test-redis-token",
+        process.env.UPSTASH_REDIS_REST_TOKEN || "test-redis-token",
       UPSTASH_REDIS_REST_URL:
-        process.env["UPSTASH_REDIS_REST_URL"] || "https://test.upstash.io",
+        process.env.UPSTASH_REDIS_REST_URL || "https://test.upstash.io",
     },
     alias: {
       "@": path.resolve(__dirname, "./"),

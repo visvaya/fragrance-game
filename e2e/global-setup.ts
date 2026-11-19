@@ -48,8 +48,8 @@ export function loadSupabaseAdminConfig(): {
   supabaseUrl: string;
 } | null {
   const env = { ...loadEnvironmentFile(), ...process.env };
-  const supabaseUrl = env["NEXT_PUBLIC_SUPABASE_URL"];
-  const serviceRoleKey = env["SUPABASE_SERVICE_ROLE_KEY"];
+  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
   return supabaseUrl && serviceRoleKey ? { serviceRoleKey, supabaseUrl } : null;
 }
 

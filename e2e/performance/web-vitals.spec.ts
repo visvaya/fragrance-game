@@ -90,7 +90,7 @@ test.describe("Web Vitals & Performance Audit", () => {
 
       // Performance budgets — only enforce in CI (production build).
       // Dev server is too slow to meet these thresholds reliably.
-      if (process.env["CI"]) {
+      if (process.env.CI) {
         // TTFB < 800ms
         expect(navTiming?.ttfb).toBeLessThan(800);
 
