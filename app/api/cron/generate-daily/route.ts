@@ -119,12 +119,16 @@ async function ensureChallenge(
           await fetchRecentPerfumeIds(supabase, 7),
         );
 
-  // 4. Random Selection (an empty pool yields no candidate)
+  if (candidates.length === 0) {
+    throw new Error(`No eligible perfumes found for ${dateString}.`);
+  }
+
+  // 4. Random Selection
   const randomBuffer = new Uint32Array(1);
   crypto.getRandomValues(randomBuffer);
   const selected = candidates[(randomBuffer[0] ?? 0) % candidates.length];
   if (!selected) {
-    throw new Error(`No eligible perfumes found for ${dateString}.`);
+    throw new Error(`Random pick out of range for ${dateString}.`);
   }
 
   // 5. Get Next Challenge Number
