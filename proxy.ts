@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
@@ -21,8 +21,47 @@ const ratelimit = new Ratelimit({
 });
 
 /**
- *
- * @param request
+ * Content Security Policy for one response. Scripts run only with this request's nonce or when
+ * loaded by such a script ('strict-dynamic'), so an injected inline script is blocked.
+ */
+function buildContentSecurityPolicy(nonce: string): string {
+  const assetsHost = resolveAssetsHost(env.NEXT_PUBLIC_ASSETS_HOST);
+  const isDevelopment = env.NODE_ENV === "development";
+  return [
+    "default-src 'self'",
+    // 'unsafe-eval' only in development (React rebuilds server error stacks with eval).
+    // The host list is a fallback for browsers without 'strict-dynamic', which ignore it otherwise.
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDevelopment ? " 'unsafe-eval'" : ""} va.vercel-scripts.com https://*.posthog.com https://js.sentry-cdn.com https://browser.sentry-cdn.com https://vercel.live https://vercel.com *.ingest.sentry.io https://challenges.cloudflare.com`,
+    "worker-src 'self' blob:",
+    "child-src 'self' blob:",
+    "style-src 'self' 'unsafe-inline'",
+    `img-src 'self' blob: data: https://*.r2.dev https://${assetsHost} https://placehold.co https://*.posthog.com`,
+    "connect-src 'self' https://*.supabase.co https://*.upstash.io https://*.posthog.com https://*.sentry.io https://sentry.io https://challenges.cloudflare.com",
+    "font-src 'self' data:",
+    "frame-src 'self' https://challenges.cloudflare.com https://vercel.live https://vercel.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+    ...(isDevelopment ? [] : ["upgrade-insecure-requests"]),
+  ].join("; ");
+}
+
+/** The request with the nonce and the CSP added, for the page render to read. */
+function withPageRequestHeaders(
+  request: NextRequest,
+  nonce: string,
+  contentSecurityPolicy: string,
+): NextRequest {
+  const headers = new Headers(request.headers);
+  headers.set("x-nonce", nonce);
+  headers.set("Content-Security-Policy", contentSecurityPolicy);
+  return new NextRequest(request, { headers });
+}
+
+/**
+ * Next.js proxy: rate limit for /api, locale routing, CORS, CSP and security headers.
+ * @param request - incoming request
  */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -60,10 +99,18 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // 2. Internationalization
-  const response: NextResponse = pathname.startsWith("/api")
+  // 2. Content Security Policy with a fresh nonce per request. Next.js reads the nonce from the
+  // request's CSP header while rendering and puts it on its own scripts; the layout reads
+  // x-nonce for its inline scripts. Pages are rendered per request, so the nonce is never cached.
+  const nonce = btoa(crypto.randomUUID());
+  const contentSecurityPolicy = buildContentSecurityPolicy(nonce);
+
+  // 3. Internationalization (next-intl forwards the request headers to the render)
+  const response = pathname.startsWith("/api")
     ? NextResponse.next()
-    : intlMiddleware(request);
+    : intlMiddleware(
+        withPageRequestHeaders(request, nonce, contentSecurityPolicy),
+      );
 
   // Cache-Control for sensitive routes
   if (pathname.startsWith("/api")) {
@@ -94,29 +141,7 @@ export async function proxy(request: NextRequest) {
     );
   }
 
-  // Content Security Policy
-  const assetsHost = resolveAssetsHost(env.NEXT_PUBLIC_ASSETS_HOST);
-
-  response.headers.set(
-    "Content-Security-Policy",
-    [
-      "default-src 'self'",
-      // 'unsafe-eval' is restricted to development only (needed by webpack HMR).
-      // 'unsafe-inline' is required by PostHog, Sentry CDN, and Vercel analytics.
-      `script-src 'self' 'unsafe-inline'${env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""} va.vercel-scripts.com https://*.posthog.com https://js.sentry-cdn.com https://browser.sentry-cdn.com https://vercel.live https://vercel.com *.ingest.sentry.io https://challenges.cloudflare.com`,
-      "worker-src 'self' blob:",
-      "child-src 'self' blob:",
-      "style-src 'self' 'unsafe-inline'",
-      `img-src 'self' blob: data: https://*.r2.dev https://${assetsHost} https://placehold.co https://*.posthog.com`,
-      "connect-src 'self' https://*.supabase.co https://*.upstash.io https://*.posthog.com https://*.sentry.io https://sentry.io https://challenges.cloudflare.com",
-      "font-src 'self' data:",
-      "frame-src 'self' https://challenges.cloudflare.com https://vercel.live https://vercel.com",
-      "frame-ancestors 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      ...(env.NODE_ENV === "development" ? [] : ["upgrade-insecure-requests"]),
-    ].join("; "),
-  );
+  response.headers.set("Content-Security-Policy", contentSecurityPolicy);
 
   // Additional security headers
   response.headers.set("X-Frame-Options", "DENY");
