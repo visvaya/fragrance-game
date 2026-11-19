@@ -20,7 +20,8 @@ test.describe("Smoke Tests - Critical Path @smoke", () => {
     // React streams such content as <div hidden id="S:n"> and swaps it in later.
     const html = await (await request.get("/en")).text();
 
-    expect(html).toContain("<main");
+    // The clue panel title renders with and without a daily puzzle.
+    expect(html).toContain(">Identity<");
     expect(html).not.toMatch(/<div hidden id="S:/);
   });
 
