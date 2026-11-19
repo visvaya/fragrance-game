@@ -160,7 +160,9 @@ describe("GameActionsContext", () => {
   });
 
   it("should not allow guess when game is not playing", async () => {
-    const { probe, wrapper } = createWrapper({ state: { gameState: "won" } });
+    const { probe, wrapper } = createAuthWrapper({
+      state: { gameState: "won" },
+    });
     const { result } = renderHook(() => useGameActions(), { wrapper });
 
     await act(async () => {
@@ -194,7 +196,7 @@ describe("GameActionsContext", () => {
       },
       guess: "Test",
     }));
-    const { probe, wrapper } = createWrapper({
+    const { probe, wrapper } = createAuthWrapper({
       state: { attempts: mockAttempts },
     });
     const { result } = renderHook(() => useGameActions(), { wrapper });
