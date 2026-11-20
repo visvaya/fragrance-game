@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { SkipForward } from "lucide-react";
+import { Loader2, SkipForward } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
@@ -26,18 +26,18 @@ import { GameTooltip } from "./game-tooltip";
  * @param props.busy - The game is loading or rate limited; the button is dimmed.
  * @param props.isRateLimited - Shows the rate-limit warning instead of skipping.
  * @param props.onSkip - Skips the current attempt.
- * @param props.ready - The player is signed in; the first skip starts the game session.
+ * @param props.pending - A skip is queued until the sign-in finishes; the button shows a spinner.
  */
 export function SkipAttemptButton({
   busy,
   isRateLimited,
   onSkip,
-  ready,
+  pending,
 }: Readonly<{
   busy: boolean;
   isRateLimited: boolean;
   onSkip: () => void;
-  ready: boolean;
+  pending: boolean;
 }>) {
   const t = useTranslations("Game.input");
   const tActions = useTranslations("GameActions");
@@ -52,6 +52,7 @@ export function SkipAttemptButton({
         sideOffset={8}
       >
         <button
+          aria-busy={pending}
           aria-label={t("skipTooltip")}
           className={cn(
             "flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-30",
@@ -59,7 +60,7 @@ export function SkipAttemptButton({
               ? "cursor-not-allowed opacity-30"
               : "hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:duration-0",
           )}
-          disabled={!ready || busy}
+          disabled={busy || pending}
           onClick={() => {
             if (isRateLimited) {
               toast.warning(tActions("rateLimitError"));
@@ -76,7 +77,11 @@ export function SkipAttemptButton({
           }}
           type="button"
         >
-          <SkipForward className="size-3.5" />
+          {pending ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <SkipForward className="size-3.5" />
+          )}
         </button>
       </GameTooltip>
 

@@ -390,9 +390,9 @@ export function GameProvider({
     };
   }, [router]);
 
-  // Initialize Game (with proper auth sequencing). Runs when the browser is idle after
-  // start-up, so the sign-in does not compete with hydration; a guess picked earlier is
-  // queued in game-input (pendingGuess) until authReady.
+  // Initialize Game (with proper auth sequencing). Runs at the player's first interaction or
+  // when the browser is idle after start-up, so the sign-in does not compete with hydration;
+  // a guess or skip made earlier is queued in game-input (pendingAction) until authReady.
   useEffect(() => {
     const initGame = async () => {
       performance.mark("eauxle:init_start");

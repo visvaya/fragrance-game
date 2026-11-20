@@ -22,6 +22,12 @@ import { HighlightedText } from "./highlighted-text";
 import { GameInputSkeleton } from "./skeletons";
 import { SkipAttemptButton } from "./skip-attempt-button";
 import { useKeyboardScrollRestore } from "./use-keyboard-scroll-restore";
+/** A move made before the anonymous sign-in finished, sent once auth is ready. */
+type PendingAction =
+  | { kind: "guess"; perfume: PerfumeSuggestion }
+  | { kind: "skip" }
+  | null;
+
 type GameInputState = {
   hasSearched: boolean;
   isError: boolean;
@@ -155,9 +161,8 @@ export function GameInput() {
   const tFooter = useTranslations("Footer");
   const tActions = useTranslations("GameActions");
 
-  const [pendingGuess, setPendingGuess] = useState<PerfumeSuggestion | null>(
-    null,
-  );
+  // A guess or skip made before the sign-in finished; sent once authReady.
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [showWrongFeedback, setShowWrongFeedback] = useState(false);
 
   // Status bar dynamic wrapping
@@ -190,7 +195,8 @@ export function GameInput() {
   const trimmedQuery = query.trim();
 
   // True when user selected a perfume but auth JWT is not yet ready.
-  const isConnecting = pendingGuess !== null && !authReady;
+  const isConnecting = pendingAction?.kind === "guess" && !authReady;
+  const isSigningIn = !authReady && !authFailed;
 
   // Delay "Brak wyników" by 500ms so it doesn't flash on fast connections.
   // Resets immediately when results arrive, loading starts, or query changes.
@@ -319,28 +325,29 @@ export function GameInput() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   });
 
-  // Auto-submit pending guess once auth JWT is ready (Gate 6: authReady replaces sessionId).
-  // makeGuess handles lazy startGame when sessionId is still null.
+  // Send the queued guess or skip once auth is ready; makeGuess and skipAttempt start the
+  // game session lazily when sessionId is still null.
   useEffect(() => {
-    if (!authReady || !pendingGuess) return;
-    void makeGuess(
-      pendingGuess.name,
-      pendingGuess.brand_masked,
-      pendingGuess.perfume_id,
-    );
-    setPendingGuess(null);
+    if (!authReady || !pendingAction) return;
+    setPendingAction(null);
+    if (pendingAction.kind === "skip") {
+      void skipAttempt();
+      return;
+    }
+    const { perfume } = pendingAction;
+    void makeGuess(perfume.name, perfume.brand_masked, perfume.perfume_id);
     dispatch({ type: "RESET" });
     const focusTimer = setTimeout(() => inputReference.current?.focus(), 0);
     return () => clearTimeout(focusTimer);
-  }, [authReady, pendingGuess, makeGuess]);
+  }, [authReady, pendingAction, makeGuess, skipAttempt]);
 
-  // Safety cleanup: the sign-in gave up, so a queued guess would never be sent.
+  // Safety cleanup: the sign-in gave up, so a queued action would never be sent.
   useEffect(() => {
-    if (authFailed && pendingGuess) {
-      setPendingGuess(null);
+    if (authFailed && pendingAction) {
+      setPendingAction(null);
       dispatch({ type: "RESET" });
     }
-  }, [authFailed, pendingGuess]);
+  }, [authFailed, pendingAction]);
 
   // Track guess outcomes to show brief icon feedback on the submit button.
   // Mirrors AttemptLog's hasInitialized pattern – ignores attempts restored on page load.
@@ -390,7 +397,7 @@ export function GameInput() {
       // Auth still in progress – queue the guess and show connecting state.
       dispatch({ payload: perfume.name, type: "SET_QUERY" });
       dispatch({ payload: false, type: "SET_SHOW_SUGGESTIONS" });
-      setPendingGuess(perfume);
+      setPendingAction({ kind: "guess", perfume });
       return;
     }
     await makeGuess(perfume.name, perfume.brand_masked, perfume.perfume_id);
@@ -527,7 +534,7 @@ export function GameInput() {
   type InputIcon = "search" | "loading" | "error" | "wrong";
   const activeIcon: InputIcon = (() => {
     if (showWrongFeedback) return "wrong";
-    if (isCurrentlyLoading || isConnecting) return "loading";
+    if (isCurrentlyLoading || isConnecting || isSigningIn) return "loading";
     if (isError) return "error";
     return "search";
   })();
@@ -628,7 +635,11 @@ export function GameInput() {
                 role="presentation"
               />
             ) : null}
-            <div className="pointer-events-none absolute top-[calc(50%+1px)] right-0.5 flex size-8 -translate-y-1/2 items-center justify-center">
+            <div
+              className="pointer-events-none absolute top-[calc(50%+1px)] right-0.5 flex size-8 -translate-y-1/2 items-center justify-center"
+              data-icon={activeIcon}
+              data-testid="input-icon"
+            >
               {/* Search */}
               <div
                 className={cn(
@@ -728,8 +739,14 @@ export function GameInput() {
                 <SkipAttemptButton
                   busy={isRateLimited || gameLoading}
                   isRateLimited={isRateLimited}
-                  onSkip={() => void skipAttempt()}
-                  ready={authReady}
+                  onSkip={() => {
+                    if (authReady) {
+                      void skipAttempt();
+                    } else {
+                      setPendingAction((action) => action ?? { kind: "skip" });
+                    }
+                  }}
+                  pending={pendingAction?.kind === "skip"}
                 />
               </div>
               <span

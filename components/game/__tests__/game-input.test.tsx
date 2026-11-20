@@ -327,12 +327,39 @@ describe("GameInput", () => {
       ).toBeInTheDocument();
     });
 
-    it("is disabled while the sign-in is pending", () => {
+    it("queues a skip made while signing in and sends it once auth is ready", async () => {
+      const skipAttempt = vi.fn().mockResolvedValue(undefined);
+      const signingIn = {
+        authReady: false,
+        sessionId: null,
+        sessionReady: false,
+      };
+      const { rerender } = renderGameInput(signingIn, { skipAttempt });
+
+      const skipButton = screen.getByRole("button", { name: "skipTooltip" });
+      expect(skipButton).toBeEnabled();
+      await userEvent.setup().click(skipButton);
+
+      expect(skipAttempt).not.toHaveBeenCalled();
+      expect(skipButton).toHaveAttribute("aria-busy", "true");
+
+      mockUseGameState.mockReturnValue(
+        makeDefaultState({ ...signingIn, authReady: true }),
+      );
+      rerender(<GameInput />);
+
+      await waitFor(() => {
+        expect(skipAttempt).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it("shows the spinner in place of the search icon while signing in", () => {
       renderGameInput({ authReady: false });
 
-      expect(
-        screen.getByRole("button", { name: "skipTooltip" }),
-      ).toBeDisabled();
+      expect(screen.getByTestId("input-icon")).toHaveAttribute(
+        "data-icon",
+        "loading",
+      );
     });
 
     it("is enabled for a new player before the game session exists", () => {
