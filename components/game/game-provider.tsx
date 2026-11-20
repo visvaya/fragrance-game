@@ -31,7 +31,10 @@ import {
 import { env } from "@/lib/env";
 import { getSupabaseClient } from "@/lib/supabase/get-client";
 
-import { signInAnonymousPlayer } from "./anonymous-auth";
+import {
+  signInAnonymousPlayer,
+  type AnonymousSignInResult,
+} from "./anonymous-auth";
 import { whenIdle } from "./when-idle";
 
 import {
@@ -66,6 +69,8 @@ const AUTH_IDLE_TIMEOUT_MS = 2000;
 const MAX_SIGN_IN_ATTEMPTS = 2;
 /** How long the invisible Turnstile check may run before the dialog is shown. */
 const CAPTCHA_PENDING_TIMEOUT_MS = 8000;
+/** Longest the board stays in its loading state while start-up runs. */
+const INIT_SAFETY_TIMEOUT_MS = 15_000;
 
 /**
  * Runs the anonymous sign-in and records it as the "eauxle.anon_auth" measure, which
@@ -209,6 +214,22 @@ async function finishInit(
 }
 
 /**
+ * Signs in with a Turnstile token; a thrown error becomes a rejected result.
+ * @param token - Turnstile token.
+ * @returns The sign-in result.
+ */
+async function signInWithToken(token: string): Promise<AnonymousSignInResult> {
+  try {
+    const supabase = await getSupabaseClient();
+    return await measureAnonAuth(async () =>
+      signInAnonymousPlayer(supabase, token),
+    );
+  } catch (error) {
+    return { message: String(error), ok: false };
+  }
+}
+
+/**
  * GameProvider - Main orchestrator that manages state and coordinates contexts
  * All state lives here as single source of truth
  * Contexts receive state and the dispatch function as props
@@ -245,11 +266,11 @@ export function GameProvider({
   /** True when the sign-in gave up: the input drops a guess queued for it. */
   const [authFailed, setAuthFailed] = useState(false);
   /**
-   * "pending": Turnstile runs invisibly; "interactive": the dialog shows the widget;
-   * "failed": the dialog offers a reload.
+   * "pending": Turnstile runs invisibly; "waiting": the check is slow and the dialog says so;
+   * "interactive": the dialog shows the widget; "failed": the dialog offers a reload.
    */
   const [captchaStage, setCaptchaStage] = useState<
-    "none" | "pending" | "interactive" | "failed"
+    "none" | "pending" | "waiting" | "interactive" | "failed"
   >("none");
   // A new key remounts the widget for a fresh token after a rejected sign-in.
   const [captchaAttempt, setCaptchaAttempt] = useState(0);
@@ -265,43 +286,45 @@ export function GameProvider({
   const handleCaptchaVerify = async (token: string) => {
     if (signInInFlight.current) return;
     signInInFlight.current = true;
-    try {
-      const supabase = await getSupabaseClient();
-      const result = await measureAnonAuth(async () =>
-        signInAnonymousPlayer(supabase, token),
-      );
-      if (!result.ok) {
-        console.error("Anonymous sign-in with captcha failed:", result.message);
-        if (captchaAttempt + 1 >= MAX_SIGN_IN_ATTEMPTS) {
-          failAuth();
-        } else {
-          setCaptchaStage("interactive");
-          setCaptchaAttempt((attempt) => attempt + 1);
-        }
-        return;
+    const result = await signInWithToken(token);
+    signInInFlight.current = false;
+
+    if (!result.ok) {
+      console.error("Anonymous sign-in with captcha failed:", result.message);
+      if (captchaAttempt + 1 >= MAX_SIGN_IN_ATTEMPTS) {
+        failAuth();
+      } else {
+        setCaptchaStage("interactive");
+        setCaptchaAttempt((attempt) => attempt + 1);
       }
-      setCaptchaStage("none");
-      if (result.user) setUser(result.user);
+      return;
+    }
+
+    setCaptchaStage("none");
+    if (result.user) setUser(result.user);
+    // The player is signed in now: a failure from here on is a start-up error, not a failed
+    // verification, so it is logged like initGame's and the dialog stays closed.
+    const safetyTimeout = initialChallenge
+      ? undefined
+      : setTimeout(() => setLoading(false), INIT_SAFETY_TIMEOUT_MS);
+    try {
       await finishInit(initialChallenge, dispatch, setAuthReady);
+    } catch (error) {
+      console.error("Failed to init game after the sign-in", error);
+    } finally {
+      clearTimeout(safetyTimeout);
       // Only the path without an SSR challenge kept the board in its loading state.
       if (!initialChallenge) setLoading(false);
-    } catch (error) {
-      console.error("Captcha verification error:", error);
-      failAuth();
-    } finally {
-      signInInFlight.current = false;
     }
   };
 
-  // The invisible check normally ends within seconds; if it does not, show the dialog so the
-  // player sees what is happening instead of a game that silently waits.
+  // The invisible check normally ends within seconds; if it does not, show the dialog with a
+  // loading note so the player sees what is happening instead of a game that silently waits.
   useEffect(() => {
     if (captchaStage !== "pending") return;
     const timer = setTimeout(
       () =>
-        setCaptchaStage((stage) =>
-          stage === "pending" ? "interactive" : stage,
-        ),
+        setCaptchaStage((stage) => (stage === "pending" ? "waiting" : stage)),
       CAPTCHA_PENDING_TIMEOUT_MS,
     );
     return () => clearTimeout(timer);
@@ -379,7 +402,7 @@ export function GameProvider({
       const safetyTimeout = setTimeout(() => {
         console.warn("[GameProvider] initGame safety timeout reached!");
         setLoading(false);
-      }, 15_000);
+      }, INIT_SAFETY_TIMEOUT_MS);
 
       try {
         // Dynamic import via getSupabaseClient(): keeps Supabase out of the critical render path.
@@ -471,7 +494,14 @@ export function GameProvider({
         sessionId={game.sessionId}
         setLoading={setLoading}
       >
-        {children}
+        {/* While the captcha dialog is visible, the game behind it is out of reach of the
+            keyboard and assistive technology, as aria-modal promises. */}
+        <div
+          className="contents"
+          inert={captchaStage !== "none" && captchaStage !== "pending"}
+        >
+          {children}
+        </div>
         {captchaStage === "none" ? null : (
           <AuthCaptchaModal
             key={captchaAttempt}

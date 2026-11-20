@@ -13,8 +13,11 @@ type AuthCaptchaModalProperties = {
   /** The Turnstile script did not load or the browser is unsupported. */
   readonly onUnavailable: () => void;
   readonly onVerify: (token: string) => void;
-  /** "pending": invisible check; "interactive": dialog with the widget; "failed": reload offer. */
-  readonly stage: "pending" | "interactive" | "failed";
+  /**
+   * "pending": invisible check; "waiting": the check is slow, the dialog says so;
+   * "interactive": the dialog shows the widget; "failed": the dialog offers a reload.
+   */
+  readonly stage: "pending" | "waiting" | "interactive" | "failed";
 };
 
 /**
@@ -39,7 +42,7 @@ export function AuthCaptchaModal({
       className={cn(
         "fixed inset-0 z-50 flex items-center justify-center p-4",
         isVisible
-          ? "bg-black/40 backdrop-blur-sm"
+          ? "bg-black/50 backdrop-blur-sm"
           : "pointer-events-none opacity-0",
       )}
       inert={!isVisible}
@@ -49,9 +52,18 @@ export function AuthCaptchaModal({
         aria-labelledby="anonymous-captcha-title"
         aria-modal={isVisible}
         className="w-full max-w-md rounded-md border panel-border bg-background p-6 panel-shadow outline-none"
-        // Moves focus into the dialog when it appears, so keyboard users start there.
+        // Moves focus into the dialog when it appears or changes stage (unless focus is already
+        // inside, such as in the widget) and gives it back to the page element that had it
+        // when the dialog closes. Reading `stage` makes the callback run again when the widget
+        // is replaced by the reload offer, which would otherwise drop focus to the page.
         ref={(node) => {
-          if (isVisible) node?.focus();
+          if (stage === "pending" || !node) return;
+          const previous = document.activeElement;
+          if (!node.contains(previous)) node.focus();
+          return () => {
+            if (previous instanceof HTMLElement && previous.isConnected)
+              previous.focus();
+          };
         }}
         role="alertdialog"
         tabIndex={-1}
@@ -66,7 +78,11 @@ export function AuthCaptchaModal({
           className="mt-2 text-sm text-muted-foreground"
           id="anonymous-captcha-description"
         >
-          {stage === "failed" ? t("captchaFailed") : t("captchaDescription")}
+          {stage === "failed"
+            ? t("captchaFailed")
+            : stage === "waiting"
+              ? t("captchaLoading")
+              : t("captchaDescription")}
         </p>
         {stage === "failed" ? (
           <div className="mt-4 flex justify-end">

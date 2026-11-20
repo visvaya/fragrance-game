@@ -557,7 +557,8 @@ describe("GameInput", () => {
         sessionId: null,
         sessionReady: false,
       };
-      const { rerender } = renderGameInput(pending);
+      const makeGuess = vi.fn().mockResolvedValue(undefined);
+      const { rerender } = renderGameInput(pending, { makeGuess });
 
       const input = screen.getByTestId("game-input");
       const user = userEvent.setup();
@@ -575,6 +576,15 @@ describe("GameInput", () => {
       await waitFor(() => {
         expect(screen.getByTestId("game-input")).toBeEnabled();
       });
+      expect(makeGuess).not.toHaveBeenCalled();
+
+      // A later sign-in (after a reload, say) must not replay the dropped pick.
+      mockUseGameState.mockReturnValue(
+        makeDefaultState({ ...pending, authReady: true }),
+      );
+      rerender(<GameInput />);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(makeGuess).not.toHaveBeenCalled();
     });
 
     it("calls makeGuess when suggestion is clicked", async () => {
