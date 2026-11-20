@@ -2,7 +2,7 @@
  * Tests for GameInput component.
  * Mocks game contexts and autocomplete action to test rendering and interactions.
  */
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -315,6 +315,57 @@ describe("GameInput", () => {
 
       // Status bar contains score – use getAllByText since there's an invisible clone
       expect(screen.getAllByText(/850/).length).toBeGreaterThan(0);
+    });
+
+    it("keeps the one-row layout after a reset re-mounts the status bar", () => {
+      // Records every observer so the test can fire them with chosen widths.
+      const observers: { callback: () => void; targets: Element[] }[] = [];
+      vi.stubGlobal(
+        "ResizeObserver",
+        class {
+          private readonly entry: { callback: () => void; targets: Element[] };
+          constructor(callback: () => void) {
+            this.entry = { callback, targets: [] };
+            observers.push(this.entry);
+          }
+          disconnect() {
+            this.entry.targets = [];
+          }
+          observe(target: Element) {
+            this.entry.targets.push(target);
+          }
+        },
+      );
+      const fireAll = () => {
+        for (const { callback, targets } of observers) {
+          if (targets.length > 0) act(callback);
+        }
+      };
+
+      const { rerender } = renderGameInput();
+      // A reset clears the puzzle (skeleton) and loads it again.
+      mockUseGameState.mockReturnValue(
+        makeDefaultState({ dailyPerfume: SKELETON_PERFUME, loading: true }),
+      );
+      rerender(<GameInput />);
+      // The observer of the removed bar fires with zero widths.
+      fireAll();
+      mockUseGameState.mockReturnValue(makeDefaultState());
+      rerender(<GameInput />);
+
+      // The new bar's container must be observed.
+      const statusBar = screen.getByTestId("game-status-bar");
+      const container = observers
+        .flatMap(({ targets }) => targets)
+        .find((target) => target.contains(statusBar));
+      expect(container).toBeDefined();
+
+      // The new bar is wide enough for one row.
+      vi.spyOn(container as HTMLElement, "clientWidth", "get").mockReturnValue(
+        400,
+      );
+      fireAll();
+      expect(statusBar).toHaveClass("grid");
     });
   });
 
