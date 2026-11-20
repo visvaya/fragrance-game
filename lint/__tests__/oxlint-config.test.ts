@@ -123,6 +123,29 @@ const FIXTURES: Record<string, { expected: string[]; source: string }> = {
       "",
     ].join("\n"),
   },
+  "lib/probe-fetch.ts": {
+    expected: ["eauxle(fetch-requires-parse)"],
+    source: [
+      'import { z } from "zod";',
+      "const schema = z.object({});",
+      "/** Parsed in the same function. */",
+      "export const parsed = async (url: string) =>",
+      "  schema.parse(await (await fetch(url)).json());",
+      "/** Parsed in a nested callback. */",
+      "export const nested = (url: string) =>",
+      "  fetch(url).then((r) => schema.safeParse(r));",
+      "/** Not parsed. */",
+      "export const unparsed = (url: string) => fetch(url);",
+      "/** Parsed in another function only. */",
+      "export const elsewhere = (url: string) => fetch(url);",
+      "/** Parser. */",
+      "export const other = (data: unknown) => schema.parse(data);",
+      "/** Unparsed axios call. */",
+      "export const client = (url: string) => axios(url);",
+      "export const topLevel = fetch('/x');",
+      "",
+    ].join("\n"),
+  },
   "lib/probe-lib.ts": {
     expected: [
       "eslint(no-restricted-imports)",
@@ -257,5 +280,17 @@ describe("oxlint config wiring", () => {
       )
       .map((d) => d.labels[0]?.span.line);
     expect(lines).toEqual([3]);
+  });
+
+  it("reports fetch calls without a parse in the same function, and only those", () => {
+    const lines = diagnostics
+      .filter(
+        (d) =>
+          d.code === "eauxle(fetch-requires-parse)" &&
+          path.normalize(d.filename) === path.normalize("lib/probe-fetch.ts"),
+      )
+      .map((d) => d.labels[0]?.span.line);
+    // unparsed, elsewhere, axios and the module-scope fetch (a parse inside a function does not count)
+    expect(lines).toEqual([10, 12, 16, 17]);
   });
 });

@@ -376,7 +376,6 @@ const fetchJsonWith =
   async (url, schema) => {
     const github = url.startsWith("https://api.github.com/");
     // The answer is parsed below with the schema the caller passes.
-    // eslint-disable-next-line eauxle/restricted-syntax -- parse happens on response.json(), not inside fetch()
     const response = await fetch(url, {
       headers: {
         accept: github ? "application/vnd.github+json" : "application/json",

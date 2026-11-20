@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import type { FullConfig } from "@playwright/test";
+import { z } from "zod";
 
 // Playwright runs from the project root and loads specs as CommonJS; import.meta
 // would make Node parse the file as an ES module ("exports is not defined").
@@ -20,11 +21,15 @@ const ENVIRONMENT_FILE = path.join(DIR, "..", ".env.local");
 export const TEST_USER_IDS_FILE = path.join(DIR, ".auth", "test-user-ids.json");
 const MAX_CHUNK_SIZE = 3180; // `@supabase/ssr` cookie chunk size
 
-export type AuthSession = {
-  access_token: string;
-  refresh_token: string;
-  user?: { id: string };
-};
+// Loose objects: the whole session (expiry, token type, full user) goes into the auth cookie,
+// so unknown keys must survive the parse.
+const authSessionSchema = z.looseObject({
+  access_token: z.string().min(1),
+  refresh_token: z.string().min(1),
+  user: z.looseObject({ id: z.string() }).optional(),
+});
+
+export type AuthSession = z.infer<typeof authSessionSchema>;
 
 /** Parse .env.local file since Playwright runs outside of Next.js env loading. */
 function loadEnvironmentFile(): Record<string, string> {
@@ -60,7 +65,6 @@ export async function createAnonymousSession(
   serviceRoleKey: string,
 ): Promise<AuthSession | null> {
   try {
-    // eslint-disable-next-line eauxle/restricted-syntax -- E2E Admin API call with service role key; response structure is known
     const response = await fetch(`${supabaseUrl}/auth/v1/signup`, {
       body: JSON.stringify({ data: { is_test_user: true } }),
       headers: {
@@ -79,15 +83,15 @@ export async function createAnonymousSession(
       return null;
     }
 
-    const session = (await response.json()) as AuthSession;
-    if (!session.access_token || !session.refresh_token) {
+    const parsed = authSessionSchema.safeParse(await response.json());
+    if (!parsed.success) {
       console.warn(
         "[E2E globalSetup] Session missing tokens:",
-        Object.keys(session),
+        parsed.error.message,
       );
       return null;
     }
-    return session;
+    return parsed.data;
   } catch (error) {
     console.warn("[E2E globalSetup] Failed to create session:", error);
     return null;

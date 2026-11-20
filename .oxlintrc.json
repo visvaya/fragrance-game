@@ -1382,15 +1382,12 @@
       "jsPlugins": ["./lint/eauxle-plugin.mjs"],
       "rules": {
         "eauxle/bounded-select": "error",
+        "eauxle/fetch-requires-parse": "error",
         "eauxle/restricted-syntax": [
           "error",
           {
             "selector": "CallExpression[callee.property.name='select'][arguments.0.value='*']",
             "message": "Avoid select('*'). Choose specific columns for better performance and security."
-          },
-          {
-            "selector": "CallExpression[callee.name=/^(fetch|axios|got)$/]:not(:has(CallExpression[callee.property.name=/^(parse|safeParse)$/]))",
-            "message": "Data from APIs must be validated by Zod (.parse() or .safeParse())."
           },
           {
             "selector": "CallExpression[callee.property.name='rpc'][arguments.length>1]:not(:has(CallExpression[callee.property.name=/^(parse|safeParse)$/]))",
@@ -1422,15 +1419,12 @@
       "jsPlugins": ["./lint/eauxle-plugin.mjs"],
       "rules": {
         "eauxle/bounded-select": "error",
+        "eauxle/fetch-requires-parse": "error",
         "eauxle/restricted-syntax": [
           "error",
           {
             "selector": "CallExpression[callee.property.name='select'][arguments.0.value='*']",
             "message": "Avoid select('*'). Choose specific columns for better performance and security."
-          },
-          {
-            "selector": "CallExpression[callee.name=/^(fetch|axios|got)$/]:not(:has(CallExpression[callee.property.name=/^(parse|safeParse)$/]))",
-            "message": "Data from APIs must be validated by Zod (.parse() or .safeParse())."
           },
           {
             "selector": "AwaitExpression > CallExpression[callee.property.name='delete']",
