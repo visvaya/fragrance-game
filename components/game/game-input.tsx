@@ -21,6 +21,7 @@ import { useGameState, useGameActions, useUIPreferences } from "./contexts";
 import { HighlightedText } from "./highlighted-text";
 import { GameInputSkeleton } from "./skeletons";
 import { SkipAttemptButton } from "./skip-attempt-button";
+import { UnplayableInputBar } from "./unplayable-input-bar";
 import { useKeyboardScrollRestore } from "./use-keyboard-scroll-restore";
 import { useStatusBarStack } from "./use-status-bar-stack";
 /** A move made before the anonymous sign-in finished, sent once auth is ready. */
@@ -494,24 +495,7 @@ export function GameInput() {
   }
 
   // 2. Closed / No Puzzle State (Only if loaded and invalid)
-  if (!isPlayable) {
-    return (
-      <div
-        className={cn(
-          "sticky bottom-0 z-30 mx-auto w-full max-w-2xl will-change-transform wide:max-w-xl",
-        )}
-      >
-        <div className="relative border-x-0 border-t panel-border bg-background/70 px-5 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] panel-shadow backdrop-blur-md transition-colors duration-500 ease-in-out sm:rounded-t-md sm:border-x">
-          {/* Input-like look for closed state */}
-          <div className="relative flex items-center justify-center">
-            <span className="font-hand text-lg text-primary">
-              {isSkeleton ? t("noPuzzle") : t("closed")}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (!isPlayable) return <UnplayableInputBar noPuzzle={isSkeleton} />;
 
   const isCurrentlyLoading = isLoading || gameLoading;
 

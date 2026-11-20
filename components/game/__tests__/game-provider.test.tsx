@@ -502,4 +502,51 @@ describe("GameProvider – error handling", () => {
       expect(screen.getByTestId("loading")).toHaveTextContent("false");
     });
   });
+
+  it("keeps the sign-in valid when the start-up fetch fails and fetches again on retry", async () => {
+    vi.mocked(gameActions.initializeGame)
+      .mockRejectedValueOnce(new Error("Network error"))
+      .mockResolvedValueOnce({
+        challenge: { id: VALID_CHALLENGE_ID, revealed: CHALLENGE_CLUES } as any,
+        session: {
+          guesses: [],
+          imageUrl: "/test.jpg",
+          nonce: "nonce-1",
+          revealed: SESSION_CLUES,
+          sessionId: VALID_SESSION_ID,
+        } as any,
+      });
+
+    function RetryTestComponent() {
+      const { authFailed, authReady, retryStart, revealedBrand } = useGame();
+      return (
+        <div>
+          <div data-testid="auth">{`${authReady}/${authFailed}`}</div>
+          <div data-testid="daily-brand">{revealedBrand}</div>
+          <button onClick={() => void retryStart()}>Retry</button>
+        </div>
+      );
+    }
+
+    renderWithProviders(
+      <GameProvider>
+        <RetryTestComponent />
+      </GameProvider>,
+    );
+
+    // Signed in, no puzzle: a fetch failure is not a failed sign-in.
+    await waitFor(() => {
+      expect(screen.getByTestId("auth")).toHaveTextContent("true/false");
+    });
+    expect(screen.getByTestId("daily-brand")).not.toHaveTextContent("Ch___l");
+
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Retry" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("daily-brand")).toHaveTextContent("Ch___l");
+    });
+    expect(gameActions.initializeGame).toHaveBeenCalledTimes(2);
+  });
 });

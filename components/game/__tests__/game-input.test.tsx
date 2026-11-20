@@ -159,6 +159,7 @@ const makeDefaultActions = () => ({
   isRateLimited: false,
   makeGuess: vi.fn().mockResolvedValue(undefined),
   resetGame: vi.fn(),
+  retryStart: vi.fn().mockResolvedValue(undefined),
   skipAttempt: vi.fn().mockResolvedValue(undefined),
 });
 
@@ -241,6 +242,36 @@ describe("GameInput", () => {
       renderGameInput({ dailyPerfume: SKELETON_PERFUME, gameState: "playing" });
 
       expect(screen.getByText("noPuzzle")).toBeInTheDocument();
+    });
+
+    it("offers a retry when the signed-in start-up loaded no puzzle", async () => {
+      const retryStart = vi.fn().mockResolvedValue(undefined);
+      renderGameInput(
+        { authReady: true, dailyPerfume: SKELETON_PERFUME },
+        { retryStart },
+      );
+
+      await userEvent
+        .setup()
+        .click(screen.getByRole("button", { name: "retry" }));
+
+      expect(retryStart).toHaveBeenCalledTimes(1);
+    });
+
+    it("offers no retry while the sign-in is still running", () => {
+      renderGameInput({ authReady: false, dailyPerfume: SKELETON_PERFUME });
+
+      expect(
+        screen.queryByRole("button", { name: "retry" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("offers no retry once the game is over", () => {
+      renderGameInput({ gameState: "won" });
+
+      expect(
+        screen.queryByRole("button", { name: "retry" }),
+      ).not.toBeInTheDocument();
     });
 
     it("renders input element in playing state", () => {

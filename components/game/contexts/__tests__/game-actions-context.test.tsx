@@ -130,6 +130,7 @@ const createWrapper = ({
         gameState={current.gameState}
         maxAttempts={6}
         nonce={current.nonce}
+        retryStart={vi.fn()}
         sessionId={current.sessionId}
         setLoading={probe.setLoading}
         {...(authReady === undefined ? {} : { authReady })}
