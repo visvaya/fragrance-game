@@ -733,9 +733,10 @@
         ]
       }
     },
-    // lib/env.ts is the one place that reads process.env.
+    // lib/env.ts validates process.env on the server; lib/public-env.ts reads the NEXT_PUBLIC_*
+    // values for browser code without Zod.
     {
-      "files": ["lib/env.ts"],
+      "files": ["lib/env.ts", "lib/public-env.ts"],
       "rules": {
         "no-restricted-properties": "off"
       }
@@ -1318,6 +1319,11 @@
                 ],
                 "allowTypeImports": true,
                 "message": "Client code must not import server modules. Call a Server Action from app/actions and use its result."
+              },
+              {
+                "group": ["@/lib/env"],
+                "allowTypeImports": true,
+                "message": "lib/env ships its Zod schemas to the browser. Read NEXT_PUBLIC_* values from @/lib/public-env."
               }
             ]
           }

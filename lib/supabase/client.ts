@@ -1,6 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 
-import { env } from "@/lib/env";
+import { publicEnv } from "@/lib/public-env";
 
 import type { Database } from "@/types/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -22,8 +22,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * ```
  */
 export function createClient(): SupabaseClient<Database> {
-  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = publicEnv.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   // Use local proxy to bypass uMatrix/AdBlockers
   // Valid URL is required by createBrowserClient

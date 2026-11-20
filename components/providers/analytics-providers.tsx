@@ -3,19 +3,14 @@
 import type { ReactNode } from "react";
 
 import { PostHogProvider } from "@/components/providers/posthog-provider";
-import { SentryProvider } from "@/components/providers/sentry-provider";
 
 /**
- * Client component wrapper for analytics providers.
- * Both providers initialize lazily via useEffect and always render children,
- * so they are safe to server-render without dynamic(ssr:false).
+ * Client component wrapper for analytics providers. PostHog initializes lazily and always
+ * renders children, so it is safe to server-render without dynamic(ssr:false). Sentry starts
+ * from instrumentation-client.ts.
  */
 export function AnalyticsProviders({
   children,
 }: Readonly<{ children: ReactNode }>) {
-  return (
-    <SentryProvider>
-      <PostHogProvider>{children}</PostHogProvider>
-    </SentryProvider>
-  );
+  return <PostHogProvider>{children}</PostHogProvider>;
 }

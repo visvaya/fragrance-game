@@ -5,8 +5,6 @@ import { useEffect } from "react";
 
 import Error from "next/error";
 
-import * as Sentry from "@sentry/nextjs";
-
 /** Global error boundary – captures unhandled errors via Sentry and renders a fallback UI. */
 export default function GlobalError({
   error,
@@ -14,7 +12,11 @@ export default function GlobalError({
   readonly error: Error & { digest?: string };
 }) {
   useEffect(() => {
-    Sentry.captureException(error);
+    // Loaded on demand: this boundary ships with every page, the Sentry SDK should not.
+    void import("@/lib/sentry-client").then(({ reportClientError }) => {
+      reportClientError(error);
+      return null;
+    });
   }, [error]);
 
   return (

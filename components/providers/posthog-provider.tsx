@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { env } from "@/lib/env";
+import { publicEnv } from "@/lib/public-env";
 import { useMountEffect } from "@/lib/hooks/use-mount-effect";
 
 // Module-level ref – set when PostHog initializes, used by captureAnalyticsEvent
@@ -32,7 +32,7 @@ async function initPostHog() {
     // Dynamic import posthog-js
     const { default: posthog } = await import("posthog-js");
 
-    posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
+    posthog.init(publicEnv.NEXT_PUBLIC_POSTHOG_KEY, {
       advanced_disable_feature_flags: true,
       api_host: "/ph-proxy",
       autocapture: false,
@@ -51,7 +51,8 @@ async function initPostHog() {
       },
       opt_in_site_apps: false,
       person_profiles: "identified_only",
-      ui_host: env.NEXT_PUBLIC_POSTHOG_UI_HOST ?? "https://eu.posthog.com",
+      ui_host:
+        publicEnv.NEXT_PUBLIC_POSTHOG_UI_HOST ?? "https://eu.posthog.com",
     });
 
     // eslint-disable-next-line fp/no-mutation -- module-level singleton, set once after PostHog initializes

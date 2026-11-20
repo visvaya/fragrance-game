@@ -8,8 +8,7 @@ export async function register() {
   }
 }
 
-// Client-side Sentry is initialized via instrumentation-client.ts in Next.js 15+
-// It is also manually loaded via SentryProvider for deferred initialization
+// Client-side Sentry starts from instrumentation-client.ts once the browser is idle.
 
 export const onRequestError = async (err: any, request: any, context: any) => {
   if (process.env.NEXT_RUNTIME === "nodejs") {

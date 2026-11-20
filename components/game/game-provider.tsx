@@ -28,7 +28,7 @@ import {
   initialGameSessionState,
   type GameSessionAction,
 } from "@/lib/game/game-session-state";
-import { env } from "@/lib/env";
+import { publicEnv } from "@/lib/public-env";
 import { getSupabaseClient } from "@/lib/supabase/get-client";
 
 import {
@@ -427,7 +427,7 @@ export function GameProvider({
 
         if (existingSession) {
           setUser(existingSession.user);
-        } else if (env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
+        } else if (publicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
           // Supabase requires a captcha token for anonymous sign-in: the invisible widget
           // gets one and handleCaptchaVerify signs in and finishes the initialization.
           awaitingCaptcha.current = true;

@@ -1,12 +1,10 @@
-import * as Sentry from "@sentry/nextjs";
+import { whenIdle } from "@/components/game/when-idle";
+import { disableZodJit } from "@/lib/zod-jitless";
 
-import { config as configureZod } from "zod/v4/core";
+/** Longest wait before the error reporter starts when the player neither interacts nor idles. */
+const SENTRY_START_TIMEOUT_MS = 4000;
 
-import { scrubEvent } from "@/lib/sentry-scrub";
-
-// The CSP forbids eval, so Zod must not probe `new Function`: the probe is caught, but the
-// browser still reports it as a policy violation. Without JIT, Zod parses the same way.
-configureZod({ jitless: true });
+disableZodJit();
 
 // Silences Sentry SDK warning about missing export.
 // Must NOT reference Sentry.captureRouterTransitionStart directly – that pulls
@@ -19,13 +17,11 @@ configureZod({ jitless: true });
 // eslint-disable-next-line @typescript-eslint/no-empty-function -- intentional empty export; must not reference Sentry API to avoid pulling tracing code into the bundle
 export function onRouterTransitionStart() {}
 
-Sentry.init({
-  beforeSend: scrubEvent,
-  debug: false,
-  // eslint-disable-next-line no-restricted-properties -- Sentry initialization requires process.env
-  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-  // eslint-disable-next-line no-restricted-properties -- NODE_ENV is needed for build-time dead-code elimination; env.NODE_ENV indirection prevents tree-shaking
-  enabled: process.env.NODE_ENV !== "development",
-  integrations: [],
-  tracesSampleRate: 0,
-});
+// The SDK (about 85 KB compressed) would otherwise load and run before hydration. Errors thrown
+// before it starts go unreported; the start-up path has its own error states in the UI.
+whenIdle(() => {
+  void import("@/lib/sentry-client").then(({ startSentryClient }) => {
+    startSentryClient();
+    return null;
+  });
+}, SENTRY_START_TIMEOUT_MS);

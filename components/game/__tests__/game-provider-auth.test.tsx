@@ -49,10 +49,13 @@ vi.mock("../when-idle", () => ({
 }));
 
 // Captcha protection is on, as in production.
-vi.mock("@/lib/env", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/env")>();
+vi.mock("@/lib/public-env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/public-env")>();
   return {
-    env: { ...actual.env, NEXT_PUBLIC_TURNSTILE_SITE_KEY: "test-site-key" },
+    publicEnv: {
+      ...actual.publicEnv,
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: "test-site-key",
+    },
   };
 });
 
