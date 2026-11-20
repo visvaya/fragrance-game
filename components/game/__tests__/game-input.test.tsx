@@ -342,6 +342,7 @@ describe("GameInput", () => {
 
       expect(skipAttempt).not.toHaveBeenCalled();
       expect(skipButton).toHaveAttribute("aria-busy", "true");
+      expect(screen.getByText("connectingHint")).toBeInTheDocument();
 
       mockUseGameState.mockReturnValue(
         makeDefaultState({ ...signingIn, authReady: true }),
