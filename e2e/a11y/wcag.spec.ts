@@ -7,7 +7,7 @@ import { test, expect } from "@playwright/test";
 // Dedicated a11y user – fresh game state, never played.
 // Using a separate user prevents game-completion Defeat test (same parallel run)
 // from exhausting 6 attempts on the primary user before a11y tests see the game page.
-// Without storageState, signInAnonymously() fails → Turnstile overlay blocks all clicks.
+// Without storageState, the anonymous sign-in waits for Turnstile, which the test host cannot pass.
 // Playwright runs from the project root and loads specs as CommonJS; import.meta
 // would make Node parse the file as an ES module ("exports is not defined").
 const DIR = path.join(process.cwd(), "e2e", "a11y");

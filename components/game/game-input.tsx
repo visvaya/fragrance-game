@@ -138,6 +138,7 @@ function relevanceScore(
 export function GameInput() {
   const {
     attempts,
+    authFailed,
     authReady,
     currentAttempt,
     dailyPerfume,
@@ -146,7 +147,6 @@ export function GameInput() {
     maxAttempts,
     potentialScore,
     sessionId,
-    sessionReady,
   } = useGameState();
   const { isRateLimited, makeGuess, skipAttempt } = useGameActions();
   const { isInputFocused: isFocused, setIsInputFocused: setIsFocused } =
@@ -334,13 +334,13 @@ export function GameInput() {
     return () => clearTimeout(focusTimer);
   }, [authReady, pendingGuess, makeGuess]);
 
-  // Safety cleanup: if auth failed (loading done, no session, pending guess still set).
+  // Safety cleanup: the sign-in gave up, so a queued guess would never be sent.
   useEffect(() => {
-    if (!gameLoading && !sessionReady && !sessionId && pendingGuess) {
+    if (authFailed && pendingGuess) {
       setPendingGuess(null);
       dispatch({ type: "RESET" });
     }
-  }, [gameLoading, sessionReady, sessionId, pendingGuess]);
+  }, [authFailed, pendingGuess]);
 
   // Track guess outcomes to show brief icon feedback on the submit button.
   // Mirrors AttemptLog's hasInitialized pattern – ignores attempts restored on page load.
@@ -729,7 +729,7 @@ export function GameInput() {
                   busy={isRateLimited || gameLoading}
                   isRateLimited={isRateLimited}
                   onSkip={() => void skipAttempt()}
-                  sessionReady={sessionReady}
+                  ready={authReady}
                 />
               </div>
               <span

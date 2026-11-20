@@ -118,24 +118,6 @@ function AlertDialogTitle({
  * @param root0
  * @param root0.className
  */
-function AlertDialogDescription({
-  className,
-  ...props
-}: ComponentProps<typeof AlertDialogPrimitive.Description>) {
-  return (
-    <AlertDialogPrimitive.Description
-      className={cn("text-sm text-muted-foreground", className)}
-      data-slot="alert-dialog-description"
-      {...props}
-    />
-  );
-}
-
-/**
- *
- * @param root0
- * @param root0.className
- */
 function AlertDialogFooter({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
@@ -196,7 +178,6 @@ export {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,

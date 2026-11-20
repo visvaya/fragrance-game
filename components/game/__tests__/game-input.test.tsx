@@ -327,12 +327,23 @@ describe("GameInput", () => {
       ).toBeInTheDocument();
     });
 
-    it("is disabled when sessionReady is false", () => {
-      renderGameInput({ sessionReady: false });
+    it("is disabled while the sign-in is pending", () => {
+      renderGameInput({ authReady: false });
 
       expect(
         screen.getByRole("button", { name: "skipTooltip" }),
       ).toBeDisabled();
+    });
+
+    it("is enabled for a new player before the game session exists", () => {
+      // The first skip starts the session lazily, as the first guess does.
+      renderGameInput({
+        authReady: true,
+        sessionId: null,
+        sessionReady: false,
+      });
+
+      expect(screen.getByRole("button", { name: "skipTooltip" })).toBeEnabled();
     });
 
     it("is disabled when gameLoading is true (skeleton + non-skeleton perfume)", () => {
@@ -500,6 +511,82 @@ describe("GameInput", () => {
   });
 
   describe("suggestion selection", () => {
+    it("keeps a pick made while the sign-in is pending and sends it once auth is ready", async () => {
+      // A new player with an SSR challenge: no session yet, sign-in still running.
+      const suggestion = makeSuggestion();
+      mockSearchPerfumes.mockResolvedValue([suggestion]);
+      const makeGuess = vi.fn().mockResolvedValue(undefined);
+      const pending = {
+        authReady: false,
+        sessionId: null,
+        sessionReady: false,
+      };
+      const { rerender } = renderGameInput(pending, { makeGuess });
+
+      const input = screen.getByTestId("game-input");
+      const user = userEvent.setup();
+      await user.click(input);
+      await user.type(input, "sauvage");
+      await user.click(
+        await screen.findByRole("option", {}, { timeout: 2000 }),
+      );
+
+      // Still queued: the input shows the connecting state instead of resetting.
+      expect(screen.getByTestId("game-input")).toBeDisabled();
+      expect(makeGuess).not.toHaveBeenCalled();
+
+      mockUseGameState.mockReturnValue(
+        makeDefaultState({ ...pending, authReady: true }),
+      );
+      rerender(<GameInput />);
+
+      await waitFor(() => {
+        expect(makeGuess).toHaveBeenCalledWith(
+          suggestion.name,
+          suggestion.brand_masked,
+          suggestion.perfume_id,
+        );
+      });
+    });
+
+    it("drops a queued pick when the sign-in has failed", async () => {
+      const suggestion = makeSuggestion();
+      mockSearchPerfumes.mockResolvedValue([suggestion]);
+      const pending = {
+        authReady: false,
+        sessionId: null,
+        sessionReady: false,
+      };
+      const makeGuess = vi.fn().mockResolvedValue(undefined);
+      const { rerender } = renderGameInput(pending, { makeGuess });
+
+      const input = screen.getByTestId("game-input");
+      const user = userEvent.setup();
+      await user.click(input);
+      await user.type(input, "sauvage");
+      await user.click(
+        await screen.findByRole("option", {}, { timeout: 2000 }),
+      );
+
+      mockUseGameState.mockReturnValue(
+        makeDefaultState({ ...pending, authFailed: true }),
+      );
+      rerender(<GameInput />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("game-input")).toBeEnabled();
+      });
+      expect(makeGuess).not.toHaveBeenCalled();
+
+      // A later sign-in (after a reload, say) must not replay the dropped pick.
+      mockUseGameState.mockReturnValue(
+        makeDefaultState({ ...pending, authReady: true }),
+      );
+      rerender(<GameInput />);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(makeGuess).not.toHaveBeenCalled();
+    });
+
     it("calls makeGuess when suggestion is clicked", async () => {
       const suggestion = makeSuggestion();
       mockSearchPerfumes.mockResolvedValue([suggestion]);

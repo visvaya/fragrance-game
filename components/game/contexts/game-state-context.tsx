@@ -29,6 +29,8 @@ function toRevealValues(clues: RevealedClues) {
 type GameStateContextType = {
   // Core state
   attempts: Attempt[];
+  /** True when the anonymous sign-in gave up; a guess queued for it is dropped. */
+  authFailed: boolean;
   /** True once anonymous auth JWT is ready – guards lazy startGame in game-actions-context */
   authReady: boolean;
   blurLevel: number;
@@ -61,6 +63,8 @@ const GameStateContext = createContext<GameStateContextType | undefined>(
 type GameStateProviderProperties = {
   // State from parent orchestrator
   attempts: Attempt[];
+  /** True when the anonymous sign-in gave up. */
+  authFailed?: boolean;
   /** True once anonymous auth JWT is ready – guards lazy startGame in game-actions-context */
   authReady?: boolean;
   children: ReactNode;
@@ -80,6 +84,7 @@ type GameStateProviderProperties = {
  */
 export function GameStateProvider({
   attempts,
+  authFailed = false,
   authReady = false,
   children,
   clues,
@@ -120,6 +125,7 @@ export function GameStateProvider({
     () => ({
       ...toRevealValues(clues),
       attempts,
+      authFailed,
       authReady,
       blurLevel,
       clues,
@@ -137,6 +143,7 @@ export function GameStateProvider({
     }),
     [
       attempts,
+      authFailed,
       authReady,
       blurLevel,
       clues,

@@ -252,6 +252,8 @@
       "captchaTitle": "Wymagana weryfikacja",
       "captchaDescription": "Potwierdź, że jesteś człowiekiem, aby rozpocząć grę.",
       "captchaLoading": "Ładowanie Captcha...",
+      "captchaFailed": "Weryfikacja się nie powiodła. Odśwież stronę, aby spróbować ponownie.",
+      "captchaReload": "Odśwież",
       "invalidFormat": "Nieprawidłowy format hasła"
     },
     "forgotPassword": {

@@ -6,6 +6,8 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
+  type Dispatch,
   type ReactNode,
 } from "react";
 
@@ -24,8 +26,16 @@ import { MAX_GUESSES } from "@/lib/constants";
 import {
   gameSessionReducer,
   initialGameSessionState,
+  type GameSessionAction,
 } from "@/lib/game/game-session-state";
+import { env } from "@/lib/env";
 import { getSupabaseClient } from "@/lib/supabase/get-client";
+
+import {
+  signInAnonymousPlayer,
+  type AnonymousSignInResult,
+} from "./anonymous-auth";
+import { whenIdle } from "./when-idle";
 
 import {
   GameStateProvider,
@@ -35,7 +45,6 @@ import {
   useUIPreferences,
 } from "./contexts";
 
-import type { createClient as CreateClientType } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
 // Lazy-loaded modals – not needed for first render, keep them out of critical path
@@ -54,8 +63,34 @@ const AuthCaptchaModal = dynamic(
   { ssr: false },
 );
 
-// Type for verifyAuthSession parameter – type-only import, zero runtime cost
-type SupabaseClient = ReturnType<typeof CreateClientType>;
+/** Longest wait for an idle moment before the anonymous sign-in starts anyway. */
+const AUTH_IDLE_TIMEOUT_MS = 2000;
+/** Sign-in attempts with a fresh Turnstile token before the dialog offers a reload. */
+const MAX_SIGN_IN_ATTEMPTS = 2;
+/** How long the invisible Turnstile check may run before the dialog is shown. */
+const CAPTCHA_PENDING_TIMEOUT_MS = 8000;
+/** Longest the board stays in its loading state while start-up runs. */
+const INIT_SAFETY_TIMEOUT_MS = 15_000;
+
+/**
+ * Runs the anonymous sign-in and records it as the "eauxle.anon_auth" measure, which
+ * e2e/performance/auth-waterfall.spec.ts budgets.
+ * @param signIn - The sign-in request.
+ * @returns The sign-in result.
+ */
+async function measureAnonAuth<T>(signIn: () => Promise<T>): Promise<T> {
+  performance.mark("eauxle:anon_auth_start");
+  try {
+    return await signIn();
+  } finally {
+    performance.mark("eauxle:anon_auth_end");
+    performance.measure(
+      "eauxle.anon_auth",
+      "eauxle:anon_auth_start",
+      "eauxle:anon_auth_end",
+    );
+  }
+}
 
 /**
  * Fire-and-forget: updates Sentry user identity.
@@ -89,28 +124,6 @@ export function useGame() {
     getRevealedPerfumer: () => state.revealedPerfumer,
     getRevealedYear: () => state.revealedYear,
   };
-}
-
-/**
- * Polls Supabase until the session cookie is confirmed or max attempts exceeded.
- * Returns the verified user (or null) without mutating any external state.
- */
-async function verifyAuthSession(
-  supabase: SupabaseClient,
-): Promise<{ user: User | null; verified: boolean }> {
-  const maxAttempts = 3;
-  for (const attempt of Array.from({ length: maxAttempts }, (_, i) => i)) {
-    const {
-      data: { session },
-      // eslint-disable-next-line no-await-in-loop -- retries one after another with backoff
-    } = await supabase.auth.getSession();
-    if (session) return { user: session.user, verified: true };
-    // eslint-disable-next-line no-await-in-loop -- the backoff delay between the retries
-    await new Promise((resolve) =>
-      setTimeout(resolve, 50 * Math.pow(2, attempt)),
-    );
-  }
-  return { user: null, verified: false };
 }
 
 /**
@@ -161,6 +174,62 @@ async function fetchChallengeAndSession(
 }
 
 /**
+ * Finishes start-up once the player is signed in. With an SSR challenge the game session
+ * starts lazily on the first move; without one, the challenge and session are fetched now.
+ * @param initialChallenge - Challenge rendered on the server, if any.
+ * @param dispatch - Game session reducer dispatch.
+ * @param setAuthReady - Marks the sign-in as done for the lazy session start.
+ */
+async function finishInit(
+  initialChallenge: DailyChallenge | null | undefined,
+  dispatch: Dispatch<GameSessionAction>,
+  setAuthReady: (ready: boolean) => void,
+): Promise<void> {
+  if (initialChallenge) {
+    captureAnalyticsEvent("daily_challenge_viewed", {
+      challenge_number: initialChallenge.id,
+    });
+    setAuthReady(true);
+    performance.mark("eauxle:session_ready");
+    return;
+  }
+
+  performance.mark("eauxle:game_fetch_start");
+  const { challenge, session } = await fetchChallengeAndSession();
+  performance.mark("eauxle:game_fetch_end");
+  performance.measure(
+    "eauxle.game_fetch",
+    "eauxle:game_fetch_start",
+    "eauxle:game_fetch_end",
+  );
+  if (challenge && session) {
+    captureAnalyticsEvent("daily_challenge_viewed", {
+      challenge_number: challenge.id,
+    });
+    dispatch({ challenge, session, type: "sessionHydrated" });
+  }
+  setAuthReady(true);
+  dispatch({ type: "sessionReady" });
+  performance.mark("eauxle:session_ready");
+}
+
+/**
+ * Signs in with a Turnstile token; a thrown error becomes a rejected result.
+ * @param token - Turnstile token.
+ * @returns The sign-in result.
+ */
+async function signInWithToken(token: string): Promise<AnonymousSignInResult> {
+  try {
+    const supabase = await getSupabaseClient();
+    return await measureAnonAuth(async () =>
+      signInAnonymousPlayer(supabase, token),
+    );
+  } catch (error) {
+    return { message: String(error), ok: false };
+  }
+}
+
+/**
  * GameProvider - Main orchestrator that manages state and coordinates contexts
  * All state lives here as single source of truth
  * Contexts receive state and the dispatch function as props
@@ -194,41 +263,72 @@ export function GameProvider({
     initialSession !== null && initialSession !== undefined,
   );
   const [user, setUser] = useState<User | null>(null);
-  const [isCaptchaRequired, setIsCaptchaRequired] = useState(false);
+  /** True when the sign-in gave up: the input drops a guess queued for it. */
+  const [authFailed, setAuthFailed] = useState(false);
+  /**
+   * "pending": Turnstile runs invisibly; "waiting": the check is slow and the dialog says so;
+   * "interactive": the dialog shows the widget; "failed": the dialog offers a reload.
+   */
+  const [captchaStage, setCaptchaStage] = useState<
+    "none" | "pending" | "waiting" | "interactive" | "failed"
+  >("none");
+  // A new key remounts the widget for a fresh token after a rejected sign-in.
+  const [captchaAttempt, setCaptchaAttempt] = useState(0);
+  // Turnstile can deliver a second token (refresh) while a sign-in is still in flight.
+  const signInInFlight = useRef(false);
+
+  const failAuth = () => {
+    setCaptchaStage("failed");
+    setAuthFailed(true);
+    setLoading(false);
+  };
 
   const handleCaptchaVerify = async (token: string) => {
-    setIsCaptchaRequired(false);
-    setLoading(true);
-    // Retry init with captcha token handling - we trigger a re-run of the effect
-    // But since the effect is [] dep, we'll manually retry the specific auth part here
-    // or cleaner: extract the auth logic.
-    // For now, let's keep it simple: try auth again directly here.
-    const supabase = await getSupabaseClient();
-    try {
-      const { error } = await supabase.auth.signInAnonymously({
-        options: { captchaToken: token },
-      });
-      if (error) {
-        console.error("Retry anonymous auth failed:", error);
-        // If it fails again, we might need to show captcha again or error out
-        // For now, let the page reload or user retry by refreshing
-      } else {
-        // Success! The original useEffect will eventually realize there is a session?
-        // No, the useEffect only runs ONCE. We need to continue initialization.
-        // We can force a reload of the page to restart standard flow,
-        // OR properly refactor initGame to be callable.
-        // Refactoring initGame to be callable is better but tricky with useEffect closure.
-        // For this hotfix, window.location.reload() is safest to ensure full clean state initialization
-        // BUT that might loop if captcha keeps failing.
-        // Better: Call a simplified continuation.
+    if (signInInFlight.current) return;
+    signInInFlight.current = true;
+    const result = await signInWithToken(token);
+    signInInFlight.current = false;
 
-        // Actually, simplest is to just Reload. If session exists (verified), it will skip auth next time.
-        globalThis.location.reload();
+    if (!result.ok) {
+      console.error("Anonymous sign-in with captcha failed:", result.message);
+      if (captchaAttempt + 1 >= MAX_SIGN_IN_ATTEMPTS) {
+        failAuth();
+      } else {
+        setCaptchaStage("interactive");
+        setCaptchaAttempt((attempt) => attempt + 1);
       }
+      return;
+    }
+
+    setCaptchaStage("none");
+    if (result.user) setUser(result.user);
+    // The player is signed in now: a failure from here on is a start-up error, not a failed
+    // verification, so it is logged like initGame's and the dialog stays closed.
+    const safetyTimeout = initialChallenge
+      ? undefined
+      : setTimeout(() => setLoading(false), INIT_SAFETY_TIMEOUT_MS);
+    try {
+      await finishInit(initialChallenge, dispatch, setAuthReady);
     } catch (error) {
-      console.error("Captcha verification error:", error);
+      console.error("Failed to init game after the sign-in", error);
+    } finally {
+      clearTimeout(safetyTimeout);
+      // Only the path without an SSR challenge kept the board in its loading state.
+      if (!initialChallenge) setLoading(false);
     }
   };
+
+  // The invisible check normally ends within seconds; if it does not, show the dialog with a
+  // loading note so the player sees what is happening instead of a game that silently waits.
+  useEffect(() => {
+    if (captchaStage !== "pending") return;
+    const timer = setTimeout(
+      () =>
+        setCaptchaStage((stage) => (stage === "pending" ? "waiting" : stage)),
+      CAPTCHA_PENDING_TIMEOUT_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [captchaStage]);
 
   // auth listener for real-time updates (login/logout)
   const router = useRouter();
@@ -257,8 +357,8 @@ export function GameProvider({
 
         if (_event === "INITIAL_SESSION") return;
 
-        // Anonymous SIGNED_IN is handled by initGame (verifyAuthSession sets user there).
-        // Calling setUser here would duplicate the re-render triggered by initGame.
+        // Anonymous SIGNED_IN comes from this provider's own sign-in (initGame or
+        // handleCaptchaVerify), which sets the user; doing it here would render twice.
         const isAnonymousSignIn =
           _event === "SIGNED_IN" && newUser?.is_anonymous === true;
         if (isAnonymousSignIn) return;
@@ -290,19 +390,22 @@ export function GameProvider({
     };
   }, [router]);
 
-  // Initialize Game (with proper auth sequencing)
+  // Initialize Game (with proper auth sequencing). Runs when the browser is idle after
+  // start-up, so the sign-in does not compete with hydration; a guess picked earlier is
+  // queued in game-input (pendingGuess) until authReady.
   useEffect(() => {
     const initGame = async () => {
       performance.mark("eauxle:init_start");
+      // The captcha branch hands the rest of start-up to handleCaptchaVerify.
+      const awaitingCaptcha = { current: false };
 
       const safetyTimeout = setTimeout(() => {
         console.warn("[GameProvider] initGame safety timeout reached!");
         setLoading(false);
-      }, 15_000);
+      }, INIT_SAFETY_TIMEOUT_MS);
 
       try {
-        // 1. Ensure Auth (Anonymous) - MUST complete before any DB operations
-        // Dynamic import via getSupabaseClient(): keeps Supabase (~285KB) out of the critical render path.
+        // Dynamic import via getSupabaseClient(): keeps Supabase out of the critical render path.
         const supabase = await getSupabaseClient();
         const {
           data: { session: existingSession },
@@ -314,10 +417,6 @@ export function GameProvider({
           "eauxle:session_check_end",
         );
 
-        if (existingSession) {
-          setUser(existingSession.user);
-        }
-
         // One-time cleanup of keys from the former client-side guest tracking.
         try {
           localStorage.removeItem("eauxle_anon_player_id");
@@ -326,113 +425,39 @@ export function GameProvider({
           // Storage can be unavailable (private mode); nothing to clean then.
         }
 
-        if (!existingSession) {
-          performance.mark("eauxle:anon_auth_start");
-          const { error: authError } = await supabase.auth.signInAnonymously();
-          performance.mark("eauxle:anon_auth_end");
-          performance.measure(
-            "eauxle.anon_auth",
-            "eauxle:anon_auth_start",
-            "eauxle:anon_auth_end",
+        if (existingSession) {
+          setUser(existingSession.user);
+        } else if (env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
+          // Supabase requires a captcha token for anonymous sign-in: the invisible widget
+          // gets one and handleCaptchaVerify signs in and finishes the initialization.
+          awaitingCaptcha.current = true;
+          setCaptchaStage("pending");
+          return;
+        } else {
+          const result = await measureAnonAuth(async () =>
+            signInAnonymousPlayer(supabase, null),
           );
-
-          if (authError) {
-            // Check for Captcha requirement first
-            // AuthApiError extends Error – instanceof Error + message check is sufficient
-            if (
-              authError instanceof Error &&
-              authError.message.includes("captcha")
-            ) {
-              console.warn(
-                "[GameProvider] Captcha required for anonymous auth - triggering modal",
-              );
-              setIsCaptchaRequired(true);
-              setLoading(false);
-              clearTimeout(safetyTimeout);
-              performance.mark("eauxle:init_end");
-              return;
-            }
-
-            console.error("Anonymous auth failed:", authError);
-            setLoading(false);
-            clearTimeout(safetyTimeout);
-            performance.mark("eauxle:init_end");
+          if (!result.ok) {
+            console.error("Anonymous auth failed:", result.message);
+            setAuthFailed(true);
             return;
           }
-
-          // Verification loop with exponential backoff: Ensure session is set in client state AND cookies
-          // getSession() reads from Supabase client state populated from cookies by @supabase/ssr.
-          performance.mark("eauxle:verify_start");
-          const { user: verifiedUser, verified } =
-            await verifyAuthSession(supabase);
-          performance.mark("eauxle:verify_end");
-          performance.measure(
-            "eauxle.verify",
-            "eauxle:verify_start",
-            "eauxle:verify_end",
-          );
-
-          if (verifiedUser != null) {
-            setUser(verifiedUser);
-          }
-          if (!verified) {
-            console.warn(
-              "[GameProvider] Auth session not verified after 3 attempts.",
-            );
-          }
+          if (result.user) setUser(result.user);
         }
 
-        // 2. Gate 6: If SSR challenge is present, skip startGame entirely.
-        // startGame is deferred to the first user action (makeGuess/handleSkip).
-        // setAuthReady(true) signals that the JWT is ready for lazy init.
-        if (initialChallenge) {
-          captureAnalyticsEvent("daily_challenge_viewed", {
-            challenge_number: initialChallenge.id,
-          });
-          setAuthReady(true);
-          // sessionReady is already true in the initial state when initialSession exists.
-          performance.mark("eauxle:session_ready");
-          performance.mark("eauxle:init_end");
-          clearTimeout(safetyTimeout);
-          setLoading(false);
-          return;
-        }
-
-        // No SSR → initializeGame (2 roundtrips). Includes automatic retry on
-        // challenge-without-session (timing issue with cookie propagation).
-        performance.mark("eauxle:game_fetch_start");
-        const { challenge, session } = await fetchChallengeAndSession();
-        performance.mark("eauxle:game_fetch_end");
-        performance.measure(
-          "eauxle.game_fetch",
-          "eauxle:game_fetch_start",
-          "eauxle:game_fetch_end",
-        );
-
-        if (challenge && session) {
-          captureAnalyticsEvent("daily_challenge_viewed", {
-            challenge_number: challenge.id,
-          });
-
-          dispatch({
-            challenge,
-            session,
-            type: "sessionHydrated",
-          });
-        }
-        setAuthReady(true);
-        dispatch({ type: "sessionReady" });
-        performance.mark("eauxle:session_ready");
-        performance.mark("eauxle:init_end");
-        clearTimeout(safetyTimeout);
-        setLoading(false);
+        await finishInit(initialChallenge, dispatch, setAuthReady);
       } catch (error) {
         console.error("Failed to init game", error);
+        setAuthFailed(true);
+      } finally {
+        performance.mark("eauxle:init_end");
         clearTimeout(safetyTimeout);
-        setLoading(false);
+        // With an SSR challenge the board never waited for start-up; clearing loading here
+        // could end the spinner of a guess already in flight.
+        if (!initialChallenge && !awaitingCaptcha.current) setLoading(false);
       }
     };
-    void initGame();
+    return whenIdle(() => void initGame(), AUTH_IDLE_TIMEOUT_MS);
     // initGame is defined inside this effect and only needs to run once on mount
   }, [initialChallenge]);
 
@@ -447,6 +472,7 @@ export function GameProvider({
   return (
     <GameStateProvider
       attempts={game.attempts}
+      authFailed={authFailed}
       authReady={authReady}
       clues={game.clues}
       dailyPerfume={activePerfume}
@@ -468,11 +494,27 @@ export function GameProvider({
         sessionId={game.sessionId}
         setLoading={setLoading}
       >
-        {children}
-        <AuthCaptchaModal
-          isOpen={isCaptchaRequired}
-          onVerify={handleCaptchaVerify}
-        />
+        {/* While the captcha dialog is visible, the game behind it is out of reach of the
+            keyboard and assistive technology, as aria-modal promises. */}
+        <div
+          className="contents"
+          inert={captchaStage !== "none" && captchaStage !== "pending"}
+        >
+          {children}
+        </div>
+        {captchaStage === "none" ? null : (
+          <AuthCaptchaModal
+            key={captchaAttempt}
+            onNeedsAttention={() =>
+              setCaptchaStage((stage) =>
+                stage === "failed" ? stage : "interactive",
+              )
+            }
+            onUnavailable={failAuth}
+            onVerify={(token) => void handleCaptchaVerify(token)}
+            stage={captchaStage}
+          />
+        )}
         <MigrationModal />
       </GameActionsProvider>
     </GameStateProvider>

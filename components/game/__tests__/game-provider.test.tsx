@@ -55,6 +55,15 @@ vi.mock("@/lib/supabase/get-client", () => ({
   getSupabaseClient: vi.fn(),
 }));
 
+// The provider waits for an idle moment before signing in; jsdom has no requestIdleCallback,
+// so the tests run the callback at once (when-idle has its own tests).
+vi.mock("../when-idle", () => ({
+  whenIdle: (callback: () => void) => {
+    callback();
+    return vi.fn();
+  },
+}));
+
 const messages = {
   Auth: {
     register: {

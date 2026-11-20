@@ -23,7 +23,7 @@ async function todaysAnswer(): Promise<DailyAnswer> {
   );
 }
 
-/** Types a brand and picks the first suggestion, retrying the fill after a captcha reload. */
+/** Types a brand and picks the first suggestion, retrying the fill until suggestions show. */
 async function guessFirstSuggestion(page: Page, brand: string): Promise<void> {
   const input = page.getByPlaceholder(/Guess the fragrance/i);
   const suggestions = page.getByRole("option");

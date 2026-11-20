@@ -9,8 +9,13 @@ import { useUIPreferences } from "@/components/game/contexts";
 import { env } from "@/lib/env";
 
 type CaptchaProperties = Readonly<{
+  /** "interaction-only" keeps the widget invisible unless Cloudflare asks for a click. */
+  appearance?: "always" | "interaction-only";
+  onBeforeInteractive?: () => void;
   onError?: () => void;
   onExpire?: () => void;
+  /** The Turnstile script failed to load or the browser is unsupported. */
+  onUnavailable?: () => void;
   onVerify: (token: string) => void;
 }>;
 
@@ -18,7 +23,14 @@ type CaptchaProperties = Readonly<{
  * Captcha component using Cloudflare Turnstile.
  * Automatically adapts the theme (light/dark) to application settings.
  */
-export function Captcha({ onError, onExpire, onVerify }: CaptchaProperties) {
+export function Captcha({
+  appearance = "always",
+  onBeforeInteractive,
+  onError,
+  onExpire,
+  onUnavailable,
+  onVerify,
+}: CaptchaProperties) {
   const ref = useRef<TurnstileInstance>(null);
   const { theme: nextTheme } = useTheme();
   const { uiPreferences } = useUIPreferences();
@@ -47,10 +59,18 @@ export function Captcha({ onError, onExpire, onVerify }: CaptchaProperties) {
     // eslint-disable-next-line eauxle/restricted-syntax -- Cloudflare Turnstile documented minimum height is 65px (fixed hardware constraint)
     <div className="flex min-h-[65px] w-full justify-center py-2">
       <Turnstile
+        {...(onBeforeInteractive ? { onBeforeInteractive } : {})}
         {...(onError ? { onError } : {})}
         {...(onExpire ? { onExpire } : {})}
+        {...(onUnavailable
+          ? {
+              onUnsupported: onUnavailable,
+              scriptOptions: { onError: onUnavailable },
+            }
+          : {})}
         onSuccess={onVerify}
         options={{
+          appearance,
           size: "normal",
           theme,
         }}
