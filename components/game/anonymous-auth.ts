@@ -5,7 +5,7 @@ type SupabaseClient = ReturnType<typeof CreateClientType>;
 
 /** Result of an anonymous sign-in attempt. */
 export type AnonymousSignInResult =
-  | { ok: true; user: User | null; verified: boolean }
+  | { ok: true; user: User | null }
   | { message: string; ok: false };
 
 const VERIFY_ATTEMPTS = 3;
@@ -15,17 +15,17 @@ const VERIFY_BASE_DELAY_MS = 50;
  * Polls the Supabase client until the session from the sign-in is readable, with backoff.
  * @param supabase - Browser Supabase client.
  * @param attempt - Zero-based attempt number; callers leave it out.
- * @returns The signed-in user, and whether the session was confirmed.
+ * @returns The signed-in user, or null when the session never became readable.
  */
 export async function verifyAuthSession(
   supabase: SupabaseClient,
   attempt = 0,
-): Promise<{ user: User | null; verified: boolean }> {
+): Promise<User | null> {
   const {
     data: { session },
   } = await supabase.auth.getSession();
-  if (session) return { user: session.user, verified: true };
-  if (attempt + 1 >= VERIFY_ATTEMPTS) return { user: null, verified: false };
+  if (session) return session.user;
+  if (attempt + 1 >= VERIFY_ATTEMPTS) return null;
   await new Promise((resolve) =>
     setTimeout(resolve, VERIFY_BASE_DELAY_MS * Math.pow(2, attempt)),
   );
@@ -48,6 +48,9 @@ export async function signInAnonymousPlayer(
     captchaToken === null ? undefined : { options: { captchaToken } },
   );
   if (error) return { message: error.message, ok: false };
-  const { user, verified } = await verifyAuthSession(supabase);
-  return { ok: true, user, verified };
+  const user = await verifyAuthSession(supabase);
+  if (user === null) {
+    console.warn("[anonymous-auth] Session not readable after the sign-in.");
+  }
+  return { ok: true, user };
 }

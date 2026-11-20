@@ -28,7 +28,7 @@ describe("signInAnonymousPlayer", () => {
     expect(signInAnonymously).toHaveBeenCalledWith({
       options: { captchaToken: "token" },
     });
-    expect(result).toEqual({ ok: true, user: { id: "u1" }, verified: true });
+    expect(result).toEqual({ ok: true, user: { id: "u1" } });
   });
 
   it("signs in without options when no captcha is configured", async () => {
@@ -58,7 +58,7 @@ describe("verifyAuthSession", () => {
     const result = await verifyAuthSession(client);
 
     expect(getSession).toHaveBeenCalledTimes(2);
-    expect(result).toEqual({ user: { id: "u1" }, verified: true });
+    expect(result).toEqual({ id: "u1" });
   });
 
   it("gives up after three attempts", async () => {
@@ -67,6 +67,6 @@ describe("verifyAuthSession", () => {
     const result = await verifyAuthSession(client);
 
     expect(getSession).toHaveBeenCalledTimes(3);
-    expect(result).toEqual({ user: null, verified: false });
+    expect(result).toBeNull();
   });
 });

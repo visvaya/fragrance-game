@@ -6,6 +6,7 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
   type Dispatch,
   type ReactNode,
 } from "react";
@@ -61,6 +62,30 @@ const AuthCaptchaModal = dynamic(
 
 /** Longest wait for an idle moment before the anonymous sign-in starts anyway. */
 const AUTH_IDLE_TIMEOUT_MS = 2000;
+/** Sign-in attempts with a fresh Turnstile token before the dialog offers a reload. */
+const MAX_SIGN_IN_ATTEMPTS = 2;
+/** How long the invisible Turnstile check may run before the dialog is shown. */
+const CAPTCHA_PENDING_TIMEOUT_MS = 8000;
+
+/**
+ * Runs the anonymous sign-in and records it as the "eauxle.anon_auth" measure, which
+ * e2e/performance/auth-waterfall.spec.ts budgets.
+ * @param signIn - The sign-in request.
+ * @returns The sign-in result.
+ */
+async function measureAnonAuth<T>(signIn: () => Promise<T>): Promise<T> {
+  performance.mark("eauxle:anon_auth_start");
+  try {
+    return await signIn();
+  } finally {
+    performance.mark("eauxle:anon_auth_end");
+    performance.measure(
+      "eauxle.anon_auth",
+      "eauxle:anon_auth_start",
+      "eauxle:anon_auth_end",
+    );
+  }
+}
 
 /**
  * Fire-and-forget: updates Sentry user identity.
@@ -217,34 +242,70 @@ export function GameProvider({
     initialSession !== null && initialSession !== undefined,
   );
   const [user, setUser] = useState<User | null>(null);
-  /** "pending": Turnstile runs invisibly; "interactive": Cloudflare asked for a click. */
+  /** True when the sign-in gave up: the input drops a guess queued for it. */
+  const [authFailed, setAuthFailed] = useState(false);
+  /**
+   * "pending": Turnstile runs invisibly; "interactive": the dialog shows the widget;
+   * "failed": the dialog offers a reload.
+   */
   const [captchaStage, setCaptchaStage] = useState<
-    "none" | "pending" | "interactive"
+    "none" | "pending" | "interactive" | "failed"
   >("none");
-  // A new key remounts the widget for a fresh token after a failed sign-in.
+  // A new key remounts the widget for a fresh token after a rejected sign-in.
   const [captchaAttempt, setCaptchaAttempt] = useState(0);
+  // Turnstile can deliver a second token (refresh) while a sign-in is still in flight.
+  const signInInFlight = useRef(false);
+
+  const failAuth = () => {
+    setCaptchaStage("failed");
+    setAuthFailed(true);
+    setLoading(false);
+  };
 
   const handleCaptchaVerify = async (token: string) => {
+    if (signInInFlight.current) return;
+    signInInFlight.current = true;
     try {
       const supabase = await getSupabaseClient();
-      const result = await signInAnonymousPlayer(supabase, token);
+      const result = await measureAnonAuth(async () =>
+        signInAnonymousPlayer(supabase, token),
+      );
       if (!result.ok) {
         console.error("Anonymous sign-in with captcha failed:", result.message);
-        setCaptchaStage("interactive");
-        setCaptchaAttempt((attempt) => attempt + 1);
+        if (captchaAttempt + 1 >= MAX_SIGN_IN_ATTEMPTS) {
+          failAuth();
+        } else {
+          setCaptchaStage("interactive");
+          setCaptchaAttempt((attempt) => attempt + 1);
+        }
         return;
       }
       setCaptchaStage("none");
       if (result.user) setUser(result.user);
-      // Without an SSR challenge the board waits for the fetch; with one it stays usable.
-      if (!initialChallenge) setLoading(true);
       await finishInit(initialChallenge, dispatch, setAuthReady);
+      // Only the path without an SSR challenge kept the board in its loading state.
+      if (!initialChallenge) setLoading(false);
     } catch (error) {
       console.error("Captcha verification error:", error);
+      failAuth();
     } finally {
-      setLoading(false);
+      signInInFlight.current = false;
     }
   };
+
+  // The invisible check normally ends within seconds; if it does not, show the dialog so the
+  // player sees what is happening instead of a game that silently waits.
+  useEffect(() => {
+    if (captchaStage !== "pending") return;
+    const timer = setTimeout(
+      () =>
+        setCaptchaStage((stage) =>
+          stage === "pending" ? "interactive" : stage,
+        ),
+      CAPTCHA_PENDING_TIMEOUT_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [captchaStage]);
 
   // auth listener for real-time updates (login/logout)
   const router = useRouter();
@@ -273,8 +334,8 @@ export function GameProvider({
 
         if (_event === "INITIAL_SESSION") return;
 
-        // Anonymous SIGNED_IN is handled by initGame (verifyAuthSession sets user there).
-        // Calling setUser here would duplicate the re-render triggered by initGame.
+        // Anonymous SIGNED_IN comes from this provider's own sign-in (initGame or
+        // handleCaptchaVerify), which sets the user; doing it here would render twice.
         const isAnonymousSignIn =
           _event === "SIGNED_IN" && newUser?.is_anonymous === true;
         if (isAnonymousSignIn) return;
@@ -307,11 +368,13 @@ export function GameProvider({
   }, [router]);
 
   // Initialize Game (with proper auth sequencing). Runs when the browser is idle after
-  // start-up, so the sign-in does not compete with hydration; a guess picked earlier waits
-  // for authReady (pendingGuess in game-actions-context).
+  // start-up, so the sign-in does not compete with hydration; a guess picked earlier is
+  // queued in game-input (pendingGuess) until authReady.
   useEffect(() => {
     const initGame = async () => {
       performance.mark("eauxle:init_start");
+      // The captcha branch hands the rest of start-up to handleCaptchaVerify.
+      const awaitingCaptcha = { current: false };
 
       const safetyTimeout = setTimeout(() => {
         console.warn("[GameProvider] initGame safety timeout reached!");
@@ -344,12 +407,16 @@ export function GameProvider({
         } else if (env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
           // Supabase requires a captcha token for anonymous sign-in: the invisible widget
           // gets one and handleCaptchaVerify signs in and finishes the initialization.
+          awaitingCaptcha.current = true;
           setCaptchaStage("pending");
           return;
         } else {
-          const result = await signInAnonymousPlayer(supabase, null);
+          const result = await measureAnonAuth(async () =>
+            signInAnonymousPlayer(supabase, null),
+          );
           if (!result.ok) {
             console.error("Anonymous auth failed:", result.message);
+            setAuthFailed(true);
             return;
           }
           if (result.user) setUser(result.user);
@@ -358,10 +425,13 @@ export function GameProvider({
         await finishInit(initialChallenge, dispatch, setAuthReady);
       } catch (error) {
         console.error("Failed to init game", error);
+        setAuthFailed(true);
       } finally {
         performance.mark("eauxle:init_end");
         clearTimeout(safetyTimeout);
-        setLoading(false);
+        // With an SSR challenge the board never waited for start-up; clearing loading here
+        // could end the spinner of a guess already in flight.
+        if (!initialChallenge && !awaitingCaptcha.current) setLoading(false);
       }
     };
     return whenIdle(() => void initGame(), AUTH_IDLE_TIMEOUT_MS);
@@ -379,6 +449,7 @@ export function GameProvider({
   return (
     <GameStateProvider
       attempts={game.attempts}
+      authFailed={authFailed}
       authReady={authReady}
       clues={game.clues}
       dailyPerfume={activePerfume}
@@ -403,11 +474,15 @@ export function GameProvider({
         {children}
         {captchaStage === "none" ? null : (
           <AuthCaptchaModal
-            isInteractive={captchaStage === "interactive"}
             key={captchaAttempt}
-            onBeforeInteractive={() => setCaptchaStage("interactive")}
-            onError={() => setCaptchaStage("interactive")}
+            onNeedsAttention={() =>
+              setCaptchaStage((stage) =>
+                stage === "failed" ? stage : "interactive",
+              )
+            }
+            onUnavailable={failAuth}
             onVerify={(token) => void handleCaptchaVerify(token)}
+            stage={captchaStage}
           />
         )}
         <MigrationModal />

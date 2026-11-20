@@ -18,7 +18,7 @@ function renderButton(onSkip: () => void) {
         busy={false}
         isRateLimited={false}
         onSkip={onSkip}
-        sessionReady
+        ready
       />
     </TooltipProvider>,
   );

@@ -26,18 +26,18 @@ import { GameTooltip } from "./game-tooltip";
  * @param props.busy - The game is loading or rate limited; the button is dimmed.
  * @param props.isRateLimited - Shows the rate-limit warning instead of skipping.
  * @param props.onSkip - Skips the current attempt.
- * @param props.sessionReady - The game session exists, so a skip can be sent.
+ * @param props.ready - The player is signed in; the first skip starts the game session.
  */
 export function SkipAttemptButton({
   busy,
   isRateLimited,
   onSkip,
-  sessionReady,
+  ready,
 }: Readonly<{
   busy: boolean;
   isRateLimited: boolean;
   onSkip: () => void;
-  sessionReady: boolean;
+  ready: boolean;
 }>) {
   const t = useTranslations("Game.input");
   const tActions = useTranslations("GameActions");
@@ -59,7 +59,7 @@ export function SkipAttemptButton({
               ? "cursor-not-allowed opacity-30"
               : "hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:duration-0",
           )}
-          disabled={!sessionReady || busy}
+          disabled={!ready || busy}
           onClick={() => {
             if (isRateLimited) {
               toast.warning(tActions("rateLimitError"));

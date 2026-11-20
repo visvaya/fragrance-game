@@ -60,9 +60,11 @@ vi.mock("@/lib/env", async (importOriginal) => {
 vi.mock("@/components/auth/captcha", () => ({
   Captcha: ({
     onBeforeInteractive,
+    onUnavailable,
     onVerify,
   }: {
     onBeforeInteractive: () => void;
+    onUnavailable: () => void;
     onVerify: (token: string) => void;
   }) => (
     <>
@@ -72,6 +74,9 @@ vi.mock("@/components/auth/captcha", () => ({
       <button onClick={() => onVerify("turnstile-token")} type="button">
         turnstile-solved
       </button>
+      <button onClick={() => onUnavailable()} type="button">
+        turnstile-unavailable
+      </button>
     </>
   ),
 }));
@@ -80,28 +85,63 @@ const messages = {
   Auth: {
     register: {
       captchaDescription: "Please verify you are human.",
+      captchaFailed: "The verification did not go through.",
+      captchaReload: "Reload",
       captchaTitle: "Verification Required",
     },
   },
   Migration: { title: "Anonymous Session Detected" },
 };
 
-/** Shows the revealed brand, which appears once the challenge and session are loaded. */
-function BrandProbe() {
+const SSR_CHALLENGE = {
+  clues: { ...HIDDEN_CLUES, brand: "C____l" },
+  id: "550e8400-e29b-41d4-a716-446655440000",
+};
+
+/** Shows the revealed brand and the auth flags the input reads. */
+function StateProbe() {
   const game = useGame();
-  return <div data-testid="daily-brand">{game.revealedBrand}</div>;
+  return (
+    <>
+      <div data-testid="daily-brand">{game.revealedBrand}</div>
+      <div data-testid="auth">
+        {game.authReady ? "ready" : "waiting"}
+        {game.authFailed ? " failed" : ""}
+      </div>
+    </>
+  );
 }
 
-function renderProvider() {
+function renderProvider(initialChallenge?: typeof SSR_CHALLENGE) {
   return render(
     <NextIntlClientProvider locale="en" messages={messages}>
       <UIPreferencesProvider>
-        <GameProvider>
-          <BrandProbe />
+        <GameProvider
+          {...(initialChallenge
+            ? { initialChallenge: initialChallenge as never }
+            : {})}
+        >
+          <StateProbe />
         </GameProvider>
       </UIPreferencesProvider>
     </NextIntlClientProvider>,
   );
+}
+
+/**
+ * Finds a stand-in Turnstile button, which sits in the hidden dialog until it shows. The
+ * dialog module loads dynamically, which on a loaded machine takes over the default 1 s.
+ */
+async function findTurnstile(name: string) {
+  return screen.findByRole("button", { hidden: true, name }, { timeout: 5000 });
+}
+
+/** Clicks a stand-in Turnstile button. */
+async function clickTurnstile(
+  user: ReturnType<typeof userEvent.setup>,
+  name: string,
+) {
+  await user.click(await findTurnstile(name));
 }
 
 describe("GameProvider anonymous sign-in for a new visitor", () => {
@@ -143,10 +183,7 @@ describe("GameProvider anonymous sign-in for a new visitor", () => {
     renderProvider();
 
     // The check runs invisibly first: the dialog is mounted but hidden.
-    const solved = await screen.findByRole("button", {
-      hidden: true,
-      name: "turnstile-solved",
-    });
+    const solved = await findTurnstile("turnstile-solved");
     expect(signInAnonymously).not.toHaveBeenCalled();
 
     await user.click(solved);
@@ -165,10 +202,7 @@ describe("GameProvider anonymous sign-in for a new visitor", () => {
     const user = userEvent.setup();
     renderProvider();
 
-    const needsInteraction = await screen.findByRole("button", {
-      hidden: true,
-      name: "needs-interaction",
-    });
+    const needsInteraction = await findTurnstile("needs-interaction");
     expect(screen.queryByRole("alertdialog")).toBeNull();
 
     await user.click(needsInteraction);
@@ -185,14 +219,64 @@ describe("GameProvider anonymous sign-in for a new visitor", () => {
     const user = userEvent.setup();
     renderProvider();
 
-    await user.click(
-      await screen.findByRole("button", {
-        hidden: true,
-        name: "turnstile-solved",
-      }),
-    );
+    await clickTurnstile(user, "turnstile-solved");
 
-    expect(await screen.findByRole("alertdialog")).toBeVisible();
+    expect(await screen.findByRole("alertdialog")).toHaveTextContent(
+      "Please verify you are human.",
+    );
+    expect(gameActions.initializeGame).not.toHaveBeenCalled();
+
+    // A fresh token after the rejection completes the start-up.
+    await clickTurnstile(user, "turnstile-solved");
+    await waitFor(() => {
+      expect(screen.getByTestId("daily-brand")).toHaveTextContent("Ch___l");
+    });
+    expect(signInAnonymously).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops after two rejected sign-ins and offers a reload", async () => {
+    signInAnonymously.mockResolvedValue({
+      error: { message: "captcha protection: request disallowed" },
+    });
+    const user = userEvent.setup();
+    renderProvider();
+
+    await clickTurnstile(user, "turnstile-solved");
+    await clickTurnstile(user, "turnstile-solved");
+
+    expect(
+      await screen.findByRole("button", { name: "Reload" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { hidden: true, name: "turnstile-solved" }),
+    ).toBeNull();
+    expect(signInAnonymously).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId("auth")).toHaveTextContent("waiting failed");
+  });
+
+  it("offers a reload when the Turnstile script cannot load", async () => {
+    const user = userEvent.setup();
+    renderProvider();
+
+    await clickTurnstile(user, "turnstile-unavailable");
+
+    expect(await screen.findByRole("alertdialog")).toHaveTextContent(
+      "The verification did not go through.",
+    );
+    expect(screen.getByTestId("auth")).toHaveTextContent("waiting failed");
+    expect(signInAnonymously).not.toHaveBeenCalled();
+  });
+
+  it("marks auth ready after the token on the SSR path without fetching the challenge", async () => {
+    const user = userEvent.setup();
+    renderProvider(SSR_CHALLENGE);
+    expect(screen.getByTestId("auth")).toHaveTextContent("waiting");
+
+    await clickTurnstile(user, "turnstile-solved");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("auth")).toHaveTextContent("ready");
+    });
     expect(gameActions.initializeGame).not.toHaveBeenCalled();
   });
 });

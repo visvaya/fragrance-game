@@ -14,6 +14,8 @@ type CaptchaProperties = Readonly<{
   onBeforeInteractive?: () => void;
   onError?: () => void;
   onExpire?: () => void;
+  /** The Turnstile script failed to load or the browser is unsupported. */
+  onUnavailable?: () => void;
   onVerify: (token: string) => void;
 }>;
 
@@ -26,6 +28,7 @@ export function Captcha({
   onBeforeInteractive,
   onError,
   onExpire,
+  onUnavailable,
   onVerify,
 }: CaptchaProperties) {
   const ref = useRef<TurnstileInstance>(null);
@@ -59,6 +62,12 @@ export function Captcha({
         {...(onBeforeInteractive ? { onBeforeInteractive } : {})}
         {...(onError ? { onError } : {})}
         {...(onExpire ? { onExpire } : {})}
+        {...(onUnavailable
+          ? {
+              onUnsupported: onUnavailable,
+              scriptOptions: { onError: onUnavailable },
+            }
+          : {})}
         onSuccess={onVerify}
         options={{
           appearance,
