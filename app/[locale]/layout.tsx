@@ -155,10 +155,12 @@ export default async function RootLayout({
       <head>
         {/* Blocking script: sets data-layout="wide" on <html> before first paint,
             eliminating the narrow→wide flash on desktop screens. Runs synchronously
-            during <head> parsing, before the browser renders any body content. */}
+            during <head> parsing, before the browser renders any body content.
+            It also turns off scroll restoration: restoring the position on reload painted
+            the top of the page first, then jumped down and animated the header away. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var l=localStorage.getItem('fragrance-game-layout');if(l==='wide'||(!l&&window.innerWidth>=1024)){document.documentElement.setAttribute('data-layout','wide')}}catch(e){}`,
+            __html: `try{history.scrollRestoration='manual'}catch(e){}try{var l=localStorage.getItem('fragrance-game-layout');if(l==='wide'||(!l&&window.innerWidth>=1024)){document.documentElement.setAttribute('data-layout','wide')}}catch(e){}`,
           }}
           nonce={nonce}
         />
