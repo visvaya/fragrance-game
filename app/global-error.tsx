@@ -13,10 +13,12 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     // Loaded on demand: this boundary ships with every page, the Sentry SDK should not.
-    void import("@/lib/sentry-client").then(({ reportClientError }) => {
-      reportClientError(error);
-      return null;
-    });
+    void import("@/lib/sentry-client")
+      .then(({ reportClientError }) => {
+        reportClientError(error);
+        return null;
+      })
+      .catch(() => null); // Nothing left to report through when the reporter itself fails to load.
   }, [error]);
 
   return (

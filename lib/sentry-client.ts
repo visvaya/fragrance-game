@@ -23,6 +23,15 @@ export function startSentryClient(): void {
 }
 
 /**
+ * Sets the player's id on error reports, starting the SDK first if it has not started yet.
+ * @param user - The player, or null after sign-out.
+ */
+export function setClientUser(user: { id: string } | null): void {
+  startSentryClient();
+  Sentry.setUser(user);
+}
+
+/**
  * Reports an error caught by an error boundary, starting the SDK first if it has not started yet.
  * @param error - The caught error.
  */

@@ -20,8 +20,10 @@ export function onRouterTransitionStart() {}
 // The SDK (about 85 KB compressed) would otherwise load and run before hydration. Errors thrown
 // before it starts go unreported; the start-up path has its own error states in the UI.
 whenIdle(() => {
-  void import("@/lib/sentry-client").then(({ startSentryClient }) => {
-    startSentryClient();
-    return null;
-  });
+  void import("@/lib/sentry-client")
+    .then(({ startSentryClient }) => {
+      startSentryClient();
+      return null;
+    })
+    .catch(() => null); // A failed chunk load leaves the page without error reporting, not broken.
 }, SENTRY_START_TIMEOUT_MS);
