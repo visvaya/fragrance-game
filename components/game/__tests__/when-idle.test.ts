@@ -18,7 +18,7 @@ describe("whenIdle", () => {
     const cancel = whenIdle(callback, 2000);
     cancel();
 
-    expect(requestIdleCallback).toHaveBeenCalledWith(callback, {
+    expect(requestIdleCallback).toHaveBeenCalledWith(expect.any(Function), {
       timeout: 2000,
     });
     expect(cancelIdleCallback).toHaveBeenCalledWith(7);
@@ -34,6 +34,21 @@ describe("whenIdle", () => {
     expect(callback).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);
 
+    expect(callback).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs at the first interaction when that comes before the idle moment", () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("requestIdleCallback", undefined);
+    const callback = vi.fn();
+
+    whenIdle(callback, 2000);
+    document.dispatchEvent(new Event("pointerdown"));
+    expect(callback).toHaveBeenCalledTimes(1);
+
+    // Neither the timeout nor a later interaction runs it again.
+    vi.advanceTimersByTime(2000);
+    document.dispatchEvent(new Event("keydown"));
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
