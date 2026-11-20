@@ -30,7 +30,7 @@
       "skip": "Skip",
       "skipTooltip": "Skip this attempt",
       "skipped": "Skipped",
-      "skipConfirmTitle": "Skip this attempt?",
+      "skipConfirmTitle": "Skip?",
       "skipConfirmCancel": "Cancel",
       "skipConfirmConfirm": "Skip",
       "connectingHint": "Submitting when ready..."
