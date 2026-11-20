@@ -1,263 +1,162 @@
-/* eslint-disable playwright/no-wait-for-timeout -- error handling tests require explicit waits for async error boundaries to render */
-import { existsSync } from "node:fs";
-import path from "node:path";
+import { loadSupabaseAdminConfig } from "../global-setup";
+import {
+  createE2eAdminClient,
+  type DailyAnswer,
+  fetchDailyAnswer,
+} from "../support/admin";
+import { expect, test } from "../support/fresh-player";
 
-import { test, expect, type Page } from "@playwright/test";
+import type { Page, Request } from "@playwright/test";
 
-// Pre-authenticated session – skips signInAnonymously() + Turnstile captcha.
-// Without this the game shows "No puzzle today" because auth takes >10s in headless mode.
-// Playwright runs from the project root and loads specs as CommonJS; import.meta
-// would make Node parse the file as an ES module ("exports is not defined").
-const DIR = path.join(process.cwd(), "e2e", "errors");
-const AUTH_FILE = path.join(DIR, "..", ".auth", "user.json");
-if (existsSync(AUTH_FILE)) {
-  test.use({ storageState: AUTH_FILE });
+const NO_RESULTS_TEXT = /No results found/i;
+
+/** Today's answer, read with the service role key (UTC date, like the daily cron). */
+async function todaysAnswer(): Promise<DailyAnswer> {
+  const config = loadSupabaseAdminConfig();
+  if (!config) throw new Error("Missing Supabase admin configuration");
+  return fetchDailyAnswer(
+    createE2eAdminClient(config),
+    new Date().toISOString().slice(0, 10),
+  );
 }
 
 /**
- * Helper to wait for game input to be ready.
- * With pre-authenticated storageState, auth is instant – input appears in ~1-2s.
+ * Returns the autocomplete input once React has hydrated it. The input is in the server HTML,
+ * so it is visible before its handlers exist; text typed then is reset by hydration and starts
+ * no search. React marks a hydrated element with a `__reactFiber` property.
  */
-async function waitForGameInput(page: Page) {
+async function hydratedInput(page: Page) {
   const input = page.getByTestId("game-input");
   await expect(input).toBeVisible({ timeout: 15_000 });
+  await expect
+    .poll(
+      async () =>
+        input.evaluate((element) =>
+          Object.keys(element).some((key) => key.startsWith("__reactFiber")),
+        ),
+      { timeout: 15_000 },
+    )
+    .toBe(true);
   return input;
+}
+
+/** Opens the game and returns the autocomplete input once it is ready for typing. */
+async function openGame(page: Page) {
+  await page.goto("/en");
+  return hydratedInput(page);
+}
+
+/** Autocomplete icon state: search, loading, error or wrong. */
+function inputIcon(page: Page) {
+  return page.getByTestId("input-icon");
+}
+
+/** A server action call: a POST to the page carrying the `next-action` header. */
+function isServerAction(request: Request): boolean {
+  return request.method() === "POST" && "next-action" in request.headers();
+}
+
+/** Answers every server action call with a 500 and lets other requests through. */
+async function failServerActions(page: Page): Promise<void> {
+  await page.route("**/en", async (route) =>
+    isServerAction(route.request())
+      ? route.fulfill({ body: "boom", status: 500 })
+      : route.fallback(),
+  );
 }
 
 test.describe("Error Handling", () => {
   test.describe("Network Errors", () => {
-    test("shows graceful error when offline during search", async ({
-      context,
+    // Failures are forced by answering the search's server action with a 500. Browser offline mode
+    // (context.setOffline) left the icon unchanged in some runs for a reason not found, so it is
+    // not used.
+    test("shows the error icon when the server action fails", async ({
       page,
     }) => {
-      await page.goto("/");
+      await failServerActions(page);
+      const input = await openGame(page);
 
-      const input = await waitForGameInput(page);
+      await input.fill("Chanel");
 
-      await input.fill("Chan");
-
-      await expect(page.getByTestId("loader-icon")).toBeVisible({
-        timeout: 5000,
-      });
-
-      await context.setOffline(true);
-      await page.waitForTimeout(2000);
-
-      const noResultsVisible = await page
-        .getByText(/No results found|Brak wyników/i)
-        .isVisible();
-
-      const isNotLoading = !(await page.getByTestId("loader-icon").isVisible());
-
-      expect(noResultsVisible || isNotLoading).toBe(true);
-
-      await context.setOffline(false);
+      await expect(inputIcon(page)).toHaveAttribute("data-icon", "error");
+      await expect(page.getByRole("option")).toHaveCount(0);
     });
 
-    test("recovers from network error when back online", async ({
-      context,
-      page,
-    }) => {
-      await page.goto("/", { waitUntil: "domcontentloaded" });
-
-      const input = await waitForGameInput(page);
-
-      await context.setOffline(true);
+    test("searches again once the server answers", async ({ page }) => {
+      await failServerActions(page);
+      const input = await openGame(page);
       await input.fill("Chanel");
-      await page.waitForTimeout(1000);
+      await expect(inputIcon(page)).toHaveAttribute("data-icon", "error");
 
-      await context.setOffline(false);
-      await input.clear();
-      await input.fill("Chan");
-      await page.waitForTimeout(500);
+      await page.unroute("**/en");
+      await input.fill("Chane");
 
-      const searchIcon = page.getByTestId("search-icon");
-      const loaderIcon = page.getByTestId("loader-icon");
-
-      const searchVisible = await searchIcon.isVisible().catch(() => false);
-      const loaderVisible = await loaderIcon.isVisible().catch(() => false);
-
-      expect(searchVisible || loaderVisible).toBe(true);
+      await expect(page.getByRole("option").first()).toBeVisible();
+      await expect(inputIcon(page)).toHaveAttribute("data-icon", "search");
     });
   });
 
   test.describe("Search Results", () => {
-    test("shows 'no results' message for nonsense query", async ({ page }) => {
-      await page.goto("/");
+    test("shows 'no results' message when nothing matches", async ({
+      page,
+    }) => {
+      const input = await openGame(page);
 
-      const input = await waitForGameInput(page);
+      // The search is fuzzy, so no text finds nothing; a query over the 100 character limit does.
+      await input.fill("x".repeat(101));
 
-      await input.fill("xyzxyzxyzabc123");
-      await page.waitForTimeout(500);
-
-      await expect(
-        page.getByText(/No results found|Brak wyników/i),
-      ).toBeVisible({ timeout: 5000 });
+      await expect(page.getByText(NO_RESULTS_TEXT)).toBeVisible();
     });
 
     test("shows suggestions for valid query", async ({ page }) => {
-      await page.goto("/");
-
-      const input = await waitForGameInput(page);
+      const input = await openGame(page);
 
       await input.fill("Chanel");
-      await page.waitForTimeout(500);
 
-      const hasSuggestions = (await page.getByRole("option").count()) > 0;
-      const hasNoResults = await page
-        .getByText(/No results found|Brak wyników/i)
-        .isVisible()
-        .catch(() => false);
-
-      expect(hasSuggestions || hasNoResults).toBe(true);
+      await expect(page.getByRole("option").first()).toBeVisible();
+      await expect(page.getByText(NO_RESULTS_TEXT)).toBeHidden();
     });
   });
 
   test.describe("Duplicate Prevention", () => {
     test("prevents selecting already guessed perfume", async ({ page }) => {
-      await page.goto("/");
-
-      const closedMessage = page.getByText(
-        /Gra zakończona|Come back tomorrow/i,
-      );
-      await expect(closedMessage).toBeHidden();
-
-      const input = await waitForGameInput(page);
+      const answer = await todaysAnswer();
+      const input = await openGame(page);
 
       await input.fill("Chan");
-      await page.waitForTimeout(500);
-
-      const suggestions = await page.getByRole("option").count();
-      if (suggestions === 0) {
-        console.log("[SKIP] No suggestions available for this query");
-        return;
-      }
-
-      const firstOption = page.getByRole("option").first();
-      const firstOptionText = await firstOption.textContent();
+      // Not today's answer, so the guess is wrong and the game goes on.
+      const firstOption = page
+        .getByRole("option")
+        .filter({ hasNotText: answer.name })
+        .first();
+      await expect(firstOption).toBeVisible();
+      const perfumeId = await firstOption.getAttribute("data-perfume-id");
       await firstOption.click();
-
-      await page.waitForTimeout(1000);
+      await expect(page.locator("#attempt-0")).toBeVisible();
 
       await input.fill("Chan");
-      await page.waitForTimeout(500);
-
-      const options = page.getByRole("option");
-      const count = await options.count();
-
-      let foundDuplicate = false;
-      for (let i = 0; i < count; i++) {
-        const option = options.nth(i);
-        const text = await option.textContent();
-
-        if (text === firstOptionText) {
-          await expect(option).toBeDisabled();
-          const hasStrikethrough = option.locator(".line-through");
-          await expect(hasStrikethrough).toBeVisible();
-          foundDuplicate = true;
-          break;
-        }
-      }
-
-      if (!foundDuplicate) {
-        console.log(
-          "[INFO] Duplicate not found in current suggestions (may have filtered out)",
-        );
-      }
+      const duplicate = page.locator(
+        `[role="option"][data-perfume-id="${perfumeId}"]`,
+      );
+      await expect(duplicate).toBeDisabled();
+      await expect(duplicate.locator(".line-through")).toBeVisible();
     });
   });
 
   test.describe("Input Validation", () => {
-    test("does not trigger search for queries less than 3 characters", async ({
-      page,
-    }) => {
-      await page.goto("/");
+    test("shows suggestions only from 3 characters", async ({ page }) => {
+      const input = await openGame(page);
 
-      const input = await waitForGameInput(page);
-
-      await input.fill("C");
-      await page.waitForTimeout(500);
-
-      let hasOptions = (await page.getByRole("option").count()) > 0;
-      expect(hasOptions).toBe(false);
-
-      await input.fill("Ch");
-      await page.waitForTimeout(500);
-
-      hasOptions = (await page.getByRole("option").count()) > 0;
-      expect(hasOptions).toBe(false);
+      for (const shortQuery of ["C", "Ch"]) {
+        const searched = page.waitForRequest(isServerAction);
+        await input.fill(shortQuery);
+        await searched;
+        await expect(inputIcon(page)).toHaveAttribute("data-icon", "search");
+        await expect(page.getByRole("option")).toHaveCount(0);
+      }
 
       await input.fill("Cha");
-      await page.waitForTimeout(500);
-
-      const hasResults = (await page.getByRole("option").count()) > 0;
-      const hasNoResults = await page
-        .getByText(/No results found|Brak wyników/i)
-        .isVisible()
-        .catch(() => false);
-
-      expect(hasResults || hasNoResults).toBe(true);
-    });
-  });
-
-  test.describe("Game State Errors", () => {
-    test("shows closed message when game is not active", async ({ page }) => {
-      await page.goto("/");
-
-      await page.waitForTimeout(2000);
-
-      const closedVisible = await page
-        .getByText(/Gra zakończona|Come back tomorrow|closed/i)
-        .isVisible()
-        .catch(() => false);
-
-      const noPuzzleVisible = await page
-        .getByText(/No puzzle|Brak zagadki/i)
-        .isVisible()
-        .catch(() => false);
-
-      const inputVisible = await page
-        .getByTestId("game-input")
-        .isVisible()
-        .catch(() => false);
-
-      expect(closedVisible || noPuzzleVisible || inputVisible).toBe(true);
-    });
-  });
-
-  test.describe("Incorrect Guess Feedback", () => {
-    test("shows visual feedback for incorrect guess", async ({ page }) => {
-      await page.goto("/", { waitUntil: "domcontentloaded" });
-
-      const closedMessage = page.getByText(
-        /Gra zakończona|Come back tomorrow/i,
-      );
-      if (await closedMessage.isVisible()) {
-        test.skip(true, "Game is currently closed.");
-        return;
-      }
-
-      const input = await waitForGameInput(page);
-
-      // Submit any perfume from suggestions – we only verify the attempt is recorded,
-      // not whether the guess was correct. No need to know today's answer.
-      await input.fill("Chanel");
-      await page.waitForTimeout(500);
-
-      const suggestions = page.getByRole("option");
-      const count = await suggestions.count();
-      if (count === 0) {
-        test.skip(true, "No suggestions available");
-        return;
-      }
-
-      await suggestions.first().click();
-
-      await page.waitForTimeout(2000);
-
-      // Verify attempt was recorded in the log (Roman numeral "I" = first attempt)
-      const attemptRow = page.locator("span", { hasText: /^I$/ }).first();
-      await expect(attemptRow).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole("option").first()).toBeVisible();
     });
   });
 });
