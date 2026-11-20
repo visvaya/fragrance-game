@@ -690,8 +690,8 @@ export function GameInput() {
             </div>
           </div>
 
-          {/* Connecting hint – shown when user selected a perfume but session not ready */}
-          {isConnecting ? (
+          {/* Connecting hint – a guess or skip waits for the sign-in to finish */}
+          {pendingAction !== null && !authReady ? (
             <p className="mt-1 pl-1 text-xs text-muted-foreground">
               {t("connectingHint")}
             </p>
