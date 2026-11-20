@@ -733,9 +733,10 @@
         ]
       }
     },
-    // lib/env.ts is the one place that reads process.env.
+    // lib/env.ts validates process.env on the server; lib/public-env.ts reads the NEXT_PUBLIC_*
+    // values for browser code without Zod.
     {
-      "files": ["lib/env.ts"],
+      "files": ["lib/env.ts", "lib/public-env.ts"],
       "rules": {
         "no-restricted-properties": "off"
       }
@@ -1281,6 +1282,42 @@
         ]
       }
     },
+    // Browser entry points outside components/ and hooks/ read public values without Zod too.
+    // Repeats the React import bans, because an override replaces the whole entry for its files.
+    {
+      "files": [
+        "app/global-error.tsx",
+        "instrumentation-client.ts",
+        "lib/sentry-client.ts",
+        "lib/supabase/client.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "react",
+                "importNames": ["forwardRef"],
+                "message": "React 19 handles ref as a prop. Use ref directly instead of forwardRef."
+              },
+              {
+                "name": "react",
+                "importNames": ["useEffect"],
+                "message": "Direct useEffect is banned. Use useMountEffect() for mount-only effects (empty deps), or extract to a named custom hook. If neither applies, add eslint-disable with a category comment."
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["@/lib/env"],
+                "allowTypeImports": true,
+                "message": "lib/env ships its Zod schemas to the browser. Read NEXT_PUBLIC_* values from @/lib/public-env."
+              }
+            ]
+          }
+        ]
+      }
+    },
     // Layer boundary for the client layer: components and hooks run in the browser and reach the
     // server only through Server Actions. Repeats the React import bans, because an override
     // replaces the whole no-restricted-imports entry for its files.
@@ -1318,6 +1355,11 @@
                 ],
                 "allowTypeImports": true,
                 "message": "Client code must not import server modules. Call a Server Action from app/actions and use its result."
+              },
+              {
+                "group": ["@/lib/env"],
+                "allowTypeImports": true,
+                "message": "lib/env ships its Zod schemas to the browser. Read NEXT_PUBLIC_* values from @/lib/public-env."
               }
             ]
           }

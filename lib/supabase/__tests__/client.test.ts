@@ -8,8 +8,8 @@ vi.mock("@supabase/ssr", () => ({
   createBrowserClient: mockCreateBrowserClient,
 }));
 
-vi.mock("@/lib/env", () => ({
-  env: {
+vi.mock("@/lib/public-env", () => ({
+  publicEnv: {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: "test-anon-key",
     NEXT_PUBLIC_SUPABASE_URL: "https://testabc123.supabase.co",
   },

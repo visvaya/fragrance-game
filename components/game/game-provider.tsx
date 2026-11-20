@@ -28,7 +28,7 @@ import {
   initialGameSessionState,
   type GameSessionAction,
 } from "@/lib/game/game-session-state";
-import { env } from "@/lib/env";
+import { publicEnv } from "@/lib/public-env";
 import { getSupabaseClient } from "@/lib/supabase/get-client";
 
 import {
@@ -93,14 +93,19 @@ async function measureAnonAuth<T>(signIn: () => Promise<T>): Promise<T> {
 }
 
 /**
- * Fire-and-forget: updates Sentry user identity.
+ * Fire-and-forget: updates Sentry user identity once start-up work is done, so the SDK is not
+ * fetched during start-up. A failed chunk load only skips the identity.
  * Extracted to module level to avoid promise/no-nesting in the auth state change handler.
  */
 function updateSentryUser(user: User | null): void {
-  void import("@sentry/nextjs").then((s) => {
-    s.setUser(user ? { id: user.id } : null);
-    return null;
-  });
+  whenIdle(() => {
+    void import("@/lib/sentry-client")
+      .then(({ setClientUser }) => {
+        setClientUser(user ? { id: user.id } : null);
+        return null;
+      })
+      .catch(() => null);
+  }, AUTH_IDLE_TIMEOUT_MS);
 }
 
 /**
@@ -427,7 +432,7 @@ export function GameProvider({
 
         if (existingSession) {
           setUser(existingSession.user);
-        } else if (env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
+        } else if (publicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
           // Supabase requires a captcha token for anonymous sign-in: the invisible widget
           // gets one and handleCaptchaVerify signs in and finishes the initialization.
           awaitingCaptcha.current = true;

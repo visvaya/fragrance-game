@@ -6,7 +6,7 @@ import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { useTheme } from "next-themes";
 
 import { useUIPreferences } from "@/components/game/contexts";
-import { env } from "@/lib/env";
+import { publicEnv } from "@/lib/public-env";
 
 type CaptchaProperties = Readonly<{
   /** "interaction-only" keeps the widget invisible unless Cloudflare asks for a click. */
@@ -44,7 +44,7 @@ export function Captcha({
   // 1x00000000000000000000AA - Always Pass
   // 2x00000000000000000000AB - Always Block
   // 3x00000000000000000000FF - Force Interactive Challenge
-  const siteKey = env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+  const siteKey = publicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
   if (!siteKey) {
     console.error("Captcha: Missing NEXT_PUBLIC_TURNSTILE_SITE_KEY");
