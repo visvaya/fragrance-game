@@ -4,14 +4,14 @@
 -- extensions.similarity(...) > threshold, a function call no index can serve, so every search
 -- scanned all 58,874 rows of the cache: about 1 s for "chanel" on production (EXPLAIN ANALYZE,
 -- 2026-11-20). Each similarity() condition now also requires the pg_trgm % operator, which the
--- name_norm and brand_norm trigram indexes serve; the function fixes
--- pg_trgm.similarity_threshold at 0.5, the lowest of its fuzzy thresholds, so % selects a
+-- name_norm and brand_norm trigram indexes serve; the function sets
+-- pg_trgm.similarity_threshold to 0.5, the lowest of its fuzzy thresholds, so % selects a
 -- superset and the unchanged similarity() > threshold check keeps the results identical
 -- (about 40 ms for "chanel").
 --
 -- The multi-word filter (every token must match brand_name_concat) was a NOT EXISTS over the
 -- tokens, also a full scan (about 400 ms for "dior sauvage"). It now first requires the longest
--- token to match through ILIKE or the <% operator (pg_trgm.word_similarity_threshold fixed at
+-- token to match through ILIKE or the <% operator (pg_trgm.word_similarity_threshold set to
 -- 0.35, the function's word threshold), served by the brand_name_concat trigram index; the
 -- NOT EXISTS check stays, so the results do not change (about 40 ms).
 --
@@ -24,8 +24,6 @@ CREATE OR REPLACE FUNCTION public.search_perfumes_unaccent_v2(search_query text,
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'extensions', 'pg_catalog'
- SET pg_trgm.similarity_threshold TO '0.5'
- SET pg_trgm.word_similarity_threshold TO '0.35'
 AS $function$
 DECLARE
   search_norm TEXT;
@@ -37,6 +35,11 @@ BEGIN
   IF LENGTH(search_query) < 3 THEN
     RETURN;
   END IF;
+
+  -- Thresholds for the % and <% prefilters below, local to the transaction. A function-level
+  -- SET clause for these settings is refused to the migration role on hosted Supabase.
+  PERFORM set_config('pg_trgm.similarity_threshold', '0.5', true);
+  PERFORM set_config('pg_trgm.word_similarity_threshold', '0.35', true);
 
   search_norm := LOWER(public.f_unaccent(search_query));
   is_multiword := search_query LIKE '% %';

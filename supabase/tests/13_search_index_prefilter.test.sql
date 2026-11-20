@@ -8,12 +8,16 @@
 BEGIN;
 SET LOCAL ROLE postgres;
 SET LOCAL search_path = public, extensions;
-SELECT plan(9);
+SELECT plan(10);
 
 SELECT ok(
-  (SELECT proconfig FROM pg_proc WHERE oid = 'public.search_perfumes_unaccent_v2(text, integer)'::regprocedure)
-    @> ARRAY['pg_trgm.similarity_threshold=0.5', 'pg_trgm.word_similarity_threshold=0.35'],
-  'search_perfumes_unaccent_v2 fixes the trigram thresholds its prefilters rely on'
+  (SELECT count(*) FROM public.search_perfumes_unaccent_v2('chanel', 1)) >= 0,
+  'search_perfumes_unaccent_v2 runs (and sets its thresholds for the transaction)'
+);
+SELECT ok(
+  current_setting('pg_trgm.similarity_threshold') = '0.5'
+    AND current_setting('pg_trgm.word_similarity_threshold') = '0.35',
+  'search_perfumes_unaccent_v2 sets the trigram thresholds its prefilters rely on'
 );
 
 -- Definition before 20261120010000, without the % and <% prefilters.
