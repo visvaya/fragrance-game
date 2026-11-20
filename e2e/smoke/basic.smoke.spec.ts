@@ -34,6 +34,25 @@ test.describe("Smoke Tests - Critical Path @smoke", () => {
     await expect(page.getByText("404 - Not Found")).toBeVisible();
   });
 
+  test("Reload starts at the top of the board", async ({ page }) => {
+    // Restoring the scroll position on reload painted the top of the page for a few frames,
+    // then jumped down and animated the header away (seen in Safari on iOS).
+    await page.setViewportSize({ height: 600, width: 390 });
+    await page.goto("/en");
+    await expect(page.locator("main")).toBeVisible();
+    await page.evaluate(() => globalThis.scrollTo(0, 400));
+    await expect
+      .poll(async () => page.evaluate(() => globalThis.scrollY))
+      .toBeGreaterThan(0);
+
+    await page.reload();
+
+    await expect(page.locator("main")).toBeVisible();
+    await expect
+      .poll(async () => page.evaluate(() => globalThis.scrollY))
+      .toBe(0);
+  });
+
   test("Game Input or No-Puzzle message is visible", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("main")).toBeVisible();
