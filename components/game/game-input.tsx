@@ -431,7 +431,7 @@ export function GameInput() {
         e.preventDefault();
 
         const perfumeToSelect =
-          (selectedIndex >= 0 ? suggestions[selectedIndex] : undefined) ??
+          suggestions[selectedIndex] ??
           (suggestions.length === 1 ? suggestions[0] : undefined);
 
         // eslint-disable-next-line unicorn/no-negated-condition -- guard clause; undefined means no selection, positive action only when selected
