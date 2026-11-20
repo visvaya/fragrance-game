@@ -2,7 +2,9 @@
 -- 20261120010000) change speed, not results.
 --
 -- The previous definition is recreated in pg_temp for this transaction and both are compared on
--- single-word, fuzzy, phonetic and multi-word queries. Requires the perfume catalogue (the job
+-- single-word, fuzzy, phonetic and multi-word queries. The comparison is of row sets: rows with
+-- equal sort keys (same name, brand and concentration rank) come in plan-dependent order in both
+-- versions, and the app ranks the suggestions again (rankSuggestions). Requires the perfume catalogue (the job
 -- runs against production; on an empty database both sides return nothing and still match).
 
 BEGIN;
@@ -106,44 +108,44 @@ BEGIN
 END;
 $function$;
 
-SELECT results_eq(
-  $$SELECT * FROM public.search_perfumes_unaccent_v2('chanel', 60)$$,
-  $$SELECT * FROM pg_temp.search_reference('chanel', 60)$$,
-  'single word "chanel" returns the same rows in the same order'
+SELECT set_eq(
+  $$SELECT * FROM public.search_perfumes_unaccent_v2('chanel', 10000)$$,
+  $$SELECT * FROM pg_temp.search_reference('chanel', 10000)$$,
+  'single word "chanel" returns the same rows'
 );
-SELECT results_eq(
-  $$SELECT * FROM public.search_perfumes_unaccent_v2('sauvag', 60)$$,
-  $$SELECT * FROM pg_temp.search_reference('sauvag', 60)$$,
+SELECT set_eq(
+  $$SELECT * FROM public.search_perfumes_unaccent_v2('sauvag', 10000)$$,
+  $$SELECT * FROM pg_temp.search_reference('sauvag', 10000)$$,
   'truncated word "sauvag" (fuzzy and phonetic matches) returns the same rows'
 );
-SELECT results_eq(
-  $$SELECT * FROM public.search_perfumes_unaccent_v2('shanel', 60)$$,
-  $$SELECT * FROM pg_temp.search_reference('shanel', 60)$$,
+SELECT set_eq(
+  $$SELECT * FROM public.search_perfumes_unaccent_v2('shanel', 10000)$$,
+  $$SELECT * FROM pg_temp.search_reference('shanel', 10000)$$,
   'misspelling "shanel" (phonetic and similarity) returns the same rows'
 );
-SELECT results_eq(
-  $$SELECT * FROM public.search_perfumes_unaccent_v2('dior', 60)$$,
-  $$SELECT * FROM pg_temp.search_reference('dior', 60)$$,
+SELECT set_eq(
+  $$SELECT * FROM public.search_perfumes_unaccent_v2('dior', 10000)$$,
+  $$SELECT * FROM pg_temp.search_reference('dior', 10000)$$,
   'four-letter word "dior" (0.6 threshold) returns the same rows'
 );
-SELECT results_eq(
-  $$SELECT * FROM public.search_perfumes_unaccent_v2('oud', 60)$$,
-  $$SELECT * FROM pg_temp.search_reference('oud', 60)$$,
+SELECT set_eq(
+  $$SELECT * FROM public.search_perfumes_unaccent_v2('oud', 10000)$$,
+  $$SELECT * FROM pg_temp.search_reference('oud', 10000)$$,
   'three-letter word "oud" returns the same rows'
 );
-SELECT results_eq(
-  $$SELECT * FROM public.search_perfumes_unaccent_v2('dior sauvage', 60)$$,
-  $$SELECT * FROM pg_temp.search_reference('dior sauvage', 60)$$,
+SELECT set_eq(
+  $$SELECT * FROM public.search_perfumes_unaccent_v2('dior sauvage', 10000)$$,
+  $$SELECT * FROM pg_temp.search_reference('dior sauvage', 10000)$$,
   'two words "dior sauvage" return the same rows'
 );
-SELECT results_eq(
-  $$SELECT * FROM public.search_perfumes_unaccent_v2('tom ford oud wood', 60)$$,
-  $$SELECT * FROM pg_temp.search_reference('tom ford oud wood', 60)$$,
+SELECT set_eq(
+  $$SELECT * FROM public.search_perfumes_unaccent_v2('tom ford oud wood', 10000)$$,
+  $$SELECT * FROM pg_temp.search_reference('tom ford oud wood', 10000)$$,
   'four words with short tokens return the same rows'
 );
-SELECT results_eq(
-  $$SELECT * FROM public.search_perfumes_unaccent_v2('chanl coco', 60)$$,
-  $$SELECT * FROM pg_temp.search_reference('chanl coco', 60)$$,
+SELECT set_eq(
+  $$SELECT * FROM public.search_perfumes_unaccent_v2('chanl coco', 10000)$$,
+  $$SELECT * FROM pg_temp.search_reference('chanl coco', 10000)$$,
   'two words with a misspelling (word similarity) return the same rows'
 );
 
