@@ -127,33 +127,13 @@ export function useGame() {
 }
 
 /**
- * Fetches the daily challenge + game session using the most efficient path:
- * - SSR-provided data used directly if available (0 roundtrips)
- * - Otherwise calls initializeGame (2 roundtrips) or startGame (1 roundtrip)
- * Includes one automatic retry when challenge arrives but session fails.
+ * Fetches the daily challenge and game session when the page came without an SSR challenge.
+ * Includes one automatic retry when the challenge arrives but the session fails.
  */
-async function fetchChallengeAndSession(
-  initialChallenge?: DailyChallenge,
-  initialSession?: StartGameResponse | null,
-): Promise<{
+async function fetchChallengeAndSession(): Promise<{
   challenge: DailyChallenge | null;
   session: StartGameResponse | null;
 }> {
-  if (initialChallenge) {
-    if (initialSession)
-      return { challenge: initialChallenge, session: initialSession };
-    const session = await startGame(initialChallenge.id).catch(
-      (error: unknown) => {
-        console.error(
-          "[GameProvider] startGame with SSR challenge failed:",
-          error,
-        );
-        return null;
-      },
-    );
-    return { challenge: initialChallenge, session };
-  }
-
   const { challenge, session } = await initializeGame();
 
   // Retry if challenge arrived but session failed (cookies not yet processed)
@@ -176,6 +156,8 @@ async function fetchChallengeAndSession(
 /**
  * Finishes start-up once the player is signed in. With an SSR challenge the game session
  * starts lazily on the first move; without one, the challenge and session are fetched now.
+ * A failed fetch leaves the board without a puzzle (the input offers a retry) but still
+ * marks the sign-in as done, because it succeeded.
  * @param initialChallenge - Challenge rendered on the server, if any.
  * @param dispatch - Game session reducer dispatch.
  * @param setAuthReady - Marks the sign-in as done for the lazy session start.
@@ -195,7 +177,15 @@ async function finishInit(
   }
 
   performance.mark("eauxle:game_fetch_start");
-  const { challenge, session } = await fetchChallengeAndSession();
+  const { challenge, session } = await fetchChallengeAndSession().catch(
+    (error: unknown) => {
+      console.error(
+        "[GameProvider] Fetching the daily challenge failed:",
+        error,
+      );
+      return { challenge: null, session: null };
+    },
+  );
   performance.mark("eauxle:game_fetch_end");
   performance.measure(
     "eauxle.game_fetch",
@@ -315,6 +305,16 @@ export function GameProvider({
       clearTimeout(safetyTimeout);
       // Only the path without an SSR challenge kept the board in its loading state.
       if (!initialChallenge) setLoading(false);
+    }
+  };
+
+  // Fetches the challenge again after a start-up without an SSR challenge came back empty.
+  const retryStart = async () => {
+    setLoading(true);
+    try {
+      await finishInit(null, dispatch, setAuthReady);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -491,6 +491,7 @@ export function GameProvider({
         gameState={game.gameState}
         maxAttempts={MAX_GUESSES}
         nonce={game.nonce}
+        retryStart={retryStart}
         sessionId={game.sessionId}
         setLoading={setLoading}
       >

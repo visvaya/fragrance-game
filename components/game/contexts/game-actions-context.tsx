@@ -42,6 +42,8 @@ type GameActionsContextType = {
     perfumeId: string,
   ) => Promise<void>;
   resetGame: () => Promise<void>;
+  /** Fetches the daily challenge again after the start-up could not load it. */
+  retryStart: () => Promise<void>;
   skipAttempt: () => Promise<void>;
 };
 
@@ -62,6 +64,8 @@ type GameActionsProviderProperties = {
   gameState: GameState;
   maxAttempts: number;
   nonce: string;
+  /** Fetches the daily challenge again after the start-up could not load it. */
+  retryStart: () => Promise<void>;
   sessionId: string | null;
   setLoading: Dispatch<SetStateAction<boolean>>;
 };
@@ -132,6 +136,7 @@ export function GameActionsProvider({
   gameState,
   maxAttempts,
   nonce,
+  retryStart,
   sessionId,
   setLoading,
 }: Readonly<GameActionsProviderProperties>) {
@@ -321,9 +326,10 @@ export function GameActionsProvider({
       isRateLimited,
       makeGuess,
       resetGame: handleReset,
+      retryStart,
       skipAttempt: handleSkip,
     }),
-    [isRateLimited, makeGuess, handleReset, handleSkip],
+    [isRateLimited, makeGuess, handleReset, handleSkip, retryStart],
   );
 
   return (
