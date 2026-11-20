@@ -21,10 +21,12 @@ const ENVIRONMENT_FILE = path.join(DIR, "..", ".env.local");
 export const TEST_USER_IDS_FILE = path.join(DIR, ".auth", "test-user-ids.json");
 const MAX_CHUNK_SIZE = 3180; // `@supabase/ssr` cookie chunk size
 
-const authSessionSchema = z.object({
+// Loose objects: the whole session (expiry, token type, full user) goes into the auth cookie,
+// so unknown keys must survive the parse.
+const authSessionSchema = z.looseObject({
   access_token: z.string().min(1),
   refresh_token: z.string().min(1),
-  user: z.object({ id: z.string() }).optional(),
+  user: z.looseObject({ id: z.string() }).optional(),
 });
 
 export type AuthSession = z.infer<typeof authSessionSchema>;
