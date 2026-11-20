@@ -22,6 +22,7 @@ import { HighlightedText } from "./highlighted-text";
 import { GameInputSkeleton } from "./skeletons";
 import { SkipAttemptButton } from "./skip-attempt-button";
 import { useKeyboardScrollRestore } from "./use-keyboard-scroll-restore";
+import { useStatusBarStack } from "./use-status-bar-stack";
 /** A move made before the anonymous sign-in finished, sent once auth is ready. */
 type PendingAction =
   | { kind: "guess"; perfume: PerfumeSuggestion }
@@ -165,11 +166,6 @@ export function GameInput() {
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [showWrongFeedback, setShowWrongFeedback] = useState(false);
 
-  // Status bar dynamic wrapping
-  const [needsStack, setNeedsStack] = useState(false);
-  const statusBarContainerReference = useRef<HTMLDivElement>(null);
-  const statusBarMeasureReference = useRef<HTMLDivElement>(null);
-
   const hasInputInitialized = useRef(false);
   const previousAttemptCount = useRef(attempts.length);
   const [state, dispatch] = useReducer(gameInputReducer, initialState);
@@ -219,6 +215,13 @@ export function GameInput() {
   // Defined here (before shouldShowList) so autocomplete gating uses real data availability,
   // not auth loading state – allows autocomplete to work as soon as SSR data is present.
   const isSkeleton = dailyPerfume.id === "skeleton";
+  // The input bar with its status bar shows only while a loaded puzzle is being played.
+  const isPlayable = gameState === "playing" && !isSkeleton;
+  const {
+    containerReference: statusBarContainerReference,
+    measureReference: statusBarMeasureReference,
+    needsStack,
+  } = useStatusBarStack(isPlayable);
 
   // Animation state – list opens when: results exist, loading, or delayed no-results.
   // Never during the debounce window. Uses !isSkeleton (not !gameLoading) so autocomplete
@@ -373,25 +376,6 @@ export function GameInput() {
     previousAttemptCount.current = attempts.length;
   }, [attempts, gameLoading]);
 
-  // Dynamic status bar wrapping
-  useEffect(() => {
-    const container = statusBarContainerReference.current;
-    const measure = statusBarMeasureReference.current;
-    if (!container || !measure) return;
-
-    const observer = new ResizeObserver(() => {
-      const containerWidth = container.clientWidth;
-      const requiredWidth = measure.scrollWidth;
-      // Ensure we have a comfortable 8px buffer so elements don't squeeze
-      setNeedsStack(containerWidth < requiredWidth + 8);
-    });
-
-    observer.observe(container);
-    observer.observe(measure);
-
-    return () => observer.disconnect();
-  }, []);
-
   const handleSelect = async (perfume: PerfumeSuggestion) => {
     if (!authReady) {
       // Auth still in progress – queue the guess and show connecting state.
@@ -510,7 +494,7 @@ export function GameInput() {
   }
 
   // 2. Closed / No Puzzle State (Only if loaded and invalid)
-  if (gameState !== "playing" || isSkeleton) {
+  if (!isPlayable) {
     return (
       <div
         className={cn(
