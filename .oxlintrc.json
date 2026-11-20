@@ -56,17 +56,12 @@
     ".eslintcache",
     "supabase/functions/**",
     "data/**",
-    // Removed together with madge and dependency-cruiser (roadmap, Etap 0b point 18); until then
-    // these two reports stay outside lint.
-    "scripts/quality.js",
-    "scripts/audit-parse.js",
     "img/**",
     ".sentryrc",
     "*.config.*",
     "postcss.config.*",
     "sentry.*.config.ts",
     "instrumentation.ts",
-    ".dependency-cruiser.js",
     "report/html/js/prism.js"
   ],
   "rules": {
