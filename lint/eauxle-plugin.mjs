@@ -104,10 +104,81 @@ const boundedSelect = {
   },
 };
 
+const FUNCTION_TYPES = new Set([
+  "ArrowFunctionExpression",
+  "FunctionDeclaration",
+  "FunctionExpression",
+]);
+
+const HTTP_CLIENTS = new Set(["axios", "fetch", "got"]);
+
+/** Nearest enclosing function (or the Program) of a node. */
+const scopeOf = (node) => {
+  let scope = node.parent;
+  while (scope && scope.type !== "Program" && !FUNCTION_TYPES.has(scope.type))
+    scope = scope.parent;
+  return scope;
+};
+
+/**
+ * `fetch-requires-parse`: a call to `fetch`, `axios` or `got` is reported unless the function it
+ * sits in also calls `.parse()` or `.safeParse()` (any receiver), so that data from outside is
+ * validated at the boundary with a Zod schema. A parse in a nested callback counts for the
+ * functions around it (`fetch(url).then((r) => schema.parse(r))`); a parse in a sibling or an
+ * outer function does not. At module scope, only a module-scope parse counts. The rule checks
+ * that a parse exists, not that it receives the response.
+ */
+const fetchRequiresParse = {
+  meta: {
+    type: "problem",
+    docs: {
+      description:
+        "Require a .parse() or .safeParse() call in the function that calls fetch.",
+    },
+    schema: [],
+  },
+  create(context) {
+    const fetches = [];
+    const parsedScopes = new Set();
+    return {
+      CallExpression(node) {
+        if (
+          node.callee.type === "Identifier" &&
+          HTTP_CLIENTS.has(node.callee.name)
+        ) {
+          fetches.push({ node, scope: scopeOf(node) });
+        }
+        if (["parse", "safeParse"].includes(methodName(node))) {
+          const chain = [];
+          for (let scope = scopeOf(node); scope; scope = scopeOf(scope)) {
+            chain.push(scope);
+          }
+          // Program counts only for a parse at module scope, not for one inside a function.
+          for (const scope of chain) {
+            if (scope.type !== "Program" || chain.length === 1)
+              parsedScopes.add(scope);
+          }
+        }
+      },
+      "Program:exit"() {
+        for (const { node, scope } of fetches) {
+          if (parsedScopes.has(scope)) continue;
+          context.report({
+            message:
+              "Data from APIs must be validated: parse the response with a Zod schema (.parse() or .safeParse()) in the same function as the fetch.",
+            node,
+          });
+        }
+      },
+    };
+  },
+};
+
 export default {
   meta: { name: "eauxle" },
   rules: {
     "bounded-select": boundedSelect,
+    "fetch-requires-parse": fetchRequiresParse,
     "restricted-syntax": restrictedSyntax,
   },
 };
