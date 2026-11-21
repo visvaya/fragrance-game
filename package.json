@@ -44,7 +44,7 @@
     "test:load": "pnpm dlx artillery@2.0.34 run scripts/load-test.yaml",
     "test:perf": "cross-env NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA playwright test e2e/performance",
     "test:full": "pnpm test && pnpm test:a11y && pnpm test:perf",
-    "audit:lighthouse": "node scripts/parse-lighthouse.mjs ./reports/latest.report.json",
+    "audit:lighthouse": "tsx scripts/parse-lighthouse.ts ./reports/latest.report.json",
     "clean": "pnpm dlx rimraf .next node_modules",
     "supabase": "supabase",
     "supabase:start": "pnpm supabase start",
@@ -57,6 +57,7 @@
     "db:fingerprint": "supabase db query --linked --agent=no -f supabase/schema-fingerprint.sql --output-format json | tsx scripts/db-fingerprint.ts",
     "test:db:lint": "pnpm supabase db lint --level warning",
     "lint:duplicates": "jscpd app lib components hooks && tsx scripts/check-duplication.ts",
+    "lint:typed-files": "tsx scripts/check-typed-files.ts",
     "lint-staged": "lint-staged",
     "prepare": "husky"
   },

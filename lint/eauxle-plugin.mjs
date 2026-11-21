@@ -6,6 +6,11 @@
  * selector. Like the ESLint rule, a later override replaces the whole list for its files.
  */
 
+// The plugin API has no usable types here: the ESTree node union makes walking a call chain by
+// property name a cast on every line, so nodes and the rule context are typed as any.
+/** @typedef {any} AstNode */
+/** @typedef {any} RuleContext */
+
 const restrictedSyntax = {
   meta: {
     type: "problem",
@@ -23,12 +28,17 @@ const restrictedSyntax = {
       },
     },
   },
+  /** @param {RuleContext} context */
   create(context) {
     return Object.fromEntries(
-      context.options.map(({ selector, message }) => [
-        selector,
-        (node) => context.report({ message, node }),
-      ]),
+      context.options.map(
+        /** @param {{ selector: string, message: string }} option */
+        ({ selector, message }) => [
+          selector,
+          /** @param {AstNode} node */
+          (node) => context.report({ message, node }),
+        ],
+      ),
     );
   },
 };
@@ -36,6 +46,7 @@ const restrictedSyntax = {
 const BOUNDING_METHODS = new Set(["limit", "maybeSingle", "single"]);
 
 /** Method name of a call like `x.name(...)`, or undefined for any other node. */
+/** @param {AstNode} node */
 const methodName = (node) =>
   node?.type === "CallExpression" &&
   node.callee.type === "MemberExpression" &&
@@ -44,7 +55,9 @@ const methodName = (node) =>
     : undefined;
 
 /** Method names of the whole call chain that `call` belongs to, e.g. from, select, eq, limit. */
+/** @param {AstNode} call */
 function chainMethods(call) {
+  /** @type {string[]} */
   const names = [];
   let lower = call.callee.object;
   while (methodName(lower)) {
@@ -64,9 +77,11 @@ function chainMethods(call) {
 }
 
 /** `select(columns, { head: true })` returns only a count, never rows. */
+/** @param {AstNode} call */
 const isHeadOnly = (call) =>
   call.arguments[1]?.type === "ObjectExpression" &&
   call.arguments[1].properties.some(
+    /** @param {AstNode} p */
     (p) =>
       p.type === "Property" && p.key.name === "head" && p.value.value === true,
   );
@@ -84,8 +99,10 @@ const boundedSelect = {
     docs: { description: "Require a row bound on Supabase select() queries." },
     schema: [],
   },
+  /** @param {RuleContext} context */
   create(context) {
     return {
+      /** @param {AstNode} node */
       CallExpression(node) {
         if (methodName(node) !== "select" || isHeadOnly(node)) return;
         const methods = chainMethods(node);
@@ -113,6 +130,7 @@ const FUNCTION_TYPES = new Set([
 const HTTP_CLIENTS = new Set(["axios", "fetch", "got"]);
 
 /** Nearest enclosing function (or the Program) of a node. */
+/** @param {AstNode} node */
 const scopeOf = (node) => {
   let scope = node.parent;
   while (scope && scope.type !== "Program" && !FUNCTION_TYPES.has(scope.type))
@@ -137,10 +155,13 @@ const fetchRequiresParse = {
     },
     schema: [],
   },
+  /** @param {RuleContext} context */
   create(context) {
+    /** @type {{ node: AstNode, scope: AstNode }[]} */
     const fetches = [];
     const parsedScopes = new Set();
     return {
+      /** @param {AstNode} node */
       CallExpression(node) {
         if (
           node.callee.type === "Identifier" &&

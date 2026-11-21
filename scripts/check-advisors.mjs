@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-nocheck: this script is removed in a separate change, so it is not worth typing.
 /**
  * Fails CI when Supabase's Security Advisor reports ERROR-level findings
  * (missing RLS policies, SECURITY DEFINER views, exposed schemas, ...).

@@ -1997,11 +1997,13 @@
       }
     },
     // oxlint JS plugins: the plugin format requires a default export, and the plugin API is
-    // untyped.
+    // untyped. The file stays JavaScript, so it carries its types in JSDoc (@type, @typedef).
     {
       "files": ["lint/**"],
       "rules": {
         "import/no-default-export": "off",
+        // typed: false lets the JSDoc type tags (@type, @typedef) through; unknown tags still fail.
+        "jsdoc/check-tag-names": ["error", { "typed": false }],
         "typescript/no-unsafe-argument": "off",
         "typescript/no-unsafe-assignment": "off",
         "typescript/no-unsafe-call": "off",
