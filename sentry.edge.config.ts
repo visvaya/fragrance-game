@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/nextjs";
 
+import { SENTRY_DATA_COLLECTION } from "@/lib/sentry-data-collection";
 import { scrubEvent } from "@/lib/sentry-scrub";
 
 Sentry.init({
@@ -12,4 +13,5 @@ Sentry.init({
   debug: false,
 
   beforeSend: scrubEvent,
+  dataCollection: SENTRY_DATA_COLLECTION,
 });

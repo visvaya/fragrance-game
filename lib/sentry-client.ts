@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 
 import { publicEnv } from "@/lib/public-env";
+import { SENTRY_DATA_COLLECTION } from "@/lib/sentry-data-collection";
 import { scrubEvent } from "@/lib/sentry-scrub";
 
 // eslint-disable-next-line no-restricted-properties -- NODE_ENV is needed for build-time dead-code elimination; env.NODE_ENV indirection prevents tree-shaking
@@ -14,6 +15,7 @@ export function startSentryClient(): void {
   if (Sentry.getClient()) return;
   Sentry.init({
     beforeSend: scrubEvent,
+    dataCollection: SENTRY_DATA_COLLECTION,
     debug: false,
     dsn: publicEnv.NEXT_PUBLIC_SENTRY_DSN,
     enabled: SENTRY_ENABLED,

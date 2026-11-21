@@ -28,7 +28,14 @@ describe("startSentryClient", () => {
 
     expect(sentry.init).toHaveBeenCalledTimes(1);
     expect(sentry.init).toHaveBeenCalledWith(
-      expect.objectContaining({ beforeSend: scrubEvent }),
+      expect.objectContaining({
+        beforeSend: scrubEvent,
+        dataCollection: expect.objectContaining({
+          cookies: false,
+          httpBodies: [],
+          userInfo: false,
+        }),
+      }),
     );
   });
 
