@@ -7,7 +7,6 @@ import { formatDistanceToNow } from "date-fns";
 import { Laptop, Phone, Globe, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { UAParser } from "ua-parser-js";
 
 import {
   getSessions,
@@ -23,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { parseUserAgent } from "@/lib/auth/user-agent";
 import { getDateLocale } from "@/lib/i18n/date-fns";
 import { createClient } from "@/lib/supabase/client";
 
@@ -64,9 +64,7 @@ const getDeviceIcon = (deviceInfo: Json | null) => {
   if (isServerAgent(userAgent)) {
     return <Laptop className="size-4" />;
   }
-  const ua = new UAParser(userAgent);
-  const device = ua.getDevice();
-  if (device.type === "mobile" || device.type === "tablet") {
+  if (parseUserAgent(userAgent).deviceType !== "desktop") {
     return <Phone className="size-4" />;
   }
   return <Laptop className="size-4" />;
@@ -197,15 +195,13 @@ export function SessionsModal({
       return t("currentDevice");
     }
 
-    const ua = new UAParser(userAgent);
-    const browser = ua.getBrowser();
-    const os = ua.getOS();
+    const { browser, os } = parseUserAgent(userAgent);
 
-    if (!browser.name && !os.name) return `${userAgent.slice(0, 30)}...`;
+    if (!browser && !os) return `${userAgent.slice(0, 30)}...`;
 
     return t("browserOnOs", {
-      browser: browser.name ?? t("unknownBrowser"),
-      os: os.name ?? t("unknownOS"),
+      browser: browser ?? t("unknownBrowser"),
+      os: os ?? t("unknownOS"),
     });
   };
 
