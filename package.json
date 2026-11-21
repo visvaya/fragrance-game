@@ -75,6 +75,7 @@
     "@upstash/ratelimit": "2.2.1",
     "@upstash/redis": "1.41.0",
     "@vercel/speed-insights": "2.1.0",
+    "bowser": "2.15.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "date-fns": "4.4.0",

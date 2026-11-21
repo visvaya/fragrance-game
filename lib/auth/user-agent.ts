@@ -1,3 +1,5 @@
+import { parse } from "bowser";
+
 /** Coarse device class used to pick the icon of a session. */
 type DeviceType = "desktop" | "mobile" | "tablet";
 
@@ -8,51 +10,24 @@ type ParsedUserAgent = {
   os: string | null;
 };
 
-// Order matters: the first match wins. Edge, Opera and Samsung Internet also contain "Chrome",
-// Chrome and Firefox on iOS contain "Safari", and Chrome contains "Safari".
-const BROWSERS: readonly (readonly [RegExp, string])[] = [
-  [/Edg(?:e|A|iOS)?\//, "Edge"],
-  [/OPR\/|Opera/, "Opera"],
-  [/SamsungBrowser\//, "Samsung Internet"],
-  [/Firefox\/|FxiOS\//, "Firefox"],
-  [/Chrome\/|CriOS\//, "Chrome"],
-  [/iP(?:hone|ad|od).*Safari\//, "Mobile Safari"],
-  [/Safari\//, "Safari"],
-];
-
-// iPhone and iPad user agents also contain "like Mac OS X" and Android ones contain "Linux".
-const SYSTEMS: readonly (readonly [RegExp, string])[] = [
-  [/iP(?:hone|ad|od)/, "iOS"],
-  [/Android/, "Android"],
-  [/Windows/, "Windows"],
-  [/Macintosh|Mac OS X/, "macOS"],
-  [/Linux|X11/, "Linux"],
-];
-
-const nameFrom = (
-  table: readonly (readonly [RegExp, string])[],
-  userAgent: string,
-): string | null =>
-  table.find(([pattern]) => pattern.test(userAgent))?.[1] ?? null;
-
-const deviceTypeOf = (userAgent: string): DeviceType => {
-  if (/iPad|Tablet/.test(userAgent)) return "tablet";
-  if (userAgent.includes("Android")) {
-    return userAgent.includes("Mobile") ? "mobile" : "tablet";
-  }
-  return /iPhone|iPod|Mobile/.test(userAgent) ? "mobile" : "desktop";
-};
-
 /**
- * Classifies a user-agent string into browser name, operating system name and device type.
- * Covers the browsers and systems players use; anything else yields null names.
+ * Classifies a user-agent string into browser name, operating system name and device type
+ * with Bowser (MIT, maintained), which tracks new user-agent formats for us.
  * @param userAgent - The raw `User-Agent` header value.
  * @returns The browser and OS names (null when unknown) and the device type.
  */
 export function parseUserAgent(userAgent: string): ParsedUserAgent {
+  // Bowser throws on an empty string.
+  if (userAgent.trim() === "") {
+    return { browser: null, deviceType: "desktop", os: null };
+  }
+  const { browser, os, platform } = parse(userAgent);
   return {
-    browser: nameFrom(BROWSERS, userAgent),
-    deviceType: deviceTypeOf(userAgent),
-    os: nameFrom(SYSTEMS, userAgent),
+    browser: browser.name || null,
+    deviceType:
+      platform.type === "mobile" || platform.type === "tablet"
+        ? platform.type
+        : "desktop",
+    os: os.name || null,
   };
 }

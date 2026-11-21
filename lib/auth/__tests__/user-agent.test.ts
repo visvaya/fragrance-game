@@ -32,14 +32,14 @@ const CHROME_MAC =
 describe("parseUserAgent", () => {
   it.each([
     ["Chrome on Windows", CHROME_WIN, "Chrome", "Windows", "desktop"],
-    ["Edge on Windows", EDGE_WIN, "Edge", "Windows", "desktop"],
+    ["Edge on Windows", EDGE_WIN, "Microsoft Edge", "Windows", "desktop"],
     ["Opera on Windows", OPERA_WIN, "Opera", "Windows", "desktop"],
     ["Firefox on Linux", FIREFOX_LINUX, "Firefox", "Linux", "desktop"],
     ["Chrome on Linux", CHROME_LINUX, "Chrome", "Linux", "desktop"],
     ["Chrome on macOS", CHROME_MAC, "Chrome", "macOS", "desktop"],
     ["Safari on macOS", SAFARI_MAC, "Safari", "macOS", "desktop"],
-    ["Safari on iPhone", SAFARI_IPHONE, "Mobile Safari", "iOS", "mobile"],
-    ["Safari on iPad", SAFARI_IPAD, "Mobile Safari", "iOS", "tablet"],
+    ["Safari on iPhone", SAFARI_IPHONE, "Safari", "iOS", "mobile"],
+    ["Safari on iPad", SAFARI_IPAD, "Safari", "iOS", "tablet"],
     ["Chrome on iOS", CHROME_IOS, "Chrome", "iOS", "mobile"],
     ["Firefox on iOS", FIREFOX_IOS, "Firefox", "iOS", "mobile"],
     ["Chrome on Android", CHROME_ANDROID, "Chrome", "Android", "mobile"],
@@ -50,7 +50,13 @@ describe("parseUserAgent", () => {
       "Android",
       "tablet",
     ],
-    ["Samsung Internet", SAMSUNG, "Samsung Internet", "Android", "mobile"],
+    [
+      "Samsung Internet",
+      SAMSUNG,
+      "Samsung Internet for Android",
+      "Android",
+      "mobile",
+    ],
   ])("%s", (_label, userAgent, browser, os, deviceType) => {
     expect(parseUserAgent(userAgent)).toEqual({ browser, deviceType, os });
   });
