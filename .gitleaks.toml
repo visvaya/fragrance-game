@@ -1,0 +1,23 @@
+title = "Eauxle gitleaks config"
+
+[extend]
+useDefault = true
+
+# Absolute machine paths leak a username or a directory layout and break portability.
+# Gitleaks has no default rule for them.
+[[rules]]
+id = "absolute-windows-path"
+description = "Absolute Windows path (privacy and portability)"
+regex = '''(?i)\b[A-Z]:\\(?:Users|Windows|Program Files|fragrance-game)'''
+keywords = [":\\"]
+
+[[rules]]
+id = "absolute-unix-home-path"
+description = "Absolute Unix home path (privacy and portability)"
+regex = '''(?i)(?:^|[\s"'`=(])/(?:Users|home)/[a-z0-9._-]+'''
+keywords = ["/users/", "/home/"]
+
+[[allowlists]]
+description = "Lockfiles hold registry URLs and hashes, not machine paths"
+targetRules = ["absolute-windows-path", "absolute-unix-home-path"]
+paths = ['''(^|/)pnpm-lock\.yaml$''', '''(^|/)uv\.lock$''']
