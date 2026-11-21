@@ -22,9 +22,9 @@
       "where": "dependabot.yml: pip, /tools/zizmor"
     },
     {
-      "name": "actionlint and hadolint images",
+      "name": "actionlint image",
       "mechanism": "dependabot",
-      "where": "dependabot.yml: docker, /tools/actionlint and /tools/hadolint"
+      "where": "dependabot.yml: docker, /tools/actionlint"
     },
     {
       "name": "GitHub Actions",
