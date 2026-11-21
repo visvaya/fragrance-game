@@ -2,13 +2,15 @@ import type { init } from "@sentry/nextjs";
 
 type SentryOptions = NonNullable<Parameters<typeof init>[0]>;
 
-/** Header and query names that can carry the player's address or identity. */
-const IDENTITY_FIELDS = ["forwarded", "-ip", "remote-", "via", "-user"];
+/** Headers that help reproduce an error and carry no player identity. */
+const DIAGNOSTIC_HEADERS = ["user-agent", "accept-language", "content-type"];
 
 /**
  * What the Sentry SDK may collect, shared by the browser, server and edge setups. Sentry 11
- * collects user data, cookies, request bodies and database queries when this is unset, so the
- * SDK 10 defaults are spelled out here: no player data beyond what `scrubEvent` keeps.
+ * collects user data, cookies, request bodies and database queries when this is unset; this
+ * keeps less than the SDK 10 defaults did. URL query strings stay out because they carry login
+ * codes (`/auth/callback?code=`) and preview share tokens, and headers are an allow list.
+ * `scrubEvent` still filters what is left.
  */
 export const SENTRY_DATA_COLLECTION = {
   cookies: false,
@@ -17,10 +19,11 @@ export const SENTRY_DATA_COLLECTION = {
   graphQL: { document: false, variables: false },
   httpBodies: [],
   httpHeaders: {
-    request: { deny: IDENTITY_FIELDS },
-    response: { deny: IDENTITY_FIELDS },
+    request: { allow: DIAGNOSTIC_HEADERS },
+    response: { allow: ["content-type"] },
   },
   queues: false,
-  urlQueryParams: { deny: IDENTITY_FIELDS },
+  stackFrameVariables: false,
+  urlQueryParams: false,
   userInfo: false,
 } satisfies SentryOptions["dataCollection"];
