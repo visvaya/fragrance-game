@@ -56,7 +56,6 @@
     "test:db": "pnpm supabase test db",
     "db:fingerprint": "supabase db query --linked --agent=no -f supabase/schema-fingerprint.sql --output-format json | tsx scripts/db-fingerprint.ts",
     "test:db:lint": "pnpm supabase db lint --level warning",
-    "generate:zod": "tsx scripts/generate-zod.ts --input types/supabase.ts --output lib/validations/supabase.schema.ts",
     "lint:duplicates": "jscpd app lib components hooks && tsx scripts/check-duplication.ts",
     "lint-staged": "lint-staged",
     "prepare": "husky"
@@ -118,7 +117,6 @@
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "5.1.4",
     "@vitest/coverage-v8": "5.1.0",
-    "@whoisarpit/supabase-to-zod": "1.0.1",
     "babel-plugin-react-compiler": "1.0.0",
     "cross-env": "10.1.0",
     "eslint-plugin-better-tailwindcss": "4.7.0",

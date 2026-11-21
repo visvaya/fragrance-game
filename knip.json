@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "entry": ["app/api/**/route.ts", "scripts/*.ts"],
   "project": ["**/*.{ts,tsx,js,jsx}"],
-  "ignore": ["lib/validations/supabase.schema.ts", "types/supabase.ts"],
+  "ignore": ["types/supabase.ts"],
   "ignoreDependencies": [
     "postcss-load-config",
     "@types/ua-parser-js",
