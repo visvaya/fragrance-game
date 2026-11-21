@@ -35,6 +35,7 @@ import {
   signInAnonymousPlayer,
   type AnonymousSignInResult,
 } from "./anonymous-auth";
+import { reportCaptchaVerified } from "./report-captcha-verified";
 import { whenIdle } from "./when-idle";
 
 import {
@@ -271,6 +272,8 @@ export function GameProvider({
   const [captchaAttempt, setCaptchaAttempt] = useState(0);
   // Turnstile can deliver a second token (refresh) while a sign-in is still in flight.
   const signInInFlight = useRef(false);
+  // Start of the Turnstile check; cleared once reported, so the duration is sent once per page.
+  const captchaStartedAt = useRef<number | null>(null);
 
   const failAuth = () => {
     setCaptchaStage("failed");
@@ -281,6 +284,7 @@ export function GameProvider({
   const handleCaptchaVerify = async (token: string) => {
     if (signInInFlight.current) return;
     signInInFlight.current = true;
+    reportCaptchaVerified(captchaStartedAt, captchaStage);
     const result = await signInWithToken(token);
     signInInFlight.current = false;
 
@@ -436,6 +440,7 @@ export function GameProvider({
           // Supabase requires a captcha token for anonymous sign-in: the invisible widget
           // gets one and handleCaptchaVerify signs in and finishes the initialization.
           awaitingCaptcha.current = true;
+          captchaStartedAt.current = performance.now();
           setCaptchaStage("pending");
           return;
         } else {

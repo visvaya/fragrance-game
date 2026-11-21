@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as gameActions from "@/app/actions/game-actions";
 import { HIDDEN_CLUES } from "@/lib/game/clue-reveal";
+import { captureAnalyticsEvent } from "@/components/providers/posthog-provider";
 import * as getClientModule from "@/lib/supabase/get-client";
 
 import { UIPreferencesProvider } from "../contexts/ui-preferences-context";
@@ -30,6 +31,10 @@ vi.mock("@/i18n/routing", () => ({
     refresh: vi.fn(),
     replace: vi.fn(),
   }),
+}));
+
+vi.mock("@/components/providers/posthog-provider", () => ({
+  captureAnalyticsEvent: vi.fn(),
 }));
 
 vi.mock("@sentry/nextjs", () => ({ setUser: vi.fn() }));
@@ -207,6 +212,45 @@ describe("GameProvider anonymous sign-in for a new visitor", () => {
       options: { captchaToken: "turnstile-token" },
     });
     expect(screen.queryByRole("alertdialog", { hidden: true })).toBeNull();
+  });
+
+  it("reports how long the check took, once, with the stage at the token", async () => {
+    const user = userEvent.setup();
+    renderProvider();
+
+    await clickTurnstile(user, "turnstile-solved");
+    await waitFor(() => {
+      expect(screen.getByTestId("daily-brand")).toHaveTextContent("Ch___l");
+    });
+
+    const calls = vi
+      .mocked(captureAnalyticsEvent)
+      .mock.calls.filter(([event]) => event === "captcha_verified");
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.[1]).toEqual({
+      duration_ms: expect.any(Number),
+      stage: "pending",
+    });
+  });
+
+  it("reports the check only for the first token", async () => {
+    signInAnonymously.mockResolvedValueOnce({
+      error: { message: "captcha protection: request disallowed" },
+    });
+    const user = userEvent.setup();
+    renderProvider();
+
+    await clickTurnstile(user, "turnstile-solved");
+    await clickTurnstile(user, "turnstile-solved");
+    await waitFor(() => {
+      expect(screen.getByTestId("daily-brand")).toHaveTextContent("Ch___l");
+    });
+
+    expect(
+      vi
+        .mocked(captureAnalyticsEvent)
+        .mock.calls.filter(([event]) => event === "captcha_verified"),
+    ).toHaveLength(1);
   });
 
   it("shows the dialog only when Cloudflare asks for interaction", async () => {
