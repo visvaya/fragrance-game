@@ -6,7 +6,8 @@ import { z } from "zod";
 
 import { env } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/server";
-import { DailyChallengesInsert } from "@/lib/validations/supabase.schema";
+
+import type { TablesInsert } from "@/types/supabase";
 
 // One challenge per date: the exclusion windows (30 and 7 days) plus pre-generated days stay far
 // below this.
@@ -156,24 +157,7 @@ async function ensureChallenge(
     perfume_id: selected.perfume_id,
     seed_hash: `auto-${Date.now()}`,
     snapshot_metadata: {},
-  };
-
-  // Validate payload before insertion
-  try {
-    DailyChallengesInsert.parse(newChallengePayload);
-  } catch (validationError) {
-    if (validationError instanceof z.ZodError) {
-      console.error(
-        `[CRON] Validation failed for ${dateString}:`,
-        validationError.issues,
-      );
-      throw new Error(
-        `Validation failed for ${dateString}: ${validationError.message}`,
-        { cause: validationError },
-      );
-    }
-    throw validationError;
-  }
+  } satisfies TablesInsert<"daily_challenges">;
 
   const queryResult5 = await supabase
     .from("daily_challenges")

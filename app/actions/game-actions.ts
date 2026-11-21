@@ -50,7 +50,8 @@ import {
 } from "@/lib/game/session-writes";
 import { checkRateLimit } from "@/lib/redis";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { GameSessionsUpdate } from "@/lib/validations/supabase.schema";
+
+import type { TablesUpdate } from "@/types/supabase";
 
 // --- Types ---
 
@@ -803,16 +804,7 @@ export async function submitGuess(
     last_guess: new Date().toISOString(),
     last_nonce: newNonce,
     status: newStatus,
-  };
-
-  try {
-    // Validate update payload with Zod
-    // Note: Zod 'any()' for JSON fields is lenient, but ensures object structure matches
-    GameSessionsUpdate.parse(updatePayload);
-  } catch (error) {
-    console.error("Game session update validation failed:", error);
-    throw new Error("Game state validation failed", { cause: error });
-  }
+  } satisfies TablesUpdate<"game_sessions">;
 
   const { data: updatedSession, error: updateError } = await updateGameSession(
     { expectedNonce: clientNonce, playerId: user.id, sessionId },
