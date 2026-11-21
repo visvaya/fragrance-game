@@ -226,7 +226,8 @@
       "success": "Logged in successfully",
       "failed": "Login failed",
       "error": "An unexpected error occurred",
-      "invalidEmail": "Invalid email address"
+      "invalidEmail": "Invalid email address",
+      "passwordRequired": "Enter your password"
     },
     "register": {
       "title": "Create an Account",
@@ -242,6 +243,7 @@
       "successDescription": "Please check your email to confirm your account.",
       "captchaError": "Please complete the captcha verification",
       "passwordsDoNotMatch": "Passwords don't match",
+      "confirmPasswordRequired": "Repeat your password",
       "passwordMinLength": "Password must be at least 8 characters",
       "passwordLowercase": "Must contain lowercase letter",
       "passwordUppercase": "Must contain uppercase letter",

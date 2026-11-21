@@ -151,6 +151,22 @@ describe("LoginForm", () => {
     expect(mockAuth.signInWithPassword).not.toHaveBeenCalled();
   });
 
+  it("asks for the password when it is empty", async () => {
+    render(<LoginForm />);
+    await userEvent.type(
+      screen.getByLabelText("Auth.login.emailLabel"),
+      "a@b.co",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Auth.login.submit" }),
+    );
+
+    expect(
+      await screen.findByText("Auth.login.passwordRequired"),
+    ).toBeInTheDocument();
+    expect(mockAuth.signInWithPassword).not.toHaveBeenCalled();
+  });
+
   it("links to the other auth screens", async () => {
     const onRegisterClick = vi.fn();
     const onForgotPasswordClick = vi.fn();
@@ -188,6 +204,26 @@ describe("RegisterForm", () => {
       confirmPassword,
     );
   }
+
+  it("asks to repeat the password when the confirmation is empty", async () => {
+    render(<RegisterForm />);
+    await userEvent.type(
+      screen.getByLabelText("Auth.register.emailLabel"),
+      "a@b.co",
+    );
+    await userEvent.type(
+      screen.getByLabelText("Auth.register.passwordLabel"),
+      STRONG_PASSWORD,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Auth.register.submit" }),
+    );
+
+    expect(
+      await screen.findByText("Auth.register.confirmPasswordRequired"),
+    ).toBeInTheDocument();
+    expect(mockAuth.signUp).not.toHaveBeenCalled();
+  });
 
   it("requires the captcha", async () => {
     render(<RegisterForm />);
