@@ -1,14 +1,15 @@
-import { withSentryConfig } from "@sentry/nextjs/config";
 import createBundleAnalyzer from "@next/bundle-analyzer";
+import { withSentryConfig } from "@sentry/nextjs/config";
 import createNextIntlPlugin from "next-intl/plugin";
+
+import type { NextConfig } from "next";
 
 const withNextIntl = createNextIntlPlugin();
 const withBundleAnalyzer = createBundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 });
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+const nextConfig: NextConfig = {
   reactCompiler: true,
   experimental: {
     optimizePackageImports: [
@@ -83,53 +84,31 @@ const nextConfig = {
   },
 };
 
-const serverConfig = withSentryConfig(
-  nextConfig,
-  {
-    // For all available options, see:
-    // https://github.com/getsentry/sentry-webpack-plugin#options
-
-    // Suppresses source map uploading logs during build
-    silent: true,
-    org: process.env.SENTRY_ORG,
-    project: process.env.SENTRY_PROJECT,
+const serverConfig = withSentryConfig(nextConfig, {
+  // Build options: https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/build/
+  // Source map upload needs both; without them (local builds) the build skips it.
+  ...(process.env.SENTRY_ORG ? { org: process.env.SENTRY_ORG } : {}),
+  ...(process.env.SENTRY_PROJECT
+    ? { project: process.env.SENTRY_PROJECT }
+    : {}),
+  // Suppresses source map upload logs during build.
+  silent: true,
+  // Uploads a larger set of source maps for clearer stack traces (longer build).
+  widenClientFileUpload: true,
+  // Sends browser events through this app, so ad blockers and the Sentry domain filter do not
+  // drop them. proxy.ts lets the route through without the API rate limit.
+  tunnelRoute: "/api/monitoring",
+  // Leaves out SDK parts the app does not use. Tracing stays: the server samples 10% of requests.
+  bundleSizeOptimizations: {
+    excludeDebugStatements: true,
+    excludeReplayIframe: true,
+    excludeReplayShadowDom: true,
+    excludeReplayWorker: true,
   },
-  {
-    // For all available options, see:
-    // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
-
-    // Upload a larger set of source maps for prettier stack traces (increases build time)
-    widenClientFileUpload: true,
-
-    // Transpiles SDK to be compatible with IE11 (increases bundle size)
-    transpileClientSDK: false, // Modern browsers only
-
-    // Routes browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers (increases server load)
-    tunnelRoute: "/api/monitoring",
-
-    // Hides source maps from generated client bundles
-    hideSourceMaps: true,
-
-    // Automatically tree-shake Sentry logger statements to reduce bundle size
-    disableLogger: true,
-
-    // Enables automatic instrumentation of Vercel Cron Monitors.
-    // See the following for more information:
-    // https://docs.sentry.io/product/crons/
-    // https://vercel.com/docs/cron-jobs
+  webpack: {
+    // Creates Sentry cron monitors for the Vercel cron jobs (https://docs.sentry.io/product/crons/).
     automaticVercelMonitors: true,
-
-    // Optimization: Reduce bundle size by excluding features we don't use
-    bundleSizeOptimizations: {
-      excludeDebugStatements: true,
-      excludeMetricsAggregator: true,
-      excludeReplayCanvas: true,
-      excludeReplayIframe: true,
-      excludeReplayShadowDom: true,
-      excludeReplayWorker: true,
-      excludeTracing: true,
-    },
   },
-);
+});
 
 export default withNextIntl(withBundleAnalyzer(serverConfig));

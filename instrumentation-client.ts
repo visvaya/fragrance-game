@@ -8,7 +8,7 @@ disableZodJit();
 
 // Silences Sentry SDK warning about missing export.
 // Must NOT reference Sentry.captureRouterTransitionStart directly – that pulls
-// tracing code into the bundle despite excludeTracing: true.
+// tracing code into the bundle.
 
 /**
  * Callback triggered when router transition starts.
