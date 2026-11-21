@@ -1,12 +1,13 @@
 #!/usr/bin/env node
-// @ts-nocheck: this script is removed in a separate change, so it is not worth typing.
+// @ts-nocheck: untyped until it is rewritten in TypeScript.
 /**
  * Fails CI when Supabase's Security Advisor reports ERROR-level findings
  * (missing RLS policies, SECURITY DEFINER views, exposed schemas, ...).
  *
- * The Supabase CLI has no `advisors` command yet (supabase/cli#3839), so this
- * calls the Management API directly. That endpoint is marked experimental –
- * if its shape changes, this script fails loudly rather than reporting a false pass.
+ * It calls the Management API with an access token: `supabase db advisors` (CLI 2.117)
+ * connects to Postgres directly, which needs the database password and IPv6 on the runner.
+ * The API endpoint is marked experimental: if its shape changes, this script fails loudly
+ * rather than reporting a false pass.
  *
  * Required env:
  *   SUPABASE_ACCESS_TOKEN  personal access token with database:read
