@@ -27,6 +27,11 @@ describe("startup JS budget", () => {
     expect(startupProblem(measureStartup(data, []), 99)).toMatch(/100 bytes.*limit 99/);
   });
 
+  it("fails when no start-up JS is found, so a changed analyze format cannot pass silently", () => {
+    const noStartup = { ...data, chunk_groups: [{ kind: "async", output_file_indices: [0, 1] }] };
+    expect(startupProblem(measureStartup(noStartup, []), 10_000)).toMatch(/No start-up JS found/);
+  });
+
   it("fails on a forbidden package in a start-up chunk", () => {
     const withZod = { ...data, chunk_groups: [{ kind: "render_dependent", output_file_indices: [0, 1] }] };
     const measured = measureStartup(withZod, ["zod"]);

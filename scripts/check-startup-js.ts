@@ -58,6 +58,9 @@ export function measureStartup(data: AnalyzeData, forbidden: readonly string[]) 
  * @param limit - Highest accepted compressed size in bytes.
  */
 export function startupProblem(measured: ReturnType<typeof measureStartup>, limit: number): string | undefined {
+  if (measured.bytes === 0) {
+    return "No start-up JS found in the analyze output: the next analyze data format may have changed; update scripts/check-startup-js.ts.";
+  }
   if (measured.forbiddenPaths.length > 0) {
     return `Start-up JS includes ${measured.forbiddenPaths.slice(0, 5).join(", ")}: load it with a dynamic import() after start-up.`;
   }
