@@ -35,7 +35,7 @@ export function ResetPasswordForm() {
     .object({
       confirmPassword: z
         .string()
-        .min(1, { message: t("confirmPasswordLabel") }),
+        .min(1, { message: tRegister("confirmPasswordRequired") }),
       password: strongPasswordSchema(tRegister),
     })
     .refine((data) => data.password === data.confirmPassword, {

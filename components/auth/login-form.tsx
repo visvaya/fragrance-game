@@ -44,7 +44,7 @@ export function LoginForm({
 
   const loginSchema = z.object({
     email: z.email({ message: t("invalidEmail") }),
-    password: z.string().min(1, { message: t("passwordLabel") }),
+    password: z.string().min(1, { message: t("passwordRequired") }),
   });
 
   type LoginFormValues = z.infer<typeof loginSchema>;

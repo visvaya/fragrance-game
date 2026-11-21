@@ -226,7 +226,8 @@
       "success": "Zalogowano pomyślnie",
       "failed": "Logowanie nieudane",
       "error": "Wystąpił nieoczekiwany błąd",
-      "invalidEmail": "Nieprawidłowy adres email"
+      "invalidEmail": "Nieprawidłowy adres email",
+      "passwordRequired": "Podaj hasło"
     },
     "register": {
       "title": "Stwórz konto",
@@ -242,6 +243,7 @@
       "successDescription": "Sprawdź swoją skrzynkę email, aby potwierdzić konto.",
       "captchaError": "Proszę potwierdzić weryfikację captcha",
       "passwordsDoNotMatch": "Hasła nie są identyczne",
+      "confirmPasswordRequired": "Powtórz hasło",
       "passwordMinLength": "Hasło musi mieć co najmniej 8 znaków",
       "passwordLowercase": "Musi zawierać małą literę",
       "passwordUppercase": "Musi zawierać wielką literę",

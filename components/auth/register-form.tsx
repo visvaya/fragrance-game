@@ -68,7 +68,9 @@ export function RegisterForm({
 
   const registerSchema = z
     .object({
-      confirmPassword: z.string().min(1, { message: t("passwordLabel") }),
+      confirmPassword: z
+        .string()
+        .min(1, { message: t("confirmPasswordRequired") }),
       email: z.email({ message: t("invalidEmail") }),
       password: strongPasswordSchema(t),
     })
