@@ -60,7 +60,7 @@ importers:
     dependencies:
       '@hookform/resolvers':
         specifier: 7.0.6
-        version: 7.0.6(ajv-formats@3.0.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.91.0(@types/react@19.3.0)(react@19.3.1))(valibot@1.5.0(typescript@7.0.2))(zod@4.6.7)
+        version: 7.0.6(ajv-formats@3.0.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(valibot@1.5.0(typescript@7.0.2))(zod@4.6.7)
       '@marsidev/react-turnstile':
         specifier: 1.6.3
         version: 1.6.3(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -104,8 +104,8 @@ importers:
         specifier: 0.7.39
         version: 0.7.39
       '@upstash/ratelimit':
-        specifier: 2.2.0
-        version: 2.2.0(@upstash/redis@1.41.0)
+        specifier: 2.2.1
+        version: 2.2.1(@upstash/redis@1.41.0)
       '@upstash/redis':
         specifier: 1.41.0
         version: 1.41.0
@@ -131,17 +131,17 @@ importers:
         specifier: 16.4.6
         version: 16.4.6(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.65.1)(@types/node@26.6.6)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       next-intl:
-        specifier: 4.14.9
-        version: 4.14.9(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.6(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.65.1)(@types/node@26.6.6)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
+        specifier: 4.15.1
+        version: 4.15.1(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.6(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.65.1)(@types/node@26.6.6)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
       next-themes:
         specifier: 0.4.6
         version: 0.4.6(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       posthog-js:
-        specifier: 1.447.3
-        version: 1.447.3(@types/react@19.3.0)(react@19.3.1)
+        specifier: 1.449.2
+        version: 1.449.2(@types/react@19.3.0)(react@19.3.1)
       posthog-node:
-        specifier: 5.63.1
-        version: 5.63.1(@opentelemetry/api@1.9.1)
+        specifier: 5.73.1
+        version: 5.73.1(@opentelemetry/api@1.9.1)
       react:
         specifier: 19.3.1
         version: 19.3.1
@@ -149,8 +149,8 @@ importers:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
       react-hook-form:
-        specifier: 7.91.0
-        version: 7.91.0(@types/react@19.3.0)(react@19.3.1)
+        specifier: 7.92.0
+        version: 7.92.0(@types/react@19.3.0)(react@19.3.1)
       server-only:
         specifier: 0.0.1
         version: 0.0.1
@@ -1997,14 +1997,14 @@ packages:
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
 
-  '@posthog/browser-common@0.10.7':
-    resolution: {integrity: sha512-1V2SBu7gxVbroZk49YsCM++K9qy3qcrOaylemjkkTPvACgAGwm0Y/AkJN2eRZO1YME0FnagF6QKBaXmq3o0e8g==}
+  '@posthog/browser-common@0.11.0':
+    resolution: {integrity: sha512-aNj0D10kN/Owa39iyfrwHKg3XGIQq2azbTVa34uzQHJvlcnHphqIYB24qD4qFZqYjDvn1fKhWPA06p79WHUDpw==}
 
-  '@posthog/core@1.64.1':
-    resolution: {integrity: sha512-2ziryOLWTxftHrTLhGYQzLHDpPughaRRi/+L1vhg4cQFHJfgTevMzAz21R1zR7MKFDkyJ9lCJD/K2jxIkGbnfg==}
+  '@posthog/core@1.67.3':
+    resolution: {integrity: sha512-BAVJB+ADAjFNBVZKCRbMi5+WMJaSFHHIEId0/ebvAwhOVIMmK4mVrktGGjx9zJBHLe82JdQVVRhpaOwLgoBMgA==}
 
-  '@posthog/types@1.421.1':
-    resolution: {integrity: sha512-475eg+usYiQ2m7GfxgylnBTVa3aPsEfaE6gQoDvg5nEkWAjcNiGm1u3WsESOErfrFFUajpYcxc71JCzfdoJ8gg==}
+  '@posthog/types@1.425.1':
+    resolution: {integrity: sha512-mh7jyQ5lN+XCeOnMdYkBEFtO/G0TxeLOKTWNH6E6OZjxS4nVM0Tb2xQt+FG5DCFM9qzL2HmuX6A793TwlJVDvw==}
 
   '@radix-ui/number@1.1.3':
     resolution: {integrity: sha512-Road2bidD0uu/1BGDOWNdPI06g0lIRy6IF9GZcIrDK2KGItfor8IQwQa+yM2ERgHM1MmHxaxpTzk0/Jp42lNfA==}
@@ -3335,8 +3335,8 @@ packages:
     resolution: {integrity: sha512-7qJHGxpQgQr9/vmeS1PktEwvNAF7TI4iJDi8Pu2CFZ9YUGHZH4fOP5TfYlZ4aVxfopnELiE4BS4FBjyK7V1/xQ==}
     engines: {node: '>=16.0.0'}
 
-  '@upstash/ratelimit@2.2.0':
-    resolution: {integrity: sha512-gSydXspG6TJKTh71/gGGv4IGDjD9rXglQfm2jAue2kh4bcfWtEAsG1NW4OqzZd/hubJPojsbOU6AMdS6Xqh0tQ==}
+  '@upstash/ratelimit@2.2.1':
+    resolution: {integrity: sha512-SE2BU4h4+Ua/5SLKkrXZ8j1hYZt8xge3dGD3mnMeDls1CiOpau8Q8gipdVtbbzjIxBxRutJqCBoeXqSa1HH3lg==}
     peerDependencies:
       '@upstash/redis': ^1.38.2
 
@@ -4124,8 +4124,8 @@ packages:
     resolution: {integrity: sha512-1dhVQZXhcHje7798IVM+xoo/1ZdVfzOMIc8/rgVSijRK38EDqOJoGula9N/8ZI5RD8QTxNQtK/Gozpr+qUqRRA==}
     engines: {node: '>=20.0.0'}
 
-  icu-minify@4.14.9:
-    resolution: {integrity: sha512-PmO+fNnC3K3mfPKTnm3RrPERrhQZnjm1AlpyZQ0ShbXi8Y/kYZ3YOde8TEjCLz9k3P2DmzkBn8lykGrCAi1Ajw==}
+  icu-minify@4.15.2:
+    resolution: {integrity: sha512-IsgBR7/1RBkYWUqP2wS+vE9BBBfH4HjNjDbSPF3uK2Jjlzlsd7R+loUhjEEUySU6tjGmUIuft7w3qp7PI0KkXA==}
 
   ignore@5.3.2:
     resolution: {integrity: sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==}
@@ -4607,11 +4607,11 @@ packages:
   neo-async@2.6.2:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
 
-  next-intl-swc-plugin-extractor@4.14.9:
-    resolution: {integrity: sha512-8jAkmDwQJo6RDavBHm9QRl1YTn2WXf+rI4SVhMaZxZcxopnwZic6fKTXOoNIo3kzC+a6vJySkOkXmHTVFLAYtg==}
+  next-intl-swc-plugin-extractor@4.15.1:
+    resolution: {integrity: sha512-n+CrfyQ3obIpZoaHtlHvtTLg6EuFcmSC3c71Yv0Kh4/5zenBJ8WeYP/xAnsiwQjZcaK9zie0SHwWeIG+5OJaBw==}
 
-  next-intl@4.14.9:
-    resolution: {integrity: sha512-uauRtUC+TrYNA1OL/QcwL9irndLrI9jK3Wdaa9W0B5AeKh9cqVdNeT0IWgLnhBqBRrVwppVdI0M+C1+JdGPQ3w==}
+  next-intl@4.15.1:
+    resolution: {integrity: sha512-b0KOLdd2pv+uWTma2Lv8OlSLCAqa2zasCx6ZXo2n/0/rAGWkzgRdQ0nD7sl0xtuDFRPNu8sNm+cWgJic16Sbmg==}
     peerDependencies:
       '@types/react': ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       next: ^12.0.0 || ^13.0.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
@@ -4788,8 +4788,8 @@ packages:
     resolution: {integrity: sha512-LJlKCCAUFKOuZxipUdYw1NzIITEsPcgyOG9LkvRJvuKj/bRzbuRY0ARXvL0pWGpsZvn8jku+LMep2eU0seHp8g==}
     engines: {node: ^10 || ^12 || >=14}
 
-  posthog-js@1.447.3:
-    resolution: {integrity: sha512-tNuh/o65vIzvm+n60oFYNUxaM7JsSrsFGY9fPu2DvB0ZCU2qOeai8jl+D7JUV+iJ9kiXHX0R6JUAAhq/1GbjzA==}
+  posthog-js@1.449.2:
+    resolution: {integrity: sha512-vji+h92IHaLlFSEnRH1hwe8uLWGOdDUImmPXexj/+V7Xm7HTxIQisYE/Kom7Aaw4DRpzfdhQxiyAN1YVYR4G8Q==}
     peerDependencies:
       '@types/react': '>=16.8.0'
       react: '>=16.8.0'
@@ -4799,14 +4799,17 @@ packages:
       react:
         optional: true
 
-  posthog-node@5.63.1:
-    resolution: {integrity: sha512-CwJ1JEbFYtXYf8rctJdQy8S61bGNenqf1lBd5xw9z6MGMlfRwtWRrs96D3I3yV5MzKPctyGp0wPtYSTECBcLbQ==}
+  posthog-node@5.73.1:
+    resolution: {integrity: sha512-Fznjod4zWWxjJnR5rgbWqyxKcsD8K/duv8rXBS1wzBwFRn6Tiu+UATbGP2OouSebci7RKpU59aqjM3g2DQ0Lbw==}
     engines: {node: ^20.20.0 || >=22.22.0}
     peerDependencies:
       '@opentelemetry/api': ^1.2.0
+      '@react-email/render': ^2.1.0
       rxjs: ^7.0.0
     peerDependenciesMeta:
       '@opentelemetry/api':
+        optional: true
+      '@react-email/render':
         optional: true
       rxjs:
         optional: true
@@ -4839,8 +4842,8 @@ packages:
     peerDependencies:
       react: ^19.3.1
 
-  react-hook-form@7.91.0:
-    resolution: {integrity: sha512-5BEBUnCBwa28AFXYTYmOaB/+CSpJ/+CWVASHEvIGUzFdHyUiPHeRhG7r5hOZ8nZi0yP7pbHdFNXO/p31EKTJFQ==}
+  react-hook-form@7.92.0:
+    resolution: {integrity: sha512-O5ILyY5fYHN7N13Pfxpe55KboyNFsJdM03BHpshQkClJd8raugiAUGY7VjifITrfhVxyx81ko25azXCoayhf1w==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       '@types/react': '*'
@@ -5338,8 +5341,8 @@ packages:
       '@types/react':
         optional: true
 
-  use-intl@4.14.9:
-    resolution: {integrity: sha512-37ktvdCCz+6JY2VFPl/GV69Ds4ahiUT2c2xEZZRZYxdgGLxFsUbdxzjQVRm3YMIOUU0VPs6zvlifb4Yjk4IxIg==}
+  use-intl@4.15.1:
+    resolution: {integrity: sha512-WJwcDTRzrg4JaEu3Jl1oEEXu5fLkWh+R8jZAhEYrTWMYqGYExKAi51MwtSBZZpYa7HzqluJPx2jmEap21kQlUQ==}
     peerDependencies:
       '@types/react': ^17.0.0 || ^18.0.0 || ^19.0.0
       react: ^17.0.0 || ^18.0.0 || >=19.0.0-rc <19.0.0 || ^19.0.0
@@ -6196,10 +6199,10 @@ snapshots:
     dependencies:
       '@formatjs/fast-memoize': 3.1.7
 
-  '@hookform/resolvers@7.0.6(ajv-formats@3.0.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.91.0(@types/react@19.3.0)(react@19.3.1))(valibot@1.5.0(typescript@7.0.2))(zod@4.6.7)':
+  '@hookform/resolvers@7.0.6(ajv-formats@3.0.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(valibot@1.5.0(typescript@7.0.2))(zod@4.6.7)':
     dependencies:
       '@standard-schema/utils': 0.3.0
-      react-hook-form: 7.91.0(@types/react@19.3.0)(react@19.3.1)
+      react-hook-form: 7.92.0(@types/react@19.3.0)(react@19.3.1)
     optionalDependencies:
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
@@ -6798,20 +6801,20 @@ snapshots:
 
   '@polka/url@1.0.0-next.29': {}
 
-  '@posthog/browser-common@0.10.7':
+  '@posthog/browser-common@0.11.0':
     dependencies:
-      '@posthog/core': 1.64.1
-      '@posthog/types': 1.421.1
+      '@posthog/core': 1.67.3
+      '@posthog/types': 1.425.1
       dompurify: 3.4.17
       preact: 10.29.8
     transitivePeerDependencies:
       - preact-render-to-string
 
-  '@posthog/core@1.64.1':
+  '@posthog/core@1.67.3':
     dependencies:
-      '@posthog/types': 1.421.1
+      '@posthog/types': 1.425.1
 
-  '@posthog/types@1.421.1': {}
+  '@posthog/types@1.425.1': {}
 
   '@radix-ui/number@1.1.3': {}
 
@@ -7912,7 +7915,7 @@ snapshots:
     dependencies:
       '@upstash/redis': 1.41.0
 
-  '@upstash/ratelimit@2.2.0(@upstash/redis@1.41.0)':
+  '@upstash/ratelimit@2.2.1(@upstash/redis@1.41.0)':
     dependencies:
       '@upstash/core-analytics': 0.0.10
       '@upstash/redis': 1.41.0
@@ -8733,7 +8736,7 @@ snapshots:
 
   iceberg-js@0.8.1: {}
 
-  icu-minify@4.14.9:
+  icu-minify@4.15.2:
     dependencies:
       '@formatjs/icu-messageformat-parser': 3.5.22
 
@@ -9136,9 +9139,9 @@ snapshots:
   neo-async@2.6.2:
     optional: true
 
-  next-intl-swc-plugin-extractor@4.14.9: {}
+  next-intl-swc-plugin-extractor@4.15.1: {}
 
-  next-intl@4.14.9(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.6(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.65.1)(@types/node@26.6.6)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1):
+  next-intl@4.15.1(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.6(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.65.1)(@types/node@26.6.6)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1):
     dependencies:
       '@eloqnt/config': 0.1.1
       '@eloqnt/format-json': 0.1.0
@@ -9146,12 +9149,12 @@ snapshots:
       '@formatjs/intl-localematcher': 0.8.14
       '@parcel/watcher': 2.6.0
       '@swc/core': 1.16.22(@swc/helpers@0.5.23)
-      icu-minify: 4.14.9
+      icu-minify: 4.15.2
       negotiator: 1.1.0
       next: 16.4.6(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.65.1)(@types/node@26.6.6)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      next-intl-swc-plugin-extractor: 4.14.9
+      next-intl-swc-plugin-extractor: 4.15.1
       react: 19.3.1
-      use-intl: 4.14.9(@types/react@19.3.0)(react@19.3.1)
+      use-intl: 4.15.1(@types/react@19.3.0)(react@19.3.1)
     optionalDependencies:
       '@types/react': 19.3.0
     transitivePeerDependencies:
@@ -9405,11 +9408,11 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.2
 
-  posthog-js@1.447.3(@types/react@19.3.0)(react@19.3.1):
+  posthog-js@1.449.2(@types/react@19.3.0)(react@19.3.1):
     dependencies:
-      '@posthog/browser-common': 0.10.7
-      '@posthog/core': 1.64.1
-      '@posthog/types': 1.421.1
+      '@posthog/browser-common': 0.11.0
+      '@posthog/core': 1.67.3
+      '@posthog/types': 1.425.1
       core-js: 3.51.0
       dompurify: 3.4.17
       fflate: 0.4.9
@@ -9423,9 +9426,9 @@ snapshots:
     transitivePeerDependencies:
       - preact-render-to-string
 
-  posthog-node@5.63.1(@opentelemetry/api@1.9.1):
+  posthog-node@5.73.1(@opentelemetry/api@1.9.1):
     dependencies:
-      '@posthog/core': 1.64.1
+      '@posthog/core': 1.67.3
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
 
@@ -9448,7 +9451,7 @@ snapshots:
       react: 19.3.1
       scheduler: 0.28.0
 
-  react-hook-form@7.91.0(@types/react@19.3.0)(react@19.3.1):
+  react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1):
     dependencies:
       react: 19.3.1
     optionalDependencies:
@@ -9946,11 +9949,11 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
 
-  use-intl@4.14.9(@types/react@19.3.0)(react@19.3.1):
+  use-intl@4.15.1(@types/react@19.3.0)(react@19.3.1):
     dependencies:
       '@formatjs/fast-memoize': 3.1.7
       '@schummar/icu-type-parser': 1.21.5
-      icu-minify: 4.14.9
+      icu-minify: 4.15.2
       intl-messageformat: 11.2.15
       react: 19.3.1
     optionalDependencies:
