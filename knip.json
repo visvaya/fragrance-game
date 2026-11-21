@@ -3,10 +3,6 @@
   "entry": ["app/api/**/route.ts", "scripts/*.ts"],
   "project": ["**/*.{ts,tsx,js,jsx}"],
   "ignore": ["types/supabase.ts"],
-  "ignoreDependencies": [
-    "postcss-load-config",
-    "@types/ua-parser-js",
-    "tailwindcss-animate"
-  ],
+  "ignoreDependencies": ["postcss-load-config", "tailwindcss-animate"],
   "ignoreBinaries": ["uv"]
 }
