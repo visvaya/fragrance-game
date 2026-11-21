@@ -8,16 +8,23 @@ import { cn } from "@/lib/utils";
 import { Captcha } from "./captcha";
 
 type AuthCaptchaModalProperties = {
-  /** Asks the provider to show the dialog (Cloudflare wants a click, or the widget failed). */
+  /** Asks the provider to show the dialog: Cloudflare wants a click. */
   readonly onNeedsAttention: () => void;
   /** The Turnstile script did not load or the browser is unsupported. */
   readonly onUnavailable: () => void;
   readonly onVerify: (token: string) => void;
+  /** The widget reported an error; an invisible widget would leave the dialog empty. */
+  readonly onWidgetError: () => void;
   /**
    * "pending": invisible check; "waiting": the check is slow, the dialog says so;
    * "interactive": the dialog shows the widget; "failed": the dialog offers a reload.
    */
   readonly stage: "pending" | "waiting" | "interactive" | "failed";
+  /**
+   * Shows the widget from the start instead of only when Cloudflare asks for a click. Used after
+   * a rejected sign-in, when the dialog is already open and must not stay empty.
+   */
+  readonly widgetVisible: boolean;
 };
 
 /**
@@ -31,7 +38,9 @@ export function AuthCaptchaModal({
   onNeedsAttention,
   onUnavailable,
   onVerify,
+  onWidgetError,
   stage,
+  widgetVisible,
 }: AuthCaptchaModalProperties) {
   const t = useTranslations("Auth.register");
   const isVisible = stage !== "pending";
@@ -93,9 +102,9 @@ export function AuthCaptchaModal({
         ) : (
           <div className="flex justify-center p-4">
             <Captcha
-              appearance="interaction-only"
+              appearance={widgetVisible ? "always" : "interaction-only"}
               onBeforeInteractive={onNeedsAttention}
-              onError={onNeedsAttention}
+              onError={onWidgetError}
               onUnavailable={onUnavailable}
               onVerify={onVerify}
             />
