@@ -13,6 +13,11 @@ minimumReleaseAge: 10080
 # pnpm 12.3+ turns this on whenever minimumReleaseAge is set; pnpm 11 needs it explicitly.
 minimumReleaseAgeStrict: true
 
+# CI and Vercel take the pnpm version from packageManager, so pnpm itself does not manage it.
+# Without this, pnpm 12 writes its own version as a first YAML document in pnpm-lock.yaml, which
+# tools that read only one document (dependency graphs, SBOM generators) take for the whole file.
+pmOnFail: ignore
+
 # pnpm 11 reads allowBuilds; pnpm 9/10 (Vercel picks pnpm from lockfileVersion) read onlyBuiltDependencies.
 allowBuilds:
   "@parcel/watcher": true
