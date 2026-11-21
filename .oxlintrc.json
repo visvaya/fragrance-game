@@ -2002,7 +2002,8 @@
       "files": ["lint/**"],
       "rules": {
         "import/no-default-export": "off",
-        "jsdoc/check-tag-names": "off",
+        // typed: false lets the JSDoc type tags (@type, @typedef) through; unknown tags still fail.
+        "jsdoc/check-tag-names": ["error", { "typed": false }],
         "typescript/no-unsafe-argument": "off",
         "typescript/no-unsafe-assignment": "off",
         "typescript/no-unsafe-call": "off",
