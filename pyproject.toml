@@ -101,5 +101,5 @@ forbidden_modules = [
 [tool.uv]
 package = false
 # The uv version CI runs (.github/workflows/ci.yml) is the local minimum.
-required-version = ">=0.13.7"
+required-version = ">=0.13.8"
 exclude-newer = "7 days"
