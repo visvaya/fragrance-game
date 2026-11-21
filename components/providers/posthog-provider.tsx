@@ -10,15 +10,29 @@ let posthogInstance: {
   capture: (event: string, props?: Record<string, unknown>) => void;
 } | null = null;
 
+/** Events captured before PostHog loads; sent once it has. */
+const MAX_QUEUED_EVENTS = 20;
+let queuedEvents: readonly (readonly [
+  string,
+  Record<string, unknown> | undefined,
+])[] = [];
+
 /**
- * Capture an analytics event without requiring React context.
- * No-op if PostHog hasn't loaded yet – events are dropped silently before initialization.
+ * Capture an analytics event without requiring React context. PostHog loads at the first
+ * interaction, so earlier events (such as the start-up verification time) wait in a short queue
+ * and are sent when it loads; past the queue limit they are dropped.
  */
 export function captureAnalyticsEvent(
   event: string,
   props?: Record<string, unknown>,
 ): void {
-  posthogInstance?.capture(event, props);
+  if (posthogInstance) {
+    posthogInstance.capture(event, props);
+    return;
+  }
+  if (queuedEvents.length >= MAX_QUEUED_EVENTS) return;
+  // eslint-disable-next-line fp/no-mutation -- module-level queue, replaced, never mutated in place
+  queuedEvents = [...queuedEvents, [event, props]];
 }
 
 /**
@@ -57,6 +71,9 @@ async function initPostHog() {
 
     // eslint-disable-next-line fp/no-mutation -- module-level singleton, set once after PostHog initializes
     posthogInstance = posthog;
+    for (const [event, props] of queuedEvents) posthog.capture(event, props);
+    // eslint-disable-next-line fp/no-mutation -- the queue is drained once, when PostHog loads
+    queuedEvents = [];
   } catch (error) {
     console.error("Failed to load PostHog:", error);
   }

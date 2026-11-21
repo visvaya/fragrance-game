@@ -69,4 +69,22 @@ describe("PostHogProvider", () => {
 
     expect(capture).toHaveBeenCalledWith("test_event", { a: 1 });
   });
+
+  it("sends events captured before PostHog loaded once it loads", async () => {
+    vi.resetModules();
+    const fresh = await import("../posthog-provider");
+    fresh.captureAnalyticsEvent("early_event", { duration_ms: 42 });
+    expect(capture).not.toHaveBeenCalled();
+
+    const user = userEvent.setup();
+    render(
+      <fresh.PostHogProvider>
+        <StatefulChild />
+      </fresh.PostHogProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "count 0" }));
+    await waitFor(() => {
+      expect(capture).toHaveBeenCalledWith("early_event", { duration_ms: 42 });
+    });
+  });
 });

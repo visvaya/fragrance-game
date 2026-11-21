@@ -254,7 +254,7 @@
       "unexpectedError": "An unexpected error occurred",
       "captchaTitle": "Verification Required",
       "captchaDescription": "Please verify you are human to start the game.",
-      "captchaLoading": "Loading Captcha...",
+      "captchaLoading": "Loading verification...",
       "captchaFailed": "The verification did not go through. Reload the page to try again.",
       "captchaReload": "Reload",
       "invalidFormat": "Invalid password format"

@@ -1,8 +1,12 @@
 "use client";
 
+import { useState } from "react";
+
+import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
+import { useScrollLock } from "@/lib/hooks/use-scroll-lock";
 import { cn } from "@/lib/utils";
 
 import { Captcha } from "./captcha";
@@ -44,6 +48,10 @@ export function AuthCaptchaModal({
 }: AuthCaptchaModalProperties) {
   const t = useTranslations("Auth.register");
   const isVisible = stage !== "pending";
+  const [widgetLoaded, setWidgetLoaded] = useState(false);
+  useScrollLock(isVisible);
+  const isLoading =
+    stage === "waiting" || (stage === "interactive" && !widgetLoaded);
 
   return (
     <div
@@ -87,12 +95,17 @@ export function AuthCaptchaModal({
           className="mt-2 text-sm text-muted-foreground"
           id="anonymous-captcha-description"
         >
-          {stage === "failed"
-            ? t("captchaFailed")
-            : stage === "waiting"
-              ? t("captchaLoading")
-              : t("captchaDescription")}
+          {stage === "failed" ? t("captchaFailed") : t("captchaDescription")}
         </p>
+        {isLoading ? (
+          <output className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2
+              aria-hidden="true"
+              className="size-4 animate-spin motion-reduce:animate-none"
+            />
+            {t("captchaLoading")}
+          </output>
+        ) : null}
         {stage === "failed" ? (
           <div className="mt-4 flex justify-end">
             <Button onClick={() => globalThis.location.reload()} type="button">
@@ -107,6 +120,7 @@ export function AuthCaptchaModal({
               onError={onWidgetError}
               onUnavailable={onUnavailable}
               onVerify={onVerify}
+              onWidgetLoad={() => setWidgetLoaded(true)}
             />
           </div>
         )}
