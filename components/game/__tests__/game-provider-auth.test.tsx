@@ -62,15 +62,23 @@ vi.mock("@/lib/public-env", async (importOriginal) => {
 // Turnstile itself is replaced by buttons that fire its callbacks.
 vi.mock("@/components/auth/captcha", () => ({
   Captcha: ({
+    appearance,
     onBeforeInteractive,
+    onError,
     onUnavailable,
     onVerify,
   }: {
+    appearance: string;
     onBeforeInteractive: () => void;
+    onError: () => void;
     onUnavailable: () => void;
     onVerify: (token: string) => void;
   }) => (
     <>
+      <span data-testid="turnstile-appearance">{appearance}</span>
+      <button onClick={() => onError()} type="button">
+        turnstile-error
+      </button>
       <button onClick={() => onBeforeInteractive()} type="button">
         needs-interaction
       </button>
@@ -229,6 +237,11 @@ describe("GameProvider anonymous sign-in for a new visitor", () => {
     );
     expect(gameActions.initializeGame).not.toHaveBeenCalled();
 
+    // The widget comes back visible, so the dialog is never an empty box.
+    expect(screen.getByTestId("turnstile-appearance")).toHaveTextContent(
+      "always",
+    );
+
     // A fresh token after the rejection completes the start-up.
     await clickTurnstile(user, "turnstile-solved");
     await waitFor(() => {
@@ -255,6 +268,19 @@ describe("GameProvider anonymous sign-in for a new visitor", () => {
     ).toBeNull();
     expect(signInAnonymously).toHaveBeenCalledTimes(2);
     expect(screen.getByTestId("auth")).toHaveTextContent("waiting failed");
+  });
+
+  it("offers a reload when the widget reports an error", async () => {
+    const user = userEvent.setup();
+    renderProvider();
+
+    await clickTurnstile(user, "turnstile-error");
+
+    expect(await screen.findByRole("alertdialog")).toHaveTextContent(
+      "The verification did not go through.",
+    );
+    expect(screen.getByRole("button", { name: "Reload" })).toBeInTheDocument();
+    expect(signInAnonymously).not.toHaveBeenCalled();
   });
 
   it("offers a reload when the Turnstile script cannot load", async () => {

@@ -518,7 +518,9 @@ export function GameProvider({
             }
             onUnavailable={failAuth}
             onVerify={(token) => void handleCaptchaVerify(token)}
+            onWidgetError={failAuth}
             stage={captchaStage}
+            widgetVisible={captchaAttempt > 0}
           />
         )}
         <MigrationModal />
