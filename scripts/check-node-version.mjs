@@ -13,8 +13,8 @@ const isRecord = (value) => typeof value === "object" && value !== null;
 const readManifest = () => JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 
 const manifest = readManifest();
-const engines = isRecord(manifest) ? manifest.engines : undefined;
-const enginesNode = isRecord(engines) && typeof engines.node === "string" ? engines.node : "";
+const engines = isRecord(manifest) ? manifest["engines"] : undefined;
+const enginesNode = isRecord(engines) && typeof engines["node"] === "string" ? engines["node"] : "";
 const floor = /(\d+)\.(\d+)\.(\d+)/.exec(enginesNode);
 const current = /(\d+)\.(\d+)\.(\d+)/.exec(process.version);
 
