@@ -100,6 +100,7 @@ forbidden_modules = [
 
 [tool.uv]
 package = false
-# The uv version CI runs (.github/workflows/ci.yml) is the local minimum.
-required-version = ">=0.13.8"
+# CI pins the exact uv version (.github/workflows/ci.yml); this floor stays at the minor line,
+# because Dependabot runs its own, older uv and refuses to update when the floor is above it.
+required-version = ">=0.13"
 exclude-newer = "7 days"
