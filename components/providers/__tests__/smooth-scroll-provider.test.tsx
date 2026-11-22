@@ -1,19 +1,23 @@
 import { render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { useScrollLock } from "@/lib/hooks/use-scroll-lock";
+
 import { lenisScrollTo, SmoothScrollProvider } from "../smooth-scroll-provider";
 
-const { construct, destroy, raf, scrollTo } = vi.hoisted(() => ({
+const { construct, destroy, raf, scrollTo, start, stop } = vi.hoisted(() => ({
   construct: vi.fn(),
   destroy: vi.fn(),
   raf: vi.fn(),
   scrollTo: vi.fn(),
+  start: vi.fn(),
+  stop: vi.fn(),
 }));
 
 vi.mock("lenis", () => ({
   default: function FakeLenis(options: unknown) {
     construct(options);
-    return { destroy, raf, scrollTo, start: vi.fn(), stop: vi.fn() };
+    return { destroy, raf, scrollTo, start, stop };
   },
 }));
 
@@ -53,12 +57,20 @@ function stubAnimationFrames() {
   };
 }
 
+/** Locks the page scroll while `locked`, like the verification dialog does. */
+function ScrollLockProbe({ locked }: Readonly<{ locked: boolean }>) {
+  useScrollLock(locked);
+  return null;
+}
+
 describe("SmoothScrollProvider", () => {
   beforeEach(() => {
     construct.mockClear();
     destroy.mockClear();
     raf.mockClear();
     scrollTo.mockClear();
+    start.mockClear();
+    stop.mockClear();
   });
 
   afterEach(() => {
@@ -126,5 +138,31 @@ describe("SmoothScrollProvider", () => {
 
     expect(construct).not.toHaveBeenCalled();
     expect(frames.pendingCount()).toBe(0);
+  });
+
+  it("pauses Lenis while a dialog locks the page scroll and resumes it after", async () => {
+    setViewport(DESKTOP_WIDTH_PX);
+    stubAnimationFrames();
+    const { rerender, unmount } = render(
+      <SmoothScrollProvider>
+        <ScrollLockProbe locked={false} />
+      </SmoothScrollProvider>,
+    );
+    await waitFor(() => expect(construct).toHaveBeenCalledTimes(1));
+
+    rerender(
+      <SmoothScrollProvider>
+        <ScrollLockProbe locked />
+      </SmoothScrollProvider>,
+    );
+    await waitFor(() => expect(stop).toHaveBeenCalled());
+
+    rerender(
+      <SmoothScrollProvider>
+        <ScrollLockProbe locked={false} />
+      </SmoothScrollProvider>,
+    );
+    await waitFor(() => expect(start).toHaveBeenCalled());
+    unmount();
   });
 });

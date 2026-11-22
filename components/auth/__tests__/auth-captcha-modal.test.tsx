@@ -50,27 +50,27 @@ function renderModal(stage: "pending" | "waiting" | "interactive" | "failed") {
 
 describe("AuthCaptchaModal", () => {
   afterEach(() => {
-    document.documentElement.style.overflow = "";
+    document.body.style.overflow = "";
   });
 
   it("locks page scroll while visible and restores the previous value when hidden", () => {
-    document.documentElement.style.overflow = "auto";
+    document.body.style.overflow = "auto";
     const { rerenderStage } = renderModal("pending");
-    expect(document.documentElement.style.overflow).toBe("auto");
+    expect(document.body.style.overflow).toBe("auto");
 
     rerenderStage("waiting");
-    expect(document.documentElement.style.overflow).toBe("hidden");
+    expect(document.body.style.overflow).toBe("hidden");
 
     rerenderStage("pending");
-    expect(document.documentElement.style.overflow).toBe("auto");
+    expect(document.body.style.overflow).toBe("auto");
   });
 
   it("restores the scroll value on unmount", () => {
     const { rerenderStage, unmount } = renderModal("pending");
     rerenderStage("interactive");
-    expect(document.documentElement.style.overflow).toBe("hidden");
+    expect(document.body.style.overflow).toBe("hidden");
     unmount();
-    expect(document.documentElement.style.overflow).toBe("");
+    expect(document.body.style.overflow).toBe("");
   });
 
   it("shows a loading status while the check is slow", () => {
