@@ -45,6 +45,59 @@ function RowCell({
   );
 }
 
+const CLUE_TOOLTIP_CLASS = "size-7 items-center justify-center sm:size-8";
+
+/** Placeholder icon for a clue that the answer or the guess does not have. */
+function MissingClue({ content }: Readonly<{ content: string }>) {
+  return (
+    <GameTooltip className={CLUE_TOOLTIP_CLASS} content={content}>
+      <IconCell
+        as="span"
+        className="font-hand text-base leading-none text-muted-foreground"
+        layout="icon"
+        variant="muted"
+      >
+        <span className={cn(iconInnerVariants(), "-translate-x-0.5")}>
+          {GENERIC_PLACEHOLDER}
+        </span>
+      </IconCell>
+    </GameTooltip>
+  );
+}
+
+/** Green check icon for a fully matched clue. */
+function ClueCheck({
+  content,
+  iconClassName = "size-4",
+}: Readonly<{ content: string; iconClassName?: string }>) {
+  return (
+    <GameTooltip className={CLUE_TOOLTIP_CLASS} content={content}>
+      <IconCell cursor="default" variant="success">
+        <Check
+          className={cn(iconClassName, "text-success", iconInnerVariants())}
+        />
+      </IconCell>
+    </GameTooltip>
+  );
+}
+
+/** Muted cross icon for a clue that did not match. */
+function ClueMiss({ content }: Readonly<{ content: string }>) {
+  return (
+    <GameTooltip className={CLUE_TOOLTIP_CLASS} content={content}>
+      <IconCell as="span" layout="pad" variant="muted">
+        <X
+          className={cn(
+            "size-4 text-muted-foreground",
+            iconInnerVariants({ skewed: true }),
+          )}
+          strokeWidth={1.5}
+        />
+      </IconCell>
+    </GameTooltip>
+  );
+}
+
 type AttemptRowProperties = Readonly<{
   activeRowIndex: number | null;
   attempt: Attempt;
@@ -321,58 +374,14 @@ export function AttemptRow({
             const guessMissing = !attempt.brand || attempt.brand === "Unknown";
 
             if (targetMissing || guessMissing) {
-              return (
-                <GameTooltip
-                  className="size-7 items-center justify-center sm:size-8"
-                  content={t("tooltips.brandMissing")}
-                >
-                  <IconCell
-                    as="span"
-                    className="font-hand text-base leading-none text-muted-foreground"
-                    layout="icon"
-                    variant="muted"
-                  >
-                    <span
-                      className={cn(iconInnerVariants(), "-translate-x-0.5")}
-                    >
-                      {GENERIC_PLACEHOLDER}
-                    </span>
-                  </IconCell>
-                </GameTooltip>
-              );
+              return <MissingClue content={t("tooltips.brandMissing")} />;
             }
 
             if (attempt.feedback.brandMatch) {
-              return (
-                <GameTooltip
-                  className="size-7 items-center justify-center sm:size-8"
-                  content={t("tooltips.brandCorrect")}
-                >
-                  <IconCell cursor="default" variant="success">
-                    <Check
-                      className={cn("size-4 text-success", iconInnerVariants())}
-                    />
-                  </IconCell>
-                </GameTooltip>
-              );
+              return <ClueCheck content={t("tooltips.brandCorrect")} />;
             }
 
-            return (
-              <GameTooltip
-                className="size-7 items-center justify-center sm:size-8"
-                content={t("tooltips.brandIncorrect")}
-              >
-                <IconCell as="span" layout="pad" variant="muted">
-                  <X
-                    className={cn(
-                      "size-4 text-muted-foreground",
-                      iconInnerVariants({ skewed: true }),
-                    )}
-                    strokeWidth={1.5}
-                  />
-                </IconCell>
-              </GameTooltip>
-            );
+            return <ClueMiss content={t("tooltips.brandIncorrect")} />;
           })()}
         </div>
 
@@ -383,40 +392,11 @@ export function AttemptRow({
             const guessMissing =
               !attempt.perfumers || attempt.perfumers.length === 0;
             if (targetMissing || guessMissing) {
-              return (
-                <GameTooltip
-                  className="size-7 items-center justify-center sm:size-8"
-                  content={t("tooltips.perfumerMissing")}
-                >
-                  <IconCell
-                    as="span"
-                    className="font-hand text-base leading-none text-muted-foreground"
-                    layout="icon"
-                    variant="muted"
-                  >
-                    <span
-                      className={cn(iconInnerVariants(), "-translate-x-0.5")}
-                    >
-                      {GENERIC_PLACEHOLDER}
-                    </span>
-                  </IconCell>
-                </GameTooltip>
-              );
+              return <MissingClue content={t("tooltips.perfumerMissing")} />;
             }
 
             if (attempt.feedback.perfumerMatch === "full") {
-              return (
-                <GameTooltip
-                  className="size-7 items-center justify-center sm:size-8"
-                  content={t("tooltips.perfumerFull")}
-                >
-                  <IconCell cursor="default" variant="success">
-                    <Check
-                      className={cn("size-4 text-success", iconInnerVariants())}
-                    />
-                  </IconCell>
-                </GameTooltip>
-              );
+              return <ClueCheck content={t("tooltips.perfumerFull")} />;
             } else if (attempt.feedback.perfumerMatch === "partial") {
               return (
                 <GameTooltip
@@ -435,22 +415,7 @@ export function AttemptRow({
                 </GameTooltip>
               );
             } else {
-              return (
-                <GameTooltip
-                  className="size-7 items-center justify-center sm:size-8"
-                  content={t("tooltips.perfumerIncorrect")}
-                >
-                  <IconCell as="span" layout="pad" variant="muted">
-                    <X
-                      className={cn(
-                        "size-4 text-muted-foreground",
-                        iconInnerVariants({ skewed: true }),
-                      )}
-                      strokeWidth={1.5}
-                    />
-                  </IconCell>
-                </GameTooltip>
-              );
+              return <ClueMiss content={t("tooltips.perfumerIncorrect")} />;
             }
           })()}
         </div>
@@ -461,38 +426,11 @@ export function AttemptRow({
             const targetMissing = !clues.answerHas.year;
             const guessMissing = attempt.year === 0;
             if (targetMissing || guessMissing) {
-              return (
-                <GameTooltip
-                  className="size-7 items-center justify-center sm:size-8"
-                  content={t("tooltips.yearMissing")}
-                >
-                  <IconCell
-                    as="span"
-                    className="font-hand text-base leading-none text-muted-foreground"
-                    layout="icon"
-                    variant="muted"
-                  >
-                    <span
-                      className={cn(iconInnerVariants(), "-translate-x-0.5")}
-                    >
-                      {GENERIC_PLACEHOLDER}
-                    </span>
-                  </IconCell>
-                </GameTooltip>
-              );
+              return <MissingClue content={t("tooltips.yearMissing")} />;
             }
 
             return attempt.feedback.yearMatch === "correct" ? (
-              <GameTooltip
-                className="size-7 items-center justify-center sm:size-8"
-                content={t("tooltips.yearCorrect")}
-              >
-                <IconCell cursor="default" variant="success">
-                  <Check
-                    className={cn("size-4 text-success", iconInnerVariants())}
-                  />
-                </IconCell>
-              </GameTooltip>
+              <ClueCheck content={t("tooltips.yearCorrect")} />
             ) : (
               <div className="flex size-full flex-col items-center justify-center">
                 <GameTooltip
@@ -554,58 +492,14 @@ export function AttemptRow({
             const guessMissing = guessGender === "unknown";
 
             if (targetMissing || guessMissing) {
-              return (
-                <GameTooltip
-                  className="size-7 items-center justify-center sm:size-8"
-                  content={t("tooltips.genderMissing")}
-                >
-                  <IconCell
-                    as="span"
-                    className="font-hand text-base leading-none text-muted-foreground"
-                    layout="icon"
-                    variant="muted"
-                  >
-                    <span
-                      className={cn(iconInnerVariants(), "-translate-x-0.5")}
-                    >
-                      {GENERIC_PLACEHOLDER}
-                    </span>
-                  </IconCell>
-                </GameTooltip>
-              );
+              return <MissingClue content={t("tooltips.genderMissing")} />;
             }
 
             if (attempt.feedback.genderMatch) {
-              return (
-                <GameTooltip
-                  className="size-7 items-center justify-center sm:size-8"
-                  content={t("tooltips.genderCorrect")}
-                >
-                  <IconCell cursor="default" variant="success">
-                    <Check
-                      className={cn("size-4 text-success", iconInnerVariants())}
-                    />
-                  </IconCell>
-                </GameTooltip>
-              );
+              return <ClueCheck content={t("tooltips.genderCorrect")} />;
             }
 
-            return (
-              <GameTooltip
-                className="size-7 items-center justify-center sm:size-8"
-                content={t("tooltips.genderIncorrect")}
-              >
-                <IconCell as="span" layout="pad" variant="muted">
-                  <X
-                    className={cn(
-                      "size-4 text-muted-foreground",
-                      iconInnerVariants({ skewed: true }),
-                    )}
-                    strokeWidth={1.5}
-                  />
-                </IconCell>
-              </GameTooltip>
-            );
+            return <ClueMiss content={t("tooltips.genderIncorrect")} />;
           })()}
         </div>
 
@@ -616,38 +510,14 @@ export function AttemptRow({
               !clues.answerHas.notes || attempt.hasGuessedNotes === false;
 
             if (isMissing) {
-              return (
-                <GameTooltip
-                  className="size-7 items-center justify-center sm:size-8"
-                  content={t("tooltips.notesMissing")}
-                >
-                  <IconCell
-                    as="span"
-                    className="font-hand text-base leading-none text-muted-foreground"
-                    layout="icon"
-                    variant="muted"
-                  >
-                    <span
-                      className={cn(iconInnerVariants(), "-translate-x-0.5")}
-                    >
-                      {GENERIC_PLACEHOLDER}
-                    </span>
-                  </IconCell>
-                </GameTooltip>
-              );
+              return <MissingClue content={t("tooltips.notesMissing")} />;
             }
 
             return attempt.feedback.notesMatch >= 1 ? (
-              <GameTooltip
-                className="size-7 items-center justify-center sm:size-8"
+              <ClueCheck
                 content={t("tooltips.notesCorrect")}
-              >
-                <IconCell cursor="default" variant="success">
-                  <Check
-                    className={cn("size-5 text-success", iconInnerVariants())}
-                  />
-                </IconCell>
-              </GameTooltip>
+                iconClassName="size-5"
+              />
             ) : (
               <GameTooltip
                 className="size-7 items-center justify-center sm:size-8"

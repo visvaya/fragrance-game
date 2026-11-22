@@ -150,3 +150,50 @@ describe("AttemptRow: missing answer data", () => {
     }
   });
 });
+
+describe("AttemptRow: matched and unmatched clues", () => {
+  const ALL_PRESENT = {
+    ...HIDDEN_CLUES,
+    answerHas: {
+      brand: true,
+      gender: true,
+      notes: true,
+      perfumer: true,
+      year: true,
+    },
+  };
+
+  it("shows the success tooltips when every clue matches", () => {
+    renderRow(
+      {
+        ...ATTEMPT,
+        feedback: {
+          brandMatch: true,
+          genderMatch: true,
+          notesMatch: 1,
+          perfumerMatch: "full",
+          yearDirection: "higher",
+          yearMatch: "correct",
+        },
+      },
+      ALL_PRESENT,
+    );
+    for (const label of [
+      "Brand: Correct",
+      "Perfumer: Full",
+      "Year: Correct",
+      "Gender: Correct",
+      "Notes: 100%",
+    ]) {
+      expect(screen.getByTestId(`tooltip-${label}`)).toBeInTheDocument();
+    }
+  });
+
+  it("shows the incorrect tooltips for a brand and perfumer miss", () => {
+    renderRow(ATTEMPT, ALL_PRESENT);
+    expect(screen.getByTestId("tooltip-Brand: Incorrect")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("tooltip-Perfumer: Incorrect"),
+    ).toBeInTheDocument();
+  });
+});
