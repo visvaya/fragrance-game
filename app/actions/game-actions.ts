@@ -1144,7 +1144,7 @@ export const getDailyChallengeSSR = unstable_cache(
       `,
       )
       .eq("id", challengePrivate.perfume_id)
-      .single()) as { data: AnswerPerfumeRow | null };
+      .single()) as { data: Omit<AnswerPerfumeRow, "name"> | null };
 
     if (perfume?.xsolve_score == null) return null;
 
