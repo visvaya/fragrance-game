@@ -65,3 +65,22 @@ export function useIsOverflowing<T extends HTMLElement>() {
     ref,
   };
 }
+
+/**
+ * Tailwind mask class that fades the scrollable row edge(s) with hidden content (15% fade).
+ */
+export function scrollFadeMaskClass(
+  canScrollLeft: boolean,
+  canScrollRight: boolean,
+) {
+  if (canScrollLeft && canScrollRight) {
+    return "[mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_85%,transparent_100%)]";
+  }
+  if (canScrollLeft) {
+    return "[mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_100%)]";
+  }
+  if (canScrollRight) {
+    return "[mask-image:linear-gradient(to_right,black_85%,transparent_100%)]";
+  }
+  return "";
+}

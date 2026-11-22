@@ -76,6 +76,17 @@ function isRateLimitError(error: unknown): boolean {
   );
 }
 
+/** Error haptic after a wrong or skipped attempt, with a second heavy pulse when it ended the game. */
+function triggerWrongAttemptHaptics(
+  haptic: ReturnType<typeof useWebHaptics>,
+  gameStatus: string,
+) {
+  void haptic.trigger("error");
+  if (gameStatus === "lost") {
+    setTimeout(() => void haptic.trigger("heavy"), 180);
+  }
+}
+
 /** A session created together with the first move (Gate 6 deferred startGame). */
 type StartedSession = Extract<
   GameSessionAction,
@@ -168,6 +179,19 @@ export function GameActionsProvider({
     );
   }, [t]);
 
+  /** Rate-limit errors lock the UI; anything else is logged and shown as a network error. */
+  const reportActionError = useCallback(
+    (error: unknown, logMessage: string) => {
+      if (isRateLimitError(error)) {
+        handleRateLimit();
+      } else {
+        console.error(logMessage, error);
+        toast.error(t("networkError"));
+      }
+    },
+    [handleRateLimit, t],
+  );
+
   const makeGuess = useCallback(
     async (perfumeName: string, brand: string, perfumeId: string) => {
       if (
@@ -199,19 +223,11 @@ export function GameActionsProvider({
         if (result.gameStatus === "won") {
           void haptic.trigger("success");
           setTimeout(() => void haptic.trigger("success"), 220);
-        } else if (result.gameStatus === "lost") {
-          void haptic.trigger("error");
-          setTimeout(() => void haptic.trigger("heavy"), 180);
         } else {
-          void haptic.trigger("error");
+          triggerWrongAttemptHaptics(haptic, result.gameStatus);
         }
       } catch (error) {
-        if (isRateLimitError(error)) {
-          handleRateLimit();
-        } else {
-          console.error("Guess submission failed:", error);
-          toast.error(t("networkError"));
-        }
+        reportActionError(error, "Guess submission failed:");
       } finally {
         isProcessingReference.current = false;
         setLoading(false);
@@ -227,9 +243,8 @@ export function GameActionsProvider({
       maxAttempts,
       sessionId,
       nonce,
-      handleRateLimit,
+      reportActionError,
       setLoading,
-      t,
     ],
   );
 
@@ -254,21 +269,10 @@ export function GameActionsProvider({
         dispatch({ session: startedSession, type: "lazySessionStarted" });
       dispatch({ result, type: "skipResolved" });
 
-      if (result.gameStatus === "lost") {
-        // Game over – stronger double-pulse haptic synced with row highlight + lost state
-        void haptic.trigger("error");
-        setTimeout(() => void haptic.trigger("heavy"), 180);
-      } else {
-        // Wrong/skipped attempt – same haptic as wrong guess, synced with row highlight
-        void haptic.trigger("error");
-      }
+      // Same haptic as a wrong guess, synced with the row highlight
+      triggerWrongAttemptHaptics(haptic, result.gameStatus);
     } catch (error) {
-      if (isRateLimitError(error)) {
-        handleRateLimit();
-      } else {
-        console.error("Skip failed:", error);
-        toast.error(t("networkError"));
-      }
+      reportActionError(error, "Skip failed:");
     } finally {
       isProcessingReference.current = false;
       setLoading(false);
@@ -283,9 +287,8 @@ export function GameActionsProvider({
     maxAttempts,
     nonce,
     sessionId,
-    handleRateLimit,
+    reportActionError,
     setLoading,
-    t,
   ]);
 
   const handleReset = useCallback(async () => {

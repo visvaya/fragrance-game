@@ -7,7 +7,10 @@ import { useTranslations } from "next-intl";
 
 import { ScrollableRow } from "@/components/game/scrollable-row";
 import { PyramidCluesSkeleton } from "@/components/game/skeletons";
-import { useIsOverflowing } from "@/hooks/use-is-overflowing";
+import {
+  scrollFadeMaskClass,
+  useIsOverflowing,
+} from "@/hooks/use-is-overflowing";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
 import { GENERIC_PLACEHOLDER, MASK_CHAR } from "@/lib/constants";
 import { cn, noop } from "@/lib/utils";
@@ -18,6 +21,27 @@ import { GameTooltip } from "../game-tooltip";
 import { InfoPopover } from "../info-popover";
 
 import { MaskedWord } from "./masked-word";
+
+/** Tooltip-wrapped "(?)" shown instead of a note count while the pyramid is still hidden. */
+function UnknownNoteCount({
+  t,
+}: Readonly<{ t: ReturnType<typeof useTranslations<"PyramidClues">> }>) {
+  return (
+    <GameTooltip content={t("linearProfileTooltip")}>
+      <span className="cursor-help">
+        (
+        {t.rich("noteCountUnknown", {
+          q: (chunks) => (
+            <span className="underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
+              {chunks}
+            </span>
+          ),
+        })}
+        )
+      </span>
+    </GameTooltip>
+  );
+}
 
 function renderPyramidNoteWord({
   hasMasking,
@@ -128,19 +152,7 @@ export const PyramidClues = memo(function PyramidClues() {
                   {t("linearProfile")}
                 </InfoPopover>{" "}
                 {revealLevel === 1 ? (
-                  <GameTooltip content={t("linearProfileTooltip")}>
-                    <span className="cursor-help">
-                      (
-                      {t.rich("noteCountUnknown", {
-                        q: (chunks) => (
-                          <span className="underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-                            {chunks}
-                          </span>
-                        ),
-                      })}
-                      )
-                    </span>
-                  </GameTooltip>
+                  <UnknownNoteCount t={t} />
                 ) : (
                   `(${t("noteCount", { count: displayNotes.length })})`
                 )}
@@ -334,19 +346,7 @@ export const PyramidClues = memo(function PyramidClues() {
               <span className="text-xs font-semibold tracking-widest text-muted-foreground lowercase">
                 {t(level.name)}{" "}
                 {revealLevel === 1 ? (
-                  <GameTooltip content={t("linearProfileTooltip")}>
-                    <span className="cursor-help">
-                      (
-                      {t.rich("noteCountUnknown", {
-                        q: (chunks) => (
-                          <span className="underline decoration-muted-foreground/30 decoration-dotted underline-offset-2">
-                            {chunks}
-                          </span>
-                        ),
-                      })}
-                      )
-                    </span>
-                  </GameTooltip>
+                  <UnknownNoteCount t={t} />
                 ) : (
                   level.notes.length > 0 &&
                   `(${t("noteCount", { count: level.notes.length })})`
@@ -452,18 +452,7 @@ function PyramidNoteBadge({
   const { canScrollLeft, canScrollRight, ref } =
     useIsOverflowing<HTMLSpanElement>();
 
-  const maskClass = (() => {
-    if (canScrollLeft && canScrollRight) {
-      return "[mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_85%,transparent_100%)]";
-    }
-    if (canScrollLeft) {
-      return "[mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_100%)]";
-    }
-    if (canScrollRight) {
-      return "[mask-image:linear-gradient(to_right,black_85%,transparent_100%)]";
-    }
-    return "";
-  })();
+  const maskClass = scrollFadeMaskClass(canScrollLeft, canScrollRight);
 
   return (
     <span

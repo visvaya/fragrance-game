@@ -9,6 +9,5 @@
     "**/*.test.tsx",
     "**/*.spec.ts"
   ],
-  "ignorePattern": ["(?<=^|\\n)import[ \\t{*][^;]*;"],
   "absolute": true
 }
