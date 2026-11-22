@@ -3,6 +3,7 @@
 import { useRef } from "react";
 
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
+import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 
 import { useUIPreferences } from "@/components/game/contexts";
@@ -33,6 +34,7 @@ export function Captcha({
   onVerify,
   onWidgetLoad,
 }: CaptchaProperties) {
+  const t = useTranslations("Auth.common");
   const ref = useRef<TurnstileInstance>(null);
   const { theme: nextTheme } = useTheme();
   const { uiPreferences } = useUIPreferences();
@@ -52,7 +54,7 @@ export function Captcha({
     console.error("Captcha: Missing NEXT_PUBLIC_TURNSTILE_SITE_KEY");
     return (
       <div className="rounded border border-red-500 p-4 text-sm text-red-500">
-        Error: Captcha Site Key missing
+        {t("captchaKeyMissing")}
       </div>
     );
   }

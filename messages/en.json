@@ -9,7 +9,8 @@
   },
   "Common": {
     "title": "Guess the Perfume",
-    "description": "Daily perfume guessing game"
+    "description": "Daily perfume guessing game",
+    "close": "Close"
   },
   "Game": {
     "start": "Start Game",
@@ -59,7 +60,8 @@
     "profile": "Your Profile",
     "signInToProfile": "Sign in to profile",
     "signedOutSuccess": "Signed out successfully",
-    "signedOutGlobalSuccess": "Successfully signed out from all devices"
+    "signedOutGlobalSuccess": "Successfully signed out from all devices",
+    "closeMenu": "Close menu"
   },
   "Footer": {
     "comingSoon": "Coming soon",
@@ -211,7 +213,9 @@
   "Auth": {
     "common": {
       "or": "Or",
-      "continueWithGoogle": "Continue with Google"
+      "continueWithGoogle": "Continue with Google",
+      "loading": "Loading...",
+      "captchaKeyMissing": "Error: Captcha Site Key missing"
     },
     "login": {
       "title": "Welcome Back",
@@ -350,5 +354,9 @@
     "success": "Games added to your account.",
     "error": "Could not add the games. Please try again.",
     "declineError": "Could not save your choice. Please try again."
+  },
+  "NotFound": {
+    "title": "404: Not Found",
+    "description": "The page you are looking for does not exist."
   }
 }

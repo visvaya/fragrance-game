@@ -13,7 +13,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       allow: "/",
-      disallow: ["/api/", "/ph-proxy/", "/sentry-example-page"],
+      disallow: ["/api/", "/ph-proxy/"],
       userAgent: "*",
     },
     sitemap: new URL("/sitemap.xml", siteUrl).toString(),

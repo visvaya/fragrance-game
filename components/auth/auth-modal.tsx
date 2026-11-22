@@ -14,19 +14,26 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 import type { ForgotPasswordFormProperties } from "@/components/auth/forgot-password-form";
 import type { LoginFormProperties } from "@/components/auth/login-form";
 import type { RegisterFormProperties } from "@/components/auth/register-form";
 
+/** Placeholder shown while a lazy auth form loads, sized like the form to avoid a layout jump. */
+function FormLoading({ className }: Readonly<{ className: string }>) {
+  const t = useTranslations("Auth.common");
+  return (
+    <div className={cn("flex items-center justify-center", className)}>
+      {t("loading")}
+    </div>
+  );
+}
+
 const LoginForm = dynamic<LoginFormProperties>(
   async () => import("@/components/auth/login-form").then((m) => m.LoginForm),
   {
-    loading: () => (
-      <div className="flex h-[25rem] items-center justify-center">
-        Loading...
-      </div>
-    ),
+    loading: () => <FormLoading className="h-[25rem]" />,
     ssr: false,
   },
 );
@@ -34,11 +41,7 @@ const RegisterForm = dynamic<RegisterFormProperties>(
   async () =>
     import("@/components/auth/register-form").then((m) => m.RegisterForm),
   {
-    loading: () => (
-      <div className="flex h-[25rem] items-center justify-center">
-        Loading...
-      </div>
-    ),
+    loading: () => <FormLoading className="h-[25rem]" />,
     ssr: false,
   },
 );
@@ -48,11 +51,7 @@ const ForgotPasswordForm = dynamic<ForgotPasswordFormProperties>(
       (m) => m.ForgotPasswordForm,
     ),
   {
-    loading: () => (
-      <div className="flex h-[12.5rem] items-center justify-center">
-        Loading...
-      </div>
-    ),
+    loading: () => <FormLoading className="h-[12.5rem]" />,
     ssr: false,
   },
 );
