@@ -3,16 +3,12 @@
 import { Waves, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { BULLET_CHAR } from "@/lib/constants";
 
 import { MarkerCircle } from "../marker-circle";
+
+import { ModalHeader } from "./modal-header";
 
 type HelpModalProperties = {
   onClose: () => void;
@@ -35,21 +31,12 @@ export function HelpModal({ onClose, open }: Readonly<HelpModalProperties>) {
         showCloseButton={false}
       >
         {/* Header */}
-        <DialogHeader className="flex flex-row items-center justify-between border-b border-border p-6 pb-4">
-          <DialogTitle className="text-xl text-foreground">
-            {t("title")}
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            Instrukcja gry w odgadywanie perfum.
-          </DialogDescription>
-          <button
-            aria-label={t("ariaClose")}
-            className="text-muted-foreground transition-colors hover:text-primary"
-            onClick={onClose}
-          >
-            <X className="size-5" />
-          </button>
-        </DialogHeader>
+        <ModalHeader
+          closeLabel={t("ariaClose")}
+          description="Instrukcja gry w odgadywanie perfum."
+          onClose={onClose}
+          title={t("title")}
+        />
 
         {/* Content */}
         <div

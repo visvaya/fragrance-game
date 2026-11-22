@@ -7,7 +7,10 @@ import { useTranslations } from "next-intl";
 
 import { ScrollableRow } from "@/components/game/scrollable-row";
 import { MetaCluesSkeleton } from "@/components/game/skeletons";
-import { useIsOverflowing } from "@/hooks/use-is-overflowing";
+import {
+  scrollFadeMaskClass,
+  useIsOverflowing,
+} from "@/hooks/use-is-overflowing";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
 import { MASK_CHAR, GENERIC_PLACEHOLDER } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -189,18 +192,7 @@ function MetaBadge({
     !translatedValue.includes(MASK_CHAR) &&
     translatedValue !== GENERIC_PLACEHOLDER.repeat(5);
 
-  const maskClass = (() => {
-    if (canScrollLeft && canScrollRight) {
-      return "[mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_85%,transparent_100%)]";
-    }
-    if (canScrollLeft) {
-      return "[mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_100%)]";
-    }
-    if (canScrollRight) {
-      return "[mask-image:linear-gradient(to_right,black_85%,transparent_100%)]";
-    }
-    return "";
-  })();
+  const maskClass = scrollFadeMaskClass(canScrollLeft, canScrollRight);
 
   return (
     <div

@@ -120,12 +120,6 @@ html.large-text {
   --input: oklch(0.29 0.02 85);
   --ring: oklch(0.72 0.16 55);
 
-  --chart-1: oklch(0.72 0.16 55);
-  --chart-2: oklch(0.65 0.12 85);
-  --chart-3: oklch(0.55 0.08 260);
-  --chart-4: oklch(0.75 0.14 45);
-  --chart-5: oklch(0.6 0.1 35);
-
   --sidebar: oklch(0.24 0.02 85);
   --sidebar-foreground: oklch(0.98 0.005 85);
   --sidebar-primary: oklch(0.72 0.16 55);

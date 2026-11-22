@@ -16,11 +16,51 @@ import { useGameState } from "./contexts";
 import { DifficultyDisplay } from "./difficulty-display";
 import { RevealImage } from "./reveal-image";
 
+/** Answer card shown after the game ends: heading, perfume name with concentration and difficulty. */
+function GameOverSummary({
+  animate,
+  heading,
+  headingClassName,
+}: Readonly<{
+  animate: boolean;
+  heading: string;
+  headingClassName: string;
+}>) {
+  const { dailyPerfume, xsolveScore } = useGameState();
+  return (
+    <div className={cn(animate && "duration-500 animate-in fade-in zoom-in")}>
+      <h2
+        className={cn(
+          "mb-2 font-[family-name:var(--font-caveat)] text-4xl tracking-tight",
+          headingClassName,
+        )}
+      >
+        {heading}
+      </h2>
+      <div className="space-y-1">
+        <p className="font-[family-name:var(--font-playfair)] text-2xl font-semibold">
+          {dailyPerfume.name}
+          {dailyPerfume.concentration &&
+          dailyPerfume.concentration !== "Unknown" ? (
+            <span className="ml-2 text-lg text-muted-foreground not-italic">
+              {BULLET_CHAR} {dailyPerfume.concentration}
+            </span>
+          ) : null}
+        </p>
+
+        <div className="mt-2 flex justify-center">
+          <DifficultyDisplay score={xsolveScore} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Main game board, integrating all sections (image, clues, log, input).
  */
 export function GameBoard() {
-  const { dailyPerfume, gameState, xsolveScore } = useGameState();
+  const { dailyPerfume, gameState } = useGameState();
   const isContentReady = dailyPerfume.id !== "skeleton";
 
   // Animate skeleton→real transition only for non-SSR users (where skeleton was actually shown).
@@ -80,57 +120,13 @@ export function GameBoard() {
               "transition-all duration-500 animate-in fade-in zoom-in-95",
           )}
         >
-          {gameState === "won" ? (
-            <div
-              className={cn(
-                animateGameOver && "duration-500 animate-in fade-in zoom-in",
-              )}
-            >
-              <h2 className="mb-2 font-[family-name:var(--font-caveat)] text-4xl tracking-tight text-success">
-                {t("magnifique")}
-              </h2>
-              <div className="space-y-1">
-                <p className="font-[family-name:var(--font-playfair)] text-2xl font-semibold">
-                  {dailyPerfume.name}
-                  {dailyPerfume.concentration &&
-                  dailyPerfume.concentration !== "Unknown" ? (
-                    <span className="ml-2 text-lg text-muted-foreground not-italic">
-                      {BULLET_CHAR} {dailyPerfume.concentration}
-                    </span>
-                  ) : null}
-                </p>
-
-                <div className="mt-2 flex justify-center">
-                  <DifficultyDisplay score={xsolveScore} />
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div
-              className={cn(
-                animateGameOver && "duration-500 animate-in fade-in zoom-in",
-              )}
-            >
-              <h2 className="mb-2 font-[family-name:var(--font-caveat)] text-4xl tracking-tight text-destructive">
-                {t("answerWas")}
-              </h2>
-              <div className="space-y-1">
-                <p className="font-[family-name:var(--font-playfair)] text-2xl font-semibold">
-                  {dailyPerfume.name}
-                  {dailyPerfume.concentration &&
-                  dailyPerfume.concentration !== "Unknown" ? (
-                    <span className="ml-2 text-lg text-muted-foreground not-italic">
-                      {BULLET_CHAR} {dailyPerfume.concentration}
-                    </span>
-                  ) : null}
-                </p>
-
-                <div className="mt-2 flex justify-center">
-                  <DifficultyDisplay score={xsolveScore} />
-                </div>
-              </div>
-            </div>
-          )}
+          <GameOverSummary
+            animate={animateGameOver}
+            heading={gameState === "won" ? t("magnifique") : t("answerWas")}
+            headingClassName={
+              gameState === "won" ? "text-success" : "text-destructive"
+            }
+          />
         </div>
       )}
 

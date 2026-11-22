@@ -5,6 +5,26 @@ import { cn } from "@/lib/utils";
 
 import { DotFiller } from "./dot-filler";
 
+/** Label above a single clue badge placeholder, shared by the meta clue rows. */
+function ClueFieldSkeleton({
+  className,
+  label,
+}: Readonly<{ className?: string; label: string }>) {
+  return (
+    <div className={cn("flex flex-col items-start gap-0.5", className)}>
+      <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
+        {label}
+      </span>
+      <div className="flex w-full flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-[1_1_auto] items-center gap-2">
+          <Skeleton className="h-7 w-9 rounded-md" />
+          <DotFiller className="pr-2" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Skeleton for the image square itself (used inside RevealImage).
  */
@@ -50,55 +70,15 @@ export function MetaCluesSkeleton({
 
       <div className="flex flex-1 flex-col gap-5">
         {/* Brand row – same structure as real: label + flex wrapper with badge + DotFiller */}
-        <div className="flex w-full flex-col items-start gap-0.5">
-          <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
-            {t("brand")}
-          </span>
-          <div className="flex w-full flex-wrap items-center gap-2">
-            <div className="flex min-w-0 flex-[1_1_auto] items-center gap-2">
-              <Skeleton className="h-7 w-9 rounded-md" />
-              <DotFiller className="pr-2" />
-            </div>
-          </div>
-        </div>
+        <ClueFieldSkeleton className="w-full" label={t("brand")} />
 
         {/* Perfumer row */}
-        <div className="flex w-full flex-col items-start gap-0.5">
-          <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
-            {t("perfumer")}
-          </span>
-          <div className="flex w-full flex-wrap items-center gap-2">
-            <div className="flex min-w-0 flex-[1_1_auto] items-center gap-2">
-              <Skeleton className="h-7 w-9 rounded-md" />
-              <DotFiller className="pr-2" />
-            </div>
-          </div>
-        </div>
+        <ClueFieldSkeleton className="w-full" label={t("perfumer")} />
 
         {/* Year + Gender – 2-column grid, same as real component */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col items-start gap-0.5">
-            <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
-              {t("year")}
-            </span>
-            <div className="flex w-full flex-wrap items-center gap-2">
-              <div className="flex min-w-0 flex-[1_1_auto] items-center gap-2">
-                <Skeleton className="h-7 w-9 rounded-md" />
-                <DotFiller className="pr-2" />
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-col items-start gap-0.5">
-            <span className="w-full text-xs font-semibold tracking-widest text-muted-foreground/70 lowercase">
-              {t("gender")}
-            </span>
-            <div className="flex w-full flex-wrap items-center gap-2">
-              <div className="flex min-w-0 flex-[1_1_auto] items-center gap-2">
-                <Skeleton className="h-7 w-9 rounded-md" />
-                <DotFiller className="pr-2" />
-              </div>
-            </div>
-          </div>
+          <ClueFieldSkeleton label={t("year")} />
+          <ClueFieldSkeleton label={t("gender")} />
         </div>
       </div>
     </div>

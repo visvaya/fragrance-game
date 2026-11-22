@@ -1,15 +1,10 @@
 "use client";
 
-import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+
+import { ModalHeader } from "./modal-header";
 
 type StatsModalProperties = {
   onClose: () => void;
@@ -42,21 +37,12 @@ export function StatsModal({ onClose, open }: Readonly<StatsModalProperties>) {
         className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-xl border border-border bg-background p-0 sm:max-w-md"
         showCloseButton={false}
       >
-        <DialogHeader className="flex flex-row items-center justify-between border-b border-border p-6 pb-4">
-          <DialogTitle className="text-xl text-foreground">
-            {t("title")}
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            {t("played")}
-          </DialogDescription>
-          <button
-            aria-label={t("ariaClose")}
-            className="text-muted-foreground transition-colors hover:text-primary"
-            onClick={onClose}
-          >
-            <X className="size-5" />
-          </button>
-        </DialogHeader>
+        <ModalHeader
+          closeLabel={t("ariaClose")}
+          description={t("played")}
+          onClose={onClose}
+          title={t("title")}
+        />
 
         {/* Content wrapper */}
         <div className="overflow-y-auto p-6 pt-4" data-lenis-prevent>
