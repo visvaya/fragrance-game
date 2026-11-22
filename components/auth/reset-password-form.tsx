@@ -6,12 +6,12 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
-import { Form } from "@/components/ui/form";
 import { useRouter } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
 
 import {
   AuthCard,
+  AuthForm,
   isPasswordSafe,
   strongPasswordSchema,
   SubmitButton,
@@ -78,27 +78,25 @@ export function ResetPasswordForm() {
 
   return (
     <AuthCard description={t("description")} title={t("title")}>
-      <Form {...form}>
-        <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-          <TextField
-            control={form.control}
-            label={t("newPasswordLabel")}
-            name="password"
-            type="password"
-          />
+      <AuthForm form={form} onSubmit={onSubmit}>
+        <TextField
+          control={form.control}
+          label={t("newPasswordLabel")}
+          name="password"
+          type="password"
+        />
 
-          <PasswordStrength password={form.watch("password")} />
+        <PasswordStrength password={form.watch("password")} />
 
-          <TextField
-            control={form.control}
-            label={t("confirmPasswordLabel")}
-            name="confirmPassword"
-            type="password"
-          />
+        <TextField
+          control={form.control}
+          label={t("confirmPasswordLabel")}
+          name="confirmPassword"
+          type="password"
+        />
 
-          <SubmitButton isLoading={isLoading}>{t("submit")}</SubmitButton>
-        </form>
-      </Form>
+        <SubmitButton isLoading={isLoading}>{t("submit")}</SubmitButton>
+      </AuthForm>
     </AuthCard>
   );
 }
