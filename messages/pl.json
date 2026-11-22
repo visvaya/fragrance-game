@@ -9,7 +9,8 @@
   },
   "Common": {
     "title": "Odgadnij perfumy",
-    "description": "Odgadnij perfumy na podstawie wskazówek"
+    "description": "Odgadnij perfumy na podstawie wskazówek",
+    "close": "Zamknij"
   },
   "Game": {
     "start": "Rozpocznij grę",
@@ -59,7 +60,8 @@
     "profile": "Twój profil",
     "signInToProfile": "Zaloguj się do profilu",
     "signedOutSuccess": "Wylogowano pomyślnie",
-    "signedOutGlobalSuccess": "Pomyślnie wylogowano ze wszystkich urządzeń"
+    "signedOutGlobalSuccess": "Pomyślnie wylogowano ze wszystkich urządzeń",
+    "closeMenu": "Zamknij menu"
   },
   "Footer": {
     "comingSoon": "Wkrótce dostępne",
@@ -211,7 +213,9 @@
   "Auth": {
     "common": {
       "or": "Lub",
-      "continueWithGoogle": "Kontynuuj z Google"
+      "continueWithGoogle": "Kontynuuj z Google",
+      "loading": "Ładowanie...",
+      "captchaKeyMissing": "Błąd: brak klucza witryny Captcha"
     },
     "login": {
       "title": "Witaj ponownie",
@@ -350,5 +354,9 @@
     "success": "Gry dołączone do konta.",
     "error": "Nie udało się dołączyć gier. Spróbuj ponownie.",
     "declineError": "Nie udało się zapisać wyboru. Spróbuj ponownie."
+  },
+  "NotFound": {
+    "title": "404: nie znaleziono strony",
+    "description": "Strona, której szukasz, nie istnieje."
   }
 }

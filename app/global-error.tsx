@@ -24,6 +24,8 @@ export default function GlobalError({
   return (
     <html lang="en">
       <body>
+        {/* Replaces the root layout, so there is no intl provider to translate from. */}
+        {/* eslint-disable-next-line eauxle/ui-text -- rendered outside NextIntlClientProvider */}
         <Error statusCode={500} title="Error" />
       </body>
     </html>

@@ -103,6 +103,18 @@ const FIXTURES: Record<string, { expected: string[]; source: string }> = {
       "",
     ].join("\n"),
   },
+  "components/probe-ui-text.tsx": {
+    expected: ["eauxle(ui-text)", "react(jsx-no-literals)"],
+    source: [
+      "declare const toast: { error: (message: string) => void };",
+      "/** Probe. */",
+      "export function Probe() {",
+      '  toast.error("Something failed");',
+      '  return <button aria-label="Close menu">Save</button>;',
+      "}",
+      "",
+    ].join("\n"),
+  },
   "components/ProbeName.tsx": {
     expected: ["check-file(filename-naming-convention)"],
     source: "/** Probe. */\nexport const probe = 1;\n",

@@ -1449,6 +1449,50 @@
         ]
       }
     },
+    // Hardcoded UI text: every visible or spoken string comes from next-intl. jsx-no-literals
+    // covers text children; the eauxle/ui-text selectors cover string literals in the props that
+    // carry text and toast calls (a rule of its own, so the lists above that override each other
+    // cannot drop it). allowedStrings holds punctuation and symbols that are not language.
+    {
+      "files": ["**/*.tsx"],
+      "excludeFiles": ["**/__tests__/**", "**/*.test.tsx", "e2e/**"],
+      "jsPlugins": ["./lint/eauxle-plugin.mjs"],
+      "rules": {
+        "react/jsx-no-literals": [
+          "error",
+          {
+            "allowedStrings": [
+              ":",
+              "/",
+              "%",
+              "(",
+              ")",
+              "?",
+              "...",
+              "\u2014",
+              "\u2605",
+              "Eauxle"
+            ]
+          }
+        ],
+        "eauxle/ui-text": [
+          "error",
+          {
+            "selector": "JSXAttribute[name.name=/^(aria-label|aria-description|title|alt|description|label|content|heading)$/] > Literal[value=/[A-Za-z]/]",
+            "message": "UI text goes through next-intl: add the key to messages/en.json and messages/pl.json and use t(...)."
+          },
+          {
+            // next/image takes a technical placeholder="blur" (a mode, not text), so only Image is exempt here.
+            "selector": "JSXOpeningElement[name.name!='Image'] > JSXAttribute[name.name='placeholder'] > Literal[value=/[A-Za-z]/]",
+            "message": "UI text goes through next-intl: add the key to messages/en.json and messages/pl.json and use t(...)."
+          },
+          {
+            "selector": "CallExpression[callee.name='toast'][arguments.0.type='Literal'], CallExpression[callee.object.name='toast'][callee.property.name=/^(success|error|info|warning)$/][arguments.0.type='Literal']",
+            "message": "UI text goes through next-intl: add the key to messages/en.json and messages/pl.json and use t(...)."
+          }
+        ]
+      }
+    },
     // Server actions: the same guardrails plus input validation of exported actions (the list
     // replaces the one above).
     {

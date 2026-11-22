@@ -590,7 +590,7 @@ export function GameHeader() {
       {/* Click outside to close dropdowns */}
       {modals.menuOpen || modals.langOpen ? (
         <div
-          aria-label="Close menu"
+          aria-label={t("closeMenu")}
           className="fixed inset-0 z-40"
           onClick={closeDropdowns}
           onKeyDown={(e) => {

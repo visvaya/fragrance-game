@@ -31,7 +31,9 @@ test.describe("Smoke Tests - Critical Path @smoke", () => {
     const response = await page.goto("/en/no-such-page");
 
     expect(response?.status()).toBe(404);
-    await expect(page.getByText("404 - Not Found")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "404: Not Found" }),
+    ).toBeVisible();
   });
 
   test("Reload starts at the top of the board", async ({ page }) => {

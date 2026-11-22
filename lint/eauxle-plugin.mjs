@@ -201,5 +201,7 @@ export default {
     "bounded-select": boundedSelect,
     "fetch-requires-parse": fetchRequiresParse,
     "restricted-syntax": restrictedSyntax,
+    // Same engine, own rule key: a later override replacing the restricted-syntax list cannot drop it.
+    "ui-text": restrictedSyntax,
   },
 };

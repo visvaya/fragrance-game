@@ -239,7 +239,7 @@ describe("GameHeader", () => {
       await userEvent.setup({ delay: null }).click(menuButton);
 
       // When menu is open, backdrop overlay is rendered
-      const backdrop = screen.getByRole("button", { name: "Close menu" });
+      const backdrop = screen.getByRole("button", { name: "closeMenu" });
       expect(backdrop).toBeInTheDocument();
     });
 
@@ -251,7 +251,7 @@ describe("GameHeader", () => {
       await userEvent.setup({ delay: null }).click(menuButton); // close
 
       expect(
-        screen.queryByRole("button", { name: "Close menu" }),
+        screen.queryByRole("button", { name: "closeMenu" }),
       ).not.toBeInTheDocument();
     });
 
@@ -264,7 +264,7 @@ describe("GameHeader", () => {
       await userEvent.keyboard("{Escape}");
 
       expect(
-        screen.queryByRole("button", { name: "Close menu" }),
+        screen.queryByRole("button", { name: "closeMenu" }),
       ).not.toBeInTheDocument();
     });
 
@@ -274,11 +274,11 @@ describe("GameHeader", () => {
       const menuButton = screen.getByRole("button", { name: "menu" });
       await userEvent.setup({ delay: null }).click(menuButton); // open
 
-      const backdrop = screen.getByRole("button", { name: "Close menu" });
+      const backdrop = screen.getByRole("button", { name: "closeMenu" });
       await userEvent.setup({ delay: null }).click(backdrop); // close
 
       expect(
-        screen.queryByRole("button", { name: "Close menu" }),
+        screen.queryByRole("button", { name: "closeMenu" }),
       ).not.toBeInTheDocument();
     });
   });
