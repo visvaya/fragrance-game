@@ -18,7 +18,8 @@ export type ChallengeAnswer = {
   xsolve: number | null;
 };
 
-type AnswerPerfumeRow = {
+/** Columns of the answer perfume that clues and scoring read. */
+export type AnswerPerfumeRow = {
   base_notes: string[] | null;
   brands: { name: string } | null;
   gender: string | null;

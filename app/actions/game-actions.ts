@@ -13,6 +13,7 @@ import { assetUrl } from "@/lib/game/asset-url";
 import {
   enrichGuessHistory,
   fetchChallengeAnswer,
+  type AnswerPerfumeRow,
 } from "@/lib/game/challenge-answer";
 import {
   isChallengeAvailable,
@@ -164,6 +165,57 @@ async function requireChallengeAnswer(challengeId: string) {
   return answer;
 }
 
+/**
+ * Authenticates the caller of a session action. getUser() validates the JWT with the auth
+ * server; getSession() only reads the cookie, so it is not used as a fallback.
+ * @param unauthorizedLog - Message logged when there is no user.
+ * @param sessionId - Session the action was called for, logged with the failure.
+ */
+async function requireUser(unauthorizedLog: string, sessionId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    console.error(unauthorizedLog, { sessionId, userError });
+    throw new Error("Unauthorized");
+  }
+  return { supabase, user };
+}
+
+/** Row of `game_sessions` that a move (guess or skip) reads. */
+type MoveSession = {
+  attempts_count: number;
+  challenge_id: string;
+  guesses: StoredGuess[] | null;
+  id: string;
+  last_nonce: string | number;
+  metadata: unknown;
+  player_id: string;
+  start_time: string;
+  status: string;
+};
+
+/** Loads the session a move is made in under the caller's RLS; throws when it is not found. */
+async function loadMoveSession(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  sessionId: string,
+): Promise<MoveSession> {
+  const { data: session, error: sessionError } = (await supabase
+    .from("game_sessions")
+    .select(
+      "id, last_nonce, status, attempts_count, challenge_id, player_id, guesses, start_time, metadata",
+    )
+    .eq("id", sessionId)
+    .limit(1)
+    .single()) as { data: MoveSession | null; error: Error | null };
+
+  if (sessionError || !session) throw new Error("Session not found");
+  return session;
+}
+
 // --- Actions ---
 
 /**
@@ -249,20 +301,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
         `,
     )
     .eq("id", challengePrivate.perfume_id)
-    .single()) as {
-    data: {
-      base_notes: string[] | null;
-      brands: { name: string } | null;
-      gender: string | null;
-      is_linear: boolean | null;
-      middle_notes: string[] | null;
-      name: string;
-      perfumers: string[] | null;
-      release_year: number | null;
-      top_notes: string[] | null;
-      xsolve_score: number | null;
-    } | null;
-  };
+    .single()) as { data: AnswerPerfumeRow | null };
 
   if (!perfume) {
     throw new Error("Perfume not found for challenge");
@@ -538,22 +577,10 @@ async function getImageUrlForStep(sessionId: string): Promise<string | null> {
     throw new Error("Invalid session ID");
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  // Authentication is required. getUser() validates the JWT with the auth server;
-  // getSession() only reads the cookie, so it is not used as a fallback.
-
-  if (!user) {
-    console.error("getImageUrlForStep: Unauthorized access", {
-      sessionId,
-      userError,
-    });
-    throw new Error("Unauthorized");
-  }
+  const { supabase, user } = await requireUser(
+    "getImageUrlForStep: Unauthorized access",
+    sessionId,
+  );
 
   const { data: session, error: sessionError } = (await supabase
     .from("game_sessions")
@@ -628,48 +655,15 @@ export async function submitGuess(
     throw new Error("Invalid perfume ID");
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  // Authentication is required. getUser() validates the JWT with the auth server;
-  // getSession() only reads the cookie, so it is not used as a fallback.
-
-  if (!user) {
-    console.error("submitGuess: Unauthorized access", { sessionId, userError });
-    throw new Error("Unauthorized");
-  }
+  const { supabase, user } = await requireUser(
+    "submitGuess: Unauthorized access",
+    sessionId,
+  );
 
   // Rate limiting
   await checkRateLimit("submitGuess", user.id);
 
-  const { data: session, error: sessionError } = (await supabase
-    .from("game_sessions")
-    .select(
-      "id, last_nonce, status, attempts_count, challenge_id, player_id, guesses, start_time, metadata",
-    )
-    .eq("id", sessionId)
-    .limit(1)
-    .single()) as {
-    data: {
-      attempts_count: number;
-      challenge_id: string;
-      guesses: StoredGuess[] | null;
-      id: string;
-      last_nonce: string | number;
-      metadata: unknown;
-      player_id: string;
-      start_time: string;
-      status: string;
-    } | null;
-    error: Error | null;
-  };
-
-  if (sessionError || !session) {
-    throw new Error("Session not found");
-  }
+  const session = await loadMoveSession(supabase, sessionId);
 
   if (String(session.last_nonce) !== clientNonce) {
     throw new Error(`CONFLICT:${session.last_nonce}`);
@@ -965,43 +959,14 @@ export async function skipAttempt(
     throw new Error("Invalid session ID");
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    console.error("skipAttempt: Unauthorized", { sessionId, userError });
-    throw new Error("Unauthorized");
-  }
+  const { supabase, user } = await requireUser(
+    "skipAttempt: Unauthorized",
+    sessionId,
+  );
 
   await checkRateLimit("skipAttempt", user.id);
 
-  const { data: session, error: sessionError } = (await supabase
-    .from("game_sessions")
-    .select(
-      "id, last_nonce, status, attempts_count, challenge_id, player_id, guesses, start_time, metadata",
-    )
-    .eq("id", sessionId)
-    .limit(1)
-    .single()) as {
-    data: {
-      attempts_count: number;
-      challenge_id: string;
-      guesses: StoredGuess[] | null;
-      id: string;
-      last_nonce: string | number;
-      metadata: unknown;
-      player_id: string;
-      start_time: string;
-      status: string;
-    } | null;
-    error: Error | null;
-  };
-
-  if (sessionError || !session) throw new Error("Session not found");
-
+  const session = await loadMoveSession(supabase, sessionId);
   if (String(session.last_nonce) !== clientNonce) {
     throw new Error(`CONFLICT:${session.last_nonce}`);
   }
@@ -1099,19 +1064,10 @@ export async function resetGame(
     throw new Error("Invalid session ID");
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  // Authentication is required. getUser() validates the JWT with the auth server;
-  // getSession() only reads the cookie, so it is not used as a fallback.
-
-  if (!user) {
-    console.error("resetGame: Unauthorized access", { sessionId, userError });
-    throw new Error("Unauthorized");
-  }
+  const { supabase, user } = await requireUser(
+    "resetGame: Unauthorized access",
+    sessionId,
+  );
 
   const { data: sessionData } = await supabase
     .from("game_sessions")
@@ -1188,19 +1144,7 @@ export const getDailyChallengeSSR = unstable_cache(
       `,
       )
       .eq("id", challengePrivate.perfume_id)
-      .single()) as {
-      data: {
-        base_notes: string[] | null;
-        brands: { name: string } | null;
-        gender: string | null;
-        is_linear: boolean | null;
-        middle_notes: string[] | null;
-        perfumers: string[] | null;
-        release_year: number | null;
-        top_notes: string[] | null;
-        xsolve_score: number | null;
-      } | null;
-    };
+      .single()) as { data: AnswerPerfumeRow | null };
 
     if (perfume?.xsolve_score == null) return null;
 
