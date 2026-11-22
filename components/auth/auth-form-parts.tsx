@@ -2,12 +2,19 @@ import { type ReactNode, useState } from "react";
 
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import type { Control, FieldPath, FieldValues } from "react-hook-form";
+import type {
+  Control,
+  FieldPath,
+  FieldValues,
+  SubmitHandler,
+  UseFormReturn,
+} from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
 import { Button } from "@/components/ui/button";
 import {
+  Form,
   FormControl,
   FormField,
   FormItem,
@@ -69,6 +76,25 @@ export function GoogleSignIn() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** Form provider and `<form>` element wired to a react-hook-form instance. */
+export function AuthForm<TValues extends FieldValues>({
+  children,
+  form,
+  onSubmit,
+}: {
+  readonly children: ReactNode;
+  readonly form: UseFormReturn<TValues>;
+  readonly onSubmit: SubmitHandler<TValues>;
+}) {
+  return (
+    <Form {...form}>
+      <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+        {children}
+      </form>
+    </Form>
   );
 }
 

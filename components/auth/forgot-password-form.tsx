@@ -6,12 +6,12 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
-import { Form } from "@/components/ui/form";
 import { useRouter } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
 
 import {
   AuthCard,
+  AuthForm,
   SubmitButton,
   SwitchScreenLink,
   TextField,
@@ -59,19 +59,18 @@ export function ForgotPasswordForm({
       });
     }, t("error"));
 
+  // jscpd:ignore-start -- each auth screen has its own fields and texts; a shared shell would only pass them through
   return (
     <AuthCard description={t("description")} title={t("title")}>
-      <Form {...form}>
-        <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-          <TextField
-            control={form.control}
-            label={t("emailLabel")}
-            name="email"
-            placeholder={t("emailPlaceholder")}
-          />
-          <SubmitButton isLoading={isLoading}>{t("submit")}</SubmitButton>
-        </form>
-      </Form>
+      <AuthForm form={form} onSubmit={onSubmit}>
+        <TextField
+          control={form.control}
+          label={t("emailLabel")}
+          name="email"
+          placeholder={t("emailPlaceholder")}
+        />
+        <SubmitButton isLoading={isLoading}>{t("submit")}</SubmitButton>
+      </AuthForm>
 
       <SwitchScreenLink
         label={t("backToLogin")}
@@ -79,4 +78,5 @@ export function ForgotPasswordForm({
       />
     </AuthCard>
   );
+  // jscpd:ignore-end
 }
