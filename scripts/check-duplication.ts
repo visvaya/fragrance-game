@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-const MAX_CLONES = 5;
+const MAX_CLONES = 0;
 const REPORT_PATH = "reports/jscpd/jscpd-report.json";
 
 /**
