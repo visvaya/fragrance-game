@@ -33,7 +33,7 @@ export function HelpModal({ onClose, open }: Readonly<HelpModalProperties>) {
         {/* Header */}
         <ModalHeader
           closeLabel={t("ariaClose")}
-          description="Instrukcja gry w odgadywanie perfum."
+          description={t("intro")}
           onClose={onClose}
           title={t("title")}
         />
