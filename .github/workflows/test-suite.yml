@@ -177,7 +177,7 @@ jobs:
         run: |
           set -o pipefail
           for attempt in 1 2; do
-            if pnpm exec supabase test db --linked 2>&1 | tee pgtap.log; then exit 0; fi
+            if pnpm exec supabase test db --yes --remote 2>&1 | tee pgtap.log; then exit 0; fi
             if [ "$attempt" = 2 ] || ! grep -q "EAUTHQUERY" pgtap.log; then exit 1; fi
             echo "::warning::Supabase pooler auth query timed out; retrying the pgTAP run once."
             sleep 20
