@@ -36,6 +36,18 @@ def _corner_patch_median(data: np.ndarray, x0: int, x1: int, y0: int, y1: int) -
     return median
 
 
+def _mask_bbox(obj_mask: np.ndarray) -> tuple[int, int, int, int] | None:
+    ys, xs = np.where(obj_mask)
+    if ys.size == 0:
+        return None
+    return (int(xs.min()), int(ys.min()), int(xs.max() + 1), int(ys.max() + 1))
+
+
+def _spans_frame(bbox: tuple[int, int, int, int], w: int, h: int) -> bool:
+    x0, y0, x1, y1 = bbox
+    return (x1 - x0) >= int(w * 0.98) and (y1 - y0) >= int(h * 0.98)
+
+
 def compute_object_bbox(
     img_rgb: Image.Image,
     *,
@@ -61,34 +73,21 @@ def compute_object_bbox(
 
     diff = np.abs(data.astype(np.int16) - bg)
     bg_mask = (diff <= bg_tolerance).all(axis=2)
-    obj_mask = ~bg_mask
-
-    ys, xs = np.where(obj_mask)
-    if ys.size == 0:
+    bbox = _mask_bbox(~bg_mask)
+    if bbox is None:
         return None
+    if not _spans_frame(bbox, w, h):
+        return bbox
 
-    x0, x1 = int(xs.min()), int(xs.max() + 1)
-    y0, y1 = int(ys.min()), int(ys.max() + 1)
-
-    if (x1 - x0) >= int(w * 0.98) and (y1 - y0) >= int(h * 0.98):
-        bg_mask = (
-            (data[:, :, 0] >= fallback_white_threshold)
-            & (data[:, :, 1] >= fallback_white_threshold)
-            & (data[:, :, 2] >= fallback_white_threshold)
-        )
-        obj_mask = ~bg_mask
-
-        ys, xs = np.where(obj_mask)
-        if ys.size == 0:
-            return None
-
-        x0, x1 = int(xs.min()), int(xs.max() + 1)
-        y0, y1 = int(ys.min()), int(ys.max() + 1)
-
-        if (x1 - x0) >= int(w * 0.98) and (y1 - y0) >= int(h * 0.98):
-            return None
-
-    return (x0, y0, x1, y1)
+    bg_mask = (
+        (data[:, :, 0] >= fallback_white_threshold)
+        & (data[:, :, 1] >= fallback_white_threshold)
+        & (data[:, :, 2] >= fallback_white_threshold)
+    )
+    bbox = _mask_bbox(~bg_mask)
+    if bbox is None or _spans_frame(bbox, w, h):
+        return None
+    return bbox
 
 
 def process_image(

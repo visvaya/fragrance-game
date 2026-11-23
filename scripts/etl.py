@@ -478,10 +478,15 @@ class EtlPipeline:
         if norm_val in self.db_cache[table]:
             return self.db_cache[table][norm_val]
 
+        def find_existing() -> str | None:
+            res = supabase.table(table).select("id").eq(column, value).limit(1).execute()
+            if uuid := _first_id(res.data):
+                self.db_cache[table][norm_val] = uuid
+                return uuid
+            return None
+
         # Try finding in DB
-        res = supabase.table(table).select("id").eq(column, value).limit(1).execute()
-        if uuid := _first_id(res.data):
-            self.db_cache[table][norm_val] = uuid
+        if uuid := find_existing():
             return uuid
 
         # Create
@@ -497,9 +502,7 @@ class EtlPipeline:
         except Exception as e:
             logger.warning(f"Failed to insert into {table}: {e}")
             # Try fetching again in case of race condition
-            res = supabase.table(table).select("id").eq(column, value).limit(1).execute()
-            if uuid := _first_id(res.data):
-                self.db_cache[table][norm_val] = uuid
+            if uuid := find_existing():
                 return uuid
 
         # A real value that could not be stored: the caller must not save the perfume without it.
