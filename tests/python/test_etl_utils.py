@@ -78,3 +78,45 @@ def test_repair_text_keeps_correct_text_and_non_strings() -> None:
 
 def test_repair_text_restores_the_see_by_chloe_name() -> None:
     assert etl_module.repair_text("SeeByChlo\u00e9 Si Belle") == "See by Chlo\u00e9 Si Belle"
+
+
+def _lookup_client(selects: list[list[dict[str, str]]], insert: object) -> MagicMock:
+    """A client whose select calls return `selects`; `insert` is a result or an error."""
+    client = MagicMock()
+    select_exec = (
+        client.table.return_value.select.return_value.eq.return_value.limit.return_value.execute
+    )
+    select_exec.side_effect = [MagicMock(data=rows) for rows in selects]
+    insert_exec = client.table.return_value.insert.return_value.execute
+    if isinstance(insert, Exception):
+        insert_exec.side_effect = insert
+    else:
+        insert_exec.return_value = insert
+    return client
+
+
+def test_lookup_returns_and_caches_an_existing_row(etl: EtlPipeline) -> None:
+    client = _lookup_client([[{"id": "id-1"}]], None)
+    with patch.object(etl_module, "supabase", client):
+        assert etl._get_or_create_lookup("brands", "name", "Chanel") == "id-1"
+        assert etl._get_or_create_lookup("brands", "name", "chanel") == "id-1"
+    client.table.return_value.insert.assert_not_called()
+
+
+def test_lookup_creates_a_missing_row(etl: EtlPipeline) -> None:
+    client = _lookup_client([[]], MagicMock(data=[{"id": "id-2"}]))
+    with patch.object(etl_module, "supabase", client):
+        assert etl._get_or_create_lookup("brands", "name", "Dior") == "id-2"
+        assert etl.db_cache["brands"]["dior"] == "id-2"
+
+
+def test_lookup_refetches_after_a_failed_insert(etl: EtlPipeline) -> None:
+    client = _lookup_client([[], [{"id": "id-3"}]], RuntimeError("duplicate"))
+    with patch.object(etl_module, "supabase", client):
+        assert etl._get_or_create_lookup("brands", "name", "Guerlain") == "id-3"
+
+
+def test_lookup_raises_when_the_row_cannot_be_found_or_created(etl: EtlPipeline) -> None:
+    client = _lookup_client([[], []], RuntimeError("down"))
+    with patch.object(etl_module, "supabase", client), pytest.raises(LookupError):
+        etl._get_or_create_lookup("brands", "name", "Hermes")
