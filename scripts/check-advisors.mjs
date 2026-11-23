@@ -4,7 +4,7 @@
  * Fails CI when Supabase's Security Advisor reports ERROR-level findings
  * (missing RLS policies, SECURITY DEFINER views, exposed schemas, ...).
  *
- * It calls the Management API with an access token: `supabase db advisors` (CLI 2.117)
+ * It calls the Management API with an access token: `supabase db advisors` (CLI 3)
  * connects to Postgres directly, which needs the database password and IPv6 on the runner.
  * The API endpoint is marked experimental: if its shape changes, this script fails loudly
  * rather than reporting a false pass.
