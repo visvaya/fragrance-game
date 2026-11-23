@@ -3,6 +3,23 @@
 // eslint-disable-next-line no-restricted-imports -- custom hook encapsulating ResizeObserver logic
 import { useState, useEffect, useRef } from "react";
 
+/** Gradient mask fading the edges of a row that can still scroll in that direction. */
+export function overflowMaskClass(
+  canScrollLeft: boolean,
+  canScrollRight: boolean,
+): string {
+  if (canScrollLeft && canScrollRight) {
+    return "[mask-image:linear-gradient(to_right,transparent_0,black_20px,black_calc(100%-20px),transparent_100%)]";
+  }
+  if (canScrollLeft) {
+    return "[mask-image:linear-gradient(to_right,transparent_0,black_20px,black_100%)]";
+  }
+  if (canScrollRight) {
+    return "[mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent_100%)]";
+  }
+  return "";
+}
+
 /**
  * Zwraca informację, czy element zaczął ulegać nałożeniu overflow (np. tekst uciekający poza diva)
  * Monitoruje ResizeObserver i MutationObserver oraz zdarzenie 'scroll'.

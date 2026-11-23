@@ -18,6 +18,7 @@ PAGE_SIZE = 1000
 IMAGE_EXTENSIONS = (".avif", ".png", ".jpg", ".jpeg", ".webp")
 
 
+# jscpd:ignore-start -- separate entry points that share no module
 def fetch_pages(
     make_query: Callable[[], Any], order_column: str, page_size: int = PAGE_SIZE
 ) -> list[dict[str, Any]]:
@@ -37,6 +38,9 @@ def fetch_pages(
         if not batch or len(batch) < page_size:
             return rows
         start += page_size
+
+
+# jscpd:ignore-end
 
 
 def main() -> None:

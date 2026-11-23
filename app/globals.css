@@ -146,6 +146,7 @@ html.large-text {
   --font-serif: "Playfair Display", "Playfair Display Fallback", Georgia, serif;
   --font-hand: "Caveat", "Caveat Fallback", cursive;
   --font-mono: "Geist Mono", "Geist Mono Fallback", monospace;
+  /* jscpd:ignore-start -- one --color-x: var(--x) line per token; the pairs repeat by design */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -177,6 +178,7 @@ html.large-text {
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  /* jscpd:ignore-end */
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 2px);

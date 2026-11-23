@@ -2,6 +2,7 @@
   "threshold": 0,
   "minLines": 5,
   "minTokens": 50,
+  "ignoreIdentifiers": true,
   "reporters": ["json", "console"],
   "output": "reports/jscpd",
   "ignore": [

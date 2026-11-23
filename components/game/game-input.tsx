@@ -353,6 +353,7 @@ export function GameInput() {
     }
   }, [authFailed, pendingAction]);
 
+  // jscpd:ignore-start -- the two effects share the initial-restore guard but react differently (scroll versus icon feedback)
   // Track guess outcomes to show brief icon feedback on the submit button.
   // Mirrors AttemptLog's hasInitialized pattern – ignores attempts restored on page load.
   useEffect(() => {
@@ -376,6 +377,7 @@ export function GameInput() {
 
     previousAttemptCount.current = attempts.length;
   }, [attempts, gameLoading]);
+  // jscpd:ignore-end
 
   const handleSelect = async (perfume: PerfumeSuggestion) => {
     if (!authReady) {

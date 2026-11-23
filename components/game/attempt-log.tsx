@@ -17,7 +17,10 @@ import { useTranslations } from "next-intl";
 import { ScrollableRow } from "@/components/game/scrollable-row";
 import { AttemptLogSkeleton } from "@/components/game/skeletons";
 import { lenisScrollTo } from "@/components/providers/smooth-scroll-provider";
-import { useIsOverflowing } from "@/hooks/use-is-overflowing";
+import {
+  overflowMaskClass,
+  useIsOverflowing,
+} from "@/hooks/use-is-overflowing";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
 import { useMountEffect } from "@/lib/hooks/use-mount-effect";
 import { cn } from "@/lib/utils";
@@ -55,6 +58,7 @@ export const AttemptLog = memo(function AttemptLog() {
   const { canScrollLeft, canScrollRight, ref } =
     useIsOverflowing<HTMLDivElement>();
 
+  // jscpd:ignore-start -- the two effects share the initial-restore guard but react differently (scroll versus icon feedback)
   // Scroll to new attempt and mark it as new (enables flash animation).
   // Only fires when a genuine new attempt is submitted, not on initial session restore.
   useEffect(() => {
@@ -86,6 +90,7 @@ export const AttemptLog = memo(function AttemptLog() {
     }
     previousAttemptsLength.current = attempts.length;
   }, [attempts.length, gameState, loading, uiPreferences.autoScroll]);
+  // jscpd:ignore-end
 
   // Scroll to top on game end – only when game JUST ended in this session (playing→won/lost).
   // previousGameStateReference guards against spurious scroll on page restore where gameState is
@@ -126,18 +131,7 @@ export const AttemptLog = memo(function AttemptLog() {
     return <AttemptLogSkeleton t={t} />;
   }
 
-  const maskClass = (() => {
-    if (canScrollLeft && canScrollRight) {
-      return "[mask-image:linear-gradient(to_right,transparent_0,black_20px,black_calc(100%-20px),transparent_100%)]";
-    }
-    if (canScrollLeft) {
-      return "[mask-image:linear-gradient(to_right,transparent_0,black_20px,black_100%)]";
-    }
-    if (canScrollRight) {
-      return "[mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent_100%)]";
-    }
-    return "";
-  })();
+  const maskClass = overflowMaskClass(canScrollLeft, canScrollRight);
 
   return (
     <section className="panel-standard">

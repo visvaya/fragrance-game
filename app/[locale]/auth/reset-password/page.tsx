@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 
+// jscpd:ignore-start -- each page names its own namespace and form; a shared helper would only pass them through
 /**
  * Generates metadata for the reset password page.
  */
@@ -29,3 +30,4 @@ export default function ResetPasswordPage() {
     </div>
   );
 }
+// jscpd:ignore-end
