@@ -1,0 +1,5 @@
+{
+  "config": {
+    "MD041": false, // the pull request template starts with a section heading, not a title
+  },
+}

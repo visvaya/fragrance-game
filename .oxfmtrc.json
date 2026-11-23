@@ -25,6 +25,7 @@
     "data",
     "scripts",
     "*.csv",
+    "*.md",
     "*.py",
     "*.sql",
     "*.log",

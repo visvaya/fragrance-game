@@ -4,7 +4,7 @@
 
 ## Checks
 
-- [ ] `pnpm typecheck && pnpm lint:strict && pnpm format:check && pnpm exec knip && pnpm lint:duplicates && pnpm test:coverage`
+- [ ] `pnpm typecheck && pnpm lint:strict && pnpm format:check && pnpm lint:markdown && pnpm exec knip && pnpm lint:duplicates && pnpm test:coverage`
 - [ ] `pnpm test:e2e --project=chromium`, if the interface changed
 - [ ] Texts added to both `messages/en.json` and `messages/pl.json`, if the interface changed
 - [ ] Screenshots in the light and the dark theme, if the change is visual
