@@ -5,8 +5,8 @@ name = "eauxle-scripts"
 version = "0.0.0"
 requires-python = ">=3.12"
 dependencies = [
-  "boto3==1.44.1",
-  "numpy==2.5.4",
+  "boto3==1.44.3",
+  "numpy==2.5.5",
   "pandas==3.1.1",
   "pillow==13.0.0",
   "python-dotenv==1.2.4",
@@ -22,7 +22,7 @@ dev = [
   "pip-audit==2.10.1",
   "pytest==9.2.0",
   "pytest-cov==7.1.0",
-  "ruff==0.17.4",
+  "ruff==0.17.5",
   "types-tqdm==4.70.0.20261106",
   "vulture==2.16",
 ]
