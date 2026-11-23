@@ -1,8 +1,8 @@
 // Keeps every code file under the type check: a tracked JavaScript file must be listed in ALLOWED_JS.
 // Usage: tsx scripts/check-typed-files.ts
 import { execFileSync } from "node:child_process";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
+
+import { isMainModule } from "./is-main";
 
 /** Tracked JavaScript files that stay JavaScript, each with the reason. They are checked by tsc (checkJs). */
 const ALLOWED_JS: Readonly<Record<string, string>> = {
@@ -31,6 +31,4 @@ function main(): number {
   return problems.length === 0 ? 0 : 1;
 }
 
-const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
-
-if (isMain) process.exitCode = main();
+if (isMainModule(import.meta.url, process.argv[1])) process.exitCode = main();

@@ -6,8 +6,8 @@
 // Characters are built from code points, so this file passes its own check.
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
+
+import { isMainModule } from "./is-main";
 
 const EM_DASH = String.fromCodePoint(0x20_14);
 // Every pictographic character counts, except the text symbols (c), (R) and TM.
@@ -96,6 +96,4 @@ function main(argv: string[]): number {
   return problems.length > 0 ? 1 : 0;
 }
 
-const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
-
-if (isMain) process.exitCode = main(process.argv.slice(2));
+if (isMainModule(import.meta.url, process.argv[1])) process.exitCode = main(process.argv.slice(2));

@@ -4,6 +4,7 @@
 declare namespace NodeJS {
   // eslint-disable-next-line typescript/consistent-type-definitions -- only an interface merges with the ProcessEnv declaration of @types/node
   interface ProcessEnv {
+    // jscpd:ignore-start -- one declaration per variable; the lines repeat by design
     ALLOWED_ORIGINS?: string;
     ANALYZE?: string;
     CI?: string;
@@ -32,5 +33,6 @@ declare namespace NodeJS {
     UPSTASH_REDIS_REST_URL?: string;
     VERCEL_PROJECT_PRODUCTION_URL?: string;
     VITEST_INTEGRATION?: string;
+    // jscpd:ignore-end
   }
 }

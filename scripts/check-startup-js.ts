@@ -2,8 +2,8 @@
 // Start-up files are the browser output files of every chunk group that is not async.
 // Usage: next analyze --experimental-app-only -o && tsx scripts/check-startup-js.ts
 import { readFileSync } from "node:fs";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
+
+import { isMainModule } from "./is-main";
 
 /** Compressed bytes of start-up JS for `/[locale]` (measured 343681 on 2026-11-21, rounded up to the next 5 KB). */
 const MAX_STARTUP_JS_BYTES = 345_000;
@@ -80,6 +80,4 @@ function main(): number {
   return problem === undefined ? 0 : 1;
 }
 
-const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
-
-if (isMain) process.exitCode = main();
+if (isMainModule(import.meta.url, process.argv[1])) process.exitCode = main();

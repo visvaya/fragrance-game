@@ -3,13 +3,15 @@
   "minLines": 5,
   "minTokens": 50,
   "ignoreIdentifiers": true,
+  "failOnEmpty": true,
   "reporters": ["json", "console"],
   "output": "reports/jscpd",
   "ignore": [
     "**/__tests__/**",
     "**/*.test.ts",
     "**/*.test.tsx",
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "types/supabase.ts"
   ],
   "ignorePattern": ["(?m)^import[^;]*;"],
   "absolute": true

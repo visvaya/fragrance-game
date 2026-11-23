@@ -10,10 +10,10 @@
  * Exit codes: 0 clean, 1 findings or stale exceptions, 2 unreadable input.
  */
 import { readFileSync } from "node:fs";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
 
 import { z } from "zod";
+
+import { isMainModule } from "./is-main";
 
 const EXCEPTIONS_FILE = "supabase/checks/splinter-exceptions.json";
 const BLOCKING_LEVELS = new Set(["ERROR", "WARN"]);
@@ -109,9 +109,7 @@ export function judgeFindings(
   };
 }
 
-const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
-
-if (isMain) {
+if (isMainModule(import.meta.url, process.argv[1])) {
   const parsed = parseFindings(readFileSync(0, "utf8"));
   const exceptions = z.record(z.string(), z.string().min(1)).safeParse(JSON.parse(readFileSync(EXCEPTIONS_FILE, "utf8")));
   if (!parsed.ok || !exceptions.success) {
