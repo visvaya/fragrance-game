@@ -9,10 +9,10 @@
  * Exit codes: 0 equal, 1 different, 2 unreadable input.
  */
 import { readFileSync } from "node:fs";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
 
 import { z } from "zod";
+
+import { isMainModule } from "./is-main";
 
 const EXPECTED_FILE = "supabase/schema-fingerprint.txt";
 
@@ -58,9 +58,7 @@ export function compareFingerprint(actual: readonly string[], expectedText: stri
   };
 }
 
-const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
-
-if (isMain) {
+if (isMainModule(import.meta.url, process.argv[1])) {
   const parsed = parseQueryOutput(readFileSync(0, "utf8"));
   if (!parsed.ok) {
     console.error(`[db-fingerprint] ${parsed.error}`);
