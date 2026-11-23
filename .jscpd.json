@@ -1,4 +1,5 @@
 {
+  "threshold": 0,
   "minLines": 5,
   "minTokens": 50,
   "reporters": ["json", "console"],

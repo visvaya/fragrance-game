@@ -51,7 +51,7 @@
     "supabase:db-lint": "pnpm supabase db lint --linked",
     "test:db": "pnpm supabase test db",
     "db:fingerprint": "supabase db query --linked --agent=no -f supabase/schema-fingerprint.sql --output-format json | tsx scripts/db-fingerprint.ts",
-    "lint:duplicates": "jscpd app lib components hooks && tsx scripts/check-duplication.ts",
+    "lint:duplicates": "jscpd app lib components hooks",
     "budget:startup-js": "next analyze --experimental-app-only -o && tsx scripts/check-startup-js.ts",
     "lint:typed-files": "tsx scripts/check-typed-files.ts",
     "lint-staged": "lint-staged",
