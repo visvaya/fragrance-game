@@ -72,6 +72,16 @@
       "howToBump": "set SPLINTER_COMMIT to the release commit, SPLINTER_SHA256 to the checksum of its splinter.sql, and the release in the comment"
     },
     {
+      "name": "lychee (link check binary)",
+      "mechanism": "job",
+      "check": {
+        "file": ".github/workflows/ci.yml",
+        "pattern": "lychee-v([0-9.]+)/",
+        "github": "lycheeverse/lychee"
+      },
+      "howToBump": "set LYCHEE_URL to the new release and LYCHEE_SHA256 to the checksum published with it"
+    },
+    {
       "name": "Node major line",
       "mechanism": "manual",
       "where": ".nvmrc; move to the next even line when it becomes LTS"
