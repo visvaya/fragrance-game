@@ -66,7 +66,8 @@ vi.mock("@/components/providers/smooth-scroll-provider", () => ({
   lenisScrollTo: vi.fn(),
 }));
 
-vi.mock("@/hooks/use-is-overflowing", () => ({
+vi.mock("@/hooks/use-is-overflowing", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/hooks/use-is-overflowing")>()),
   useIsOverflowing: () => ({
     canScrollLeft: false,
     canScrollRight: false,

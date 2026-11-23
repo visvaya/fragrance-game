@@ -237,13 +237,25 @@ export function strongPasswordSchema(
 }
 
 /**
- * Whether the server accepts the password (not on the common password list).
+ * Whether the server accepts the password (not on the common password list); when it
+ * does not, the password field of the form gets the error message.
  * Loaded on demand so the server action stays out of the first form bundle.
+ * @param form - Form with a `password` field.
  * @param password - Password to check.
+ * @param message - Error shown on the field for a common password.
  */
-export async function isPasswordSafe(password: string): Promise<boolean> {
+export async function acceptPassword<TValues extends FieldValues>(
+  form: UseFormReturn<TValues>,
+  password: string,
+  message: string,
+): Promise<boolean> {
   const { validatePasswordSafety } =
     await import("@/app/actions/security-actions");
   const { isSafe } = await validatePasswordSafety(password);
+  if (!isSafe)
+    form.setError("password" as FieldPath<TValues>, {
+      message,
+      type: "manual",
+    });
   return isSafe;
 }

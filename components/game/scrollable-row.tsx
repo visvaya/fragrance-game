@@ -1,6 +1,9 @@
 "use client";
 
-import { useIsOverflowing } from "@/hooks/use-is-overflowing";
+import {
+  overflowMaskClass,
+  useIsOverflowing,
+} from "@/hooks/use-is-overflowing";
 import { cn } from "@/lib/utils";
 
 /**
@@ -16,18 +19,7 @@ export function ScrollableRow({
   const { canScrollLeft, canScrollRight, ref } =
     useIsOverflowing<HTMLDivElement>();
 
-  const maskClass = (() => {
-    if (canScrollLeft && canScrollRight) {
-      return "[mask-image:linear-gradient(to_right,transparent_0,black_20px,black_calc(100%-20px),transparent_100%)]";
-    }
-    if (canScrollLeft) {
-      return "[mask-image:linear-gradient(to_right,transparent_0,black_20px,black_100%)]";
-    }
-    if (canScrollRight) {
-      return "[mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent_100%)]";
-    }
-    return "";
-  })();
+  const maskClass = overflowMaskClass(canScrollLeft, canScrollRight);
 
   return (
     <div

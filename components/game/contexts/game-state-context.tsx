@@ -160,6 +160,7 @@ export function GameStateProvider({
     ],
   );
 
+  // jscpd:ignore-start -- each context has its own provider value and error message and changes independently
   return (
     <GameStateContext.Provider value={value}>
       {children}
@@ -178,3 +179,4 @@ export function useGameState() {
   }
   return context;
 }
+// jscpd:ignore-end

@@ -28,6 +28,7 @@ export const env = createEnv({
    * Required by {@link https://github.com/t3-oss/env-nextjs | t3-oss/env-nextjs} for edge/server split validation.
    */
   runtimeEnv: {
+    // jscpd:ignore-start -- createEnv needs one process.env line per variable; the lines repeat by design
     ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
     CRON_SECRET: process.env.CRON_SECRET,
     NEXT_PUBLIC_ASSETS_HOST: process.env.NEXT_PUBLIC_ASSETS_HOST,
@@ -45,6 +46,7 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
     VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    // jscpd:ignore-end
   },
 
   /**

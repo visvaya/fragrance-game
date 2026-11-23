@@ -50,25 +50,32 @@ export function cleanNote(note: string | null | undefined): string {
   return t.toLowerCase();
 }
 
+type NotePyramid = { base: string[]; heart: string[]; top: string[] };
+
+/** The cleaned note names of all pyramid levels together. */
+const noteSet = (notes: NotePyramid) =>
+  new Set(
+    [...notes.top, ...notes.heart, ...notes.base].map((n) => cleanNote(n)),
+  );
+
+/** The lowercased, trimmed perfumer names without empty or missing entries. */
+const perfumerSet = (perfumers: (string | null | undefined)[]) =>
+  new Set(
+    perfumers
+      .filter((p): p is string => typeof p === "string" && p.length > 0)
+      .map((p) => p.toLowerCase().trim()),
+  );
+
 /**
  * Jaccard similarity of the guessed and the answer notes, all pyramid levels together,
  * after {@link cleanNote}; 0 when both have no notes.
  */
 export function calculateNotesMatch(
-  guessNotes: { base: string[]; heart: string[]; top: string[] },
-  answerNotes: { base: string[]; heart: string[]; top: string[] },
+  guessNotes: NotePyramid,
+  answerNotes: NotePyramid,
 ): number {
-  const guessSet = new Set([
-    ...guessNotes.top.map((n) => cleanNote(n)),
-    ...guessNotes.heart.map((n) => cleanNote(n)),
-    ...guessNotes.base.map((n) => cleanNote(n)),
-  ]);
-
-  const answerSet = new Set([
-    ...answerNotes.top.map((n) => cleanNote(n)),
-    ...answerNotes.heart.map((n) => cleanNote(n)),
-    ...answerNotes.base.map((n) => cleanNote(n)),
-  ]);
+  const guessSet = noteSet(guessNotes);
+  const answerSet = noteSet(answerNotes);
 
   const intersection = new Set(
     [...guessSet].filter((note) => answerSet.has(note)),
@@ -88,16 +95,8 @@ export function calculatePerfumerMatch(
 ): "full" | "partial" | "none" {
   if (!guessPerfumers || !answerPerfumers) return "none";
 
-  const guessSet = new Set(
-    guessPerfumers
-      .filter((p): p is string => typeof p === "string" && p.length > 0)
-      .map((p) => p.toLowerCase().trim()),
-  );
-  const answerSet = new Set(
-    answerPerfumers
-      .filter((p): p is string => typeof p === "string" && p.length > 0)
-      .map((p) => p.toLowerCase().trim()),
-  );
+  const guessSet = perfumerSet(guessPerfumers);
+  const answerSet = perfumerSet(answerPerfumers);
 
   if (guessSet.size === 0 || answerSet.size === 0) return "none";
 
