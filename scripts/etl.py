@@ -74,7 +74,7 @@ def _first_id(data: Any) -> str | None:
     return str(data[0]["id"]) if data else None
 
 
-# jscpd:ignore-start -- the ETL script and the asset tools are separate entry points that share no module
+# jscpd:ignore-start -- separate entry points that share no module
 def _fetch_pages(table: str, columns: str) -> list[dict[str, Any]]:
     """All rows of a table, page by page; pages need a stable order or rows move between them."""
     rows: list[dict[str, Any]] = []

@@ -18,7 +18,7 @@ PAGE_SIZE = 1000
 IMAGE_EXTENSIONS = (".avif", ".png", ".jpg", ".jpeg", ".webp")
 
 
-# jscpd:ignore-start -- the ETL script and the asset tools are separate entry points that share no module
+# jscpd:ignore-start -- separate entry points that share no module
 def fetch_pages(
     make_query: Callable[[], Any], order_column: str, page_size: int = PAGE_SIZE
 ) -> list[dict[str, Any]]:
