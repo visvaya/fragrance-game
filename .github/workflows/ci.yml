@@ -54,6 +54,20 @@ jobs:
       - run: pnpm format:check
       # Unused files, exports and dependencies (knip.json).
       - run: pnpm exec knip
+      # Markdown rules in .markdownlint-cli2.jsonc; the formatter ignores *.md.
+      - run: pnpm lint:markdown
+      # Relative links and anchors in Markdown, offline (lychee: external links stay unchecked, so
+      # the gate cannot flake). The binary is pinned by checksum.
+      - name: Markdown links
+        env:
+          LYCHEE_URL: https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/lychee-x86_64-unknown-linux-gnu.tar.gz
+          LYCHEE_SHA256: 1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/lychee.tar.gz" "$LYCHEE_URL"
+          echo "$LYCHEE_SHA256  $RUNNER_TEMP/lychee.tar.gz" | sha256sum -c -
+          mkdir "$RUNNER_TEMP/lychee"
+          tar -xzf "$RUNNER_TEMP/lychee.tar.gz" -C "$RUNNER_TEMP/lychee"
+          git ls-files -z "*.md" | xargs -0 "$(find "$RUNNER_TEMP/lychee" -type f -name lychee)" --offline --include-fragments --no-progress
       # Any clone fails (jscpd threshold 0 in .jscpd.json).
       - run: pnpm lint:duplicates
       # Every tracked JavaScript file is on the allowlist in scripts/check-typed-files.ts.

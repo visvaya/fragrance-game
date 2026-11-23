@@ -58,7 +58,7 @@ Contributions are welcome: see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Project structure
 
-```
+```text
 app/            Next.js routes ([locale]/), server actions, API routes (cron)
 components/     game components, shadcn/ui primitives, providers
 lib/            game logic (scoring, reveal), Supabase clients, validation
