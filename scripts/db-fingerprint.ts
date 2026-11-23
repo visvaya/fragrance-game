@@ -1,7 +1,7 @@
 /**
  * Compares a database's schema fingerprint with the expected one in
  * supabase/schema-fingerprint.txt. Reads the JSON output of
- * `supabase db query --agent=no --read-only -f supabase/schema-fingerprint.sql --output-format json --remote`
+ * `supabase db query --agent=no --read-only -f supabase/schema-fingerprint.sql --output json --remote`
  * on stdin (see the `db:fingerprint` package script): a bare array of rows. Without
  * --agent=no the CLI wraps the rows in an envelope when it detects an agent.
  *
@@ -25,7 +25,7 @@ export type CompareResult = { ok: true } | { extra: string[]; missing: string[];
 
 /**
  * Extracts the fingerprint lines from the Supabase CLI JSON output.
- * @param text - stdout of `supabase db query --output-format json`
+ * @param text - stdout of `supabase db query --output json`
  */
 export function parseQueryOutput(text: string): ParseResult {
   try {

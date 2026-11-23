@@ -51,7 +51,7 @@
     "supabase:advisors": "node scripts/check-advisors.mjs",
     "supabase:db-lint": "pnpm supabase db lint --remote",
     "test:db": "pnpm supabase test db",
-    "db:fingerprint": "supabase db query --agent=no --read-only -f supabase/schema-fingerprint.sql --output-format json --remote | tsx scripts/db-fingerprint.ts",
+    "db:fingerprint": "supabase db query --agent=no --read-only -f supabase/schema-fingerprint.sql --output json --remote | tsx scripts/db-fingerprint.ts",
     "lint:duplicates": "jscpd app lib components hooks && jscpd scripts --format python",
     "budget:startup-js": "next analyze --experimental-app-only -o && tsx scripts/check-startup-js.ts",
     "lint:typed-files": "tsx scripts/check-typed-files.ts",
