@@ -54,7 +54,7 @@ jobs:
       - run: pnpm format:check
       # Unused files, exports and dependencies (knip.json).
       - run: pnpm exec knip
-      # Clone count ratchet (.jscpd.json, MAX_CLONES in scripts/check-duplication.ts).
+      # Any clone fails (jscpd threshold 0 in .jscpd.json).
       - run: pnpm lint:duplicates
       # Every tracked JavaScript file is on the allowlist in scripts/check-typed-files.ts.
       - run: pnpm lint:typed-files
