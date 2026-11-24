@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -47,6 +47,21 @@ test.afterAll(async () => {
   }
 });
 
+/**
+ * Waits until React has hydrated the element: it is in the server HTML before its handlers exist,
+ * so an early click on a form button would submit the form natively and reload the page. React
+ * marks a hydrated element with a `__reactFiber` property.
+ */
+async function waitUntilHydrated(page: Page, selector: string): Promise<void> {
+  await page.waitForFunction((css) => {
+    const element = document.querySelector(css);
+    return (
+      element !== null &&
+      Object.keys(element).some((key) => key.startsWith("__reactFiber"))
+    );
+  }, selector);
+}
+
 test("Login and Logout", async ({ page }) => {
   // Supabase captcha protection rejects a password sign-in without a Turnstile token, and the
   // test host cannot pass Turnstile. Like the Admin API sign-up of globalSetup, a request that
@@ -67,6 +82,7 @@ test("Login and Logout", async ({ page }) => {
   );
 
   await page.goto("/auth/login");
+  await waitUntilHydrated(page, 'form button[type="submit"]');
 
   // Fill credentials
   // Using placeholders from en.json: "emailPlaceholder": "mail@example.com"
@@ -94,15 +110,7 @@ test("Login and Logout", async ({ page }) => {
   await signOutButton.click();
   await reloaded;
 
-  // The menu button is in the server HTML before its handler exists; React marks a hydrated
-  // element with a `__reactFiber` property.
-  await page.waitForFunction(() => {
-    const button = document.querySelector('button[aria-label="Menu"]');
-    return (
-      button !== null &&
-      Object.keys(button).some((key) => key.startsWith("__reactFiber"))
-    );
-  });
+  await waitUntilHydrated(page, 'button[aria-label="Menu"]');
 
   // Sign In button should reappear in the menu
   await menuButton.click();
