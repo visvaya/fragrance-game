@@ -12,7 +12,7 @@ export const env = createEnv({
    * Client-side variables – must be prefixed with NEXT_PUBLIC_.
    */
   client: {
-    NEXT_PUBLIC_ASSETS_HOST: z.string().optional(),
+    NEXT_PUBLIC_ASSETS_HOST: z.string().trim().min(1),
     NEXT_PUBLIC_GAME_RESET_ENABLED: z.enum(["true", "false"]).optional(),
     NEXT_PUBLIC_POSTHOG_HOST: z.url().optional(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1),
