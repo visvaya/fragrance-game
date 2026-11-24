@@ -60,8 +60,11 @@ def test_backup_manifest_survives_a_crash(monkeypatch: pytest.MonkeyPatch, tmp_p
     _patch_s3(monkeypatch, FakeS3({"a/x/1.avif": b"one", "a/x/2.avif": b"two"}, "a/x/2.avif"))
     with pytest.raises(OSError):
         rekey_assets.cmd_backup(argparse.Namespace(out=str(tmp_path / "backup")))
-    manifest = json.loads((tmp_path / "backup" / "manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads(
+        (tmp_path / "backup" / "manifest.partial.json").read_text(encoding="utf-8")
+    )
     assert manifest == {"a/x/1.avif": {"sha256": hashlib.sha256(b"one").hexdigest(), "size": 3}}
+    assert not (tmp_path / "backup" / "manifest.json").exists()
 
 
 def _plan_file(tmp_path: Path) -> Path:

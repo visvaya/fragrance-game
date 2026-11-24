@@ -113,6 +113,7 @@ def cmd_backup(args: argparse.Namespace) -> int:
     s3, bucket = make_s3_client(), bucket_name()
     manifest: dict[str, dict[str, Any]] = {}
     out.mkdir(parents=True, exist_ok=True)
+    complete = False
     try:
         for key in _list_bucket(s3, bucket):
             body = s3.get_object(Bucket=bucket, Key=key)["Body"].read()
@@ -122,9 +123,12 @@ def cmd_backup(args: argparse.Namespace) -> int:
             entry = {"sha256": hashlib.sha256(body).hexdigest(), "size": len(body)}
             manifest = {**manifest, key: entry}
             print(f"saved {key} ({len(body)} bytes)")
+        complete = True
     finally:
-        # Also on a crash, so the files already saved stay described and can be verified.
-        (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+        # Also on a crash, so the files already saved stay described; under another name, so a
+        # partial backup cannot pass for a complete one in `verify --backup`.
+        name = "manifest.json" if complete else "manifest.partial.json"
+        (out / name).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(f"Backed up {len(manifest)} objects to {out}")
     return 0
 
