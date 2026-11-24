@@ -81,6 +81,22 @@ def test_failed_row_write_removes_new_files_and_keeps_old_asset() -> None:
     assert not any(c[0] == "delete_prefix" for c in calls)
 
 
+def test_failed_rollback_does_not_hide_the_original_error() -> None:
+    calls, io = make_io(fail_upsert=True)
+
+    def broken_delete(keys: Sequence[str]) -> None:
+        raise OSError("rollback failed")
+
+    io["delete_keys"] = broken_delete
+    with pytest.raises(RuntimeError, match="db down"):
+        publish_asset(PERFUME, IMAGES, old_asset_id=OLD_ID, **io)
+
+    calls, io = make_io(fail_put_at=2)
+    io["delete_keys"] = broken_delete
+    with pytest.raises(OSError, match="upload failed"):
+        publish_asset(PERFUME, IMAGES, old_asset_id=OLD_ID, **io)
+
+
 def test_failed_old_directory_removal_is_reported_not_raised() -> None:
     _, io = make_io(fail_delete_prefix=True)
     result = publish_asset(PERFUME, IMAGES, old_asset_id=OLD_ID, **io)

@@ -76,6 +76,23 @@ describe.each([
 });
 
 describe("getPendingGuestMerge", () => {
+  it("counts each check against the account", async () => {
+    vi.mocked(readGuestTicket).mockResolvedValue(null);
+    await getPendingGuestMerge();
+    expect(checkRateLimit).toHaveBeenCalledWith(
+      "getPendingGuestMerge",
+      ACCOUNT_ID,
+    );
+  });
+
+  it("rejects without a lookup once the limit is exceeded", async () => {
+    vi.mocked(checkRateLimit).mockRejectedValueOnce(
+      new Error("Rate limit exceeded"),
+    );
+    await expect(getPendingGuestMerge()).rejects.toThrow("Rate limit exceeded");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
   it("returns nothing pending without a valid ticket and clears the stale hint", async () => {
     vi.mocked(readGuestTicket).mockResolvedValue(null);
     await expect(getPendingGuestMerge()).resolves.toEqual({ pending: false });

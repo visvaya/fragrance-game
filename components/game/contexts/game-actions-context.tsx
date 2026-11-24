@@ -33,6 +33,7 @@ import type {
   GameSessionAction,
   GameState,
 } from "@/lib/game/game-session-state";
+import { isRateLimitError } from "@/lib/rate-limit-error";
 
 type GameActionsContextType = {
   isRateLimited: boolean;
@@ -69,12 +70,6 @@ type GameActionsProviderProperties = {
   sessionId: string | null;
   setLoading: Dispatch<SetStateAction<boolean>>;
 };
-
-function isRateLimitError(error: unknown): boolean {
-  return (
-    error instanceof Error && error.message.startsWith("Rate limit exceeded")
-  );
-}
 
 /** Error haptic after a wrong or skipped attempt, with a second heavy pulse when it ended the game. */
 function triggerWrongAttemptHaptics(

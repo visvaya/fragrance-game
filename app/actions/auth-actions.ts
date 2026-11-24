@@ -61,6 +61,8 @@ export async function getSessions(): Promise<
     return [];
   }
 
+  await checkRateLimit("getSessions", user.id);
+
   const { data: sessions } = await supabase
     .from("user_sessions")
     .select(
