@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
@@ -9,19 +7,18 @@ import { toast } from "sonner";
 import * as z from "zod";
 
 import { useRouter } from "@/i18n/routing";
-import { publicEnv } from "@/lib/public-env";
 import { createClient } from "@/lib/supabase/client";
 
 import {
   AuthCard,
   AuthForm,
-  Captcha,
   GoogleSignIn,
   SubmitButton,
   SwitchScreenLink,
   TextField,
   showProviderError,
   useAuthSubmit,
+  useCaptcha,
 } from "./auth-form-parts";
 
 export type LoginFormProperties = {
@@ -42,11 +39,7 @@ export function LoginForm({
   onSuccess,
 }: LoginFormProperties) {
   const { isLoading, submit } = useAuthSubmit();
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  // A token works once, so a new widget (new key) is mounted after each attempt.
-  const [captchaAttempt, setCaptchaAttempt] = useState(0);
-  // Without a site key (local setups without captcha) the sign-in goes without a token.
-  const hasCaptcha = Boolean(publicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
+  const captcha = useCaptcha();
   const router = useRouter();
   const supabase = createClient();
   const t = useTranslations("Auth.login");
@@ -69,7 +62,7 @@ export function LoginForm({
   // jscpd:ignore-end
 
   async function onSubmit(data: LoginFormValues) {
-    if (hasCaptcha && !captchaToken) {
+    if (captcha.isMissing) {
       toast.error(t("captchaError"));
       return;
     }
@@ -78,10 +71,9 @@ export function LoginForm({
       const { error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
-        ...(captchaToken ? { options: { captchaToken } } : {}),
+        ...(captcha.token ? { options: { captchaToken: captcha.token } } : {}),
       });
-      setCaptchaToken(null);
-      setCaptchaAttempt((attempt) => attempt + 1);
+      captcha.reset();
 
       if (showProviderError(t("failed"), error)) return;
 
@@ -128,14 +120,7 @@ export function LoginForm({
           name="password"
           type="password"
         />
-        {hasCaptcha ? (
-          <Captcha
-            key={captchaAttempt}
-            onError={() => setCaptchaToken(null)}
-            onExpire={() => setCaptchaToken(null)}
-            onVerify={(token) => setCaptchaToken(token)}
-          />
-        ) : null}
+        {captcha.widget}
         <SubmitButton isLoading={isLoading}>{t("submit")}</SubmitButton>
       </AuthForm>
 

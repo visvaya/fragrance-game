@@ -274,7 +274,8 @@
       "success": "Check your email",
       "successDescription": "If an account exists for that email, we have sent password reset instructions.",
       "error": "Failed to send reset email",
-      "invalidEmail": "Invalid email address"
+      "invalidEmail": "Invalid email address",
+      "captchaError": "Please complete the captcha verification"
     },
     "resetPassword": {
       "title": "Set New Password",

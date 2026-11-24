@@ -525,6 +525,67 @@ describe("ForgotPasswordForm", () => {
     );
   });
 
+  describe("with a captcha site key", () => {
+    async function fillAndSubmit() {
+      await userEvent.type(
+        screen.getByLabelText("Auth.forgotPassword.emailLabel"),
+        "a@b.co",
+      );
+      await userEvent.click(
+        screen.getByRole("button", { name: "Auth.forgotPassword.submit" }),
+      );
+    }
+
+    beforeEach(() => {
+      mockPublicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
+    });
+
+    it("requires the captcha before sending the email", async () => {
+      render(<ForgotPasswordForm />);
+      await fillAndSubmit();
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith(
+          "Auth.forgotPassword.captchaError",
+        );
+      });
+      expect(mockAuth.resetPasswordForEmail).not.toHaveBeenCalled();
+    });
+
+    it("sends the email with the captcha token", async () => {
+      render(<ForgotPasswordForm />);
+      await userEvent.click(screen.getByRole("button", { name: "captcha" }));
+      await fillAndSubmit();
+
+      await waitFor(() => {
+        expect(mockAuth.resetPasswordForEmail).toHaveBeenCalledWith(
+          "a@b.co",
+          expect.objectContaining({ captchaToken: "captcha-token" }),
+        );
+      });
+    });
+
+    it("needs a new captcha token after a request", async () => {
+      render(<ForgotPasswordForm />);
+      await userEvent.click(screen.getByRole("button", { name: "captcha" }));
+      await fillAndSubmit();
+      await waitFor(() => {
+        expect(mockToast.success).toHaveBeenCalled();
+      });
+
+      await userEvent.click(
+        screen.getByRole("button", { name: "Auth.forgotPassword.submit" }),
+      );
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith(
+          "Auth.forgotPassword.captchaError",
+        );
+      });
+      expect(mockAuth.resetPasswordForEmail).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("goes back to login", async () => {
     const onLoginClick = vi.fn();
     render(<ForgotPasswordForm onLoginClick={onLoginClick} />);

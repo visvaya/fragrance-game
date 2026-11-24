@@ -24,6 +24,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { publicEnv } from "@/lib/public-env";
 import { cn } from "@/lib/utils";
 
 import { GoogleAuthButton } from "./google-auth-button";
@@ -46,6 +47,34 @@ export const Captcha = dynamic(
     ssr: false,
   },
 );
+
+/**
+ * Turnstile state of an auth form. `widget` is the widget, or null without a site key (local
+ * setups without captcha: the request then goes without a token). `isMissing` is true while a
+ * required token has not arrived. A token works once, so `reset` clears it and mounts a new widget.
+ */
+export function useCaptcha() {
+  const [token, setToken] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const hasCaptcha = Boolean(publicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
+
+  return {
+    isMissing: hasCaptcha && token === null,
+    reset: () => {
+      setToken(null);
+      setAttempt((count) => count + 1);
+    },
+    token,
+    widget: hasCaptcha ? (
+      <Captcha
+        key={attempt}
+        onError={() => setToken(null)}
+        onExpire={() => setToken(null)}
+        onVerify={setToken}
+      />
+    ) : null,
+  };
+}
 
 type AuthCardProperties = {
   readonly children: ReactNode;
