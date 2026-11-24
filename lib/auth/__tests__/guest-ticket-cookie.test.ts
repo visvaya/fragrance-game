@@ -24,11 +24,16 @@ vi.mock("next/headers", () => ({
   }),
 }));
 
+const secrets = vi.hoisted(() => ({
+  guestTicket: "g".repeat(32),
+  serviceRole: "s".repeat(32),
+}));
+
 vi.mock("@/lib/env", () => ({
   env: {
-    GUEST_TICKET_SECRET: "guest-ticket-secret-of-at-least-32-chars",
+    GUEST_TICKET_SECRET: secrets.guestTicket,
     NODE_ENV: "test",
-    SUPABASE_SERVICE_ROLE_KEY: "service-role-key-must-not-sign-tickets",
+    SUPABASE_SERVICE_ROLE_KEY: secrets.serviceRole,
   },
 }));
 
@@ -56,7 +61,7 @@ describe("guest ticket cookie", () => {
       createGuestTicket(
         GUEST,
         Date.now(),
-        deriveGuestTicketKey("service-role-key-must-not-sign-tickets"),
+        deriveGuestTicketKey(secrets.serviceRole),
       ),
     );
     expect(await readGuestTicket()).toBeNull();
@@ -66,7 +71,7 @@ describe("guest ticket cookie", () => {
       createGuestTicket(
         GUEST,
         Date.now(),
-        deriveGuestTicketKey("guest-ticket-secret-of-at-least-32-chars"),
+        deriveGuestTicketKey(secrets.guestTicket),
       ),
     );
     const ticket = await readGuestTicket();
