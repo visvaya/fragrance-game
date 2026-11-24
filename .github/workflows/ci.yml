@@ -52,6 +52,21 @@ jobs:
         run: pnpm exec tsx scripts/check-text.ts since "origin/$BASE_REF"
       - run: pnpm lint:strict
       - run: pnpm format:check
+      # A change to what is deployed moves the version by the step the title names (pnpm version:bump);
+      # any other change keeps it. The title is read live in a pull request, so a rerun after a rename
+      # sees the new one; on main the squashed commit's subject is that title and its first parent the
+      # commit before, so two pull requests that took the same number fail here, before they deploy.
+      - name: Version follows the title and the changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            title=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .title)
+          else
+            title=$(git log -1 --format=%s)
+          fi
+          pnpm version:check --base HEAD^1 "$title"
       # Unused files, exports and dependencies (knip.json).
       - run: pnpm exec knip
       # Markdown rules in .markdownlint-cli2.jsonc; the formatter ignores *.md.

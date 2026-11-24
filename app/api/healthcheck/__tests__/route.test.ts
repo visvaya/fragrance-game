@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { version } from "@/package.json";
+
 import { GET } from "../route";
 
 describe("GET /api/healthcheck", () => {
@@ -32,6 +34,13 @@ describe("GET /api/healthcheck", () => {
     // Timestamp must be within the current test execution window
     expect(json.timestamp >= before).toBe(true);
     expect(json.timestamp <= after).toBe(true);
+  });
+
+  it("reports the version of package.json", async () => {
+    const response = await GET();
+    const json = await response.json();
+
+    expect(json.version).toBe(version);
   });
 
   it("returns Content-Type application/json", async () => {

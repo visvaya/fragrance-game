@@ -42,6 +42,8 @@ Conventions that review looks for beyond what the linters enforce:
 
 Commit messages and pull request titles follow [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): subject`, for example `fix(game): keep the skip dialog open after a network error`. The subject is in the imperative mood, lowercase, without a final period and at most 72 characters long. Pull requests are merged with squash, so the pull request title becomes the commit on `main`.
 
+A pull request that changes what is deployed (the app, its messages, public files, the lockfile) also moves the version in `package.json` by the step its title names: `feat` the middle number, any other type the last one, `!` the first (the middle one before 1.0). After you open it, or when its title or base changes, run `pnpm version:bump "<title>"` and commit the result; CI fails with that instruction otherwise. The command also adds the version to `lib/changelog.json`. A `feat` needs notes for the players there, in English and Polish; other changes may keep an empty list, which keeps them out of the player-facing list. The release for a version is created after production serves it.
+
 Keep a pull request to one topic. Fill in the template: what changed, which checks you ran and which you skipped, with the reason.
 
 ## Review
