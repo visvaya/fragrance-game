@@ -231,7 +231,8 @@
       "failed": "Logowanie nieudane",
       "error": "Wystąpił nieoczekiwany błąd",
       "invalidEmail": "Nieprawidłowy adres email",
-      "passwordRequired": "Podaj hasło"
+      "passwordRequired": "Podaj hasło",
+      "captchaError": "Proszę potwierdzić weryfikację captcha"
     },
     "register": {
       "title": "Stwórz konto",

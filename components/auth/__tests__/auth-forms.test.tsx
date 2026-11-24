@@ -7,21 +7,26 @@ import { LoginForm } from "../login-form";
 import { RegisterForm } from "../register-form";
 import { ResetPasswordForm } from "../reset-password-form";
 
-const { mockAuth, mockRouter, mockSafety, mockToast } = vi.hoisted(() => ({
-  mockAuth: {
-    resetPasswordForEmail: vi.fn(),
-    signInWithPassword: vi.fn(),
-    signUp: vi.fn(),
-    updateUser: vi.fn(),
-  },
-  mockRouter: { push: vi.fn(), refresh: vi.fn() },
-  mockSafety: vi.fn(),
-  mockToast: { error: vi.fn(), success: vi.fn() },
-}));
+const { mockAuth, mockPublicEnv, mockRouter, mockSafety, mockToast } =
+  vi.hoisted(() => ({
+    mockAuth: {
+      resetPasswordForEmail: vi.fn(),
+      signInWithPassword: vi.fn(),
+      signUp: vi.fn(),
+      updateUser: vi.fn(),
+    },
+    mockPublicEnv: {
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: undefined as string | undefined,
+    },
+    mockRouter: { push: vi.fn(), refresh: vi.fn() },
+    mockSafety: vi.fn(),
+    mockToast: { error: vi.fn(), success: vi.fn() },
+  }));
 
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({ auth: mockAuth }),
 }));
+vi.mock("@/lib/public-env", () => ({ publicEnv: mockPublicEnv }));
 vi.mock("@/i18n/routing", () => ({ useRouter: () => mockRouter }));
 vi.mock("@/app/actions/security-actions", () => ({
   validatePasswordSafety: mockSafety,
@@ -50,6 +55,7 @@ const STRONG_PASSWORD = "Str0ng!pass";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockPublicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY = undefined;
   mockAuth.resetPasswordForEmail.mockResolvedValue({ error: null });
   mockAuth.signInWithPassword.mockResolvedValue({ error: null });
   mockAuth.signUp.mockResolvedValue({ error: null });
@@ -198,6 +204,73 @@ describe("LoginForm", () => {
       await screen.findByText("Auth.login.passwordRequired"),
     ).toBeInTheDocument();
     expect(mockAuth.signInWithPassword).not.toHaveBeenCalled();
+  });
+
+  describe("with a captcha site key", () => {
+    async function fillAndSubmit() {
+      await userEvent.type(
+        screen.getByLabelText("Auth.login.emailLabel"),
+        "a@b.co",
+      );
+      await userEvent.type(
+        screen.getByLabelText("Auth.login.passwordLabel"),
+        "secret",
+      );
+      await userEvent.click(
+        screen.getByRole("button", { name: "Auth.login.submit" }),
+      );
+    }
+
+    beforeEach(() => {
+      mockPublicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
+    });
+
+    it("requires the captcha before signing in", async () => {
+      render(<LoginForm />);
+      await fillAndSubmit();
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith("Auth.login.captchaError");
+      });
+      expect(mockAuth.signInWithPassword).not.toHaveBeenCalled();
+    });
+
+    it("signs in with the captcha token", async () => {
+      render(<LoginForm onSuccess={vi.fn()} />);
+      await userEvent.click(screen.getByRole("button", { name: "captcha" }));
+      await fillAndSubmit();
+
+      await waitFor(() => {
+        expect(mockAuth.signInWithPassword).toHaveBeenCalledWith({
+          email: "a@b.co",
+          options: { captchaToken: "captcha-token" },
+          password: "secret",
+        });
+      });
+    });
+
+    it("needs a new captcha token after a rejected sign-in", async () => {
+      mockAuth.signInWithPassword.mockResolvedValue({
+        error: { message: "bad credentials" },
+      });
+      render(<LoginForm />);
+      await userEvent.click(screen.getByRole("button", { name: "captcha" }));
+      await fillAndSubmit();
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith("Auth.login.failed", {
+          description: "bad credentials",
+        });
+      });
+
+      await userEvent.click(
+        screen.getByRole("button", { name: "Auth.login.submit" }),
+      );
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith("Auth.login.captchaError");
+      });
+      expect(mockAuth.signInWithPassword).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("links to the other auth screens", async () => {

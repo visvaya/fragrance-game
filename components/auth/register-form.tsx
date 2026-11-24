@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 
-import dynamic from "next/dynamic";
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
@@ -17,6 +15,7 @@ import {
   acceptPassword,
   AuthCard,
   AuthForm,
+  Captcha,
   GoogleSignIn,
   strongPasswordSchema,
   SubmitButton,
@@ -26,24 +25,6 @@ import {
   useAuthSubmit,
 } from "./auth-form-parts";
 import { PasswordStrength } from "./password-strength";
-
-const CaptchaLoader = () => {
-  const t = useTranslations("Auth.register");
-  return (
-    // eslint-disable-next-line eauxle/restricted-syntax -- Cloudflare Turnstile documented minimum height is 65px (fixed hardware constraint)
-    <div className="flex h-[65px] animate-pulse items-center justify-center rounded bg-muted/20 text-xs text-muted-foreground">
-      {t("captchaLoading")}
-    </div>
-  );
-};
-
-const Captcha = dynamic(
-  async () => import("./captcha").then((m) => m.Captcha),
-  {
-    loading: () => <CaptchaLoader />,
-    ssr: false,
-  },
-);
 
 export type RegisterFormProperties = {
   readonly className?: string;

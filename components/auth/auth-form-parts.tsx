@@ -1,5 +1,7 @@
 import { type ReactNode, useRef, useState } from "react";
 
+import dynamic from "next/dynamic";
+
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type {
@@ -25,6 +27,25 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 import { GoogleAuthButton } from "./google-auth-button";
+
+const CaptchaLoader = () => {
+  const t = useTranslations("Auth.register");
+  return (
+    // eslint-disable-next-line eauxle/restricted-syntax -- Cloudflare Turnstile documented minimum height is 65px (fixed hardware constraint)
+    <div className="flex h-[65px] animate-pulse items-center justify-center rounded bg-muted/20 text-xs text-muted-foreground">
+      {t("captchaLoading")}
+    </div>
+  );
+};
+
+/** Turnstile widget, loaded on demand so its script stays out of the first form bundle. */
+export const Captcha = dynamic(
+  async () => import("./captcha").then((m) => m.Captcha),
+  {
+    loading: () => <CaptchaLoader />,
+    ssr: false,
+  },
+);
 
 type AuthCardProperties = {
   readonly children: ReactNode;

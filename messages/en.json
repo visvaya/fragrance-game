@@ -231,7 +231,8 @@
       "failed": "Login failed",
       "error": "An unexpected error occurred",
       "invalidEmail": "Invalid email address",
-      "passwordRequired": "Enter your password"
+      "passwordRequired": "Enter your password",
+      "captchaError": "Please complete the captcha verification"
     },
     "register": {
       "title": "Create an Account",
