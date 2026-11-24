@@ -41,6 +41,7 @@
     "test:a11y": "cross-env NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA playwright test e2e/a11y",
     "test:load": "pnpm dlx artillery@2.0.34 run scripts/load-test.yaml",
     "test:perf": "cross-env NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA playwright test e2e/performance",
+    "screenshot:readme": "tsx scripts/screenshot-readme.ts",
     "audit:lighthouse": "tsx scripts/parse-lighthouse.ts ./reports/latest.report.json",
     "clean": "pnpm exec rimraf .next node_modules",
     "supabase": "supabase",
