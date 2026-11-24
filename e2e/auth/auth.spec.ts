@@ -62,27 +62,49 @@ async function waitUntilHydrated(page: Page, selector: string): Promise<void> {
   }, selector);
 }
 
+// Traces, screenshots and videos are uploaded as a public artifact; keep them off for this spec so
+// nothing it handles (the service role key, the test user's session) can end up in one.
+test.use({ screenshot: "off", trace: "off", video: "off" });
+
 test("Login and Logout", async ({ page }) => {
   // Supabase captcha protection rejects a password sign-in without a Turnstile token, and the
-  // test host cannot pass Turnstile. Like the Admin API sign-up of globalSetup, a request that
-  // carries the service role key skips the captcha, so the form's own request is sent with it.
+  // test host cannot pass Turnstile. A request that carries the service role key skips the
+  // captcha (as the Admin API sign-up of globalSetup does), so the form's request is answered
+  // from here. It is sent from the Node process with plain `fetch`, never through the browser or
+  // a Playwright request object: Playwright records those in traces, and the key must stay out.
   await page.route(
     (url) =>
       url.pathname.endsWith("/auth/v1/token") &&
       url.searchParams.get("grant_type") === "password",
     async (route) => {
-      await route.continue({
-        headers: {
-          ...route.request().headers(),
-          apikey: supabaseServiceKey,
-          authorization: `Bearer ${supabaseServiceKey}`,
+      // eslint-disable-next-line eauxle/fetch-requires-parse -- the body is relayed unchanged to the page's own Supabase client, which validates it
+      const response = await fetch(
+        `${supabaseUrl}/auth/v1/token?grant_type=password`,
+        {
+          body: route.request().postData() ?? "",
+          headers: {
+            apikey: supabaseServiceKey,
+            authorization: `Bearer ${supabaseServiceKey}`,
+            "content-type": "application/json",
+          },
+          method: "POST",
         },
+      );
+      await route.fulfill({
+        body: await response.text(),
+        headers: {
+          "content-type":
+            response.headers.get("content-type") ?? "application/json",
+        },
+        status: response.status,
       });
     },
   );
 
   await page.goto("/auth/login");
   await waitUntilHydrated(page, 'form button[type="submit"]');
+  // With a Turnstile site key the form also needs a captcha token before it submits. The nightly
+  // job sets no site key, so the form has no widget and there is no token to wait for here.
 
   // Fill credentials
   // Using placeholders from en.json: "emailPlaceholder": "mail@example.com"
