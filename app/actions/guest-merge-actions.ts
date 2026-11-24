@@ -49,6 +49,7 @@ export async function getPendingGuestMerge(): Promise<
   if (accountId === null) {
     return { pending: false };
   }
+  await checkRateLimit("getPendingGuestMerge", accountId);
   const ticket = await readGuestTicket();
   if (ticket === null) {
     // A stale hint would otherwise make every page load ask again.

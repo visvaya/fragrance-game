@@ -48,8 +48,13 @@ jobs:
       # database (TEST_SUPABASE_URL / TEST_SUPABASE_SERVICE_ROLE_KEY). There is none
       # yet, so it is not run here.
 
-      - name: Upload test results
+      # Artifacts are public and not masked like logs: upload only what passed the secret scan.
+      - name: Scan the artifact for secrets
+        id: secret-scan
         if: always()
+        run: .github/scripts/scan-artifacts.sh coverage
+      - name: Upload test results
+        if: always() && steps.secret-scan.outcome == 'success'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: integration-test-results

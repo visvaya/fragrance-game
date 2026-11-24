@@ -1,0 +1,20 @@
+# Secret scan of CI artifacts (test reports, traces, coverage) before upload.
+# Reports legitimately carry the public anon key and short-lived test-user session tokens (both JWTs), so the
+# generic jwt rule is off; the rules below catch the Supabase service role key in both key formats.
+title = "Eauxle CI artifact secrets"
+
+[extend]
+useDefault = true
+disabledRules = ["jwt"]
+
+[[rules]]
+id = "supabase-service-role-jwt"
+description = "Supabase service role key: a JWT whose payload names the service_role role"
+regex = '''eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]*(?:c2VydmljZV9yb2xl|NlcnZpY2Vfcm9sZ|zZXJ2aWNlX3JvbG)[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+'''
+keywords = ["eyj"]
+
+[[rules]]
+id = "supabase-secret-key"
+description = "Supabase secret API key"
+regex = '''sb_secret_[A-Za-z0-9_-]{20,}'''
+keywords = ["sb_secret_"]

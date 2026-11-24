@@ -5,6 +5,8 @@ import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { publicEnv } from "@/lib/public-env";
+
 import { useGameActions } from "./contexts";
 
 /**
@@ -43,6 +45,9 @@ export function MobileResetItem() {
     e.stopPropagation();
     setShowConfirm(false);
   };
+
+  // Debug item, like ResetButton: the server refuses the reset unless the flag is on.
+  if (publicEnv.NEXT_PUBLIC_GAME_RESET_ENABLED !== "true") return null;
 
   if (!showConfirm) {
     return (

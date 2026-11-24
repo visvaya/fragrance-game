@@ -1,6 +1,8 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
+import { RATE_LIMIT_MESSAGE_PREFIX } from "@/lib/rate-limit-error";
+
 /**
  * Upstash Redis client backing every rate limiter below.
  *
@@ -29,6 +31,31 @@ export const limiters = {
   getDailyChallenge: new Ratelimit({
     limiter: Ratelimit.slidingWindow(30, "1 m"),
     prefix: "ratelimit:getDailyChallenge",
+    redis,
+  }),
+  // 60 requests per minute per IP, for callers without any session (direct action calls); an
+  // anonymous player is a Supabase user and goes through the per-user getDailyChallenge limit.
+  getDailyChallenge_anon: new Ratelimit({
+    limiter: Ratelimit.slidingWindow(60, "1 m"),
+    prefix: "ratelimit:getDailyChallenge_anon",
+    redis,
+  }),
+  // 60 requests per minute per user (once per page load of an account with a guest hint)
+  getPendingGuestMerge: new Ratelimit({
+    limiter: Ratelimit.slidingWindow(60, "1 m"),
+    prefix: "ratelimit:getPendingGuestMerge",
+    redis,
+  }),
+  // 30 requests per minute per user (once per SSR page view of a signed-in player)
+  getPlayerDailySession: new Ratelimit({
+    limiter: Ratelimit.slidingWindow(30, "1 m"),
+    prefix: "ratelimit:getPlayerDailySession",
+    redis,
+  }),
+  // 30 requests per minute per user (once per opening of the sessions dialog)
+  getSessions: new Ratelimit({
+    limiter: Ratelimit.slidingWindow(30, "1 m"),
+    prefix: "ratelimit:getSessions",
     redis,
   }),
   // 10 requests per 10 minutes per user (own budget, so merge attempts cannot block declining)
@@ -95,7 +122,7 @@ export async function checkRateLimit(
 
   if (!success) {
     throw new Error(
-      `Rate limit exceeded for ${action}. Please try again later.`,
+      `${RATE_LIMIT_MESSAGE_PREFIX} for ${action}. Please try again later.`,
     );
   }
 }

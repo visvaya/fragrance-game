@@ -12,7 +12,12 @@ export default defineConfig({
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "html",
   use: {
     baseURL: "http://localhost:3000",
-    trace: "on-first-retry",
+    // A trace records request headers and storage, and CI artifacts are public: no traces in CI
+    // unless a run asks for them (PLAYWRIGHT_TRACE=1) while a failure is diagnosed.
+    trace:
+      process.env.CI && !process.env.PLAYWRIGHT_TRACE
+        ? "off"
+        : "on-first-retry",
     screenshot: "only-on-failure",
   },
   projects: [

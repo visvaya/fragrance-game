@@ -8,7 +8,8 @@ import { useTranslations } from "next-intl";
 import { ScrollableRow } from "@/components/game/scrollable-row";
 import { PyramidCluesSkeleton } from "@/components/game/skeletons";
 import {
-  scrollFadeMaskClass,
+  edgeMaskClass,
+  SCROLL_FADE_MASKS,
   useIsOverflowing,
 } from "@/hooks/use-is-overflowing";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
@@ -452,7 +453,11 @@ function PyramidNoteBadge({
   const { canScrollLeft, canScrollRight, ref } =
     useIsOverflowing<HTMLSpanElement>();
 
-  const maskClass = scrollFadeMaskClass(canScrollLeft, canScrollRight);
+  const maskClass = edgeMaskClass(
+    SCROLL_FADE_MASKS,
+    canScrollLeft,
+    canScrollRight,
+  );
 
   return (
     <span

@@ -123,6 +123,7 @@ function hydrateAttempts(
     g.isSkip
       ? { ...SKIPPED_ATTEMPT, feedback: g.feedback }
       : {
+          // jscpd:ignore-start -- a field-by-field mapping of two different shapes; a loop or table would hide the renames
           brand: g.brandName,
           concentration: g.concentration,
           feedback: g.feedback,
@@ -132,6 +133,7 @@ function hydrateAttempts(
           perfumeId: g.perfumeId,
           perfumers: g.perfumers,
           year: g.year,
+          // jscpd:ignore-end
         },
   );
 }

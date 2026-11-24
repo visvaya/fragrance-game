@@ -9,7 +9,6 @@ import {
   initialGameSessionState,
   type GameSessionState,
 } from "@/lib/game/game-session-state";
-import { getRevealPercentages } from "@/lib/game/scoring";
 
 import type {
   DailyChallenge,
@@ -30,8 +29,6 @@ const FEEDBACK: AttemptFeedback = {
   yearDirection: "higher",
   yearMatch: "wrong",
 };
-
-const REVEAL_STATE = getRevealPercentages(1);
 
 const CHALLENGE_CLUES: RevealedClues = { ...HIDDEN_CLUES, brand: "C____l" };
 const SESSION_CLUES: RevealedClues = { ...HIDDEN_CLUES, brand: "Ch___l" };
@@ -69,7 +66,6 @@ function session(
     imageUrl: "/session.jpg",
     nonce: "nonce-1",
     revealed: SESSION_CLUES,
-    revealState: REVEAL_STATE,
     sessionId: "session-1",
     ...overrides,
   };
@@ -88,7 +84,6 @@ function guessResult(
     newNonce: "nonce-2",
     result: "incorrect",
     revealed: NEXT_CLUES,
-    revealState: REVEAL_STATE,
     ...overrides,
   };
 }

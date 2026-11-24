@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Hoist mock references – must be created before any vi.mock() factory runs.
 // vi.hoisted() values can be closed over inside vi.mock() factories.
 // ---------------------------------------------------------------------------
-const { mockIntlHandler, mockRatelimitLimit } = vi.hoisted(() => {
+const { mockEnv, mockIntlHandler, mockRatelimitLimit } = vi.hoisted(() => {
   const intlHandler = vi.fn().mockImplementation(() => {
     // Return a minimal response-like object with a mutable Headers instance.
     // proxy.ts calls response.headers.set(...) on whatever intlMiddleware returns.
@@ -20,7 +20,18 @@ const { mockIntlHandler, mockRatelimitLimit } = vi.hoisted(() => {
     success: true,
   });
 
-  return { mockIntlHandler: intlHandler, mockRatelimitLimit: ratelimitLimit };
+  const environment = {
+    ALLOWED_ORIGINS: "",
+    NEXT_PUBLIC_ASSETS_HOST: "assets.example.com",
+    NODE_ENV: "production",
+    SITE_URL: undefined as string | undefined,
+  };
+
+  return {
+    mockEnv: environment,
+    mockIntlHandler: intlHandler,
+    mockRatelimitLimit: ratelimitLimit,
+  };
 });
 
 // @upstash/redis is globally mocked in vitest.setup.ts (Redis.fromEnv).
@@ -36,13 +47,7 @@ vi.mock("next-intl/middleware", () => ({
   default: vi.fn().mockReturnValue(mockIntlHandler),
 }));
 
-vi.mock("@/lib/env", () => ({
-  env: {
-    ALLOWED_ORIGINS: "",
-    NEXT_PUBLIC_ASSETS_HOST: "assets.example.com",
-    NODE_ENV: "production",
-  },
-}));
+vi.mock("@/lib/env", () => ({ env: mockEnv }));
 
 vi.mock("@/i18n/routing", () => ({
   routing: {},
@@ -75,6 +80,7 @@ function makeRequest(
 describe("proxy middleware", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockEnv.SITE_URL = undefined;
     // Restore default: rate limit succeeds
     mockRatelimitLimit.mockResolvedValue({
       limit: 100,
@@ -354,6 +360,22 @@ describe("proxy middleware", () => {
       const csp = response.headers.get("Content-Security-Policy") ?? "";
 
       expect(csp).toContain("upgrade-insecure-requests");
+    });
+
+    it("CSP includes upgrade-insecure-requests for a site served over https", async () => {
+      mockEnv.SITE_URL = "https://eauxle.com";
+      const response = await proxy(makeRequest("/api/game/guess"));
+      const csp = response.headers.get("Content-Security-Policy") ?? "";
+
+      expect(csp).toContain("upgrade-insecure-requests");
+    });
+
+    it("CSP omits upgrade-insecure-requests for a site served over http", async () => {
+      mockEnv.SITE_URL = "http://localhost:3000";
+      const response = await proxy(makeRequest("/api/game/guess"));
+      const csp = response.headers.get("Content-Security-Policy") ?? "";
+
+      expect(csp).not.toContain("upgrade-insecure-requests");
     });
 
     it("CSP does NOT include unsafe-eval in production", async () => {

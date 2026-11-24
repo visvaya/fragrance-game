@@ -72,6 +72,8 @@ jobs:
       - run: pnpm lint:duplicates
       # Every tracked JavaScript file is on the allowlist in scripts/check-typed-files.ts.
       - run: pnpm lint:typed-files
+      # Every file under public/ is referenced somewhere (scripts/check-public-assets.ts).
+      - run: pnpm lint:public-assets
       # Compressed JS of the first screen and packages kept out of start-up (scripts/check-startup-js.ts).
       # Analysis only, no full build; SKIP_ENV_VALIDATION because CI has no app secrets.
       - name: Start-up JS budget
@@ -129,8 +131,13 @@ jobs:
       - name: Run unit tests with coverage
         run: pnpm test:coverage
 
-      - name: Upload coverage report
+      # Artifacts are public and not masked like logs: upload only what passed the secret scan.
+      - name: Scan the artifact for secrets
+        id: secret-scan
         if: always()
+        run: .github/scripts/scan-artifacts.sh coverage
+      - name: Upload coverage report
+        if: always() && steps.secret-scan.outcome == 'success'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-report

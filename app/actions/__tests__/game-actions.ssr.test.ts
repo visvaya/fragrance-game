@@ -36,6 +36,7 @@ vi.mock("@/lib/env", () => ({
   },
 }));
 
+import { checkRateLimit } from "@/lib/redis";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 import {
@@ -115,7 +116,13 @@ describe("getDailyChallengeSSR", () => {
         callCount++;
         if (callCount === 1) {
           return makeChain({
-            data: { challenge_date: TODAY, id: null },
+            data: {
+              challenge_date: TODAY,
+              grace_deadline_at_utc: "2026-04-02T00:00:00Z",
+              id: null,
+              mode: "daily",
+              snapshot_metadata: {},
+            },
             error: null,
           });
         }
@@ -373,6 +380,40 @@ describe("getPlayerDailySession", () => {
     const result = await getPlayerDailySession(VALID_CHALLENGE_ID);
 
     expect(result).toBeNull();
+  });
+
+  it("counts each call against the user and skips the lookup once the limit is exceeded", async () => {
+    const from = vi.fn();
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi
+          .fn()
+          .mockResolvedValue({ data: { user: { id: "user-1" } } }),
+      },
+      from,
+    } as never);
+    vi.mocked(checkRateLimit).mockRejectedValueOnce(
+      new Error("Rate limit exceeded for getPlayerDailySession"),
+    );
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {
+      /* no-op */
+    });
+
+    const result = await getPlayerDailySession(VALID_CHALLENGE_ID);
+
+    expect(checkRateLimit).toHaveBeenCalledWith(
+      "getPlayerDailySession",
+      "user-1",
+    );
+    expect(from).not.toHaveBeenCalled();
+    expect(result).toBeNull();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("getPlayerDailySession"),
+      expect.objectContaining({
+        message: expect.stringContaining("Rate limit exceeded"),
+      }),
+    );
+    warn.mockRestore();
   });
 
   it("returns null when startGame throws an error (graceful fallback)", async () => {
