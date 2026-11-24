@@ -33,6 +33,7 @@ export const env = createEnv({
     // jscpd:ignore-start -- createEnv needs one process.env line per variable; the lines repeat by design
     ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
     CRON_SECRET: process.env.CRON_SECRET,
+    GUEST_TICKET_SECRET: process.env.GUEST_TICKET_SECRET,
     NEXT_PUBLIC_ASSETS_HOST: process.env.NEXT_PUBLIC_ASSETS_HOST,
     NEXT_PUBLIC_GAME_RESET_ENABLED: process.env.NEXT_PUBLIC_GAME_RESET_ENABLED,
     NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
@@ -57,6 +58,7 @@ export const env = createEnv({
   server: {
     ALLOWED_ORIGINS: z.string().optional(),
     CRON_SECRET: z.string().min(1),
+    GUEST_TICKET_SECRET: z.string().min(32),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
