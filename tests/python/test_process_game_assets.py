@@ -258,6 +258,23 @@ def test_files_without_a_uuid_name_are_skipped(tmp_path: Path) -> None:
     assert pga.process_file(other, tmp_path, clients=None) is True
 
 
+def test_a_36_character_name_that_is_not_a_uuid_is_skipped(tmp_path: Path) -> None:
+    other = tmp_path / f"{'x' * 36}.png"
+    other.write_bytes(b"")
+    assert pga.process_file(other, tmp_path, clients=None) is True
+    assert not any(p.suffix == ".avif" for p in tmp_path.iterdir())
+
+
+def test_a_failing_encode_is_reported_and_the_batch_goes_on(
+    monkeypatch: pytest.MonkeyPatch, illustration: Path, tmp_path: Path
+) -> None:
+    def broken(img: Any, no_compression: bool = False) -> dict[int, bytes]:
+        raise RuntimeError("encoder crashed")
+
+    monkeypatch.setattr(pga, "build_step_images", broken)
+    assert pga.process_file(illustration, tmp_path, clients=None) is False
+
+
 def _clients(supabase: FakeSupabase) -> dict[str, Any]:
     return {"supabase": supabase, "r2_io": {"marker": True}}
 

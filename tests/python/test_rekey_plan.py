@@ -62,6 +62,33 @@ def test_missing_bucket_object_stops_the_plan() -> None:
         build_rekey_plan(ROWS, BUCKET[1:], new_id=ids(), new_keys=keys_for)
 
 
+def test_duplicate_perfume_id_is_rejected() -> None:
+    rows = [old_row(P1, "1" * 16), old_row(P1, "2" * 16)]
+    bucket = [k for r in rows for k in r.keys.values()]
+    with pytest.raises(ValueError, match="perfume id"):
+        build_rekey_plan(rows, bucket, new_id=ids(), new_keys=keys_for)
+
+
+def test_row_key_outside_its_asset_directory_is_rejected() -> None:
+    row = old_row(P1, "1" * 16)
+    stray = AssetRow(P1, row.asset_id, {**row.keys, 3: f"a/{'2' * 16}/3_abc3.avif"})
+    with pytest.raises(ValueError, match="outside its asset directory"):
+        build_rekey_plan([stray], [*stray.keys.values()], new_id=ids(), new_keys=keys_for)
+
+
+def test_plan_file_with_an_old_key_outside_its_directory_is_rejected() -> None:
+    data = json.loads(plan_to_json(make_plan()))
+    data["entries"][0]["old_keys"]["2"] = f"a/{'7' * 16}/2_abc2.avif"
+    with pytest.raises(ValueError, match="old key"):
+        plan_from_json(json.dumps(data))
+
+
+def test_a_new_id_equal_to_an_existing_one_is_rejected() -> None:
+    row = old_row(P1, "1" * 32)
+    with pytest.raises(ValueError, match="already in use"):
+        build_rekey_plan([row], [*row.keys.values()], new_id=lambda: "1" * 32, new_keys=keys_for)
+
+
 def test_json_round_trip_and_validation() -> None:
     plan = make_plan()
     assert plan_from_json(plan_to_json(plan)) == plan
