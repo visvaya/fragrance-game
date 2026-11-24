@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { trackEvent, identifyUser } from "@/lib/analytics-server";
 import { ensureGuestTicket } from "@/lib/auth/guest-ticket-cookie";
+import { getClientIp } from "@/lib/client-ip";
 import { MAX_GUESSES } from "@/lib/constants";
 import { env } from "@/lib/env";
 import { assetUrl } from "@/lib/game/asset-url";
@@ -249,6 +250,13 @@ async function fetchChallengeTiming(challengeId: string) {
   return challengeTimingSchema.parse(data);
 }
 
+/** True for the error `checkRateLimit` throws, which callers must not swallow. */
+function isRateLimitError(error: unknown): boolean {
+  return (
+    error instanceof Error && error.message.startsWith("Rate limit exceeded")
+  );
+}
+
 // --- Actions ---
 
 /**
@@ -265,15 +273,12 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (user) {
-      await checkRateLimit("getDailyChallenge", user.id);
-    }
+    await (user
+      ? checkRateLimit("getDailyChallenge", user.id)
+      : checkRateLimit("getDailyChallenge_anon", await getClientIp()));
   } catch (error) {
     // A Redis or auth outage still serves the puzzle; an exceeded limit stops the call.
-    if (
-      error instanceof Error &&
-      error.message.startsWith("Rate limit exceeded")
-    ) {
+    if (isRateLimitError(error)) {
       throw error;
     }
   }
@@ -555,7 +560,11 @@ export async function startGame(
  * Inicjalizuje grę, pobierając wyzwanie i rozpoczynając sesję.
  */
 export async function initializeGame(): Promise<InitializeGameResponse> {
-  const challenge = await getDailyChallenge().catch(() => null);
+  const challenge = await getDailyChallenge().catch((error: unknown) => {
+    // An exceeded limit rejects, so the client logs it instead of showing an empty board silently.
+    if (isRateLimitError(error)) throw error;
+    return null;
+  });
   if (!challenge) return { challenge: null, session: null };
 
   try {
@@ -1182,6 +1191,7 @@ export async function getPlayerDailySession(
 ): Promise<StartGameResponse | null> {
   z.uuid().parse(challengeId);
   try {
+    await checkRateLimit("getPlayerDailySession", await getClientIp());
     const supabase = await createClient();
     const {
       data: { user },
@@ -1193,8 +1203,10 @@ export async function getPlayerDailySession(
     // Fetch or create session (startGame handles both paths)
     // For existing sessions it returns immediately without creating a new one
     return await startGame(challengeId);
-  } catch {
-    // Graceful degradation: if anything fails, GameProvider falls back to client-side init
+  } catch (error) {
+    // Graceful degradation: if anything fails (an exceeded limit included), GameProvider
+    // falls back to client-side init, whose own limits still apply
+    console.warn("[getPlayerDailySession] Falling back to client init:", error);
     return null;
   }
 }

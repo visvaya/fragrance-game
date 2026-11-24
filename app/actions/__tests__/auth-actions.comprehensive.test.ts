@@ -5,6 +5,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { ZodError } from "zod";
 
 import { MAX_LISTED_SESSIONS } from "@/lib/constants";
+import { checkRateLimit } from "@/lib/redis";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 import { getSessions, revokeSession } from "../auth-actions";
@@ -19,6 +20,10 @@ vi.mock("@sentry/nextjs", () => ({
 
 vi.mock("@/lib/redis", () => ({
   checkRateLimit: vi.fn().mockResolvedValue(true),
+}));
+
+vi.mock("@/lib/client-ip", () => ({
+  getClientIp: vi.fn().mockResolvedValue("203.0.113.7"),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -36,6 +41,27 @@ const VALID_UUID = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
 describe("getSessions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("counts each call against the client IP", async () => {
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+      },
+    } as never);
+
+    await getSessions();
+
+    expect(checkRateLimit).toHaveBeenCalledWith("getSessions", "203.0.113.7");
+  });
+
+  it("rejects without a lookup once the limit is exceeded", async () => {
+    vi.mocked(checkRateLimit).mockRejectedValueOnce(
+      new Error("Rate limit exceeded"),
+    );
+
+    await expect(getSessions()).rejects.toThrow("Rate limit exceeded");
+    expect(createClient).not.toHaveBeenCalled();
   });
 
   it("returns empty array when user is not authenticated", async () => {

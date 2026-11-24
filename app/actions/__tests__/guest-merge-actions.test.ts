@@ -19,6 +19,9 @@ import {
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@sentry/nextjs", () => ({ captureException: vi.fn() }));
 vi.mock("@/lib/redis", () => ({ checkRateLimit: vi.fn() }));
+vi.mock("@/lib/client-ip", () => ({
+  getClientIp: vi.fn().mockResolvedValue("203.0.113.7"),
+}));
 vi.mock("@/lib/auth/guest-ticket-cookie", () => ({
   clearGuestTicket: vi.fn(),
   readGuestTicket: vi.fn(),
@@ -76,6 +79,23 @@ describe.each([
 });
 
 describe("getPendingGuestMerge", () => {
+  it("counts each check against the client IP", async () => {
+    vi.mocked(readGuestTicket).mockResolvedValue(null);
+    await getPendingGuestMerge();
+    expect(checkRateLimit).toHaveBeenCalledWith(
+      "getPendingGuestMerge",
+      "203.0.113.7",
+    );
+  });
+
+  it("rejects without a lookup once the limit is exceeded", async () => {
+    vi.mocked(checkRateLimit).mockRejectedValueOnce(
+      new Error("Rate limit exceeded"),
+    );
+    await expect(getPendingGuestMerge()).rejects.toThrow("Rate limit exceeded");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
   it("returns nothing pending without a valid ticket and clears the stale hint", async () => {
     vi.mocked(readGuestTicket).mockResolvedValue(null);
     await expect(getPendingGuestMerge()).resolves.toEqual({ pending: false });

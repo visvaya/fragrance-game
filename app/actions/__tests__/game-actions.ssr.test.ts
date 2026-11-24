@@ -24,6 +24,10 @@ vi.mock("@/lib/redis", () => ({
   checkRateLimit: vi.fn().mockResolvedValue(true),
 }));
 
+vi.mock("@/lib/client-ip", () => ({
+  getClientIp: vi.fn().mockResolvedValue("203.0.113.7"),
+}));
+
 vi.mock("@/lib/analytics-server", () => ({
   identifyUser: vi.fn(),
   trackEvent: vi.fn(),
@@ -36,6 +40,7 @@ vi.mock("@/lib/env", () => ({
   },
 }));
 
+import { checkRateLimit } from "@/lib/redis";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 import {
@@ -373,6 +378,32 @@ describe("getPlayerDailySession", () => {
     const result = await getPlayerDailySession(VALID_CHALLENGE_ID);
 
     expect(result).toBeNull();
+  });
+
+  it("counts each call against the client IP and skips the lookup once the limit is exceeded", async () => {
+    vi.mocked(createClient).mockClear();
+    vi.mocked(checkRateLimit).mockRejectedValueOnce(
+      new Error("Rate limit exceeded for getPlayerDailySession"),
+    );
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {
+      /* no-op */
+    });
+
+    const result = await getPlayerDailySession(VALID_CHALLENGE_ID);
+
+    expect(checkRateLimit).toHaveBeenCalledWith(
+      "getPlayerDailySession",
+      "203.0.113.7",
+    );
+    expect(createClient).not.toHaveBeenCalled();
+    expect(result).toBeNull();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("getPlayerDailySession"),
+      expect.objectContaining({
+        message: expect.stringContaining("Rate limit exceeded"),
+      }),
+    );
+    warn.mockRestore();
   });
 
   it("returns null when startGame throws an error (graceful fallback)", async () => {

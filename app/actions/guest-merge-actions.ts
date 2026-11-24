@@ -9,6 +9,7 @@ import {
   clearGuestTicket,
   readGuestTicket,
 } from "@/lib/auth/guest-ticket-cookie";
+import { getClientIp } from "@/lib/client-ip";
 import { checkRateLimit } from "@/lib/redis";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
@@ -45,6 +46,7 @@ async function getAccountId(): Promise<string | null> {
 export async function getPendingGuestMerge(): Promise<
   { pending: false } | { pending: true; todayMoves: boolean }
 > {
+  await checkRateLimit("getPendingGuestMerge", await getClientIp());
   const accountId = await getAccountId();
   if (accountId === null) {
     return { pending: false };

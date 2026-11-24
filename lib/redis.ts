@@ -31,6 +31,31 @@ export const limiters = {
     prefix: "ratelimit:getDailyChallenge",
     redis,
   }),
+  // 60 requests per minute per IP (guests; the fallback fetch runs once per page view, plus retries, and
+  // IPs are shared by home and carrier networks)
+  getDailyChallenge_anon: new Ratelimit({
+    limiter: Ratelimit.slidingWindow(60, "1 m"),
+    prefix: "ratelimit:getDailyChallenge_anon",
+    redis,
+  }),
+  // 60 requests per minute per IP (once per page load of a signed-in player with a guest hint, shared IPs)
+  getPendingGuestMerge: new Ratelimit({
+    limiter: Ratelimit.slidingWindow(60, "1 m"),
+    prefix: "ratelimit:getPendingGuestMerge",
+    redis,
+  }),
+  // 120 requests per minute per IP (once per page view in SSR, shared carrier IPs)
+  getPlayerDailySession: new Ratelimit({
+    limiter: Ratelimit.slidingWindow(120, "1 m"),
+    prefix: "ratelimit:getPlayerDailySession",
+    redis,
+  }),
+  // 30 requests per minute per IP (once per opening of the sessions dialog)
+  getSessions: new Ratelimit({
+    limiter: Ratelimit.slidingWindow(30, "1 m"),
+    prefix: "ratelimit:getSessions",
+    redis,
+  }),
   // 10 requests per 10 minutes per user (own budget, so merge attempts cannot block declining)
   guestDecline: new Ratelimit({
     limiter: Ratelimit.slidingWindow(10, "10 m"),
