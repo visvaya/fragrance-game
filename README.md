@@ -8,7 +8,7 @@ Play at [eauxle.vercel.app](https://eauxle.vercel.app).
 
 ## Status
 
-The game is live with a new puzzle every day, in English and Polish; you can play without an account. The latest release is [0.9.0](https://github.com/visvaya/fragrance-game/releases/tag/v0.9.0) (2026-09-27); the project is under active development, so gameplay and interface may still change before 1.0. Only the deployed version built from `main` receives fixes (see [docs/SECURITY.md](./docs/SECURITY.md)).
+The game is live with a new puzzle every day, in English and Polish; you can play without an account. Every change that reaches players is a [release](https://github.com/visvaya/fragrance-game/releases/latest), and the game menu lists what changed for players under "What's new"; the project is under active development, so gameplay and interface may still change before 1.0. Only the deployed version built from `main` receives fixes (see [docs/SECURITY.md](./docs/SECURITY.md)).
 
 ## How it works
 
