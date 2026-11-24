@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+import { z } from "zod";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -77,7 +78,6 @@ test("Login and Logout", async ({ page }) => {
       url.pathname.endsWith("/auth/v1/token") &&
       url.searchParams.get("grant_type") === "password",
     async (route) => {
-      // eslint-disable-next-line eauxle/fetch-requires-parse -- the body is relayed unchanged to the page's own Supabase client, which validates it
       const response = await fetch(
         `${supabaseUrl}/auth/v1/token?grant_type=password`,
         {
@@ -90,12 +90,13 @@ test("Login and Logout", async ({ page }) => {
           method: "POST",
         },
       );
+      // looseObject keeps every field of the session for the page's Supabase client.
+      const session = z
+        .looseObject({ access_token: z.string() })
+        .parse(await response.json());
       await route.fulfill({
-        body: await response.text(),
-        headers: {
-          "content-type":
-            response.headers.get("content-type") ?? "application/json",
-        },
+        body: JSON.stringify(session),
+        headers: { "content-type": "application/json" },
         status: response.status,
       });
     },
