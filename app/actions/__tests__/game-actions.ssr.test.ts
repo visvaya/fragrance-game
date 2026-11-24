@@ -115,7 +115,13 @@ describe("getDailyChallengeSSR", () => {
         callCount++;
         if (callCount === 1) {
           return makeChain({
-            data: { challenge_date: TODAY, id: null },
+            data: {
+              challenge_date: TODAY,
+              grace_deadline_at_utc: "2026-04-02T00:00:00Z",
+              id: null,
+              mode: "daily",
+              snapshot_metadata: {},
+            },
             error: null,
           });
         }

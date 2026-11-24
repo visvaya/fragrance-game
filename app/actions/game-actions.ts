@@ -256,12 +256,22 @@ async function fetchChallengePerfumeId(challengeId: string) {
     .select("perfume_id")
     .eq("id", challengeId)
     .single();
-  return data?.perfume_id;
+  return z.object({ perfume_id: z.string() }).nullable().parse(data)
+    ?.perfume_id;
 }
+
+/** A row of `daily_challenges_public`; the view marks every column nullable, the id stays so. */
+const publicChallengeSchema = z.object({
+  challenge_date: z.string(),
+  grace_deadline_at_utc: z.string(),
+  id: z.string().nullable(),
+  mode: z.string(),
+  snapshot_metadata: z.record(z.string(), z.unknown()),
+});
 
 /** The public view row of the challenge for a date, read with the service-role client. */
 async function queryPublicChallenge(targetDate: string) {
-  return createAdminClient()
+  const { data, error } = await createAdminClient()
     .from("daily_challenges_public")
     .select(
       "challenge_date, grace_deadline_at_utc, id, mode, snapshot_metadata",
@@ -269,6 +279,9 @@ async function queryPublicChallenge(targetDate: string) {
     .eq("challenge_date", targetDate)
     .limit(1)
     .single();
+  return error
+    ? { data: null, error }
+    : { data: publicChallengeSchema.parse(data), error: null };
 }
 
 /** Records the result of a session that has just ended; `now` is read here. */
@@ -342,11 +355,12 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     throw new Error("Failed to fetch daily challenge");
   }
 
-  if (data.id == null) {
+  const { id } = data;
+  if (id == null) {
     throw new Error("Challenge id is missing from public view");
   }
 
-  const perfumeId = await fetchChallengePerfumeId(data.id);
+  const perfumeId = await fetchChallengePerfumeId(id);
 
   if (perfumeId === undefined) {
     throw new Error("Challenge integrity error");
@@ -387,12 +401,12 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- daily_challenges_public view returns nullable fields; critical ones validated above; brands needs narrowing from Supabase join type
   return {
     ...data,
+    id,
     revealed: buildSessionClues(toClueAnswer(perfume), NEW_SESSION, []),
     xsolve: perfume.xsolve_score,
-  } as DailyChallenge;
+  };
 }
 
 /**
@@ -1100,9 +1114,10 @@ export const getDailyChallengeSSR = unstable_cache(
       return null;
     }
 
-    if (data.id == null) return null;
+    const { id } = data;
+    if (id == null) return null;
 
-    const perfumeId = await fetchChallengePerfumeId(data.id);
+    const perfumeId = await fetchChallengePerfumeId(id);
 
     if (perfumeId === undefined) return null;
 
@@ -1120,12 +1135,12 @@ export const getDailyChallengeSSR = unstable_cache(
 
     if (perfume?.xsolve_score == null) return null;
 
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- same pattern as getDailyChallenge: view returns nullable fields validated above
     return {
       ...data,
+      id,
       revealed: buildSessionClues(toClueAnswer(perfume), NEW_SESSION, []),
       xsolve: perfume.xsolve_score,
-    } as DailyChallenge;
+    };
   },
   ["daily-challenge-ssr-v2"],
   { revalidate: 86_400, tags: ["daily-challenge"] },
