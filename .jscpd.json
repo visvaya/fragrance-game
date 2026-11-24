@@ -11,7 +11,8 @@
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts",
-    "types/supabase.ts"
+    "types/supabase.ts",
+    "components/ui/**"
   ],
   "ignorePattern": ["(?m)^import[^;]*;"],
   "absolute": true
