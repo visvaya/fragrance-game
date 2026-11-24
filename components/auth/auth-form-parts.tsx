@@ -32,8 +32,7 @@ import { GoogleAuthButton } from "./google-auth-button";
 const CaptchaLoader = () => {
   const t = useTranslations("Auth.register");
   return (
-    // eslint-disable-next-line eauxle/restricted-syntax -- Cloudflare Turnstile documented minimum height is 65px (fixed hardware constraint)
-    <div className="flex h-[65px] animate-pulse items-center justify-center rounded bg-muted/20 text-xs text-muted-foreground">
+    <div className="flex h-[4.0625rem] animate-pulse items-center justify-center rounded bg-muted/20 text-xs text-muted-foreground">
       {t("captchaLoading")}
     </div>
   );
@@ -52,9 +51,12 @@ export const Captcha = dynamic(
  * Turnstile state of an auth form. `widget` is the widget, or null without a site key (local
  * setups without captcha: the request then goes without a token). `isMissing` is true while a
  * required token has not arrived. A token works once, so `reset` clears it and mounts a new widget.
+ * When the Turnstile script cannot load, the widget gives way to the reload advice.
  */
 export function useCaptcha() {
+  const t = useTranslations("Auth.register");
   const [token, setToken] = useState<string | null>(null);
+  const [isUnavailable, setIsUnavailable] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const hasCaptcha = Boolean(publicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 
@@ -66,12 +68,19 @@ export function useCaptcha() {
     },
     token,
     widget: hasCaptcha ? (
-      <Captcha
-        key={attempt}
-        onError={() => setToken(null)}
-        onExpire={() => setToken(null)}
-        onVerify={setToken}
-      />
+      isUnavailable ? (
+        <p className="text-sm text-destructive" role="alert">
+          {t("captchaFailed")}
+        </p>
+      ) : (
+        <Captcha
+          key={attempt}
+          onError={() => setToken(null)}
+          onExpire={() => setToken(null)}
+          onUnavailable={() => setIsUnavailable(true)}
+          onVerify={setToken}
+        />
+      )
     ) : null,
   };
 }

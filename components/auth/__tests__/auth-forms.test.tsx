@@ -42,11 +42,22 @@ vi.mock("../google-auth-button", () => ({
 }));
 vi.mock("next/dynamic", () => ({
   default: () =>
-    function CaptchaStub({ onVerify }: { onVerify: (token: string) => void }) {
+    function CaptchaStub({
+      onUnavailable,
+      onVerify,
+    }: {
+      onUnavailable?: () => void;
+      onVerify: (token: string) => void;
+    }) {
       return (
-        <button onClick={() => onVerify("captcha-token")} type="button">
-          captcha
-        </button>
+        <>
+          <button onClick={() => onVerify("captcha-token")} type="button">
+            captcha
+          </button>
+          <button onClick={onUnavailable} type="button">
+            captcha script failed
+          </button>
+        </>
       );
     },
 }));
@@ -247,6 +258,20 @@ describe("LoginForm", () => {
           password: "secret",
         });
       });
+    });
+
+    it("advises a reload when the captcha cannot load", async () => {
+      render(<LoginForm />);
+      await userEvent.click(
+        screen.getByRole("button", { name: "captcha script failed" }),
+      );
+
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Auth.register.captchaFailed",
+      );
+      expect(
+        screen.queryByRole("button", { name: "captcha" }),
+      ).not.toBeInTheDocument();
     });
 
     it("needs a new captcha token after a rejected sign-in", async () => {
@@ -563,6 +588,17 @@ describe("ForgotPasswordForm", () => {
           expect.objectContaining({ captchaToken: "captcha-token" }),
         );
       });
+    });
+
+    it("advises a reload when the captcha cannot load", async () => {
+      render(<ForgotPasswordForm />);
+      await userEvent.click(
+        screen.getByRole("button", { name: "captcha script failed" }),
+      );
+
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Auth.register.captchaFailed",
+      );
     });
 
     it("needs a new captcha token after a request", async () => {
