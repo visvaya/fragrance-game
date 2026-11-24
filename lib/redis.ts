@@ -35,7 +35,6 @@ export const limiters = {
   }),
   // 60 requests per minute per IP, for callers without any session (direct action calls); an
   // anonymous player is a Supabase user and goes through the per-user getDailyChallenge limit.
-  // The fallback fetch runs once per page view, and IPs are shared by home and carrier networks.
   getDailyChallenge_anon: new Ratelimit({
     limiter: Ratelimit.slidingWindow(60, "1 m"),
     prefix: "ratelimit:getDailyChallenge_anon",
