@@ -72,9 +72,8 @@ test("login modal should be accessible", async ({ page }) => {
 
   // The header menu fades out while the modal opens. Scanning mid-fade reads its half-transparent
   // text as low contrast, so wait until the menu is hidden ("Create Account" is only in the menu).
-  await expect(
-    page.getByRole("button", { name: "Create Account" }),
-  ).toBeHidden();
+  // A text locator, not a role one: the open modal already marks the menu aria-hidden.
+  await expect(page.getByText("Create Account", { exact: true })).toBeHidden();
 
   // Scan the full page while the modal is open. Tests 1 and 2 already verify the base
   // page has no violations; any violations here would be introduced by the open modal.
