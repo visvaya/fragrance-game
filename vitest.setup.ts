@@ -134,21 +134,6 @@ export function createMockGameSession(overrides: Record<string, unknown> = {}) {
     guesses: [],
     imageUrl: "https://example.com/perfume-image.jpg",
     nonce: "nonce-test-abc",
-    revealState: {
-      brandReveal: 0,
-      currentAttempt: 1,
-      imageBlur: 60,
-      imageReveal: 20,
-      notesReveal: {
-        base: 0,
-        heart: 0,
-        top: 0,
-      },
-      perfumerReveal: 0,
-      showConcentration: false,
-      showGender: false,
-      yearReveal: 0,
-    },
     sessionId: "123e4567-e89b-12d3-a456-426614174000",
     ...overrides,
   };
