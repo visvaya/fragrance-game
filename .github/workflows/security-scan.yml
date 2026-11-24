@@ -87,6 +87,11 @@ jobs:
         run: |
           docker build --quiet --tag actionlint tools/actionlint
           docker run --rm --volume "$PWD:/repo" --workdir /repo actionlint -color
+      # The actionlint image carries shellcheck, which also lints the repository's shell scripts.
+      - name: Lint shell scripts with shellcheck
+        if: ${{ !cancelled() }}
+        run: |
+          git ls-files -z '*.sh' | xargs -0 --no-run-if-empty docker run --rm --volume "$PWD:/repo" --workdir /repo --entrypoint shellcheck actionlint
 
   supabase-advisors:
     name: Supabase Security Advisor
