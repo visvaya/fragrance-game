@@ -30,7 +30,6 @@ import { useUIPreferences } from "./contexts";
 import { useGame } from "./game-provider";
 import { GameTooltip } from "./game-tooltip";
 import { MobileResetItem } from "./mobile-reset-item";
-import { SignOutMenuItem } from "./sign-out-menu-item";
 import { ResetButton } from "./reset-button";
 
 const SessionsModal = dynamic(
@@ -55,6 +54,12 @@ const HelpModal = dynamic(
 const StatsModal = dynamic(
   async () =>
     import("./modals/stats-modal").then((module_) => module_.StatsModal),
+  { ssr: false },
+);
+// Shown only to a registered player in the open menu, so it stays out of the start-up bundle.
+const SignOutMenuItem = dynamic(
+  async () =>
+    import("./sign-out-menu-item").then((module_) => module_.SignOutMenuItem),
   { ssr: false },
 );
 const AuthModal = dynamic(

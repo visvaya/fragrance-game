@@ -44,15 +44,16 @@ vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => key,
 }));
 
-// Stub out all next/dynamic imports – we don't test modal content here
+// Stub out next/dynamic imports – we don't test modal content here. The sign-out item becomes a
+// plain button so its place in the menu can be checked.
 vi.mock("next/dynamic", () => ({
-  default:
-    (
-      _importFunction: unknown,
-      _options?: unknown,
-    ): React.FC<Record<string, unknown>> =>
-    (_props: Record<string, unknown>) =>
-      null,
+  default: (
+    importFunction: unknown,
+    _options?: unknown,
+  ): React.FC<Record<string, unknown>> =>
+    String(importFunction).includes("sign-out-menu-item")
+      ? () => <button type="button">signOut</button>
+      : () => null,
 }));
 
 vi.mock("sonner", () => ({
