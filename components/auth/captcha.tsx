@@ -4,7 +4,6 @@ import { useRef } from "react";
 
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { useTranslations } from "next-intl";
-import { useTheme } from "next-themes";
 
 import { useUIPreferences } from "@/components/game/contexts";
 import { publicEnv } from "@/lib/public-env";
@@ -36,14 +35,8 @@ export function Captcha({
 }: CaptchaProperties) {
   const t = useTranslations("Auth.common");
   const ref = useRef<TurnstileInstance>(null);
-  const { theme: nextTheme } = useTheme();
-  const { uiPreferences } = useUIPreferences();
-
-  // Determine actual theme to pass to Turnstile
-  // Priority: uiPreferences.theme -> next-themes system/light/dark
-  // Turnstile supports: 'light' | 'dark' | 'auto'
-  const theme =
-    uiPreferences.theme === "dark" || nextTheme === "dark" ? "dark" : "light";
+  // The theme chosen in the game menu; Turnstile also accepts "auto", which would follow the system instead.
+  const { theme } = useUIPreferences().uiPreferences;
   // Turnstile test keys:
   // 1x00000000000000000000AA - Always Pass
   // 2x00000000000000000000AB - Always Block
