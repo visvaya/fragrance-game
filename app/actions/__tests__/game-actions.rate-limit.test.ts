@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -49,6 +49,10 @@ const limitExceeded = () =>
     );
 
 describe("getDailyChallenge rate limit", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("counts a guest call against the client IP", async () => {
     guest();
     limitExceeded();

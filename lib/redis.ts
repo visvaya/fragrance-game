@@ -1,6 +1,8 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
+import { RATE_LIMIT_MESSAGE_PREFIX } from "@/lib/rate-limit-error";
+
 /**
  * Upstash Redis client backing every rate limiter below.
  *
@@ -31,26 +33,27 @@ export const limiters = {
     prefix: "ratelimit:getDailyChallenge",
     redis,
   }),
-  // 60 requests per minute per IP (guests; the fallback fetch runs once per page view, plus retries, and
-  // IPs are shared by home and carrier networks)
+  // 60 requests per minute per IP, for callers without any session (direct action calls); an
+  // anonymous player is a Supabase user and goes through the per-user getDailyChallenge limit.
+  // The fallback fetch runs once per page view, and IPs are shared by home and carrier networks.
   getDailyChallenge_anon: new Ratelimit({
     limiter: Ratelimit.slidingWindow(60, "1 m"),
     prefix: "ratelimit:getDailyChallenge_anon",
     redis,
   }),
-  // 60 requests per minute per IP (once per page load of a signed-in player with a guest hint, shared IPs)
+  // 60 requests per minute per user (once per page load of an account with a guest hint)
   getPendingGuestMerge: new Ratelimit({
     limiter: Ratelimit.slidingWindow(60, "1 m"),
     prefix: "ratelimit:getPendingGuestMerge",
     redis,
   }),
-  // 120 requests per minute per IP (once per page view in SSR, shared carrier IPs)
+  // 30 requests per minute per user (once per SSR page view of a signed-in player)
   getPlayerDailySession: new Ratelimit({
-    limiter: Ratelimit.slidingWindow(120, "1 m"),
+    limiter: Ratelimit.slidingWindow(30, "1 m"),
     prefix: "ratelimit:getPlayerDailySession",
     redis,
   }),
-  // 30 requests per minute per IP (once per opening of the sessions dialog)
+  // 30 requests per minute per user (once per opening of the sessions dialog)
   getSessions: new Ratelimit({
     limiter: Ratelimit.slidingWindow(30, "1 m"),
     prefix: "ratelimit:getSessions",
@@ -120,7 +123,7 @@ export async function checkRateLimit(
 
   if (!success) {
     throw new Error(
-      `Rate limit exceeded for ${action}. Please try again later.`,
+      `${RATE_LIMIT_MESSAGE_PREFIX} for ${action}. Please try again later.`,
     );
   }
 }

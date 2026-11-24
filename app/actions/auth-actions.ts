@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 
-import { getClientIp } from "@/lib/client-ip";
 import { MAX_LISTED_SESSIONS } from "@/lib/constants";
 import { checkRateLimit } from "@/lib/redis";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
@@ -53,7 +52,6 @@ export async function getSessions(): Promise<
     user_id: string;
   }[]
 > {
-  await checkRateLimit("getSessions", await getClientIp());
   const supabase = await createClient();
   const {
     data: { user },
@@ -62,6 +60,8 @@ export async function getSessions(): Promise<
   if (!user) {
     return [];
   }
+
+  await checkRateLimit("getSessions", user.id);
 
   const { data: sessions } = await supabase
     .from("user_sessions")

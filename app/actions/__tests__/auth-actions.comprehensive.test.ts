@@ -22,10 +22,6 @@ vi.mock("@/lib/redis", () => ({
   checkRateLimit: vi.fn().mockResolvedValue(true),
 }));
 
-vi.mock("@/lib/client-ip", () => ({
-  getClientIp: vi.fn().mockResolvedValue("203.0.113.7"),
-}));
-
 vi.mock("@/lib/supabase/server", () => ({
   createAdminClient: vi.fn(),
   createClient: vi.fn(),
@@ -43,25 +39,44 @@ describe("getSessions", () => {
     vi.clearAllMocks();
   });
 
-  it("counts each call against the client IP", async () => {
+  it("counts each call against the signed-in user", async () => {
+    const from = vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnThis(),
+      is: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [] }),
+      order: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+    });
     vi.mocked(createClient).mockResolvedValue({
       auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+        getUser: vi
+          .fn()
+          .mockResolvedValue({ data: { user: { id: "user-123" } } }),
       },
+      from,
     } as never);
 
     await getSessions();
 
-    expect(checkRateLimit).toHaveBeenCalledWith("getSessions", "203.0.113.7");
+    expect(checkRateLimit).toHaveBeenCalledWith("getSessions", "user-123");
   });
 
   it("rejects without a lookup once the limit is exceeded", async () => {
+    const from = vi.fn();
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi
+          .fn()
+          .mockResolvedValue({ data: { user: { id: "user-123" } } }),
+      },
+      from,
+    } as never);
     vi.mocked(checkRateLimit).mockRejectedValueOnce(
       new Error("Rate limit exceeded"),
     );
 
     await expect(getSessions()).rejects.toThrow("Rate limit exceeded");
-    expect(createClient).not.toHaveBeenCalled();
+    expect(from).not.toHaveBeenCalled();
   });
 
   it("returns empty array when user is not authenticated", async () => {

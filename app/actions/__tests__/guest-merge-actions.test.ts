@@ -19,9 +19,6 @@ import {
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@sentry/nextjs", () => ({ captureException: vi.fn() }));
 vi.mock("@/lib/redis", () => ({ checkRateLimit: vi.fn() }));
-vi.mock("@/lib/client-ip", () => ({
-  getClientIp: vi.fn().mockResolvedValue("203.0.113.7"),
-}));
 vi.mock("@/lib/auth/guest-ticket-cookie", () => ({
   clearGuestTicket: vi.fn(),
   readGuestTicket: vi.fn(),
@@ -79,12 +76,12 @@ describe.each([
 });
 
 describe("getPendingGuestMerge", () => {
-  it("counts each check against the client IP", async () => {
+  it("counts each check against the account", async () => {
     vi.mocked(readGuestTicket).mockResolvedValue(null);
     await getPendingGuestMerge();
     expect(checkRateLimit).toHaveBeenCalledWith(
       "getPendingGuestMerge",
-      "203.0.113.7",
+      ACCOUNT_ID,
     );
   });
 

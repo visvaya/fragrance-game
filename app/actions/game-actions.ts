@@ -46,6 +46,7 @@ import {
   type SessionWriteResult,
   updateGameSession,
 } from "@/lib/game/session-writes";
+import { isRateLimitError } from "@/lib/rate-limit-error";
 import { checkRateLimit } from "@/lib/redis";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 
@@ -248,13 +249,6 @@ async function fetchChallengeTiming(challengeId: string) {
     .eq("id", challengeId)
     .single();
   return challengeTimingSchema.parse(data);
-}
-
-/** True for the error `checkRateLimit` throws, which callers must not swallow. */
-function isRateLimitError(error: unknown): boolean {
-  return (
-    error instanceof Error && error.message.startsWith("Rate limit exceeded")
-  );
 }
 
 // --- Actions ---
@@ -561,7 +555,7 @@ export async function startGame(
  */
 export async function initializeGame(): Promise<InitializeGameResponse> {
   const challenge = await getDailyChallenge().catch((error: unknown) => {
-    // An exceeded limit rejects, so the client logs it instead of showing an empty board silently.
+    // An exceeded limit rejects so the client can log it; the board stays empty with a retry either way.
     if (isRateLimitError(error)) throw error;
     return null;
   });
@@ -1191,7 +1185,6 @@ export async function getPlayerDailySession(
 ): Promise<StartGameResponse | null> {
   z.uuid().parse(challengeId);
   try {
-    await checkRateLimit("getPlayerDailySession", await getClientIp());
     const supabase = await createClient();
     const {
       data: { user },
@@ -1199,6 +1192,8 @@ export async function getPlayerDailySession(
 
     // Not authenticated – client-side anonymous auth flow will handle this
     if (!user) return null;
+
+    await checkRateLimit("getPlayerDailySession", user.id);
 
     // Fetch or create session (startGame handles both paths)
     // For existing sessions it returns immediately without creating a new one
