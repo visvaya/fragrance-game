@@ -97,7 +97,7 @@ export function LoginForm({
           label={t("passwordLabel")}
           labelAction={
             <button
-              className="text-sm text-primary hover:underline"
+              className="text-sm underline hover:text-primary"
               onClick={
                 onForgotPasswordClick ??
                 (() => router.push("/auth/forgot-password"))
