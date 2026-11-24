@@ -584,6 +584,48 @@ describe("GameInput", () => {
     });
   });
 
+  describe("text entry", () => {
+    it("turns off autocorrect, capitalisation and spell check", () => {
+      renderGameInput();
+      const input = screen.getByTestId("game-input");
+
+      expect(input).toHaveAttribute("autocorrect", "off");
+      expect(input).toHaveAttribute("autocapitalize", "off");
+      expect(input).toHaveAttribute("spellcheck", "false");
+    });
+
+    it("ignores Enter that confirms an IME composition", async () => {
+      const suggestion = makeSuggestion();
+      mockSearchPerfumes.mockResolvedValue([suggestion]);
+      const makeGuess = vi.fn().mockResolvedValue(undefined);
+      renderGameInput({}, { makeGuess });
+
+      const input = screen.getByTestId("game-input");
+      const user = userEvent.setup();
+      await user.click(input);
+      await user.type(input, "sauvage");
+      await waitFor(
+        () => {
+          expect(screen.getByRole("listbox")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      // user-event cannot mark a key event as part of an IME composition, so the event is built here.
+      act(() => {
+        input.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            bubbles: true,
+            isComposing: true,
+            key: "Enter",
+          }),
+        );
+      });
+
+      expect(makeGuess).not.toHaveBeenCalled();
+    });
+  });
+
   describe("suggestion selection", () => {
     it("keeps a pick made while the sign-in is pending and sends it once auth is ready", async () => {
       // A new player with an SSR challenge: no session yet, sign-in still running.
