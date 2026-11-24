@@ -59,6 +59,7 @@
     "version:bump": "tsx scripts/version.ts bump",
     "version:check": "tsx scripts/version.ts check",
     "lint:public-assets": "tsx scripts/check-public-assets.ts",
+    "check:seo": "vitest run lib/seo/__tests__/seo-guard.test.ts",
     "lint-staged": "lint-staged",
     "prepare": "husky"
   },

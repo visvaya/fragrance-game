@@ -24,10 +24,20 @@ vi.mock("next/headers", () => ({
   }),
 }));
 
-vi.mock("@/lib/env", () => ({
-  env: { NODE_ENV: "test", SUPABASE_SERVICE_ROLE_KEY: "test-secret" },
+const secrets = vi.hoisted(() => ({
+  guestTicket: "g".repeat(32),
+  serviceRole: "s".repeat(32),
 }));
 
+vi.mock("@/lib/env", () => ({
+  env: {
+    GUEST_TICKET_SECRET: secrets.guestTicket,
+    NODE_ENV: "test",
+    SUPABASE_SERVICE_ROLE_KEY: secrets.serviceRole,
+  },
+}));
+
+import { createGuestTicket, deriveGuestTicketKey } from "../guest-ticket-token";
 import {
   clearGuestTicket,
   ensureGuestTicket,
@@ -43,6 +53,29 @@ describe("guest ticket cookie", () => {
   beforeEach(() => {
     store.values.clear();
     vi.clearAllMocks();
+  });
+
+  it("signs with GUEST_TICKET_SECRET, not the service role key", async () => {
+    store.values.set(
+      "eauxle_guest_ticket",
+      createGuestTicket(
+        GUEST,
+        Date.now(),
+        deriveGuestTicketKey(secrets.serviceRole),
+      ),
+    );
+    expect(await readGuestTicket()).toBeNull();
+
+    store.values.set(
+      "eauxle_guest_ticket",
+      createGuestTicket(
+        GUEST,
+        Date.now(),
+        deriveGuestTicketKey(secrets.guestTicket),
+      ),
+    );
+    const ticket = await readGuestTicket();
+    expect(ticket?.guestId).toBe(GUEST);
   });
 
   it("sets an httpOnly ticket and a readable hint", async () => {
