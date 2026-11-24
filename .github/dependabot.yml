@@ -67,6 +67,7 @@ updates:
   - package-ecosystem: docker
     directories:
       - /tools/actionlint
+      - /tools/gitleaks
     schedule:
       interval: weekly
       day: monday
