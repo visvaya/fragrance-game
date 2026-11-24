@@ -34,7 +34,7 @@
       "skipConfirmTitle": "Pominąć?",
       "skipConfirmCancel": "Anuluj",
       "skipConfirmConfirm": "Pomiń",
-      "connectingHint": "Wyślę gdy sesja będzie gotowa..."
+      "connectingHint": "Wyślę, gdy sesja będzie gotowa..."
     }
   },
   "Header": {
