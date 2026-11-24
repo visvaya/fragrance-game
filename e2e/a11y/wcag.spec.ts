@@ -70,6 +70,12 @@ test("login modal should be accessible", async ({ page }) => {
   const authModal = page.locator('[data-slot="dialog-content"]');
   await expect(authModal).toBeVisible({ timeout: 10_000 });
 
+  // The header menu fades out while the modal opens. Scanning mid-fade reads its half-transparent
+  // text as low contrast, so wait until the menu is hidden ("Create Account" is only in the menu).
+  await expect(
+    page.getByRole("button", { name: "Create Account" }),
+  ).toBeHidden();
+
   // Scan the full page while the modal is open. Tests 1 and 2 already verify the base
   // page has no violations; any violations here would be introduced by the open modal.
   // We avoid .include('[data-slot="dialog-content"]') because axe throws if the element
