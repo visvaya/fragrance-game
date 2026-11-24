@@ -57,6 +57,7 @@
     "budget:startup-js": "next analyze --experimental-app-only -o && tsx scripts/check-startup-js.ts",
     "lint:typed-files": "tsx scripts/check-typed-files.ts",
     "lint:public-assets": "tsx scripts/check-public-assets.ts",
+    "check:seo": "vitest run lib/seo/__tests__/seo-guard.test.ts",
     "lint-staged": "lint-staged",
     "prepare": "husky"
   },
