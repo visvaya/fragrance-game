@@ -48,6 +48,24 @@ test.afterAll(async () => {
 });
 
 test("Login and Logout", async ({ page }) => {
+  // Supabase captcha protection rejects a password sign-in without a Turnstile token, and the
+  // test host cannot pass Turnstile. Like the Admin API sign-up of globalSetup, a request that
+  // carries the service role key skips the captcha, so the form's own request is sent with it.
+  await page.route(
+    (url) =>
+      url.pathname.endsWith("/auth/v1/token") &&
+      url.searchParams.get("grant_type") === "password",
+    async (route) => {
+      await route.continue({
+        headers: {
+          ...route.request().headers(),
+          apikey: supabaseServiceKey,
+          authorization: `Bearer ${supabaseServiceKey}`,
+        },
+      });
+    },
+  );
+
   await page.goto("/auth/login");
 
   // Fill credentials
@@ -58,15 +76,14 @@ test("Login and Logout", async ({ page }) => {
   // Click Sign In
   await page.getByRole("button", { name: "Sign In" }).click();
 
-  // After login, app redirects to home (locale-prefixed URL)
-  await expect(page).toHaveURL(/\/(en|pl)(\/.*)?$/);
+  // After login, app redirects to the home page (locale-prefixed URL); the login page itself
+  // is locale-prefixed too, so the pattern must end at the locale.
+  await expect(page).toHaveURL(/\/(en|pl)\/?$/);
 
-  // Verify Sign In is hidden (user is authenticated)
-  await expect(page.getByRole("button", { name: "Sign In" })).toBeHidden();
-
-  // Open the header menu to access Sign Out
+  // Open the header menu: the user is authenticated, so it offers Sign Out instead of Sign In
   const menuButton = page.locator('button[aria-label="Menu"]');
   await menuButton.click();
+  await expect(page.getByRole("button", { name: "Sign In" })).toBeHidden();
 
   // Sign Out is a button inside the dropdown (not a menuitem role)
   const signOutButton = page.getByRole("button", { name: "Sign Out" });
