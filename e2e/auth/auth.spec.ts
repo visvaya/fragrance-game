@@ -88,12 +88,22 @@ test("Login and Logout", async ({ page }) => {
   // Sign Out is a button inside the dropdown (not a menuitem role)
   const signOutButton = page.getByRole("button", { name: "Sign Out" });
   await expect(signOutButton).toBeVisible();
+  // Sign-out reloads the current page (anonymous session restored). The load event is awaited
+  // from before the click, because the reload starts after an async sign-out request.
+  const reloaded = page.waitForEvent("load");
   await signOutButton.click();
+  await reloaded;
 
-  // Sign-out reloads the current page (anonymous session restored)
-  // Verify user is no longer authenticated by waiting for page reload
-  // eslint-disable-next-line playwright/no-networkidle -- post-sign-out reload; networkidle is the only reliable signal here
-  await page.waitForLoadState("networkidle");
+  // The menu button is in the server HTML before its handler exists; React marks a hydrated
+  // element with a `__reactFiber` property.
+  await page.waitForFunction(() => {
+    const button = document.querySelector('button[aria-label="Menu"]');
+    return (
+      button !== null &&
+      Object.keys(button).some((key) => key.startsWith("__reactFiber"))
+    );
+  });
+
   // Sign In button should reappear in the menu
   await menuButton.click();
   await expect(page.getByRole("button", { name: "Sign In" })).toBeVisible();
