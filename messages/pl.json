@@ -84,7 +84,7 @@
   },
   "WhatsNewModal": {
     "title": "Co nowego",
-    "description": "Najnowsze zmiany w grze, od najnowszej.",
+    "description": "Najnowsze zmiany w grze, od najnowszych.",
     "ariaClose": "Zamknij",
     "empty": "Na razie nic nowego. Zmiany ważne dla graczy pojawią się tutaj.",
     "version": "Wersja {version}"
