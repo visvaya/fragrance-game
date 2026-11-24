@@ -394,7 +394,8 @@ export function GameInput() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (suggestions.length === 0) return;
+    // Keys that confirm or move an IME composition (Japanese, Chinese, ...) belong to the input method.
+    if (suggestions.length === 0 || e.nativeEvent.isComposing) return;
 
     switch (e.key) {
       case "ArrowDown": {
@@ -566,6 +567,8 @@ export function GameInput() {
               aria-autocomplete="list"
               aria-controls={listId}
               aria-expanded={shouldShowList}
+              autoCapitalize="off"
+              autoCorrect="off"
               className="w-full border-b-2 border-border bg-transparent pt-2 pr-10 pb-1 pl-1 text-[1.0625rem] text-foreground transition-all duration-300 outline-none placeholder:text-[0.9375rem] placeholder:text-muted-foreground placeholder:lowercase focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 sm:text-lg sm:placeholder:text-base"
               data-testid="game-input"
               disabled={gameLoading || isRateLimited || isConnecting}
