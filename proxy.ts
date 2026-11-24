@@ -76,7 +76,6 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/api/db") ||
     pathname.startsWith("/ph-proxy") ||
-    pathname.startsWith("/api/monitoring") ||
     /\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$/.test(pathname)
   ) {
     return NextResponse.next();
@@ -175,7 +174,9 @@ export const config = {
      * 2. /_next/ (Next.js internals)
      * 3. /favicon.ico, /sitemap.xml, robotics.txt
      * 4. all files ending in static extensions
+     * 5. the Sentry tunnel (/api/monitoring and its handler /sentry-tunnel): Next.js buffers the
+     *    request body for the proxy, so a browser that stops mid-upload would hold it too
      */
-    "/((?!api/auth/callback|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
+    "/((?!api/auth/callback|api/monitoring|sentry-tunnel|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
   ],
 };

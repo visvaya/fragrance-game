@@ -55,7 +55,7 @@ vi.mock("@/i18n/routing", () => ({
 
 // Import proxy AFTER mocks are registered (mocks are hoisted, but the
 // explicit placement after vi.mock() calls makes the order intentional).
-import { proxy } from "@/proxy";
+import { config, proxy } from "@/proxy";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -122,11 +122,17 @@ describe("proxy middleware", () => {
       expect(response.headers.get("X-Frame-Options")).toBeNull();
     });
 
-    it("bypasses /api/monitoring paths", async () => {
-      const response = await proxy(makeRequest("/api/monitoring/health"));
+    it.each([
+      ["/api/monitoring", false],
+      ["/api/monitoring/", false],
+      ["/sentry-tunnel", false],
+      ["/api/game", true],
+      ["/en", true],
+    ])("matcher runs the proxy for %s: %s", (path, matched) => {
+      // A tunnel request waits for the browser's upload, so the proxy would wait with it.
+      const pattern = new RegExp(`^${config.matcher[0]}$`);
 
-      expect(mockRatelimitLimit).not.toHaveBeenCalled();
-      expect(response.headers.get("X-Frame-Options")).toBeNull();
+      expect(pattern.test(path)).toBe(matched);
     });
 
     it.each([
