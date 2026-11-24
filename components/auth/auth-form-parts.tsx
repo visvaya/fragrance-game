@@ -1,5 +1,7 @@
 import { type ReactNode, useRef, useState } from "react";
 
+import dynamic from "next/dynamic";
+
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type {
@@ -22,9 +24,66 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { publicEnv } from "@/lib/public-env";
 import { cn } from "@/lib/utils";
 
 import { GoogleAuthButton } from "./google-auth-button";
+
+const CaptchaLoader = () => {
+  const t = useTranslations("Auth.register");
+  return (
+    <div className="flex h-[4.0625rem] animate-pulse items-center justify-center rounded bg-muted/20 text-xs text-muted-foreground">
+      {t("captchaLoading")}
+    </div>
+  );
+};
+
+/** Turnstile widget, loaded on demand so its script stays out of the first form bundle. */
+export const Captcha = dynamic(
+  async () => import("./captcha").then((m) => m.Captcha),
+  {
+    loading: () => <CaptchaLoader />,
+    ssr: false,
+  },
+);
+
+/**
+ * Turnstile state of an auth form. `widget` is the widget, or null without a site key (local
+ * setups without captcha: the request then goes without a token). `isMissing` is true while a
+ * required token has not arrived. A token works once, so `reset` clears it and mounts a new widget.
+ * When the Turnstile script cannot load, the widget gives way to the reload advice.
+ */
+export function useCaptcha() {
+  const t = useTranslations("Auth.register");
+  const [token, setToken] = useState<string | null>(null);
+  const [isUnavailable, setIsUnavailable] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const hasCaptcha = Boolean(publicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
+
+  return {
+    isMissing: hasCaptcha && token === null,
+    reset: () => {
+      setToken(null);
+      setAttempt((count) => count + 1);
+    },
+    token,
+    widget: hasCaptcha ? (
+      isUnavailable ? (
+        <p className="text-sm text-destructive" role="alert">
+          {t("captchaFailed")}
+        </p>
+      ) : (
+        <Captcha
+          key={attempt}
+          onError={() => setToken(null)}
+          onExpire={() => setToken(null)}
+          onUnavailable={() => setIsUnavailable(true)}
+          onVerify={setToken}
+        />
+      )
+    ) : null,
+  };
+}
 
 type AuthCardProperties = {
   readonly children: ReactNode;

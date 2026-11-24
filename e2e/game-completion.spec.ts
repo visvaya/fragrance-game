@@ -4,9 +4,8 @@ import {
   type DailyAnswer,
   fetchDailyAnswer,
 } from "./support/admin";
+import { guessFirstSuggestion } from "./support/guess";
 import { expect, test } from "./support/fresh-player";
-
-import type { Page } from "@playwright/test";
 
 const GAME_OVER_TEXT = /The answer was\.\.\.|Odpowiedź to\.\.\./i;
 // Six distinct brands give six different perfumes; the sixth guess ends the game.
@@ -21,17 +20,6 @@ async function todaysAnswer(): Promise<DailyAnswer> {
     createE2eAdminClient(config),
     new Date().toISOString().slice(0, 10),
   );
-}
-
-/** Types a brand and picks the first suggestion, retrying the fill until suggestions show. */
-async function guessFirstSuggestion(page: Page, brand: string): Promise<void> {
-  const input = page.getByPlaceholder(/Guess the fragrance/i);
-  const suggestions = page.getByRole("option");
-  await expect(async () => {
-    await input.fill(brand);
-    await expect(suggestions.first()).toBeVisible({ timeout: 5000 });
-  }).toPass({ timeout: 30_000 });
-  await suggestions.first().click();
 }
 
 test.describe("Game Completion Flows", () => {

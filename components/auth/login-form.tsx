@@ -18,6 +18,7 @@ import {
   TextField,
   showProviderError,
   useAuthSubmit,
+  useCaptcha,
 } from "./auth-form-parts";
 
 export type LoginFormProperties = {
@@ -38,6 +39,7 @@ export function LoginForm({
   onSuccess,
 }: LoginFormProperties) {
   const { isLoading, submit } = useAuthSubmit();
+  const captcha = useCaptcha();
   const router = useRouter();
   const supabase = createClient();
   const t = useTranslations("Auth.login");
@@ -59,12 +61,19 @@ export function LoginForm({
   });
   // jscpd:ignore-end
 
-  const onSubmit = async (data: LoginFormValues) =>
-    submit(async () => {
+  async function onSubmit(data: LoginFormValues) {
+    if (captcha.isMissing) {
+      toast.error(t("captchaError"));
+      return;
+    }
+
+    await submit(async () => {
       const { error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
+        ...(captcha.token ? { options: { captchaToken: captcha.token } } : {}),
       });
+      captcha.reset();
 
       if (showProviderError(t("failed"), error)) return;
 
@@ -75,6 +84,7 @@ export function LoginForm({
         router.push("/");
       }
     }, t("error"));
+  }
 
   // jscpd:ignore-start -- each auth screen has its own fields and texts; a shared shell would only pass them through
   return (
@@ -97,7 +107,7 @@ export function LoginForm({
           label={t("passwordLabel")}
           labelAction={
             <button
-              className="text-sm text-primary hover:underline"
+              className="text-sm underline hover:text-primary"
               onClick={
                 onForgotPasswordClick ??
                 (() => router.push("/auth/forgot-password"))
@@ -110,6 +120,7 @@ export function LoginForm({
           name="password"
           type="password"
         />
+        {captcha.widget}
         <SubmitButton isLoading={isLoading}>{t("submit")}</SubmitButton>
       </AuthForm>
 
