@@ -2,7 +2,6 @@
 // number: a pull request that changes what is deployed moves it by the step its title names (Conventional
 // Commits), any other leaves it as it was. The git calls are in scripts/version.ts.
 import { VERSION_PATTERN, type ChangelogEntry } from "../lib/changelog";
-import { compareVersions as compareParsedVersions } from "./check-freshness";
 
 export const CHANGELOG_FILE = "lib/changelog.json";
 
@@ -27,7 +26,8 @@ const SHIPPED_FILES = new Set([
   "tsconfig.json",
   "vercel.json",
 ]);
-const TEST_FILE = /(?:^|\/)__tests__\/|\.(?:test|spec)\.[cm]?[jt]sx?$/;
+const TEST_DIRECTORY = /(?:^|\/)__tests__\//;
+const TEST_FILE = /\.(?:test|spec)\.[cm]?[jt]sx?$/;
 
 /**
  * The numbers of a version.
@@ -44,8 +44,7 @@ function parseVersion(text: string): [number, number, number] {
  * @param a - First version.
  * @param b - Second version.
  */
-export const compareVersions = (a: string, b: string): number =>
-  compareParsedVersions(parseVersion(a), parseVersion(b));
+export const compareVersions = (a: string, b: string): number => a.localeCompare(b, "en", { numeric: true });
 
 /**
  * The step a squashed pull request's title asks for: `!` a breaking change, `feat` a new capability.
@@ -87,7 +86,7 @@ export function shipsTheApp(
 ): boolean {
   return changedPaths.some((path) => {
     if (path === "package.json") return buildInputs(basePackage) !== buildInputs(headPackage);
-    if (TEST_FILE.test(path)) return false;
+    if (TEST_DIRECTORY.test(path) || TEST_FILE.test(path)) return false;
     return SHIPPED_FILES.has(path) || SHIPPED_PREFIXES.some((prefix) => path.startsWith(prefix));
   });
 }
