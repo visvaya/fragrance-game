@@ -48,7 +48,7 @@
     "supabase:stop": "pnpm supabase stop",
     "supabase:reset": "pnpm supabase db reset",
     "supabase:types": "tsx scripts/gen-supabase-types.ts",
-    "supabase:advisors": "node scripts/check-advisors.mjs",
+    "supabase:advisors": "supabase db advisors --remote --type security --fail-on error",
     "supabase:db-lint": "pnpm supabase db lint --remote",
     "test:db": "pnpm supabase test db",
     "db:fingerprint": "supabase db query --agent=no --yes -f supabase/schema-fingerprint.sql --output json --remote | tsx scripts/db-fingerprint.ts",
