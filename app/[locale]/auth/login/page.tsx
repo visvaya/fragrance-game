@@ -1,20 +1,11 @@
-import type { Metadata } from "next";
-
 import { LoginForm } from "@/components/auth/login-form";
 
 import { authPageMetadata } from "../metadata";
 
-/**
- * Generates metadata for the login page.
- */
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}): Promise<Metadata> {
-  return authPageMetadata(params, "signIn");
-}
+/** Metadata of the login page. */
+export const generateMetadata = authPageMetadata("signIn");
 
+// jscpd:ignore-start -- Next needs a default export per page; each names its own form
 /**
  * Login page.
  */
@@ -25,3 +16,4 @@ export default function LoginPage() {
     </div>
   );
 }
+// jscpd:ignore-end

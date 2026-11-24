@@ -3,20 +3,38 @@
 // eslint-disable-next-line no-restricted-imports -- custom hook encapsulating ResizeObserver logic
 import { useState, useEffect, useRef } from "react";
 
-/** Gradient mask fading the edges of a row that can still scroll in that direction. */
-export function overflowMaskClass(
+/** Mask classes for each scrollable side; literal strings, so Tailwind generates them. */
+export type EdgeMasks = Readonly<{ both: string; left: string; right: string }>;
+
+/** 20px fade. */
+export const OVERFLOW_MASKS: EdgeMasks = {
+  both: "[mask-image:linear-gradient(to_right,transparent_0,black_20px,black_calc(100%-20px),transparent_100%)]",
+  left: "[mask-image:linear-gradient(to_right,transparent_0,black_20px,black_100%)]",
+  right:
+    "[mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent_100%)]",
+};
+
+/** 15% fade. */
+export const SCROLL_FADE_MASKS: EdgeMasks = {
+  both: "[mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_85%,transparent_100%)]",
+  left: "[mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_100%)]",
+  right: "[mask-image:linear-gradient(to_right,black_85%,transparent_100%)]",
+};
+
+/**
+ * Gradient mask fading the edges of a row that can still scroll in that direction.
+ * @param masks - Classes of one fade width, e.g. `OVERFLOW_MASKS`.
+ * @param canScrollLeft - Content is hidden on the left.
+ * @param canScrollRight - Content is hidden on the right.
+ */
+export function edgeMaskClass(
+  masks: EdgeMasks,
   canScrollLeft: boolean,
   canScrollRight: boolean,
 ): string {
-  if (canScrollLeft && canScrollRight) {
-    return "[mask-image:linear-gradient(to_right,transparent_0,black_20px,black_calc(100%-20px),transparent_100%)]";
-  }
-  if (canScrollLeft) {
-    return "[mask-image:linear-gradient(to_right,transparent_0,black_20px,black_100%)]";
-  }
-  if (canScrollRight) {
-    return "[mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent_100%)]";
-  }
+  if (canScrollLeft && canScrollRight) return masks.both;
+  if (canScrollLeft) return masks.left;
+  if (canScrollRight) return masks.right;
   return "";
 }
 
@@ -81,23 +99,4 @@ export function useIsOverflowing<T extends HTMLElement>() {
     isOverflowing: canScrollLeft || canScrollRight,
     ref,
   };
-}
-
-/**
- * Tailwind mask class that fades the scrollable row edge(s) with hidden content (15% fade).
- */
-export function scrollFadeMaskClass(
-  canScrollLeft: boolean,
-  canScrollRight: boolean,
-) {
-  if (canScrollLeft && canScrollRight) {
-    return "[mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_85%,transparent_100%)]";
-  }
-  if (canScrollLeft) {
-    return "[mask-image:linear-gradient(to_right,transparent_0%,black_15%,black_100%)]";
-  }
-  if (canScrollRight) {
-    return "[mask-image:linear-gradient(to_right,black_85%,transparent_100%)]";
-  }
-  return "";
 }

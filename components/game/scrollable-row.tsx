@@ -1,7 +1,8 @@
 "use client";
 
 import {
-  overflowMaskClass,
+  edgeMaskClass,
+  OVERFLOW_MASKS,
   useIsOverflowing,
 } from "@/hooks/use-is-overflowing";
 import { cn } from "@/lib/utils";
@@ -19,7 +20,11 @@ export function ScrollableRow({
   const { canScrollLeft, canScrollRight, ref } =
     useIsOverflowing<HTMLDivElement>();
 
-  const maskClass = overflowMaskClass(canScrollLeft, canScrollRight);
+  const maskClass = edgeMaskClass(
+    OVERFLOW_MASKS,
+    canScrollLeft,
+    canScrollRight,
+  );
 
   return (
     <div

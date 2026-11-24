@@ -18,7 +18,8 @@ import { ScrollableRow } from "@/components/game/scrollable-row";
 import { AttemptLogSkeleton } from "@/components/game/skeletons";
 import { lenisScrollTo } from "@/components/providers/smooth-scroll-provider";
 import {
-  overflowMaskClass,
+  edgeMaskClass,
+  OVERFLOW_MASKS,
   useIsOverflowing,
 } from "@/hooks/use-is-overflowing";
 import { useScaleOnTap } from "@/hooks/use-scale-on-tap";
@@ -131,7 +132,11 @@ export const AttemptLog = memo(function AttemptLog() {
     return <AttemptLogSkeleton t={t} />;
   }
 
-  const maskClass = overflowMaskClass(canScrollLeft, canScrollRight);
+  const maskClass = edgeMaskClass(
+    OVERFLOW_MASKS,
+    canScrollLeft,
+    canScrollRight,
+  );
 
   return (
     <section className="panel-standard">

@@ -52,7 +52,7 @@
     "supabase:db-lint": "pnpm supabase db lint --remote",
     "test:db": "pnpm supabase test db",
     "db:fingerprint": "supabase db query --agent=no --yes -f supabase/schema-fingerprint.sql --output json --remote | tsx scripts/db-fingerprint.ts",
-    "lint:duplicates": "jscpd . --pattern \"{*.ts,{app,lib,components,hooks,scripts,i18n,lint,types}/**/*.{ts,tsx,mjs,css}}\" && jscpd scripts --format python && jscpd . --pattern \"{*.ts,{lib,hooks,scripts,i18n,lint,types,app/actions,app/api}/**/*.{ts,mjs}}\" --min-tokens 40 --min-lines 4",
+    "lint:duplicates": "jscpd . --pattern \"{*.ts,{app,lib,components,hooks,scripts,i18n,lint,types}/**/*.{ts,tsx,mjs,css}}\" --similarity && jscpd scripts --format python --similarity && jscpd . --pattern \"{*.ts,{lib,hooks,scripts,i18n,lint,types,app/actions,app/api}/**/*.{ts,mjs}}\" --min-tokens 40 --min-lines 4",
     "budget:startup-js": "next analyze --experimental-app-only -o && tsx scripts/check-startup-js.ts",
     "lint:typed-files": "tsx scripts/check-typed-files.ts",
     "lint-staged": "lint-staged",
