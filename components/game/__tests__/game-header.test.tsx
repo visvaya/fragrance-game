@@ -313,6 +313,27 @@ describe("GameHeader", () => {
 
       expect(screen.getByText("signOut")).toBeInTheDocument();
     });
+
+    it("puts signOut below every other menu item", () => {
+      const registeredUser = { id: "user-id", is_anonymous: false } as User;
+      renderHeader({ user: registeredUser });
+
+      const signOut = screen.getByRole("button", { name: "signOut" });
+      const support = screen.getByRole("button", { name: "support" });
+      expect(
+        support.compareDocumentPosition(signOut) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it("hides signOut for an anonymous player", () => {
+      const anonymousUser = { id: "anon-id", is_anonymous: true } as User;
+      renderHeader({ user: anonymousUser });
+
+      expect(
+        screen.queryByRole("button", { name: "signOut" }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe("appearance toggles", () => {

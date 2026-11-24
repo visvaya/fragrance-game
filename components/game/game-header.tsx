@@ -30,6 +30,7 @@ import { useUIPreferences } from "./contexts";
 import { useGame } from "./game-provider";
 import { GameTooltip } from "./game-tooltip";
 import { MobileResetItem } from "./mobile-reset-item";
+import { SignOutMenuItem } from "./sign-out-menu-item";
 import { ResetButton } from "./reset-button";
 
 const SessionsModal = dynamic(
@@ -415,38 +416,18 @@ export function GameHeader() {
                     </button>
                   </>
                 ) : (
-                  <>
-                    <button
-                      className="w-full border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0 min-[350px]:px-5"
-                      onClick={async () => {
-                        setModals((previous) => ({
-                          ...previous,
-                          menuOpen: false,
-                        }));
-                        const { createClient } =
-                          await import("@/lib/supabase/client");
-                        const supabase = createClient();
-                        await supabase.auth.signOut();
-                        // Hard reload: reinitializes GameProvider with a new anonymous session,
-                        // which restores the "Zobacz profil" button in the menu.
-                        globalThis.location.reload();
-                      }}
-                    >
-                      {t("signOut")}
-                    </button>
-                    <button
-                      className="w-full border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0 min-[350px]:px-5"
-                      onClick={() => {
-                        setModals((previous) => ({
-                          ...previous,
-                          menuOpen: false,
-                          sessionsOpen: true,
-                        }));
-                      }}
-                    >
-                      {t("manageSessions")}
-                    </button>
-                  </>
+                  <button
+                    className="w-full border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0 min-[350px]:px-5"
+                    onClick={() => {
+                      setModals((previous) => ({
+                        ...previous,
+                        menuOpen: false,
+                        sessionsOpen: true,
+                      }));
+                    }}
+                  >
+                    {t("manageSessions")}
+                  </button>
                 )}
               </>
             ) : (
@@ -552,6 +533,14 @@ export function GameHeader() {
             >
               {t("support")}
             </button>
+
+            {user && !user.is_anonymous ? (
+              <SignOutMenuItem
+                onSelect={() => {
+                  setModals((previous) => ({ ...previous, menuOpen: false }));
+                }}
+              />
+            ) : null}
           </div>
 
           {/* Language Dropdown */}
