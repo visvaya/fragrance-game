@@ -18,6 +18,7 @@ export default defineConfig({
     server: { deps: { inline: ["next-intl"] } },
     env: {
       CRON_SECRET: "test-cron-secret",
+      GUEST_TICKET_SECRET: "test-guest-ticket-secret-0123456789abcdef",
       NEXT_PUBLIC_ASSETS_HOST:
         process.env.NEXT_PUBLIC_ASSETS_HOST || "assets.test.example",
       NEXT_PUBLIC_POSTHOG_KEY: "phc_test_key",

@@ -12,7 +12,7 @@ import {
 } from "./guest-ticket-token";
 
 function ticketKey(): Buffer {
-  return deriveGuestTicketKey(env.SUPABASE_SERVICE_ROLE_KEY);
+  return deriveGuestTicketKey(env.GUEST_TICKET_SECRET);
 }
 
 /** Read when a cookie is set, not at import, so importing modules never touch env. */

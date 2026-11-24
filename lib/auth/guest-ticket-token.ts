@@ -10,7 +10,7 @@ const KEY_LENGTH_BYTES = 32;
 
 /**
  * Derives the ticket signing key from a server secret with HKDF-SHA256.
- * @param secret - Server-only secret (the service role key).
+ * @param secret - Server-only secret dedicated to guest tickets.
  * @returns 32-byte key used only for guest tickets.
  */
 export function deriveGuestTicketKey(secret: string): Buffer {
