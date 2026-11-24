@@ -112,16 +112,19 @@ def cmd_backup(args: argparse.Namespace) -> int:
         return 1
     s3, bucket = make_s3_client(), bucket_name()
     manifest: dict[str, dict[str, Any]] = {}
-    for key in _list_bucket(s3, bucket):
-        body = s3.get_object(Bucket=bucket, Key=key)["Body"].read()
-        target = _safe_local_path(out, key)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(body)
-        entry = {"sha256": hashlib.sha256(body).hexdigest(), "size": len(body)}
-        manifest = {**manifest, key: entry}
-        print(f"saved {key} ({len(body)} bytes)")
     out.mkdir(parents=True, exist_ok=True)
-    (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    try:
+        for key in _list_bucket(s3, bucket):
+            body = s3.get_object(Bucket=bucket, Key=key)["Body"].read()
+            target = _safe_local_path(out, key)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(body)
+            entry = {"sha256": hashlib.sha256(body).hexdigest(), "size": len(body)}
+            manifest = {**manifest, key: entry}
+            print(f"saved {key} ({len(body)} bytes)")
+    finally:
+        # Also on a crash, so the files already saved stay described and can be verified.
+        (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(f"Backed up {len(manifest)} objects to {out}")
     return 0
 
@@ -195,7 +198,7 @@ def _fetch(host: str, key: str) -> tuple[int, bytes, dict[str, str]]:
         conn.close()
 
 
-def _check_pair(host: str, old: str, new: str) -> list[str]:
+def _check_pair(host: str, old: str, new: str, old_sha256: str | None = None) -> list[str]:
     old_status, old_body, _ = _fetch(host, old)
     new_status, new_body, new_headers = _fetch(host, new)
     problems = []
@@ -205,6 +208,8 @@ def _check_pair(host: str, old: str, new: str) -> list[str]:
         problems.append(f"new status {new_status}")
     if hashlib.sha256(old_body).digest() != hashlib.sha256(new_body).digest():
         problems.append("content differs")
+    if old_sha256 is not None and hashlib.sha256(new_body).hexdigest() != old_sha256:
+        problems.append("content differs from the backup")
     if new_headers.get("content-type") != ASSET_CONFIG.content_type:
         problems.append(f"content-type {new_headers.get('content-type')}")
     if "immutable" not in new_headers.get("cache-control", ""):
@@ -212,11 +217,23 @@ def _check_pair(host: str, old: str, new: str) -> list[str]:
     return problems
 
 
+def _read_manifest(backup_dir: str) -> dict[str, str]:
+    """Key to sha256 from the manifest that the backup command wrote."""
+    raw = json.loads((Path(backup_dir) / "manifest.json").read_text(encoding="utf-8"))
+    return {key: entry["sha256"] for key, entry in raw.items()}
+
+
 def cmd_verify(args: argparse.Namespace) -> int:
     host = assets_host()
+    backed_up = _read_manifest(args.backup) if args.backup else {}
     failures = 0
     for old, new in _pairs(_read_plan(args.plan)):
-        problems = _check_pair(host, old, new)
+        try:
+            problems = _check_pair(host, old, new, backed_up.get(old) if args.backup else None)
+            if args.backup and old not in backed_up:
+                problems.append("old key missing from the backup manifest")
+        except (OSError, http.client.HTTPException) as error:
+            problems = [f"network error: {error}"]
         failures += bool(problems)
         detail = f": {', '.join(problems)}" if problems else ""
         print(f"{'FAIL' if problems else 'ok'} {old} -> {new}{detail}")
@@ -275,6 +292,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     verify = sub.add_parser("verify", help="compare old and new objects over HTTPS")
     verify.add_argument("--plan", required=True)
+    verify.add_argument(
+        "--backup", help="backup directory; its manifest must match the new objects"
+    )
     verify.set_defaults(func=cmd_verify)
 
     sql = sub.add_parser("sql", help="write apply.sql and rollback.sql for the database swap")
