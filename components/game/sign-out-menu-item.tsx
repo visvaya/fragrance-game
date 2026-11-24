@@ -1,6 +1,5 @@
 "use client";
 
-import { LogOut } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 /**
@@ -27,7 +26,6 @@ export function SignOutMenuItem({
         globalThis.location.reload();
       }}
     >
-      <LogOut aria-hidden="true" className="size-4 shrink-0" />
       {t("signOut")}
     </button>
   );
