@@ -30,7 +30,18 @@ test.describe("Content Security Policy @smoke", () => {
     test(`runs the page's own scripts on ${path} without violations`, async ({
       page,
     }) => {
-      const nonce = cspNonceOf(await page.goto(path));
+      const diagResponse = await page.goto(path);
+      const nonce = cspNonceOf(diagResponse);
+      await test.info().attach("diag", {
+        body: JSON.stringify({
+          head: await page.evaluate(() => document.head.outerHTML),
+          headers: diagResponse?.headers(),
+          html: await diagResponse?.text().catch(() => "no body"),
+          ready: await page.evaluate(() => document.readyState),
+          status: diagResponse?.status(),
+        }),
+        contentType: "application/json",
+      });
 
       // The provider also adds the dark class after hydration, so check the layout's inline
       // scripts carry this response's nonce: without it they are blocked and the theme flashes.
