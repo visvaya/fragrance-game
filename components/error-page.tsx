@@ -20,7 +20,7 @@ export function ErrorPage({
         Eauxle
       </p>
       <div className="space-y-3">
-        <h1 className="font-[family-name:var(--font-playfair)] text-3xl font-semibold text-balance text-foreground sm:text-4xl">
+        <h1 className="font-[family-name:var(--font-playfair)] text-3xl font-semibold text-balance text-foreground lining-nums sm:text-4xl">
           {title}
         </h1>
         <p className="mx-auto max-w-md text-muted-foreground">{description}</p>
