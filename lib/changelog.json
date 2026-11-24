@@ -1,6 +1,16 @@
 [
   {
     "date": "2026-11-24",
+    "notes": [
+      {
+        "en": "The menu has a new \"What's new\" item. It lists the latest changes to the game and shows which version you are playing.",
+        "pl": "W menu jest nowa pozycja „Co nowego”. Pokazuje najnowsze zmiany w grze i numer wersji, w którą grasz."
+      }
+    ],
+    "version": "0.10.0"
+  },
+  {
+    "date": "2026-11-24",
     "notes": [],
     "version": "0.9.1"
   },

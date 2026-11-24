@@ -30,13 +30,8 @@ const readJson = (path: string): unknown => JSON.parse(readFileSync(path, "utf8"
 function compareWithBase(base: string) {
   const fork = git("merge-base", base, "HEAD").trim();
   const headChangelog = parseChangelog(readJson(CHANGELOG_FILE));
-  // A base from before the change list existed (the first pull request of the scheme): what the branch
-  // adds on top stands in for it.
-  const baseHasChangelog = git("ls-tree", "--name-only", fork, CHANGELOG_FILE).trim() !== "";
   return {
-    baseChangelog: baseHasChangelog
-      ? parseChangelog(JSON.parse(git("show", `${fork}:${CHANGELOG_FILE}`)))
-      : headChangelog.slice(1),
+    baseChangelog: parseChangelog(JSON.parse(git("show", `${fork}:${CHANGELOG_FILE}`))),
     basePackage: parsePackage(JSON.parse(git("show", `${fork}:package.json`))),
     changedPaths: [
       ...lines(git("diff", "--name-only", fork)),

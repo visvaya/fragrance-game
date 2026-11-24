@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { useUIPreferences } from "./contexts";
 import { useGame } from "./game-provider";
 import { GameTooltip } from "./game-tooltip";
+import { AppearanceToggle, MenuItem } from "./header-menu-parts";
 import { MobileResetItem } from "./mobile-reset-item";
 import { ResetButton } from "./reset-button";
 
@@ -51,6 +52,11 @@ const HelpModal = dynamic(
     import("./modals/help-modal").then((module_) => module_.HelpModal),
   { ssr: false },
 );
+const WhatsNewModal = dynamic(
+  async () =>
+    import("./modals/whats-new-modal").then((module_) => module_.WhatsNewModal),
+  { ssr: false },
+);
 const StatsModal = dynamic(
   async () =>
     import("./modals/stats-modal").then((module_) => module_.StatsModal),
@@ -67,25 +73,6 @@ const AuthModal = dynamic(
     import("@/components/auth/auth-modal").then((module_) => module_.AuthModal),
   { ssr: false },
 );
-
-/** Reusable toggle pill used in the appearance settings section. */
-function TogglePill({ isOn }: { readonly isOn: boolean }) {
-  return (
-    <div
-      className={cn(
-        "relative h-4 w-8 rounded-full transition-colors",
-        isOn ? "bg-primary" : "bg-muted-foreground/30",
-      )}
-    >
-      <div
-        className={cn(
-          "absolute top-0.5 size-3 rounded-full bg-white transition-all",
-          isOn ? "left-4.5" : "left-0.5",
-        )}
-      />
-    </div>
-  );
-}
 
 /**
  * Game header bar, containing logo, settings menu, help, and statistics.
@@ -111,6 +98,7 @@ export function GameHeader() {
     profileOpen: false,
     sessionsOpen: false,
     statsOpen: false,
+    whatsNewOpen: false,
   });
 
   const closeDropdowns = () => {
@@ -407,22 +395,15 @@ export function GameHeader() {
 
                 {user.is_anonymous ? (
                   <>
-                    <button
-                      className="w-full border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0 min-[350px]:px-5"
-                      onClick={() => openAuth("login")}
-                    >
+                    <MenuItem onClick={() => openAuth("login")}>
                       {t("signIn")}
-                    </button>
-                    <button
-                      className="w-full border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0 min-[350px]:px-5"
-                      onClick={() => openAuth("register")}
-                    >
+                    </MenuItem>
+                    <MenuItem onClick={() => openAuth("register")}>
                       {t("createAccount")}
-                    </button>
+                    </MenuItem>
                   </>
                 ) : (
-                  <button
-                    className="w-full border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0 min-[350px]:px-5"
+                  <MenuItem
                     onClick={() => {
                       setModals((previous) => ({
                         ...previous,
@@ -432,35 +413,40 @@ export function GameHeader() {
                     }}
                   >
                     {t("manageSessions")}
-                  </button>
+                  </MenuItem>
                 )}
               </>
             ) : (
               <>
-                <button
-                  className="w-full border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0 min-[350px]:px-5"
-                  onClick={() => openAuth("login")}
-                >
+                <MenuItem onClick={() => openAuth("login")}>
                   {t("signIn")}
-                </button>
-                <button
-                  className="w-full border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0 min-[350px]:px-5"
-                  onClick={() => openAuth("register")}
-                >
+                </MenuItem>
+                <MenuItem onClick={() => openAuth("register")}>
                   {t("createAccount")}
-                </button>
+                </MenuItem>
               </>
             )}
 
-            <button
-              className="border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0 min-[350px]:px-5"
+            <MenuItem
+              onClick={() => {
+                setModals((previous) => ({
+                  ...previous,
+                  menuOpen: false,
+                  whatsNewOpen: true,
+                }));
+              }}
+            >
+              {t("whatsNew")}
+            </MenuItem>
+
+            <MenuItem
               onClick={() => {
                 toast.info(t("comingSoon"));
                 setModals((previous) => ({ ...previous, menuOpen: false }));
               }}
             >
               {t("about")}
-            </button>
+            </MenuItem>
 
             {/* Appearance Section */}
             <div className="border-b border-border bg-muted/20 p-3 min-[350px]:px-5">
@@ -468,61 +454,31 @@ export function GameHeader() {
                 {t("appearance")}
               </h3>
               <div className="space-y-3">
-                {/* Large Text Toggle */}
-                <button
-                  className="group flex w-full items-center justify-between gap-2 text-foreground transition-colors hover:text-primary"
+                <AppearanceToggle
+                  icon={Type}
+                  isOn={uiPreferences.fontScale === "large"}
+                  label={t("largeText")}
                   onClick={toggleFontScale}
-                >
-                  <div className="flex items-center gap-2">
-                    <Type className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
-                    <span className="text-left font-sans text-xs leading-tight">
-                      {t("largeText")}
-                    </span>
-                  </div>
-                  <TogglePill isOn={uiPreferences.fontScale === "large"} />
-                </button>
-
-                {/* Dark Mode Toggle */}
-                <button
-                  className="group flex w-full items-center justify-between gap-2 text-foreground transition-colors hover:text-primary"
+                />
+                <AppearanceToggle
+                  icon={Moon}
+                  isOn={uiPreferences.theme === "dark"}
+                  label={t("darkMode")}
                   onClick={toggleTheme}
-                >
-                  <div className="flex items-center gap-2">
-                    <Moon className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
-                    <span className="text-left font-sans text-xs leading-tight">
-                      {t("darkMode")}
-                    </span>
-                  </div>
-                  <TogglePill isOn={uiPreferences.theme === "dark"} />
-                </button>
-
-                {/* Auto Scroll Toggle */}
-                <button
-                  className="group flex w-full items-center justify-between gap-2 text-foreground transition-colors hover:text-primary"
+                />
+                <AppearanceToggle
+                  icon={ChevronsUpDown}
+                  isOn={uiPreferences.autoScroll}
+                  label={t("autoScroll")}
                   onClick={toggleAutoScroll}
-                >
-                  <div className="flex items-center gap-2">
-                    <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
-                    <span className="text-left font-sans text-xs leading-tight">
-                      {t("autoScroll")}
-                    </span>
-                  </div>
-                  <TogglePill isOn={uiPreferences.autoScroll} />
-                </button>
-
-                {/* Wide Layout Toggle */}
-                <button
-                  className="group hidden w-full items-center justify-between text-foreground transition-colors hover:text-primary lg:flex"
+                />
+                <AppearanceToggle
+                  className="hidden lg:flex"
+                  icon={Monitor}
+                  isOn={uiPreferences.layoutMode === "wide"}
+                  label={t("wideLayout")}
                   onClick={toggleLayoutMode}
-                >
-                  <div className="flex items-center gap-2">
-                    <Monitor className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
-                    <span className="text-left font-sans text-xs leading-tight">
-                      {t("wideLayout")}
-                    </span>
-                  </div>
-                  <TogglePill isOn={uiPreferences.layoutMode === "wide"} />
-                </button>
+                />
               </div>
             </div>
 
@@ -613,6 +569,12 @@ export function GameHeader() {
           setModals((previous) => ({ ...previous, statsOpen: false }))
         }
         open={modals.statsOpen}
+      />
+      <WhatsNewModal
+        onClose={() =>
+          setModals((previous) => ({ ...previous, whatsNewOpen: false }))
+        }
+        open={modals.whatsNewOpen}
       />
       <AuthModal
         defaultView={modals.authView}
