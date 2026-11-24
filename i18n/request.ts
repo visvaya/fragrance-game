@@ -1,3 +1,6 @@
+import * as rootParams from "next/root-params";
+
+import { hasLocale } from "next-intl";
 import { getRequestConfig } from "next-intl/server";
 
 import { routing } from "./routing";
@@ -6,17 +9,14 @@ import type messagesSchema from "../messages/pl.json";
 
 type Messages = typeof messagesSchema;
 
-// DEBT: requestLocale is deprecated in next-intl 4.9+; migrate to next/root-params
-// (https://next-intl.dev/blog/nextjs-root-params).
-// eslint-disable-next-line @typescript-eslint/no-deprecated -- see DEBT above
-export default getRequestConfig(async ({ requestLocale }) => {
-  const requestedLocale = await requestLocale;
-  // Ensure that the incoming `locale` is valid
-  const locale =
-    requestedLocale &&
-    (routing.locales as readonly string[]).includes(requestedLocale)
-      ? requestedLocale
-      : routing.defaultLocale;
+export default getRequestConfig(async ({ locale: override }) => {
+  // An explicit locale (getTranslations({ locale })) wins; otherwise the [locale] segment.
+  // An unknown segment (e.g. /unknown.txt) falls back to the default locale, as the layout
+  // renders the not-found page for it.
+  const requested = override ?? (await rootParams.locale());
+  const locale = hasLocale(routing.locales, requested)
+    ? requested
+    : routing.defaultLocale;
 
   const messagesModule = (await import(`../messages/${locale}.json`)) as {
     default: Messages;
