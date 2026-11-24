@@ -1,10 +1,12 @@
 "use client";
 
-import { useTheme } from "next-themes";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
+import { useUIPreferences } from "@/components/game/contexts";
+
+/** Sonner toaster in the theme chosen in the game menu (the app sets dark mode itself, without next-themes). */
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
+  const { uiPreferences } = useUIPreferences();
 
   return (
     <Sonner
@@ -17,7 +19,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-text": "var(--popover-foreground)",
         } as React.CSSProperties
       }
-      theme={theme as NonNullable<ToasterProps["theme"]>}
+      theme={uiPreferences.theme}
       {...props}
     />
   );
