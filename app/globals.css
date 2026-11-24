@@ -257,8 +257,8 @@ html.large-text {
     45deg,
     transparent,
     transparent 4px,
-    oklch(var(--color-foreground) / 0.06) 4px,
-    oklch(var(--color-foreground) / 0.06) 8px
+    color-mix(in oklch, var(--color-foreground) 6%, transparent) 4px,
+    color-mix(in oklch, var(--color-foreground) 6%, transparent) 8px
   );
 }
 
