@@ -11,6 +11,7 @@ import {
   type StoredGuess,
 } from "@/lib/game/guess-history";
 import { createAdminClient } from "@/lib/supabase/server";
+import { z } from "zod";
 
 /** Answer of a challenge: the clue source plus data used for scoring. */
 export type ChallengeAnswer = {
@@ -63,24 +64,30 @@ export async function fetchChallengeAnswer(
   };
 }
 
+const namedSchema = z.object({ name: z.string() });
+
+/** The perfume row behind an answer label; the concentration join can come back as a list. */
+const answerLabelRowSchema = z
+  .object({
+    concentrations: z.union([namedSchema, z.array(namedSchema)]).nullish(),
+    name: z.string(),
+  })
+  .nullable();
+
 /** Name and concentration of the answer perfume, shown once a game is over. */
 export async function fetchAnswerLabel(perfumeId: string): Promise<{
   answerConcentration?: string | undefined;
   answerName?: string | undefined;
 }> {
-  const { data: perfume } = (await createAdminClient()
+  const { data } = await createAdminClient()
     .from("perfumes")
     .select("name, concentrations(name)")
     .eq("id", perfumeId)
-    .single()) as {
-    data: {
-      concentrations: { name: string } | { name: string }[] | null;
-      name: string;
-    } | null;
-  };
+    .single();
+  const perfume = answerLabelRowSchema.parse(data);
   return {
     answerConcentration: perfume
-      ? getArrayName(perfume.concentrations)
+      ? getArrayName(perfume.concentrations ?? null)
       : undefined,
     answerName: perfume?.name,
   };

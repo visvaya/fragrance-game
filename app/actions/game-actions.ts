@@ -242,6 +242,10 @@ async function beginMove(
   return { session, user };
 }
 
+const challengeTimingSchema = z
+  .object({ grace_deadline_at_utc: z.string(), perfume_id: z.string() })
+  .nullable();
+
 /** Perfume and grace deadline of a challenge, read with the service-role client; null when missing. */
 async function fetchChallengeTiming(challengeId: string) {
   const { data } = await createAdminClient()
@@ -249,7 +253,7 @@ async function fetchChallengeTiming(challengeId: string) {
     .select("perfume_id, grace_deadline_at_utc")
     .eq("id", challengeId)
     .single();
-  return data;
+  return challengeTimingSchema.parse(data);
 }
 
 // --- Actions ---
