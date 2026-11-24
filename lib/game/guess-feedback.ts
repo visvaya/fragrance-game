@@ -108,6 +108,7 @@ export function calculatePerfumerMatch(
   return "none";
 }
 
+// jscpd:ignore-start -- columns of the same table, but this type changes with the feedback rules and ClueSourceRow with the clue source
 /** The perfume columns the feedback of a guess compares. */
 export type PerfumeForFeedback = {
   base_notes: string[] | null;
@@ -118,6 +119,7 @@ export type PerfumeForFeedback = {
   release_year: number | null;
   top_notes: string[] | null;
 };
+// jscpd:ignore-end
 
 /**
  * "correct" for the same year, "close" within three years, otherwise "wrong".
