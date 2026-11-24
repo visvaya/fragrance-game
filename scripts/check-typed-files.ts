@@ -7,7 +7,6 @@ import { isMainModule } from "./is-main";
 /** Tracked JavaScript files that stay JavaScript, each with the reason. They are checked by tsc (checkJs). */
 const ALLOWED_JS: Readonly<Record<string, string>> = {
   "lint/eauxle-plugin.mjs": "oxlint JS plugin format; the plugin API has no usable types for TypeScript",
-  "scripts/check-advisors.mjs": "not yet rewritten in TypeScript; excluded from tsc with @ts-nocheck",
   "scripts/check-node-version.mjs": "preinstall guard: must run on a Node release too old for TypeScript",
 };
 
