@@ -56,6 +56,12 @@ const StatsModal = dynamic(
     import("./modals/stats-modal").then((module_) => module_.StatsModal),
   { ssr: false },
 );
+// Shown only to a registered player in the open menu, so it stays out of the start-up bundle.
+const SignOutMenuItem = dynamic(
+  async () =>
+    import("./sign-out-menu-item").then((module_) => module_.SignOutMenuItem),
+  { ssr: false },
+);
 const AuthModal = dynamic(
   async () =>
     import("@/components/auth/auth-modal").then((module_) => module_.AuthModal),
@@ -415,38 +421,18 @@ export function GameHeader() {
                     </button>
                   </>
                 ) : (
-                  <>
-                    <button
-                      className="w-full border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0 min-[350px]:px-5"
-                      onClick={async () => {
-                        setModals((previous) => ({
-                          ...previous,
-                          menuOpen: false,
-                        }));
-                        const { createClient } =
-                          await import("@/lib/supabase/client");
-                        const supabase = createClient();
-                        await supabase.auth.signOut();
-                        // Hard reload: reinitializes GameProvider with a new anonymous session,
-                        // which restores the "Zobacz profil" button in the menu.
-                        globalThis.location.reload();
-                      }}
-                    >
-                      {t("signOut")}
-                    </button>
-                    <button
-                      className="w-full border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0 min-[350px]:px-5"
-                      onClick={() => {
-                        setModals((previous) => ({
-                          ...previous,
-                          menuOpen: false,
-                          sessionsOpen: true,
-                        }));
-                      }}
-                    >
-                      {t("manageSessions")}
-                    </button>
-                  </>
+                  <button
+                    className="w-full border-b border-border p-3 text-left font-[family-name:var(--font-playfair)] leading-tight text-foreground transition-colors duration-300 hover:bg-muted/50 hover:text-foreground active:bg-primary/15 active:text-foreground active:duration-0 min-[350px]:px-5"
+                    onClick={() => {
+                      setModals((previous) => ({
+                        ...previous,
+                        menuOpen: false,
+                        sessionsOpen: true,
+                      }));
+                    }}
+                  >
+                    {t("manageSessions")}
+                  </button>
                 )}
               </>
             ) : (
@@ -552,6 +538,14 @@ export function GameHeader() {
             >
               {t("support")}
             </button>
+
+            {user && !user.is_anonymous ? (
+              <SignOutMenuItem
+                onSelect={() => {
+                  setModals((previous) => ({ ...previous, menuOpen: false }));
+                }}
+              />
+            ) : null}
           </div>
 
           {/* Language Dropdown */}

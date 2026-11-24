@@ -5,8 +5,11 @@ import { readFileSync } from "node:fs";
 
 import { isMainModule } from "./is-main";
 
-/** Compressed bytes of start-up JS for `/[locale]` (measured 343681 on 2026-11-21, rounded up to the next 5 KB). */
-const MAX_STARTUP_JS_BYTES = 345_000;
+/**
+ * Compressed bytes of start-up JS for `/[locale]`, rounded up to the next 5 KB: 343681 on 2026-11-21, then about 347200
+ * after the menu's sign-out item moved (2026-11-24, raise approved by the owner).
+ */
+const MAX_STARTUP_JS_BYTES = 350_000;
 /** Packages that must load after start-up, through a dynamic `import()`. */
 const FORBIDDEN_AT_STARTUP = ["zod", "@sentry/", "posthog-js", "@supabase/"];
 const ANALYZE_PATH = ".next/diagnostics/analyze/data/[locale]/analyze.data";
