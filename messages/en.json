@@ -367,6 +367,13 @@
   },
   "NotFound": {
     "title": "404: Not Found",
-    "description": "The page you are looking for does not exist."
+    "description": "The page you are looking for does not exist.",
+    "backToGame": "Back to today's game"
+  },
+  "GlobalError": {
+    "title": "Something went wrong",
+    "description": "An unexpected error interrupted the game. Try again, or head back to today's game.",
+    "retry": "Try again",
+    "backToGame": "Back to today's game"
   }
 }

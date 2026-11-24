@@ -1,13 +1,22 @@
-import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 
-/** Renders a localized 404 page for unmatched routes. */
+import { getLocale, getTranslations } from "next-intl/server";
+
+import { ErrorPage } from "@/components/error-page";
+import { Button } from "@/components/ui/button";
+
+/** Renders a localized 404 page for unmatched routes, with a way back to today's game. */
 export default async function NotFound() {
-  const t = await getTranslations("NotFound");
+  const [t, locale] = await Promise.all([
+    getTranslations("NotFound"),
+    getLocale(),
+  ]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center">
-      <h1 className="text-4xl font-bold">{t("title")}</h1>
-      <p className="mt-2 text-lg">{t("description")}</p>
-    </div>
+    <ErrorPage description={t("description")} title={t("title")}>
+      <Button asChild size="lg">
+        <Link href={`/${locale}`}>{t("backToGame")}</Link>
+      </Button>
+    </ErrorPage>
   );
 }
