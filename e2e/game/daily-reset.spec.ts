@@ -153,7 +153,7 @@ test.describe("Daily Challenge Reset", () => {
 
     expect(page.url()).toContain("/en");
 
-    const helpButton = page.getByLabel(/help/i);
+    const helpButton = page.getByRole("button", { name: "How to play" });
     await expect(helpButton).toBeVisible();
   });
 
@@ -163,7 +163,7 @@ test.describe("Daily Challenge Reset", () => {
 
     expect(page.url()).toContain("/pl");
 
-    const helpButton = page.getByLabel(/pomoc/i);
+    const helpButton = page.getByRole("button", { name: "Jak grać" });
     await expect(helpButton).toBeVisible();
   });
 });
