@@ -49,6 +49,23 @@ describe("AuthErrorWatcher", () => {
     });
   });
 
+  it("shows an OAuth error from the hash and clears the hash", async () => {
+    globalThis.history.replaceState(
+      null,
+      "",
+      "/pl#error=access_denied&error_description=Sign+in+cancelled",
+    );
+    render(<AuthErrorWatcher />);
+
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledWith(
+        "Auth.errorWatcher.authError",
+        { description: "Sign in cancelled" },
+      );
+    });
+    expect(globalThis.location.hash).toBe("");
+  });
+
   it("stays silent without an error", () => {
     render(<AuthErrorWatcher />);
     expect(mockToast.error).not.toHaveBeenCalled();
