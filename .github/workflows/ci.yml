@@ -39,24 +39,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm typecheck
-      # A squash merge turns the pull request title into the commit on main.
-      - name: Pull request title follows Conventional Commits
-        if: github.event_name == 'pull_request'
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: echo "$PR_TITLE" | pnpm exec commitlint
-      - name: No new em dashes or emoji
-        if: github.event_name == 'pull_request'
-        env:
-          BASE_REF: ${{ github.base_ref }}
-        run: pnpm exec tsx scripts/check-text.ts since "origin/$BASE_REF"
-      - run: pnpm lint:strict
-      - run: pnpm format:check
-      # A change to what is deployed moves the version by the step the title names (pnpm version:bump);
-      # any other change keeps it. The title is read live in a pull request, so a rerun after a rename
-      # sees the new one; on main the squashed commit's subject is that title and its first parent the
-      # commit before, so two pull requests that took the same number fail here, before they deploy.
-      - name: Version follows the title and the changes
+      # The title of the change, read live: a rerun of this job after a rename sees the new one, but a
+      # rename starts no run by itself, so rerun "Quality checks" after renaming. On main it is the subject
+      # of the squashed commit, which is the pull request title.
+      - name: Title of the change
+        id: title
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -66,7 +53,27 @@ jobs:
           else
             title=$(git log -1 --format=%s)
           fi
-          pnpm version:check --base HEAD^1 "$title"
+          echo "title=$title" >> "$GITHUB_OUTPUT"
+      # A squash merge turns the pull request title into the commit on main.
+      - name: Pull request title follows Conventional Commits
+        if: github.event_name == 'pull_request'
+        env:
+          TITLE: ${{ steps.title.outputs.title }}
+        run: printf '%s' "$TITLE" | pnpm exec commitlint
+      - name: No new em dashes or emoji
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: pnpm exec tsx scripts/check-text.ts since "origin/$BASE_REF"
+      - run: pnpm lint:strict
+      - run: pnpm format:check
+      # A change to what is deployed moves the version by the step the title names (pnpm version:bump);
+      # any other change keeps it. On main the first parent of the squashed commit is the commit before, so
+      # two pull requests that took the same number fail here, before they deploy.
+      - name: Version follows the title and the changes
+        env:
+          TITLE: ${{ steps.title.outputs.title }}
+        run: pnpm version:check --base HEAD^1 --title="$TITLE"
       # Unused files, exports and dependencies (knip.json).
       - run: pnpm exec knip
       # Markdown rules in .markdownlint-cli2.jsonc; the formatter ignores *.md.

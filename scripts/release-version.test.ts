@@ -6,16 +6,17 @@ import { parseChangelog, type ChangelogEntry } from "../lib/changelog";
 import {
   CHANGELOG_FILE,
   bumpOfTitle,
-  compareVersions,
   expectedVersion,
   nextChangelog,
   nextVersion,
+  parsePackage,
   shipsTheApp,
   versionProblems,
   withVersion,
 } from "./release-version";
 
 const pkg = (version: string, extra: Record<string, unknown> = {}) => ({ version, ...extra });
+const compareVersions = (a: string, b: string) => a.localeCompare(b, "en", { numeric: true });
 const note = { en: "A new menu", pl: "Nowe menu" };
 
 describe("bumpOfTitle", () => {
@@ -24,6 +25,8 @@ describe("bumpOfTitle", () => {
     expect(bumpOfTitle("fix(ui): align the logo")).toBe("patch");
     expect(bumpOfTitle("build(deps): bump zod")).toBe("patch");
     expect(bumpOfTitle("fix!: change the save format")).toBe("major");
+    expect(bumpOfTitle("feat!: drop the old save format")).toBe("major");
+    expect(bumpOfTitle("feat(game)!: rebuild the scoring")).toBe("major");
   });
 
   it("refuses a title that is not a Conventional Commit", () => {
@@ -44,14 +47,6 @@ describe("nextVersion", () => {
 
   it("refuses a text that is not a version", () => {
     expect(() => nextVersion("0.9", "patch")).toThrow(/not a version/);
-  });
-});
-
-describe("compareVersions", () => {
-  it("compares numbers, not text", () => {
-    expect(compareVersions("0.10.0", "0.9.9")).toBeGreaterThan(0);
-    expect(compareVersions("0.9.9", "0.10.0")).toBeLessThan(0);
-    expect(compareVersions("1.0.0", "1.0.0")).toBe(0);
   });
 });
 
@@ -106,40 +101,66 @@ describe("expectedVersion", () => {
 
 describe("versionProblems", () => {
   const base = pkg("0.9.0");
-  const entry = (version: string, notes = [note]) => ({ date: "2026-11-24", notes, version });
-  const problems = (title: string, changedPaths: string[], head: string, changelog = [entry(head)]) =>
-    versionProblems({ basePackage: base, changedPaths, headChangelog: changelog, headPackage: pkg(head), title });
+  const entry = (version: string, notes = [note]): ChangelogEntry => ({ date: "2026-11-24", notes, version });
+  const baseChangelog = [entry("0.9.0", [])];
+  // The change list of a pull request that moves to `head`: the base's list with a new entry on top.
+  const problems = (title: string, changedPaths: string[], head: string, notes = [note]) =>
+    versionProblems({
+      baseChangelog,
+      basePackage: base,
+      changedPaths,
+      headChangelog: head === "0.9.0" ? baseChangelog : [entry(head, notes), ...baseChangelog],
+      headPackage: pkg(head),
+      title,
+    });
 
   it("accepts the step the title names", () => {
-    expect(problems("fix(ui): x", ["app/page.tsx"], "0.9.1", [entry("0.9.1", [])])).toEqual([]);
-    expect(problems("feat(game): x", ["app/page.tsx"], "0.10.0")).toEqual([]);
+    expect(problems("fix(ui): x", ["app/page.tsx"], "0.9.1", [])).toBeUndefined();
+    expect(problems("feat(game): x", ["app/page.tsx"], "0.10.0")).toBeUndefined();
   });
 
   it("accepts an unchanged version when nothing ships", () => {
-    expect(problems("docs: x", ["README.md"], "0.9.0", [entry("0.9.0", [])])).toEqual([]);
+    expect(problems("docs: x", ["README.md"], "0.9.0")).toBeUndefined();
   });
 
-  it("names the missing bump and the command that sets it", () => {
-    const [problem] = problems("fix(ui): x", ["app/page.tsx"], "0.9.0");
+  it("names the missing bump and what to run", () => {
+    const problem = problems("fix(ui): x", ["app/page.tsx"], "0.9.0");
     expect(problem).toMatch(/must say 0\.9\.1, not 0\.9\.0/);
-    expect(problem).toMatch(/version:bump/);
+    expect(problem).toMatch(/update the branch from main, then run .*version:bump/);
   });
 
   it("refuses a bump when nothing ships", () => {
-    expect(problems("ci: x", [".github/workflows/ci.yml"], "0.9.1")[0]).toMatch(/must say 0\.9\.0, not 0\.9\.1/);
+    expect(problems("ci: x", [".github/workflows/ci.yml"], "0.9.1")).toMatch(/must say 0\.9\.0, not 0\.9\.1/);
   });
 
-  it("refuses a feature without notes for the players", () => {
-    const [problem] = problems("feat(game): x", ["app/page.tsx"], "0.10.0", [entry("0.10.0", [])]);
-    expect(problem).toMatch(/needs notes/);
-    expect(problem).toContain(CHANGELOG_FILE);
+  it("refuses a feature or a breaking change without notes for the players", () => {
+    for (const title of ["feat(game): x", "feat!: x", "fix(game)!: x"]) {
+      const problem = problems(title, ["app/page.tsx"], "0.10.0", []);
+      expect(problem).toMatch(/needs notes/);
+      expect(problem).toContain(CHANGELOG_FILE);
+    }
+  });
+
+  it("refuses a change list that lost or doubled a published entry", () => {
+    const check = (headChangelog: ChangelogEntry[]) =>
+      versionProblems({
+        baseChangelog,
+        basePackage: base,
+        changedPaths: ["app/page.tsx"],
+        headChangelog,
+        headPackage: pkg("0.9.1"),
+        title: "fix(ui): x",
+      });
+    expect(check([entry("0.9.1", [])])).toMatch(/must be the base's list/);
+    expect(check([entry("0.9.1", []), entry("0.9.1", []), ...baseChangelog])).toMatch(/must be the base's list/);
+    expect(check([entry("0.9.2", []), ...baseChangelog])).toMatch(/must be the base's list/);
   });
 });
 
 describe("nextChangelog", () => {
   const published: ChangelogEntry[] = [{ date: "2026-09-27", notes: [], version: "0.9.0" }];
-  const move = (entries: ChangelogEntry[], version: string) =>
-    nextChangelog(entries, { baseVersion: "0.9.0", date: "2026-11-24", version });
+  const move = (head: ChangelogEntry[], version: string, base = published) =>
+    nextChangelog(head, base, { date: "2026-11-24", version });
 
   it("adds a technical entry for a new version", () => {
     expect(move(published, "0.9.1")).toEqual([{ date: "2026-11-24", notes: [], version: "0.9.1" }, ...published]);
@@ -157,6 +178,33 @@ describe("nextChangelog", () => {
 
   it("leaves the published entries alone when nothing moves", () => {
     expect(move(published, "0.9.0")).toEqual(published);
+  });
+
+  it("keeps every published entry when a revert restores an older version", () => {
+    const base: ChangelogEntry[] = [
+      { date: "2026-11-23", notes: [note], version: "0.9.2" },
+      { date: "2026-11-22", notes: [], version: "0.9.1" },
+      ...published,
+    ];
+    expect(move(base.slice(1), "0.9.3", base)).toEqual([{ date: "2026-11-24", notes: [], version: "0.9.3" }, ...base]);
+  });
+
+  it("finds the branch's own entry when an update from main left both entries of the same version", () => {
+    const main: ChangelogEntry = { date: "2026-11-23", notes: [], version: "0.9.1" };
+    const own: ChangelogEntry = { date: "2026-11-22", notes: [note], version: "0.9.1" };
+    expect(move([own, main, ...published], "0.9.2", [main, ...published])).toEqual([
+      { date: "2026-11-24", notes: [note], version: "0.9.2" },
+      main,
+      ...published,
+    ]);
+  });
+});
+
+describe("parsePackage", () => {
+  it("keeps the other fields and refuses a missing or malformed version", () => {
+    expect(parsePackage({ name: "x", version: "0.9.0" })).toEqual({ name: "x", version: "0.9.0" });
+    expect(() => parsePackage({ name: "x" })).toThrow(/version/);
+    expect(() => parsePackage({ version: "0.9" })).toThrow(/version/);
   });
 });
 

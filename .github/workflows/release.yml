@@ -49,8 +49,11 @@ jobs:
             echo "::notice::$tag is already released."
             exit 0
           fi
-          # A missing tag is an error answer, which the condition treats as no tag.
-          if tagged=$(gh api "repos/$GH_REPO/commits/$tag" --jq .sha 2> /dev/null) && [ "$tagged" != "$COMMIT" ]; then
+          # The commit of the tag (the last line is the peeled commit of an annotated tag); no tag, no line.
+          # Listed on its own, so a failing request stops the job instead of reading as "no tag".
+          refs=$(git ls-remote origin "refs/tags/$tag" "refs/tags/$tag^{}")
+          tagged=$(printf '%s' "$refs" | tail -n 1 | cut -f1)
+          if [ -n "$tagged" ] && [ "$tagged" != "$COMMIT" ]; then
             echo "::warning::$tag already points to $tagged, not to $COMMIT; no release is created."
             exit 0
           fi
@@ -58,6 +61,8 @@ jobs:
           deadline=$((SECONDS + WAIT_SECONDS))
           while true; do
             served=$(curl -fsS --max-time 20 -H "Cache-Control: no-cache" "$url" 2> /dev/null | jq -r '.version // empty' 2> /dev/null || true)
+            # Only a plain version is used below; anything else the address answers counts as no answer.
+            [[ "$served" =~ ^[0-9]+[.][0-9]+[.][0-9]+$ ]] || served=""
             if [ "$served" = "$version" ]; then break; fi
             # Production is already past this version (a later merge deployed first): its release is skipped.
             if [ -n "$served" ] && [ "$(printf '%s\n%s\n' "$served" "$version" | sort -V | tail -n 1)" != "$version" ]; then

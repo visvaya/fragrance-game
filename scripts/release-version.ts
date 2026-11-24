@@ -1,6 +1,8 @@
 // How a pull request moves the version of the app, as pure functions. `version` in package.json is the one
 // number: a pull request that changes what is deployed moves it by the step its title names (Conventional
 // Commits), any other leaves it as it was. The git calls are in scripts/version.ts.
+import { z } from "zod";
+
 import { VERSION_PATTERN, type ChangelogEntry } from "../lib/changelog";
 
 export const CHANGELOG_FILE = "lib/changelog.json";
@@ -8,7 +10,21 @@ export const CHANGELOG_FILE = "lib/changelog.json";
 const TITLE_PATTERN = /^([a-z]+)(\([^)]+\))?(!)?: /;
 
 type Bump = "major" | "minor" | "patch";
-type PackageJson = { scripts?: Record<string, string>; version: string; } & Record<string, unknown>;
+
+// package.json as far as the rules read it; the other fields are kept for the comparison of build inputs.
+const packageSchema = z.looseObject({
+  scripts: z.record(z.string(), z.string()).optional(),
+  version: z.string().regex(VERSION_PATTERN),
+});
+type PackageJson = z.infer<typeof packageSchema>;
+
+/**
+ * package.json checked at the boundary.
+ * @param raw - Parsed JSON of the file.
+ */
+export function parsePackage(raw: unknown): PackageJson {
+  return packageSchema.parse(raw);
+}
 
 // What Vercel builds the app from. Tests, notes, CI, scripts and the database do not ship.
 const SHIPPED_PREFIXES = ["app/", "components/", "hooks/", "i18n/", "lib/", "messages/", "public/"];
@@ -34,17 +50,10 @@ const TEST_FILE = /\.(?:test|spec)\.[cm]?[jt]sx?$/;
  * @param text - `major.minor.patch`.
  */
 function parseVersion(text: string): [number, number, number] {
-  const match = VERSION_PATTERN.exec(text);
-  if (match === null) throw new Error(`not a version: "${text}"`);
-  return [Number(match[1]), Number(match[2]), Number(match[3])];
+  if (!VERSION_PATTERN.test(text)) throw new Error(`not a version: "${text}"`);
+  const [major = 0, minor = 0, patch = 0] = text.split(".").map(Number);
+  return [major, minor, patch];
 }
-
-/**
- * Orders two versions by their numbers, not as text.
- * @param a - First version.
- * @param b - Second version.
- */
-export const compareVersions = (a: string, b: string): number => a.localeCompare(b, "en", { numeric: true });
 
 /**
  * The step a squashed pull request's title asks for: `!` a breaking change, `feat` a new capability.
@@ -109,47 +118,58 @@ export function expectedVersion(pr: PullRequest): string {
 }
 
 /**
- * What is wrong with a pull request's version; empty when it is right. A feature or a breaking change is
- * something players notice, so its changelog entry needs notes for them.
- * @param pr - Title, changed files, both package.json files and the pull request's changelog.
+ * Whether two change lists are the same, entry by entry.
+ * @param a - First list.
+ * @param b - Second list.
  */
-export function versionProblems(pr: PullRequest & { headChangelog: readonly ChangelogEntry[] }): string[] {
+const sameEntries = (a: readonly ChangelogEntry[], b: readonly ChangelogEntry[]): boolean =>
+  JSON.stringify(a) === JSON.stringify(b);
+
+/**
+ * What is wrong with a pull request's version, or undefined when it is right. The change list must be the
+ * base's plus one new entry on top when the version moves, so an entry lost or doubled by an update from
+ * main shows here. A feature or a breaking change is something players notice: its entry needs notes.
+ * @param pr - Title, changed files, both package.json files and both change lists.
+ */
+export function versionProblems(
+  pr: PullRequest & { baseChangelog: readonly ChangelogEntry[]; headChangelog: readonly ChangelogEntry[] },
+): string | undefined {
   const expected = expectedVersion(pr);
+  const fix = `update the branch from main, then run \`pnpm version:bump "<title>"\``;
   if (pr.headPackage.version !== expected) {
     const why = expected === pr.basePackage.version ? "does not change the app" : "changes the app";
-    return [
-      `the pull request ${why}, so package.json must say ${expected}, not ${pr.headPackage.version}: run \`pnpm version:bump "<title>"\``,
-    ];
+    return `the pull request ${why}, so package.json must say ${expected}, not ${pr.headPackage.version}: ${fix}`;
   }
-  const notes = pr.headChangelog[0]?.notes ?? [];
-  if (expected !== pr.basePackage.version && bumpOfTitle(pr.title) !== "patch" && notes.length === 0) {
-    return [
-      `a feature or breaking change needs notes for the players, in English and Polish, on version ${expected} in ${CHANGELOG_FILE}; if players notice nothing, the title is not feat`,
-    ];
+  const moved = expected !== pr.basePackage.version;
+  const published = moved ? pr.headChangelog.slice(1) : pr.headChangelog;
+  if (!sameEntries(published, pr.baseChangelog) || (moved && pr.headChangelog[0]?.version !== expected)) {
+    return `${CHANGELOG_FILE} must be the base's list${moved ? ` with one new entry, ${expected}, on top` : ""}: ${fix}`;
   }
-  return [];
+  if (moved && bumpOfTitle(pr.title) !== "patch" && pr.headChangelog[0]?.notes.length === 0) {
+    return `a feature or breaking change needs notes for the players, in English and Polish, on version ${expected} in ${CHANGELOG_FILE}; if players notice nothing, the title is not feat`;
+  }
+  return undefined;
 }
 
 /**
- * The change list for a pull request that moves the base version to `version`. The branch's own entry is
- * the newest one when it is not the base's: it takes the new number and keeps its notes, or goes when the
- * version is back at the base's. A new entry is technical (no notes) until someone writes them.
- * @param entries - Change list of the working tree, newest first.
+ * The change list for a pull request that moves the base version to `version`: the base's list, with a new
+ * entry on top. The branch's own entry is the first one of its list that the base does not have, whatever
+ * its version; the new entry keeps its notes. A new entry is technical (no notes) until someone writes them.
+ * @param head - Change list of the working tree, newest first.
+ * @param base - Change list of the base, newest first.
  * @param move - The move to make.
- * @param move.baseVersion - Version on the base.
  * @param move.date - Today.
  * @param move.version - Version of this branch.
  */
 export function nextChangelog(
-  entries: readonly ChangelogEntry[],
-  move: { baseVersion: string; date: string; version: string },
+  head: readonly ChangelogEntry[],
+  base: readonly ChangelogEntry[],
+  move: { date: string; version: string },
 ): ChangelogEntry[] {
-  const [top, ...rest] = entries;
-  const own = top !== undefined && top.version !== move.baseVersion ? top : undefined;
-  const published = own === undefined ? entries : rest;
-  return move.version === move.baseVersion
-    ? [...published]
-    : [{ date: move.date, notes: own?.notes ?? [], version: move.version }, ...published];
+  const own = head.find((entry) => !base.some((published) => sameEntries([published], [entry])));
+  return move.version === base[0]?.version
+    ? [...base]
+    : [{ date: move.date, notes: own?.notes ?? [], version: move.version }, ...base];
 }
 
 /**
