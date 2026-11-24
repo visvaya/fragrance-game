@@ -1,5 +1,11 @@
 version: 2
 
+# An npm update changes pnpm-lock.yaml, which is deployed, so its pull request must move the version
+# like any other change to the app, and the bot cannot: before merging, run
+# `pnpm version:bump "<title of the pull request>"` on its branch and push the commit. Dependabot then
+# stops rebasing that branch, so refreshes after that are done by hand. Pull requests that touch only
+# GitHub Actions, the Python tools or the Docker tools do not ship and keep the version.
+#
 # Weekly, grouped updates keep the PR count low on a single-maintainer repo.
 # Security updates are not grouped here: they arrive on their own as soon as
 # an advisory lands, independent of this schedule. `cooldown` waits a week

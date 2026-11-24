@@ -1,24 +1,27 @@
 name: Release
 
-# Push a tag vX.Y.Z to publish a GitHub release. The tag must match the
-# "version" field in package.json; bump it first in a chore(release) commit.
+# A push to main that moved the version in package.json (a pull request that changes what is deployed,
+# see the version check in ci.yml) gets a tag and a GitHub release once production serves that version.
+# Production switches to a new deployment only after the checks of its commit pass, so the tag follows
+# a deployment that happened, not a merge. Tags are never moved or deleted: a rerun finds its release
+# and stops, and a tag that points to another commit is left alone.
 on:
   push:
-    tags: ["v*.*.*"]
+    branches: [main]
 
 permissions: {}
 
-# One group per tag: a re-run of the same tag waits for the running one instead of cancelling a
-# half-created release, and different tags never replace each other's pending runs.
+# One run per commit and none cancelled: a shared group keeps one pending run and drops older ones, and a
+# dropped run would leave its version without a release.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
   release:
-    name: Verify version and publish release
+    name: Tag and release the deployed version
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 60
     # Only this job writes, and only through the API token passed to gh.
     permissions:
       contents: write # gh release create
@@ -26,17 +29,54 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # The commit and its first parent: the version of this push is compared with the one before.
+          fetch-depth: 2
 
-      - name: Check tag matches package.json version
-        run: |
-          PKG_VERSION="$(node -p "require('./package.json').version")"
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $PKG_VERSION"
-            exit 1
-          fi
-
-      - name: Create GitHub release with generated notes
+      - name: Wait for production, then release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes --title "$GITHUB_REF_NAME"
+          GH_REPO: ${{ github.repository }}
+          COMMIT: ${{ github.sha }}
+          WAIT_SECONDS: "2700"
+        run: |
+          version=$(jq -r .version package.json)
+          if [ "$version" = "$(git show HEAD^1:package.json | jq -r .version)" ]; then
+            echo "::notice::The version stays $version; no release."
+            exit 0
+          fi
+          tag="v$version"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "::notice::$tag is already released."
+            exit 0
+          fi
+          # The commit of the tag (the last line is the peeled commit of an annotated tag); no tag, no line.
+          # Listed on its own, so a failing request stops the job instead of reading as "no tag".
+          refs=$(git ls-remote origin "refs/tags/$tag" "refs/tags/$tag^{}")
+          tagged=$(printf '%s' "$refs" | tail -n 1 | cut -f1)
+          if [ -n "$tagged" ] && [ "$tagged" != "$COMMIT" ]; then
+            echo "::warning::$tag already points to $tagged, not to $COMMIT; no release is created."
+            exit 0
+          fi
+          url="$(jq -r .homepage package.json)/api/healthcheck"
+          deadline=$((SECONDS + WAIT_SECONDS))
+          while true; do
+            served=$(curl -fsS --max-time 20 -H "Cache-Control: no-cache" "$url" 2> /dev/null | jq -r '.version // empty' 2> /dev/null || true)
+            # Only a plain version is used below; anything else the address answers counts as no answer.
+            [[ "$served" =~ ^[0-9]+[.][0-9]+[.][0-9]+$ ]] || served=""
+            if [ "$served" = "$version" ]; then break; fi
+            # Production is already past this version (a later merge deployed first): its release is skipped.
+            if [ -n "$served" ] && [ "$(printf '%s\n%s\n' "$served" "$version" | sort -V | tail -n 1)" != "$version" ]; then
+              echo "::warning::Production serves $served, above $version; no release is created for $version."
+              exit 0
+            fi
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::Production still does not serve $version (it answered: ${served:-nothing}); rerun this job once it does."
+              exit 1
+            fi
+            sleep 30
+          done
+          create() { gh release create "$tag" --target "$COMMIT" --title "$tag" --generate-notes; }
+          released() { gh release view "$tag" > /dev/null 2>&1; }
+          # The API can fail after it has created the release: judge by whether it exists, and try once more.
+          create || released || { sleep 10; create || released; }
+          { echo "### Release"; echo; echo "- $tag on $COMMIT"; } >> "$GITHUB_STEP_SUMMARY"

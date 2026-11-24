@@ -1,6 +1,6 @@
 {
   "name": "eauxle",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "private": true,
   "description": "A daily puzzle for perfume lovers inspired by Wordle. Guess the mystery perfume from evolving clues like bottle, notes, brand, and year.",
   "keywords": [
@@ -56,6 +56,8 @@
     "lint:duplicates": "jscpd . --pattern \"{*.ts,{app,lib,components,hooks,scripts,i18n,lint,types}/**/*.{ts,tsx,mjs,css}}\" --similarity && jscpd scripts --format python --similarity && jscpd . --pattern \"{*.ts,{lib,hooks,scripts,i18n,lint,types,app/actions,app/api}/**/*.{ts,mjs}}\" --min-tokens 35 --min-lines 4",
     "budget:startup-js": "next analyze --experimental-app-only -o && tsx scripts/check-startup-js.ts",
     "lint:typed-files": "tsx scripts/check-typed-files.ts",
+    "version:bump": "tsx scripts/version.ts bump",
+    "version:check": "tsx scripts/version.ts check",
     "lint:public-assets": "tsx scripts/check-public-assets.ts",
     "check:seo": "vitest run lib/seo/__tests__/seo-guard.test.ts",
     "lint-staged": "lint-staged",
