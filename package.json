@@ -55,6 +55,7 @@
     "lint:duplicates": "jscpd . --pattern \"{*.ts,{app,lib,components,hooks,scripts,i18n,lint,types}/**/*.{ts,tsx,mjs,css}}\" --similarity && jscpd scripts --format python --similarity && jscpd . --pattern \"{*.ts,{lib,hooks,scripts,i18n,lint,types,app/actions,app/api}/**/*.{ts,mjs}}\" --min-tokens 40 --min-lines 4",
     "budget:startup-js": "next analyze --experimental-app-only -o && tsx scripts/check-startup-js.ts",
     "lint:typed-files": "tsx scripts/check-typed-files.ts",
+    "lint:public-assets": "tsx scripts/check-public-assets.ts",
     "lint-staged": "lint-staged",
     "prepare": "husky"
   },
