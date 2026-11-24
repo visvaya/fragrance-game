@@ -36,12 +36,7 @@ import {
   mapPerfumeDetails,
 } from "@/lib/game/guess-history";
 import { gameResultValues } from "@/lib/game/game-result";
-import {
-  calculateBaseScore,
-  calculateFinalScore,
-  getRevealPercentages,
-  type RevealState,
-} from "@/lib/game/scoring";
+import { calculateBaseScore, calculateFinalScore } from "@/lib/game/scoring";
 import {
   insertGameSession,
   isNoRowMatched,
@@ -77,7 +72,6 @@ export type StartGameResponse = {
   imageUrl: string | null;
   nonce: string;
   revealed: RevealedClues;
-  revealState: RevealState;
   sessionId: string;
 };
 
@@ -104,7 +98,6 @@ export type SubmitGuessResult = {
   newNonce: string;
   result: "correct" | "incorrect";
   revealed: RevealedClues;
-  revealState: RevealState;
 };
 
 export type SkipAttemptResult = {
@@ -464,7 +457,6 @@ async function resumeGameSession(
     imageUrl: imageUrl,
     nonce: String(session.last_nonce),
     revealed: buildSessionClues(answer.clue, session, enrichedGuesses),
-    revealState: getRevealPercentages(session.attempts_count + 1),
     sessionId: session.id,
   };
 }
@@ -531,7 +523,6 @@ async function createNewGameSession(
     imageUrl: imageUrl,
     nonce: nonce,
     revealed: buildSessionClues(answer.clue, session, []),
-    revealState: getRevealPercentages(1),
     sessionId: session.id,
   };
 }
@@ -692,7 +683,6 @@ export async function submitGuess(
       newNonce: String(session.last_nonce),
       result: "incorrect",
       revealed: buildSessionClues(finishedAnswer.clue, session, []),
-      revealState: getRevealPercentages(6),
     };
   }
 
@@ -886,7 +876,6 @@ export async function submitGuess(
     newNonce: newNonce,
     result: isCorrect ? "correct" : "incorrect",
     revealed,
-    revealState: getRevealPercentages(nextAttempts),
   };
 }
 

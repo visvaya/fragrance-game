@@ -4,17 +4,6 @@ import { MASK_CHAR, MAX_GUESSES } from "@/lib/constants";
  * Scoring and Reveal Logic for Fragrance Game
  */
 
-export type RevealState = {
-  blur: number; // Blur radius in px
-  brandLetters: number; // Percentage (0-100) of brand letters revealed
-  grain: number; // Grain amount (0-100? or arbitrary scale)
-  notes: number; // Level of notes revealed (0=None, 1=Top, 2=Middle, 3=Base)
-  perfumerLetters: number; // Percentage (0-100) of perfumer letters revealed
-  radialMask: number; // Percentage (0-100)
-  showGender: boolean;
-  yearMask: string; // '----' or full year
-};
-
 // Points per attempt (1st attempt = 1000, 6th = 168)
 // Formula: 1000 * (0.7 ^ (attempt - 1))
 const ATTEMPT_SCORES: Record<number, number> = {
@@ -48,99 +37,6 @@ export function calculateFinalScore(baseScore: number, xSolve: number): number {
   // Formula: baseScore * (1 + (xSolve * 0.3))
   const multiplier = 1 + xSolve * 0.3;
   return Math.round(baseScore * multiplier);
-}
-
-/**
- * Returns the visual reveal state for a given attempt number (1-6).
- * @param attempt
- */
-export function getRevealPercentages(attempt: number): RevealState {
-  // Ensure attempt is clamped 1-6
-  const safeAttempt = Math.max(1, Math.min(MAX_GUESSES, attempt));
-
-  switch (safeAttempt) {
-    // The default case is unreachable (safeAttempt is clamped to 1-6) but required for
-    // exhaustive return-type checking by TypeScript; it takes the attempt 1 state.
-    default:
-    case 1: {
-      // Attempt 1: 0% radial, 10px blur, 3% grain. 0% letters. Year ____. Notes: None (User said ___x3, implying hidden)
-      return {
-        blur: 10,
-        brandLetters: 0,
-        grain: 3,
-        notes: 0,
-        perfumerLetters: 0,
-        radialMask: 0,
-        showGender: false,
-        yearMask: MASK_CHAR.repeat(4),
-      };
-    }
-    case 2: {
-      // Attempt 2: 5% radial, 9.5px blur, 2.5% grain. 0% letters. Year 1___. Notes: None? User said "_ (jak w marce)" which usually means 0% or hidden.
-      return {
-        blur: 9.5,
-        brandLetters: 0,
-        grain: 2.5,
-        notes: 0,
-        perfumerLetters: 0,
-        radialMask: 5,
-        showGender: false,
-        yearMask: `1${MASK_CHAR.repeat(3)}`,
-      };
-    }
-    case 3: {
-      // Attempt 3: 8% radial, 8.5px blur, 2% grain. 15% Brand, 10% Perfumer. Notes: Top (Level 1). Year 19__.
-      return {
-        blur: 8.5,
-        brandLetters: 15,
-        grain: 2,
-        notes: 1,
-        perfumerLetters: 10,
-        radialMask: 8,
-        showGender: false,
-        yearMask: `19${MASK_CHAR.repeat(2)}`,
-      };
-    }
-    case 4: {
-      // Attempt 4: 11% radial, 7.5px blur, 1.8% grain. 40% Brand, 30% Perfumer. Notes: +Middle (Level 2). Year 197_.
-      return {
-        blur: 7.5,
-        brandLetters: 40,
-        grain: 1.8,
-        notes: 2,
-        perfumerLetters: 30,
-        radialMask: 11,
-        showGender: false,
-        yearMask: `197${MASK_CHAR}`,
-      };
-    }
-    case 5: {
-      // Attempt 5: 13% radial, 6px blur, 1.5% grain. 70% Brand, 60% Perfumer. Notes: +Base (Level 3). Year FULL. Gender TRUE.
-      return {
-        blur: 6,
-        brandLetters: 70,
-        grain: 1.5,
-        notes: 3,
-        perfumerLetters: 60,
-        radialMask: 13,
-        showGender: true,
-        yearMask: "FULL",
-      };
-    }
-    case 6: {
-      // Attempt 6: 100% radial, 0px blur, 0% grain. 100% Brand, 100% Perfumer. Notes: All. Year FULL. Gender TRUE.
-      return {
-        blur: 0,
-        brandLetters: 100,
-        grain: 0,
-        notes: 3,
-        perfumerLetters: 100,
-        radialMask: 100,
-        showGender: true,
-        yearMask: "FULL",
-      };
-    }
-  }
 }
 
 /**

@@ -3,7 +3,6 @@ import { describe, it, expect } from "vitest";
 import {
   calculateBaseScore,
   calculateFinalScore,
-  getRevealPercentages,
   revealLetters,
 } from "@/lib/game/scoring";
 
@@ -43,77 +42,6 @@ describe("Scoring Logic", () => {
 });
 
 describe("Reveal Logic", () => {
-  describe("getRevealPercentages", () => {
-    it("should return correct reveal percentages for each attempt", () => {
-      // Attempt 1
-      expect(getRevealPercentages(1)).toEqual({
-        blur: 10,
-        brandLetters: 0,
-        grain: 3,
-        notes: 0,
-        perfumerLetters: 0,
-        radialMask: 0,
-        showGender: false,
-        yearMask: "⎵⎵⎵⎵",
-      });
-      // Attempt 2
-      expect(getRevealPercentages(2)).toEqual({
-        blur: 9.5,
-        brandLetters: 0,
-        grain: 2.5,
-        notes: 0,
-        perfumerLetters: 0,
-        radialMask: 5,
-        showGender: false,
-        yearMask: "1⎵⎵⎵",
-      });
-      // Attempt 3
-      expect(getRevealPercentages(3)).toEqual({
-        blur: 8.5,
-        brandLetters: 15,
-        grain: 2,
-        notes: 1,
-        perfumerLetters: 10,
-        radialMask: 8,
-        showGender: false,
-        yearMask: "19⎵⎵",
-      });
-      // Attempt 4
-      expect(getRevealPercentages(4)).toEqual({
-        blur: 7.5,
-        brandLetters: 40,
-        grain: 1.8,
-        notes: 2,
-        perfumerLetters: 30,
-        radialMask: 11,
-        showGender: false,
-        yearMask: "197⎵",
-      });
-      // Attempt 5
-      expect(getRevealPercentages(5)).toEqual({
-        blur: 6,
-        brandLetters: 70,
-        grain: 1.5,
-        notes: 3,
-        perfumerLetters: 60,
-        radialMask: 13,
-        showGender: true,
-        yearMask: "FULL",
-      });
-      // Attempt 6
-      expect(getRevealPercentages(6)).toEqual({
-        blur: 0,
-        brandLetters: 100,
-        grain: 0,
-        notes: 3,
-        perfumerLetters: 100,
-        radialMask: 100,
-        showGender: true,
-        yearMask: "FULL",
-      });
-    });
-  });
-
   describe("revealLetters", () => {
     it("should hide all letters at 0%", () => {
       expect(revealLetters("Dior", 0)).toBe("⎵⎵⎵⎵");

@@ -823,7 +823,6 @@ describe("game-actions", () => {
         expect(result).toHaveProperty("sessionId");
         expect(result).toHaveProperty("nonce");
         expect(result.guesses).toEqual([]);
-        expect(result.revealState).toBeDefined();
       });
 
       it("throws error when user not authenticated", async () => {
@@ -1005,12 +1004,9 @@ describe("game-actions", () => {
 
         expect(result.sessionId).toBe("123e4567-e89b-12d3-a456-426614174000");
         expect(result.nonce).toBe("existing-nonce-456");
-        // Verify revealState matches attempt 3 (attempts_count + 1)
-        expect(result.revealState.brandLetters).toBe(15);
-        expect(result.revealState.perfumerLetters).toBe(10);
-        expect(result.revealState.notes).toBe(1);
-        expect(result.revealState.radialMask).toBe(8);
-        expect(result.revealState.yearMask).toBe("19⎵⎵");
+        // Clues are revealed for the resumed attempt 3 (attempts_count + 1)
+        expect(result.revealed.brandRevealed).toBe(true);
+        expect(result.revealed.yearRevealed).toBe(false);
         expect(result.guesses).toBeDefined();
       });
 
