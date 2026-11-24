@@ -1,6 +1,6 @@
 {
   "name": "eauxle",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "private": true,
   "description": "A daily puzzle for perfume lovers inspired by Wordle. Guess the mystery perfume from evolving clues like bottle, notes, brand, and year.",
   "keywords": [
@@ -123,10 +123,10 @@
     "eslint-plugin-better-tailwindcss": "4.11.0",
     "eslint-plugin-check-file": "3.3.2",
     "eslint-plugin-fp": "2.3.0",
-    "eslint-plugin-jsdoc": "65.4.10",
+    "eslint-plugin-jsdoc": "65.4.11",
     "eslint-plugin-perfectionist": "5.14.0",
     "eslint-plugin-playwright": "2.12.2",
-    "eslint-plugin-react-web-api": "5.30.3",
+    "eslint-plugin-react-web-api": "5.30.4",
     "eslint-plugin-regexp": "3.3.3",
     "eslint-plugin-security": "4.2.1",
     "eslint-plugin-testing-library": "7.16.2",
