@@ -59,6 +59,9 @@ export function getRevealPercentages(attempt: number): RevealState {
   const safeAttempt = Math.max(1, Math.min(MAX_GUESSES, attempt));
 
   switch (safeAttempt) {
+    // The default case is unreachable (safeAttempt is clamped to 1-6) but required for
+    // exhaustive return-type checking by TypeScript; it takes the attempt 1 state.
+    default:
     case 1: {
       // Attempt 1: 0% radial, 10px blur, 3% grain. 0% letters. Year ____. Notes: None (User said ___x3, implying hidden)
       return {
@@ -135,20 +138,6 @@ export function getRevealPercentages(attempt: number): RevealState {
         radialMask: 100,
         showGender: true,
         yearMask: "FULL",
-      };
-    }
-    default: {
-      // Same as case 1 – safeAttempt is clamped to 1-6 so this is unreachable,
-      // but required for exhaustive return-type checking by TypeScript.
-      return {
-        blur: 10,
-        brandLetters: 0,
-        grain: 3,
-        notes: 0,
-        perfumerLetters: 0,
-        radialMask: 0,
-        showGender: false,
-        yearMask: MASK_CHAR.repeat(4),
       };
     }
   }
