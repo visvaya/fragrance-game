@@ -10,6 +10,8 @@ import contextlib
 import importlib
 import io
 import logging
+import re
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +28,8 @@ with contextlib.suppress(ImportError):
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
+_UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 
 # --- Optimization Functions ---
 
@@ -409,7 +413,7 @@ def process_file(
 ) -> bool:
     """Process one illustration; clients is None in local mode. False when it failed."""
     filename = file_path.stem
-    if len(filename) != 36:
+    if _UUID_RE.fullmatch(filename) is None:
         logger.info(f"Skipping non-UUID: {filename}")
         return True
 
@@ -428,18 +432,17 @@ def process_file(
     try:
         master_img = Image.open(file_path).convert("RGB")
         master_img = normalize_to_square_canvas(master_img, target_size=400)
+        images = build_step_images(master_img, no_compression=no_compression)
     except Exception as e:
-        logger.error(f"Failed to open {file_path}: {e}")
+        logger.error(f"Failed to process {file_path}: {e}")
         return False
-
-    images = build_step_images(master_img, no_compression=no_compression)
 
     if clients is None:
         for step_num, img_data in images.items():
             (output_dir / f"{filename}_step{step_num}.avif").write_bytes(img_data)
         return True
 
-    def upsert_row(row: Any) -> None:
+    def upsert_row(row: Mapping[str, str]) -> None:
         clients["supabase"].table("perfume_assets").upsert(dict(row)).execute()
 
     try:
