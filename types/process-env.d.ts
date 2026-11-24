@@ -10,6 +10,7 @@ declare namespace NodeJS {
     CI?: string;
     CRON_SECRET?: string;
     E2E_TEST_PASSWORD?: string;
+    GUEST_TICKET_SECRET?: string;
     NEXT_PUBLIC_ASSETS_HOST?: string;
     NEXT_PUBLIC_GAME_RESET_ENABLED?: string;
     NEXT_PUBLIC_POSTHOG_HOST?: string;

@@ -46,6 +46,9 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      # Random per run: the app only needs some valid value, and no production secret reaches PR code.
+      - name: Generate a per-run guest ticket secret
+        run: echo "GUEST_TICKET_SECRET=$(openssl rand -base64 48)" >> "$GITHUB_ENV"
       - name: Build application
         run: pnpm run build
       - name: Get Playwright version
