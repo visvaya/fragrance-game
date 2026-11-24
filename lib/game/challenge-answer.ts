@@ -3,6 +3,7 @@ import "server-only";
 import type { ClueAnswer } from "@/lib/game/clue-reveal";
 import {
   buildGuessHistory,
+  getArrayName,
   guessedPerfumeIds,
   toClueAnswer,
   type GuessedPerfumeRow,
@@ -59,6 +60,29 @@ export async function fetchChallengeAnswer(
     clue: toClueAnswer(perfume),
     perfumeId: challenge.perfume_id,
     xsolve: perfume.xsolve_score,
+  };
+}
+
+/** Name and concentration of the answer perfume, shown once a game is over. */
+export async function fetchAnswerLabel(perfumeId: string): Promise<{
+  answerConcentration?: string | undefined;
+  answerName?: string | undefined;
+}> {
+  const { data: perfume } = (await createAdminClient()
+    .from("perfumes")
+    .select("name, concentrations(name)")
+    .eq("id", perfumeId)
+    .single()) as {
+    data: {
+      concentrations: { name: string } | { name: string }[] | null;
+      name: string;
+    } | null;
+  };
+  return {
+    answerConcentration: perfume
+      ? getArrayName(perfume.concentrations)
+      : undefined,
+    answerName: perfume?.name,
   };
 }
 
