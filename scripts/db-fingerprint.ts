@@ -51,11 +51,13 @@ export function compareFingerprint(actual: readonly string[], expectedText: stri
   }
   const actualSet = new Set(actual);
   const expectedSet = new Set(expected);
+  // jscpd:ignore-start -- same set-difference shape as db-lint's judgeFindings, but the two result types change independently
   return {
     extra: actual.filter((line) => !expectedSet.has(line)),
     missing: expected.filter((line) => !actualSet.has(line)),
     ok: false,
   };
+  // jscpd:ignore-end
 }
 
 if (isMainModule(import.meta.url, process.argv[1])) {

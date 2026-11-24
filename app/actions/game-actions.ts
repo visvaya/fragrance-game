@@ -251,6 +251,66 @@ async function fetchChallengeTiming(challengeId: string) {
   return challengeTimingSchema.parse(data);
 }
 
+/** Perfume id of a challenge, read with the service-role client; undefined when missing. */
+async function fetchChallengePerfumeId(challengeId: string) {
+  const { data } = await createAdminClient()
+    .from("daily_challenges")
+    .select("perfume_id")
+    .eq("id", challengeId)
+    .single();
+  return z.object({ perfume_id: z.string() }).nullable().parse(data)
+    ?.perfume_id;
+}
+
+/** A row of `daily_challenges_public`; the view marks every column nullable, the id stays so. */
+const publicChallengeSchema = z.object({
+  challenge_date: z.string(),
+  grace_deadline_at_utc: z.string(),
+  id: z.string().nullable(),
+  mode: z.string(),
+  snapshot_metadata: z.record(z.string(), z.unknown()),
+});
+
+/** The public view row of the challenge for a date, read with the service-role client. */
+async function queryPublicChallenge(targetDate: string) {
+  const { data, error } = await createAdminClient()
+    .from("daily_challenges_public")
+    .select(
+      "challenge_date, grace_deadline_at_utc, id, mode, snapshot_metadata",
+    )
+    .eq("challenge_date", targetDate)
+    .limit(1)
+    .single();
+  return error
+    ? { data: null, error }
+    : { data: publicChallengeSchema.parse(data), error: null };
+}
+
+/** Records the result of a session that has just ended; `now` is read here. */
+async function recordSessionEnd(
+  playerId: string,
+  session: { challenge_id: string; metadata: unknown; start_time: string },
+  outcome: {
+    attempts: number;
+    graceDeadline: string;
+    score: number;
+    scoreRaw: number;
+    sessionId: string;
+    status: "won" | "lost";
+  },
+) {
+  return recordGameResult(
+    playerId,
+    gameResultValues({
+      ...outcome,
+      challengeId: session.challenge_id,
+      metadata: session.metadata,
+      now: new Date(),
+      startTime: session.start_time,
+    }),
+  );
+}
+
 // --- Actions ---
 
 /**
@@ -279,14 +339,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
 
   const targetDate = toUtcDateString(new Date());
 
-  const { data, error } = await createAdminClient()
-    .from("daily_challenges_public")
-    .select(
-      "challenge_date, grace_deadline_at_utc, id, mode, snapshot_metadata",
-    )
-    .eq("challenge_date", targetDate)
-    .limit(1)
-    .single();
+  const { data, error } = await queryPublicChallenge(targetDate);
 
   if (error) {
     if (
@@ -301,20 +354,18 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     throw new Error("Failed to fetch daily challenge");
   }
 
-  if (data.id == null) {
+  const { id } = data;
+  if (id == null) {
     throw new Error("Challenge id is missing from public view");
   }
 
-  const adminSupabase = createAdminClient();
-  const { data: challengePrivate } = await adminSupabase
-    .from("daily_challenges")
-    .select("perfume_id")
-    .eq("id", data.id)
-    .single();
+  const perfumeId = await fetchChallengePerfumeId(id);
 
-  if (!challengePrivate) {
+  if (perfumeId === undefined) {
     throw new Error("Challenge integrity error");
   }
+
+  const adminSupabase = createAdminClient();
 
   const { data: perfume } = (await adminSupabase
     .from("perfumes")
@@ -332,7 +383,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
             brands (name)
         `,
     )
-    .eq("id", challengePrivate.perfume_id)
+    .eq("id", perfumeId)
     .single()) as { data: AnswerPerfumeRow | null };
 
   if (!perfume) {
@@ -344,17 +395,17 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
   // but we validate defensively to catch any manual insertions or bugs.
   if (perfume.xsolve_score == null) {
     throw new Error(
-      `Perfume ${perfume.name} (ID: ${challengePrivate.perfume_id}) has no xsolve_score. ` +
+      `Perfume ${perfume.name} (ID: ${perfumeId}) has no xsolve_score. ` +
         "Only perfumes with calculated difficulty scores can be used in challenges.",
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- daily_challenges_public view returns nullable fields; critical ones validated above; brands needs narrowing from Supabase join type
   return {
     ...data,
+    id,
     revealed: buildSessionClues(toClueAnswer(perfume), NEW_SESSION, []),
     xsolve: perfume.xsolve_score,
-  } as DailyChallenge;
+  };
 }
 
 /**
@@ -608,25 +659,20 @@ async function getImageUrlForStep(sessionId: string): Promise<string | null> {
   if (sessionError || !session) throw new Error("Session not found");
   if (session.player_id !== user.id) throw new Error("Unauthorized");
 
-  const adminSupabase = createAdminClient();
-  const { data: challenge } = await adminSupabase
-    .from("daily_challenges")
-    .select("perfume_id")
-    .eq("id", session.challenge_id)
-    .single();
+  const perfumeId = await fetchChallengePerfumeId(session.challenge_id);
 
-  if (!challenge) throw new Error("Challenge not found");
+  if (perfumeId === undefined) throw new Error("Challenge not found");
 
-  const { data: assets } = await adminSupabase
+  const { data: assets } = await createAdminClient()
     .from("perfume_assets")
     .select(
       "image_key_step_1, image_key_step_2, image_key_step_3, image_key_step_4, image_key_step_5, image_key_step_6",
     )
-    .eq("perfume_id", challenge.perfume_id)
+    .eq("perfume_id", perfumeId)
     .single();
 
   if (!assets) {
-    console.warn(`No assets found for perfume ${challenge.perfume_id}`);
+    console.warn(`No assets found for perfume ${perfumeId}`);
     return "https://placehold.co/512x512?text=No+Asset";
   }
 
@@ -638,9 +684,7 @@ async function getImageUrlForStep(sessionId: string): Promise<string | null> {
     `image_key_step_${step}`
   ];
   if (!key) {
-    console.warn(
-      `No image key for step ${step} of perfume ${challenge.perfume_id}`,
-    );
+    console.warn(`No image key for step ${step} of perfume ${perfumeId}`);
     return "https://placehold.co/512x512?text=No+Asset";
   }
 
@@ -831,21 +875,14 @@ export async function submitGuess(
     const baseScore = isCorrect ? calculateBaseScore(nextAttempts) : 0;
     const score = isCorrect ? calculateFinalScore(baseScore, xScore) : 0;
 
-    await recordGameResult(
-      user.id,
-      gameResultValues({
-        attempts: nextAttempts,
-        challengeId: session.challenge_id,
-        graceDeadline: challenge.grace_deadline_at_utc,
-        metadata: session.metadata,
-        now: new Date(),
-        score,
-        scoreRaw: baseScore,
-        sessionId,
-        startTime: session.start_time,
-        status: isCorrect ? "won" : "lost",
-      }),
-    );
+    await recordSessionEnd(user.id, session, {
+      attempts: nextAttempts,
+      graceDeadline: challenge.grace_deadline_at_utc,
+      score,
+      scoreRaw: baseScore,
+      sessionId,
+      status: isCorrect ? "won" : "lost",
+    });
     await trackEvent(
       "game_completed",
       {
@@ -902,21 +939,14 @@ async function recordSkipLoss(
   if (!challenge)
     return { answerConcentration: undefined, answerName: undefined };
 
-  await recordGameResult(
-    playerId,
-    gameResultValues({
-      attempts: attemptCount,
-      challengeId: session.challenge_id,
-      graceDeadline: challenge.grace_deadline_at_utc,
-      metadata: session.metadata,
-      now: new Date(),
-      score: 0,
-      scoreRaw: 0,
-      sessionId,
-      startTime: session.start_time,
-      status: "lost",
-    }),
-  );
+  await recordSessionEnd(playerId, session, {
+    attempts: attemptCount,
+    graceDeadline: challenge.grace_deadline_at_utc,
+    score: 0,
+    scoreRaw: 0,
+    sessionId,
+    status: "lost",
+  });
 
   return fetchAnswerLabel(challenge.perfume_id);
 }
@@ -929,9 +959,11 @@ export async function skipAttempt(
   sessionId: string,
   clientNonce: string,
 ): Promise<SkipAttemptResult> {
+  // jscpd:ignore-start -- the Server Action lint rule wants a safeParse call inside each exported action, so the check cannot move into a helper
   if (!uuidSchema.safeParse(sessionId).success) {
     throw new Error("Invalid session ID");
   }
+  // jscpd:ignore-end
 
   const { session, user } = await beginMove(
     "skipAttempt",
@@ -1074,14 +1106,7 @@ export const getDailyChallengeSSR = unstable_cache(
   async (targetDate: string): Promise<DailyChallenge | null> => {
     const adminSupabase = createAdminClient();
 
-    const { data, error } = await adminSupabase
-      .from("daily_challenges_public")
-      .select(
-        "challenge_date, grace_deadline_at_utc, id, mode, snapshot_metadata",
-      )
-      .eq("challenge_date", targetDate)
-      .limit(1)
-      .single();
+    const { data, error } = await queryPublicChallenge(targetDate);
 
     if (error) {
       if (error.code === "PGRST116") return null;
@@ -1092,15 +1117,12 @@ export const getDailyChallengeSSR = unstable_cache(
       return null;
     }
 
-    if (data.id == null) return null;
+    const { id } = data;
+    if (id == null) return null;
 
-    const { data: challengePrivate } = await adminSupabase
-      .from("daily_challenges")
-      .select("perfume_id")
-      .eq("id", data.id)
-      .single();
+    const perfumeId = await fetchChallengePerfumeId(id);
 
-    if (!challengePrivate) return null;
+    if (perfumeId === undefined) return null;
 
     const { data: perfume } = (await adminSupabase
       .from("perfumes")
@@ -1111,17 +1133,17 @@ export const getDailyChallengeSSR = unstable_cache(
         brands (name)
       `,
       )
-      .eq("id", challengePrivate.perfume_id)
+      .eq("id", perfumeId)
       .single()) as { data: Omit<AnswerPerfumeRow, "name"> | null };
 
     if (perfume?.xsolve_score == null) return null;
 
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- same pattern as getDailyChallenge: view returns nullable fields validated above
     return {
       ...data,
+      id,
       revealed: buildSessionClues(toClueAnswer(perfume), NEW_SESSION, []),
       xsolve: perfume.xsolve_score,
-    } as DailyChallenge;
+    };
   },
   ["daily-challenge-ssr-v2"],
   { revalidate: 86_400, tags: ["daily-challenge"] },
