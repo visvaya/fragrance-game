@@ -87,6 +87,11 @@ jobs:
         run: |
           docker build --quiet --tag actionlint tools/actionlint
           docker run --rm --volume "$PWD:/repo" --workdir /repo actionlint -color
+      # The actionlint image carries shellcheck, which also lints the repository's shell scripts.
+      - name: Lint shell scripts with shellcheck
+        if: ${{ !cancelled() }}
+        run: |
+          git ls-files -z '*.sh' | xargs -0 --no-run-if-empty docker run --rm --volume "$PWD:/repo" --workdir /repo --entrypoint shellcheck actionlint
 
   supabase-advisors:
     name: Supabase Security Advisor
@@ -100,14 +105,19 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           check-latest: true
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
       # Blocks on ERROR-level findings (missing RLS, SECURITY DEFINER views).
-      # WARN/INFO findings are printed but do not fail the job.
+      # WARN/INFO findings are printed but do not fail the job. With --remote the CLI reads the
+      # advisors through the Management API with the access token, without a database connection.
       - name: Check Security Advisor
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
-        run: node scripts/check-advisors.mjs
+        run: pnpm exec supabase db advisors --remote="$SUPABASE_PROJECT_ID" --type security --fail-on error

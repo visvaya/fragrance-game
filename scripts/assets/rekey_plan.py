@@ -79,6 +79,8 @@ def _validate_row(row: AssetRow, bucket: frozenset[str]) -> None:
     _require_steps(row.keys, f"row {row.perfume_id}")
     for key in row.keys.values():
         _require_safe(key, "key")
+        if not key.startswith(f"{_BUCKET_PREFIX}{row.asset_id}/"):
+            raise ValueError(f"row {row.perfume_id} has a key outside its asset directory: {key}")
         if key not in bucket:
             raise ValueError(
                 f"row {row.perfume_id} references a key missing from the bucket: {key}"
@@ -97,12 +99,19 @@ def build_rekey_plan(
     asset_ids = [row.asset_id for row in rows]
     if len(set(asset_ids)) != len(asset_ids):
         raise ValueError("two rows share an asset id")
+    perfume_ids = [row.perfume_id for row in rows]
+    if len(set(perfume_ids)) != len(perfume_ids):
+        raise ValueError("two rows share a perfume id")
     for row in rows:
         _validate_row(row, bucket)
 
     entries = []
+    used_ids = set(asset_ids)
     for row in sorted(rows, key=lambda r: r.perfume_id):
         fresh_id = new_id()
+        if fresh_id in used_ids:
+            raise ValueError(f"new asset id {fresh_id} is already in use")
+        used_ids.add(fresh_id)
         fresh_keys = new_keys(fresh_id)
         _require_safe(fresh_id, "new asset id")
         _require_steps(fresh_keys, "new keys")
@@ -166,7 +175,8 @@ def _parse_entry(raw: Any) -> RekeyEntry:
         raise ValueError(f"invalid new asset id: {new_id!r}")
     old_keys = _parse_keys(raw.get("old_keys"), "old_keys")
     new_keys = _parse_keys(raw.get("new_keys"), "new_keys")
-    if not all(_OLD_KEY_RE.fullmatch(k) for k in old_keys.values()):
+    old_prefix = f"{_BUCKET_PREFIX}{old_id}/"
+    if not all(_OLD_KEY_RE.fullmatch(k) and k.startswith(old_prefix) for k in old_keys.values()):
         raise ValueError(f"invalid old key in entry {perfume_id}")
     if not all(is_valid_step_key(new_id, k) for k in new_keys.values()):
         raise ValueError(f"invalid new key in entry {perfume_id}")

@@ -27,6 +27,10 @@ const ratelimit = new Ratelimit({
 function buildContentSecurityPolicy(nonce: string): string {
   const assetsHost = resolveAssetsHost(env.NEXT_PUBLIC_ASSETS_HOST);
   const isDevelopment = env.NODE_ENV === "development";
+  // A production build served over plain http (the e2e job runs it on localhost) cannot answer
+  // https, so upgrading its own subresources would leave the page without styles and scripts.
+  const upgradesInsecureRequests =
+    !isDevelopment && !env.SITE_URL?.startsWith("http://");
   return [
     "default-src 'self'",
     // 'unsafe-eval' only in development (React rebuilds server error stacks with eval).
@@ -43,7 +47,7 @@ function buildContentSecurityPolicy(nonce: string): string {
     "base-uri 'self'",
     "form-action 'self'",
     "object-src 'none'",
-    ...(isDevelopment ? [] : ["upgrade-insecure-requests"]),
+    ...(upgradesInsecureRequests ? ["upgrade-insecure-requests"] : []),
   ].join("; ");
 }
 

@@ -1,20 +1,11 @@
-import type { Metadata } from "next";
-
 import { RegisterForm } from "@/components/auth/register-form";
 
 import { authPageMetadata } from "../metadata";
 
-/**
- * Generates metadata for the registration page.
- */
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}): Promise<Metadata> {
-  return authPageMetadata(params, "signUp");
-}
+/** Metadata of the registration page. */
+export const generateMetadata = authPageMetadata("signUp");
 
+// jscpd:ignore-start -- Next needs a default export per page; each names its own form
 /**
  * Registration page.
  */
@@ -25,3 +16,4 @@ export default function RegisterPage() {
     </div>
   );
 }
+// jscpd:ignore-end

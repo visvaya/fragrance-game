@@ -231,7 +231,8 @@
       "failed": "Logowanie nieudane",
       "error": "Wystąpił nieoczekiwany błąd",
       "invalidEmail": "Nieprawidłowy adres email",
-      "passwordRequired": "Podaj hasło"
+      "passwordRequired": "Podaj hasło",
+      "captchaError": "Proszę potwierdzić weryfikację captcha"
     },
     "register": {
       "title": "Stwórz konto",
@@ -273,7 +274,8 @@
       "success": "Sprawdź email",
       "successDescription": "Jeśli konto istnieje, wysłaliśmy instrukcje resetowania hasła.",
       "error": "Nie udało się wysłać emaila",
-      "invalidEmail": "Nieprawidłowy adres email"
+      "invalidEmail": "Nieprawidłowy adres email",
+      "captchaError": "Proszę potwierdzić weryfikację captcha"
     },
     "resetPassword": {
       "title": "Ustaw nowe hasło",

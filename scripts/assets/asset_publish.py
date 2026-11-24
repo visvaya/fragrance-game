@@ -16,6 +16,14 @@ from asset_keys import STEPS, asset_prefix, new_asset_id, new_step_keys, step_co
 logger = logging.getLogger(__name__)
 
 
+def _remove_quietly(delete_keys: Callable[[Sequence[str]], None], keys: Sequence[str]) -> None:
+    """Best-effort rollback: a failure here is logged so it never hides the original error."""
+    try:
+        delete_keys(tuple(keys))
+    except Exception:
+        logger.exception("Rollback failed; %d new files may remain in the bucket", len(keys))
+
+
 @dataclass(frozen=True)
 class PublishResult:
     perfume_id: str
@@ -50,7 +58,7 @@ def publish_asset(
             uploaded.append(keys[step])
     except Exception:
         logger.error("Upload failed for %s; removing %d partial files", perfume_id, len(uploaded))
-        delete_keys(tuple(uploaded))
+        _remove_quietly(delete_keys, uploaded)
         raise
 
     row = {
@@ -62,7 +70,7 @@ def publish_asset(
         upsert_row(row)
     except Exception:
         logger.error("Row write failed for %s; removing the new files", perfume_id)
-        delete_keys(tuple(keys[step] for step in STEPS))
+        _remove_quietly(delete_keys, [keys[step] for step in STEPS])
         raise
 
     old_prefix_removed = False

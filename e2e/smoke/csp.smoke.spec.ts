@@ -32,9 +32,14 @@ test.describe("Content Security Policy @smoke", () => {
     }) => {
       const nonce = cspNonceOf(await page.goto(path));
 
-      // The provider also adds the dark class after hydration, so check the layout's inline
-      // scripts carry this response's nonce: without it they are blocked and the theme flashes.
       expect(nonce).toMatch(/^[A-Z0-9+/=]{16,}$/i);
+      // The not-found page is served as Next's error shell (`html#__next_error__`), whose HTML has
+      // no layout inline scripts: the client adds them when it renders the layout after hydration.
+      // The provider adds the dark class after that render, so wait for it before counting; a
+      // count right after `load` raced with hydration and found no scripts on some runs.
+      await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+      // The layout's inline scripts must carry this response's nonce: without it they are blocked
+      // and the theme flashes.
       const headScriptNonces = await page
         .locator("head script:not([src])")
         .evaluateAll((scripts) =>
@@ -42,7 +47,6 @@ test.describe("Content Security Policy @smoke", () => {
         );
       expect(headScriptNonces).toHaveLength(LAYOUT_INLINE_SCRIPTS);
       expect(new Set(headScriptNonces)).toEqual(new Set([nonce]));
-      await expect(page.locator("html")).toHaveClass(/\bdark\b/);
       const violations = await page.evaluate(
         () => (globalThis as unknown as ViolationWindow).cspViolations,
       );

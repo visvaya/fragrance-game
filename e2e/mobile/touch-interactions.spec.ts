@@ -186,22 +186,10 @@ test.describe("Mobile Touch Interactions - Android", () => {
   mobileAndroidTest("should support mobile navigation", async ({ page }) => {
     await page.goto("/en");
 
-    // Look for mobile menu/hamburger button
-    const menuButton = page.getByRole("button", { name: /menu/i });
+    await page.getByRole("button", { exact: true, name: "Menu" }).tap();
 
-    if (await menuButton.first().isVisible()) {
-      // Verify menu button is tappable
-      await menuButton.first().tap();
-
-      // Wait for menu to open
-      await page.waitForTimeout(500);
-
-      // Menu should be visible
-      // (Specific selector depends on your menu implementation)
-    } else {
-      // If no menu button, navigation should be visible directly
-      console.log("No mobile menu button found - using direct navigation");
-    }
+    // The menu dropdown is invisible until the button opens it.
+    await expect(page.getByRole("button", { name: "Sign In" })).toBeVisible();
   });
 
   mobileAndroidTest("should prevent zoom on double tap", async ({ page }) => {

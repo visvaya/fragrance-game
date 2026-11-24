@@ -195,7 +195,10 @@ describe("Game Actions Integration (Mocked)", () => {
         }
         if (table === "daily_challenges") {
           return {
-            data: { perfume_id: perfumeId },
+            data: {
+              grace_deadline_at_utc: "2026-01-01T00:00:00Z",
+              perfume_id: perfumeId,
+            },
             error: null,
           };
         }

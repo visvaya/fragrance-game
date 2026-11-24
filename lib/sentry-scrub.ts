@@ -1,10 +1,12 @@
 import type { ErrorEvent } from "@sentry/nextjs";
 
+import { RATE_LIMIT_MESSAGE_PREFIX } from "@/lib/rate-limit-error";
+
 /** Keys whose values never leave the app: any key containing one of these, in any case. */
 const SENSITIVE_KEY_PARTS = ["email", "password", "token", "secret", "key"];
 
 /** Errors the game throws on purpose (anti-replay nonce mismatch, rate limit); not bugs. */
-const EXPECTED_ERROR_PREFIXES = ["CONFLICT:", "Rate limit exceeded"];
+const EXPECTED_ERROR_PREFIXES = ["CONFLICT:", RATE_LIMIT_MESSAGE_PREFIX];
 
 /**
  * Replaces the values of sensitive keys with "[REDACTED]", at any depth of objects and arrays.

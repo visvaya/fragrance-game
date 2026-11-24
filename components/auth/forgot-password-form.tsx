@@ -17,6 +17,7 @@ import {
   TextField,
   showProviderError,
   useAuthSubmit,
+  useCaptcha,
 } from "./auth-form-parts";
 
 export type ForgotPasswordFormProperties = {
@@ -29,6 +30,7 @@ export function ForgotPasswordForm({
   onLoginClick,
 }: ForgotPasswordFormProperties) {
   const { isLoading, submit } = useAuthSubmit();
+  const captcha = useCaptcha();
   const router = useRouter();
   const supabase = createClient();
   const t = useTranslations("Auth.forgotPassword");
@@ -46,11 +48,19 @@ export function ForgotPasswordForm({
     resolver: zodResolver(forgotPasswordSchema),
   });
 
-  const onSubmit = async (data: ForgotPasswordFormValues) =>
-    submit(async () => {
+  // jscpd:ignore-start -- the captcha guard of each form wraps its own provider request
+  async function onSubmit(data: ForgotPasswordFormValues) {
+    if (captcha.isMissing) {
+      toast.error(t("captchaError"));
+      return;
+    }
+
+    await submit(async () => {
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
+        ...(captcha.token ? { captchaToken: captcha.token } : {}),
         redirectTo: `${globalThis.location.origin}/auth/callback?next=/auth/reset-password`,
       });
+      captcha.reset();
 
       if (showProviderError(t("error"), error)) return;
 
@@ -58,6 +68,8 @@ export function ForgotPasswordForm({
         description: t("successDescription"),
       });
     }, t("error"));
+  }
+  // jscpd:ignore-end
 
   // jscpd:ignore-start -- each auth screen has its own fields and texts; a shared shell would only pass them through
   return (
@@ -69,6 +81,7 @@ export function ForgotPasswordForm({
           name="email"
           placeholder={t("emailPlaceholder")}
         />
+        {captcha.widget}
         <SubmitButton isLoading={isLoading}>{t("submit")}</SubmitButton>
       </AuthForm>
 

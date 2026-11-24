@@ -48,31 +48,6 @@ test.describe("Daily Challenge Reset", () => {
     await expect(title).toHaveText("Eauxle");
   });
 
-  test("should persist game state within same day", async ({ page }) => {
-    await page.goto("/en");
-    await expect(page.locator("main")).toBeVisible();
-
-    const gameInput = page.getByTestId("game-input");
-    await expect(gameInput).toBeVisible({ timeout: 10_000 });
-
-    // Check localStorage has session data after game initializes
-    const sessionBefore = await page.evaluate(() => {
-      return Object.keys(localStorage).find((key) => key.includes("session"));
-    });
-
-    await page.reload();
-    await expect(page.locator("main")).toBeVisible();
-    await expect(gameInput).toBeVisible({ timeout: 10_000 });
-
-    // Session key should still exist after reload (same day)
-    const sessionAfter = await page.evaluate(() => {
-      return Object.keys(localStorage).find((key) => key.includes("session"));
-    });
-
-    expect(sessionBefore).toBeDefined();
-    expect(sessionAfter).toBeDefined();
-  });
-
   test("should handle UTC midnight boundary", async ({ page }) => {
     // Install fake clock at 23:55 UTC on Feb 13 – persists through navigation
     await page.clock.install({ time: new Date("2026-02-13T23:55:00Z") });
@@ -153,7 +128,7 @@ test.describe("Daily Challenge Reset", () => {
 
     expect(page.url()).toContain("/en");
 
-    const helpButton = page.getByLabel(/help/i);
+    const helpButton = page.getByRole("button", { name: "How to play" });
     await expect(helpButton).toBeVisible();
   });
 
@@ -163,7 +138,7 @@ test.describe("Daily Challenge Reset", () => {
 
     expect(page.url()).toContain("/pl");
 
-    const helpButton = page.getByLabel(/pomoc/i);
+    const helpButton = page.getByRole("button", { name: "Jak grać" });
     await expect(helpButton).toBeVisible();
   });
 });

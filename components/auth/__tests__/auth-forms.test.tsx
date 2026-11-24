@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -7,21 +7,26 @@ import { LoginForm } from "../login-form";
 import { RegisterForm } from "../register-form";
 import { ResetPasswordForm } from "../reset-password-form";
 
-const { mockAuth, mockRouter, mockSafety, mockToast } = vi.hoisted(() => ({
-  mockAuth: {
-    resetPasswordForEmail: vi.fn(),
-    signInWithPassword: vi.fn(),
-    signUp: vi.fn(),
-    updateUser: vi.fn(),
-  },
-  mockRouter: { push: vi.fn(), refresh: vi.fn() },
-  mockSafety: vi.fn(),
-  mockToast: { error: vi.fn(), success: vi.fn() },
-}));
+const { mockAuth, mockPublicEnv, mockRouter, mockSafety, mockToast } =
+  vi.hoisted(() => ({
+    mockAuth: {
+      resetPasswordForEmail: vi.fn(),
+      signInWithPassword: vi.fn(),
+      signUp: vi.fn(),
+      updateUser: vi.fn(),
+    },
+    mockPublicEnv: {
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: undefined as string | undefined,
+    },
+    mockRouter: { push: vi.fn(), refresh: vi.fn() },
+    mockSafety: vi.fn(),
+    mockToast: { error: vi.fn(), success: vi.fn() },
+  }));
 
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({ auth: mockAuth }),
 }));
+vi.mock("@/lib/public-env", () => ({ publicEnv: mockPublicEnv }));
 vi.mock("@/i18n/routing", () => ({ useRouter: () => mockRouter }));
 vi.mock("@/app/actions/security-actions", () => ({
   validatePasswordSafety: mockSafety,
@@ -37,11 +42,22 @@ vi.mock("../google-auth-button", () => ({
 }));
 vi.mock("next/dynamic", () => ({
   default: () =>
-    function CaptchaStub({ onVerify }: { onVerify: (token: string) => void }) {
+    function CaptchaStub({
+      onUnavailable,
+      onVerify,
+    }: {
+      onUnavailable?: () => void;
+      onVerify: (token: string) => void;
+    }) {
       return (
-        <button onClick={() => onVerify("captcha-token")} type="button">
-          captcha
-        </button>
+        <>
+          <button onClick={() => onVerify("captcha-token")} type="button">
+            captcha
+          </button>
+          <button onClick={onUnavailable} type="button">
+            captcha script failed
+          </button>
+        </>
       );
     },
 }));
@@ -50,6 +66,7 @@ const STRONG_PASSWORD = "Str0ng!pass";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockPublicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY = undefined;
   mockAuth.resetPasswordForEmail.mockResolvedValue({ error: null });
   mockAuth.signInWithPassword.mockResolvedValue({ error: null });
   mockAuth.signUp.mockResolvedValue({ error: null });
@@ -135,6 +152,39 @@ describe("LoginForm", () => {
     });
   });
 
+  it("signs in once when the form is submitted twice before the button disables", async () => {
+    const request = Promise.withResolvers<{ error: null }>();
+    mockAuth.signInWithPassword.mockReturnValue(request.promise);
+    render(<LoginForm onSuccess={vi.fn()} />);
+    await userEvent.type(
+      screen.getByLabelText("Auth.login.emailLabel"),
+      "a@b.co",
+    );
+    await userEvent.type(
+      screen.getByLabelText("Auth.login.passwordLabel"),
+      "secret",
+    );
+    const submit = screen.getByRole<HTMLButtonElement>("button", {
+      name: "Auth.login.submit",
+    });
+    // Two submits in one task, as a double tap or Enter plus tap can deliver them.
+    const { form } = submit;
+    expect(form).not.toBeNull();
+    if (form) {
+      fireEvent.submit(form);
+      fireEvent.submit(form);
+    }
+
+    await waitFor(() => {
+      expect(submit).toBeDisabled();
+    });
+    request.resolve({ error: null });
+    await waitFor(() => {
+      expect(submit).toBeEnabled();
+    });
+    expect(mockAuth.signInWithPassword).toHaveBeenCalledTimes(1);
+  });
+
   it("rejects an invalid email", async () => {
     render(<LoginForm />);
     await userEvent.type(
@@ -165,6 +215,87 @@ describe("LoginForm", () => {
       await screen.findByText("Auth.login.passwordRequired"),
     ).toBeInTheDocument();
     expect(mockAuth.signInWithPassword).not.toHaveBeenCalled();
+  });
+
+  describe("with a captcha site key", () => {
+    async function fillAndSubmit() {
+      await userEvent.type(
+        screen.getByLabelText("Auth.login.emailLabel"),
+        "a@b.co",
+      );
+      await userEvent.type(
+        screen.getByLabelText("Auth.login.passwordLabel"),
+        "secret",
+      );
+      await userEvent.click(
+        screen.getByRole("button", { name: "Auth.login.submit" }),
+      );
+    }
+
+    beforeEach(() => {
+      mockPublicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
+    });
+
+    it("requires the captcha before signing in", async () => {
+      render(<LoginForm />);
+      await fillAndSubmit();
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith("Auth.login.captchaError");
+      });
+      expect(mockAuth.signInWithPassword).not.toHaveBeenCalled();
+    });
+
+    it("signs in with the captcha token", async () => {
+      render(<LoginForm onSuccess={vi.fn()} />);
+      await userEvent.click(screen.getByRole("button", { name: "captcha" }));
+      await fillAndSubmit();
+
+      await waitFor(() => {
+        expect(mockAuth.signInWithPassword).toHaveBeenCalledWith({
+          email: "a@b.co",
+          options: { captchaToken: "captcha-token" },
+          password: "secret",
+        });
+      });
+    });
+
+    it("advises a reload when the captcha cannot load", async () => {
+      render(<LoginForm />);
+      await userEvent.click(
+        screen.getByRole("button", { name: "captcha script failed" }),
+      );
+
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Auth.register.captchaFailed",
+      );
+      expect(
+        screen.queryByRole("button", { name: "captcha" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("needs a new captcha token after a rejected sign-in", async () => {
+      mockAuth.signInWithPassword.mockResolvedValue({
+        error: { message: "bad credentials" },
+      });
+      render(<LoginForm />);
+      await userEvent.click(screen.getByRole("button", { name: "captcha" }));
+      await fillAndSubmit();
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith("Auth.login.failed", {
+          description: "bad credentials",
+        });
+      });
+
+      await userEvent.click(
+        screen.getByRole("button", { name: "Auth.login.submit" }),
+      );
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith("Auth.login.captchaError");
+      });
+      expect(mockAuth.signInWithPassword).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("links to the other auth screens", async () => {
@@ -417,6 +548,78 @@ describe("ForgotPasswordForm", () => {
         ),
       }),
     );
+  });
+
+  describe("with a captcha site key", () => {
+    async function fillAndSubmit() {
+      await userEvent.type(
+        screen.getByLabelText("Auth.forgotPassword.emailLabel"),
+        "a@b.co",
+      );
+      await userEvent.click(
+        screen.getByRole("button", { name: "Auth.forgotPassword.submit" }),
+      );
+    }
+
+    beforeEach(() => {
+      mockPublicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
+    });
+
+    it("requires the captcha before sending the email", async () => {
+      render(<ForgotPasswordForm />);
+      await fillAndSubmit();
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith(
+          "Auth.forgotPassword.captchaError",
+        );
+      });
+      expect(mockAuth.resetPasswordForEmail).not.toHaveBeenCalled();
+    });
+
+    it("sends the email with the captcha token", async () => {
+      render(<ForgotPasswordForm />);
+      await userEvent.click(screen.getByRole("button", { name: "captcha" }));
+      await fillAndSubmit();
+
+      await waitFor(() => {
+        expect(mockAuth.resetPasswordForEmail).toHaveBeenCalledWith(
+          "a@b.co",
+          expect.objectContaining({ captchaToken: "captcha-token" }),
+        );
+      });
+    });
+
+    it("advises a reload when the captcha cannot load", async () => {
+      render(<ForgotPasswordForm />);
+      await userEvent.click(
+        screen.getByRole("button", { name: "captcha script failed" }),
+      );
+
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Auth.register.captchaFailed",
+      );
+    });
+
+    it("needs a new captcha token after a request", async () => {
+      render(<ForgotPasswordForm />);
+      await userEvent.click(screen.getByRole("button", { name: "captcha" }));
+      await fillAndSubmit();
+      await waitFor(() => {
+        expect(mockToast.success).toHaveBeenCalled();
+      });
+
+      await userEvent.click(
+        screen.getByRole("button", { name: "Auth.forgotPassword.submit" }),
+      );
+
+      await waitFor(() => {
+        expect(mockToast.error).toHaveBeenCalledWith(
+          "Auth.forgotPassword.captchaError",
+        );
+      });
+      expect(mockAuth.resetPasswordForEmail).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("goes back to login", async () => {

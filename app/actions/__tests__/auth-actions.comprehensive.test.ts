@@ -5,6 +5,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { ZodError } from "zod";
 
 import { MAX_LISTED_SESSIONS } from "@/lib/constants";
+import { checkRateLimit } from "@/lib/redis";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 import { getSessions, revokeSession } from "../auth-actions";
@@ -36,6 +37,46 @@ const VALID_UUID = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
 describe("getSessions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("counts each call against the signed-in user", async () => {
+    const from = vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnThis(),
+      is: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [] }),
+      order: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+    });
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi
+          .fn()
+          .mockResolvedValue({ data: { user: { id: "user-123" } } }),
+      },
+      from,
+    } as never);
+
+    await getSessions();
+
+    expect(checkRateLimit).toHaveBeenCalledWith("getSessions", "user-123");
+  });
+
+  it("rejects without a lookup once the limit is exceeded", async () => {
+    const from = vi.fn();
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi
+          .fn()
+          .mockResolvedValue({ data: { user: { id: "user-123" } } }),
+      },
+      from,
+    } as never);
+    vi.mocked(checkRateLimit).mockRejectedValueOnce(
+      new Error("Rate limit exceeded"),
+    );
+
+    await expect(getSessions()).rejects.toThrow("Rate limit exceeded");
+    expect(from).not.toHaveBeenCalled();
   });
 
   it("returns empty array when user is not authenticated", async () => {

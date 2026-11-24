@@ -4,6 +4,13 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 import type { NextConfig } from "next";
 
+const assetsHost = process.env.NEXT_PUBLIC_ASSETS_HOST?.trim();
+if (!assetsHost && process.env.SKIP_ENV_VALIDATION !== "1") {
+  throw new Error(
+    "NEXT_PUBLIC_ASSETS_HOST is required: set it to the public image host (no scheme).",
+  );
+}
+
 const withNextIntl = createNextIntlPlugin();
 const withBundleAnalyzer = createBundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
@@ -36,15 +43,16 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
     qualities: [75, 90],
     remotePatterns: [
-      {
-        protocol: "https",
-        // Default must match DEFAULT_ASSETS_HOST in lib/game/asset-url.ts.
-        hostname:
-          process.env.NEXT_PUBLIC_ASSETS_HOST ||
-          "pub-2c37ff9f03ea40878492e7f72ef83fe3.r2.dev",
-        port: "",
-        pathname: "/a/**",
-      },
+      ...(assetsHost
+        ? [
+            {
+              protocol: "https" as const,
+              hostname: assetsHost,
+              port: "",
+              pathname: "/a/**",
+            },
+          ]
+        : []),
       {
         protocol: "https",
         hostname: "placehold.co",

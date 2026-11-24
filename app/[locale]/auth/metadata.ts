@@ -4,15 +4,17 @@ import { getTranslations } from "next-intl/server";
 type AuthPage = "signIn" | "signUp";
 
 /**
- * Page metadata of an auth page, from its `Metadata` messages (`<page>` and `<page>Description`).
- * @param params - Route parameters with the locale.
+ * `generateMetadata` of an auth page, from its `Metadata` messages (`<page>` and `<page>Description`).
  * @param page - Message key of the page title.
  */
-export async function authPageMetadata(
-  params: Promise<{ locale: string }>,
-  page: AuthPage,
-): Promise<Metadata> {
-  const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "Metadata" });
-  return { description: t(`${page}Description`), title: t(page) };
+export function authPageMetadata(page: AuthPage) {
+  return async ({
+    params,
+  }: {
+    params: Promise<{ locale: string }>;
+  }): Promise<Metadata> => {
+    const { locale } = await params;
+    const t = await getTranslations({ locale, namespace: "Metadata" });
+    return { description: t(`${page}Description`), title: t(page) };
+  };
 }
