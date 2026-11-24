@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -183,15 +183,20 @@ export function SwitchScreenLink({
 
 /**
  * Loading state and error handling around an auth request: `isLoading` is true while it runs,
- * and an exception shows `unexpectedErrorTitle` as a toast.
+ * and an exception shows `unexpectedErrorTitle` as a toast. A submit that arrives while a request
+ * runs is dropped: the disabled button only takes effect after a render, so a double tap could
+ * otherwise sign in twice and leave two sessions.
  */
 export function useAuthSubmit() {
   const [isLoading, setIsLoading] = useState(false);
+  const inFlight = useRef(false);
 
   async function submit(
     request: () => Promise<void>,
     unexpectedErrorTitle: string,
   ) {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setIsLoading(true);
     try {
       await request();
@@ -199,6 +204,7 @@ export function useAuthSubmit() {
       toast.error(unexpectedErrorTitle);
       console.error(error);
     } finally {
+      inFlight.current = false;
       setIsLoading(false);
     }
   }

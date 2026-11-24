@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -133,6 +133,39 @@ describe("LoginForm", () => {
     await waitFor(() => {
       expect(submit).toBeEnabled();
     });
+  });
+
+  it("signs in once when the form is submitted twice before the button disables", async () => {
+    const request = Promise.withResolvers<{ error: null }>();
+    mockAuth.signInWithPassword.mockReturnValue(request.promise);
+    render(<LoginForm onSuccess={vi.fn()} />);
+    await userEvent.type(
+      screen.getByLabelText("Auth.login.emailLabel"),
+      "a@b.co",
+    );
+    await userEvent.type(
+      screen.getByLabelText("Auth.login.passwordLabel"),
+      "secret",
+    );
+    const submit = screen.getByRole<HTMLButtonElement>("button", {
+      name: "Auth.login.submit",
+    });
+    // Two submits in one task, as a double tap or Enter plus tap can deliver them.
+    const { form } = submit;
+    expect(form).not.toBeNull();
+    if (form) {
+      fireEvent.submit(form);
+      fireEvent.submit(form);
+    }
+
+    await waitFor(() => {
+      expect(submit).toBeDisabled();
+    });
+    request.resolve({ error: null });
+    await waitFor(() => {
+      expect(submit).toBeEnabled();
+    });
+    expect(mockAuth.signInWithPassword).toHaveBeenCalledTimes(1);
   });
 
   it("rejects an invalid email", async () => {
