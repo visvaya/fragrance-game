@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as gameActions from "@/app/actions/game-actions";
 import { HIDDEN_CLUES } from "@/lib/game/clue-reveal";
@@ -45,6 +45,13 @@ vi.mock("@/app/actions/game-actions", () => ({
 }));
 
 vi.mock("@/lib/supabase/get-client", () => ({ getSupabaseClient: vi.fn() }));
+
+// The migration dialog is lazy-loaded by the provider and not under test here (it has its
+// own tests). Importing the real module takes about 1.4 s cold and several times that on a
+// loaded machine, which lands on whichever test is running when the import settles.
+vi.mock("@/components/auth/migration-modal", () => ({
+  MigrationModal: () => null,
+}));
 
 vi.mock("../when-idle", () => ({
   whenIdle: (callback: () => void) => {
@@ -162,6 +169,12 @@ async function clickTurnstile(
 
 describe("GameProvider anonymous sign-in for a new visitor", () => {
   const signInAnonymously = vi.fn();
+
+  // The provider loads the dialog lazily; loading it here, under the hook timeout, keeps the
+  // first test from paying for the module import out of its own 5 s.
+  beforeAll(async () => {
+    await import("@/components/auth/auth-captcha-modal");
+  });
 
   beforeEach(() => {
     vi.resetAllMocks();

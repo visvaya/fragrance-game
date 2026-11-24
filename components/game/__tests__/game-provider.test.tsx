@@ -55,6 +55,13 @@ vi.mock("@/lib/supabase/get-client", () => ({
   getSupabaseClient: vi.fn(),
 }));
 
+// The migration dialog is lazy-loaded by the provider and not under test here (it has its
+// own tests). Importing the real module takes about 1.4 s cold and several times that on a
+// loaded machine, which lands on whichever test is running when the import settles.
+vi.mock("@/components/auth/migration-modal", () => ({
+  MigrationModal: () => null,
+}));
+
 // The provider waits for an idle moment before signing in; jsdom has no requestIdleCallback,
 // so the tests run the callback at once (when-idle has its own tests).
 vi.mock("../when-idle", () => ({
