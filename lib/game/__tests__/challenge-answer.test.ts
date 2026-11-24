@@ -6,6 +6,7 @@ vi.mock("@/lib/supabase/server", () => ({
 
 import {
   enrichGuessHistory,
+  fetchAnswerLabel,
   fetchChallengeAnswer,
 } from "@/lib/game/challenge-answer";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -56,6 +57,33 @@ const emptyFeedback = {
   yearDirection: "equal" as const,
   yearMatch: "wrong" as const,
 };
+
+describe("fetchAnswerLabel", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it.each([
+    ["an object", { name: "EDP" }],
+    ["a list", [{ name: "EDP" }]],
+  ])("reads the concentration name from %s", async (_label, concentrations) => {
+    mockAdmin({
+      perfumes: { data: { concentrations, name: "Coco" }, error: null },
+    });
+
+    expect(await fetchAnswerLabel(ANSWER_ID)).toEqual({
+      answerConcentration: "EDP",
+      answerName: "Coco",
+    });
+  });
+
+  it("returns undefined fields when the perfume is missing", async () => {
+    mockAdmin({ perfumes: { data: null, error: null } });
+
+    expect(await fetchAnswerLabel(ANSWER_ID)).toEqual({
+      answerConcentration: undefined,
+      answerName: undefined,
+    });
+  });
+});
 
 describe("fetchChallengeAnswer", () => {
   beforeEach(() => vi.clearAllMocks());

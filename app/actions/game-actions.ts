@@ -12,6 +12,7 @@ import { env } from "@/lib/env";
 import { assetUrl } from "@/lib/game/asset-url";
 import {
   enrichGuessHistory,
+  fetchAnswerLabel,
   fetchChallengeAnswer,
   type AnswerPerfumeRow,
 } from "@/lib/game/challenge-answer";
@@ -169,9 +170,12 @@ async function requireChallengeAnswer(challengeId: string) {
  * Authenticates the caller of a session action. getUser() validates the JWT with the auth
  * server; getSession() only reads the cookie, so it is not used as a fallback.
  * @param unauthorizedLog - Message logged when there is no user.
- * @param sessionId - Session the action was called for, logged with the failure.
+ * @param logContext - What the action was called for (session or challenge id), logged with the failure.
  */
-async function requireUser(unauthorizedLog: string, sessionId: string) {
+async function requireUser(
+  unauthorizedLog: string,
+  logContext: Record<string, string>,
+) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -179,7 +183,7 @@ async function requireUser(unauthorizedLog: string, sessionId: string) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    console.error(unauthorizedLog, { sessionId, userError });
+    console.error(unauthorizedLog, { ...logContext, userError });
     throw new Error("Unauthorized");
   }
   return { supabase, user };
@@ -214,6 +218,42 @@ async function loadMoveSession(
 
   if (sessionError || !session) throw new Error("Session not found");
   return session;
+}
+
+/**
+ * Common start of a move: authenticates the caller, rate limits the action, loads the
+ * session and rejects a stale nonce with `CONFLICT:<current nonce>`.
+ */
+async function beginMove(
+  action: "skipAttempt" | "submitGuess",
+  sessionId: string,
+  clientNonce: string,
+) {
+  const { supabase, user } = await requireUser(
+    `${action}: Unauthorized access`,
+    { sessionId },
+  );
+  await checkRateLimit(action, user.id);
+
+  const session = await loadMoveSession(supabase, sessionId);
+  if (String(session.last_nonce) !== clientNonce) {
+    throw new Error(`CONFLICT:${session.last_nonce}`);
+  }
+  return { session, user };
+}
+
+const challengeTimingSchema = z
+  .object({ grace_deadline_at_utc: z.string(), perfume_id: z.string() })
+  .nullable();
+
+/** Perfume and grace deadline of a challenge, read with the service-role client; null when missing. */
+async function fetchChallengeTiming(challengeId: string) {
+  const { data } = await createAdminClient()
+    .from("daily_challenges")
+    .select("perfume_id, grace_deadline_at_utc")
+    .eq("id", challengeId)
+    .single();
+  return challengeTimingSchema.parse(data);
 }
 
 // --- Actions ---
@@ -410,28 +450,10 @@ async function resumeGameSession(
   const { answerConcentration, answerName } = await (async () => {
     if (session.status !== "won" && session.status !== "lost")
       return { answerConcentration: undefined, answerName: undefined };
-    const adminSupabase = createAdminClient();
-    const { data: challenge } = await adminSupabase
-      .from("daily_challenges")
-      .select("perfume_id")
-      .eq("id", challengeId)
-      .single();
+    const challenge = await fetchChallengeTiming(challengeId);
     if (!challenge)
       return { answerConcentration: undefined, answerName: undefined };
-    const { data: p } = (await adminSupabase
-      .from("perfumes")
-      .select("name, concentrations(name)")
-      .eq("id", challenge.perfume_id)
-      .single()) as {
-      data: {
-        concentrations: { name: string } | null;
-        name: string;
-      } | null;
-    };
-    return {
-      answerConcentration: (p?.concentrations as { name: string } | null)?.name,
-      answerName: p?.name,
-    };
+    return fetchAnswerLabel(challenge.perfume_id);
   })();
 
   return {
@@ -522,19 +544,12 @@ export async function startGame(
   challengeId: string,
 ): Promise<StartGameResponse> {
   z.uuid().parse(challengeId);
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  // Authentication is required. getUser() validates the JWT with the auth server;
-  // getSession() only reads the cookie, so it is not used as a fallback.
-
-  if (!user) {
-    console.error("Auth error in startGame:", userError);
-    throw new Error("Unauthorized");
-  }
+  const { supabase, user } = await requireUser(
+    "startGame: Unauthorized access",
+    {
+      challengeId,
+    },
+  );
 
   const existing = await loadPlayerSession(supabase, user.id, challengeId);
   if (existing) {
@@ -579,7 +594,7 @@ async function getImageUrlForStep(sessionId: string): Promise<string | null> {
 
   const { supabase, user } = await requireUser(
     "getImageUrlForStep: Unauthorized access",
-    sessionId,
+    { sessionId },
   );
 
   const { data: session, error: sessionError } = (await supabase
@@ -655,19 +670,11 @@ export async function submitGuess(
     throw new Error("Invalid perfume ID");
   }
 
-  const { supabase, user } = await requireUser(
-    "submitGuess: Unauthorized access",
+  const { session, user } = await beginMove(
+    "submitGuess",
     sessionId,
+    clientNonce,
   );
-
-  // Rate limiting
-  await checkRateLimit("submitGuess", user.id);
-
-  const session = await loadMoveSession(supabase, sessionId);
-
-  if (String(session.last_nonce) !== clientNonce) {
-    throw new Error(`CONFLICT:${session.last_nonce}`);
-  }
 
   if (session.status !== "active") {
     const finishedAnswer = await requireChallengeAnswer(session.challenge_id);
@@ -690,11 +697,7 @@ export async function submitGuess(
   }
 
   const adminSupabase = createAdminClient();
-  const { data: challenge } = await adminSupabase
-    .from("daily_challenges")
-    .select("perfume_id, grace_deadline_at_utc")
-    .eq("id", session.challenge_id)
-    .single();
+  const challenge = await fetchChallengeTiming(session.challenge_id);
 
   if (!challenge) {
     throw new Error("Challenge data missing");
@@ -902,12 +905,7 @@ async function recordSkipLoss(
   answerConcentration?: string | undefined;
   answerName?: string | undefined;
 }> {
-  const adminSupabase = createAdminClient();
-  const { data: challenge } = await adminSupabase
-    .from("daily_challenges")
-    .select("perfume_id, grace_deadline_at_utc")
-    .eq("id", session.challenge_id)
-    .single();
+  const challenge = await fetchChallengeTiming(session.challenge_id);
 
   if (!challenge)
     return { answerConcentration: undefined, answerName: undefined };
@@ -928,23 +926,7 @@ async function recordSkipLoss(
     }),
   );
 
-  const { data: answerPerfume } = (await adminSupabase
-    .from("perfumes")
-    .select("name, concentrations(name)")
-    .eq("id", challenge.perfume_id)
-    .single()) as {
-    data: {
-      concentrations: { name: string } | { name: string }[] | null;
-      name: string;
-    } | null;
-  };
-
-  return {
-    answerConcentration: answerPerfume
-      ? getArrayName(answerPerfume.concentrations)
-      : undefined,
-    answerName: answerPerfume?.name,
-  };
+  return fetchAnswerLabel(challenge.perfume_id);
 }
 
 /**
@@ -959,17 +941,11 @@ export async function skipAttempt(
     throw new Error("Invalid session ID");
   }
 
-  const { supabase, user } = await requireUser(
-    "skipAttempt: Unauthorized",
+  const { session, user } = await beginMove(
+    "skipAttempt",
     sessionId,
+    clientNonce,
   );
-
-  await checkRateLimit("skipAttempt", user.id);
-
-  const session = await loadMoveSession(supabase, sessionId);
-  if (String(session.last_nonce) !== clientNonce) {
-    throw new Error(`CONFLICT:${session.last_nonce}`);
-  }
 
   const answer = await requireChallengeAnswer(session.challenge_id);
 
@@ -1066,7 +1042,7 @@ export async function resetGame(
 
   const { supabase, user } = await requireUser(
     "resetGame: Unauthorized access",
-    sessionId,
+    { sessionId },
   );
 
   const { data: sessionData } = await supabase

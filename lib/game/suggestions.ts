@@ -83,27 +83,19 @@ export function toSuggestions(
   rows: FragranceRow[],
   attemptsCount: number,
 ): PerfumeSuggestion[] {
-  const variants = countVariants(
-    rows.map((row) => variantKey(row.brand_name, row.name, row.concentration)),
-  );
-  return rows.map((row) => {
-    const concentration = row.concentration ?? null;
-    const hasVariants =
-      (variants.get(variantKey(row.brand_name, row.name, concentration)) ?? 0) >
-      1;
-    const year = shownYear(row.year, hasVariants, attemptsCount);
-    return {
-      brand_masked: row.brand_name,
-      brand_norm: normalizeText(row.brand_name),
-      concentration,
-      display_name: displayName(row.brand_name, row.name, concentration, year),
-      name: row.name,
-      name_norm: normalizeText(row.name),
-      perfume_id: row.id,
-      raw_year: row.year ?? null,
-      year,
-    };
-  });
+  // Year and display name are decided in one place, remaskSuggestions.
+  const unmasked = rows.map((row) => ({
+    brand_masked: row.brand_name,
+    brand_norm: normalizeText(row.brand_name),
+    concentration: row.concentration ?? null,
+    display_name: "",
+    name: row.name,
+    name_norm: normalizeText(row.name),
+    perfume_id: row.id,
+    raw_year: row.year ?? null,
+    year: null,
+  }));
+  return remaskSuggestions(unmasked, attemptsCount);
 }
 
 /**

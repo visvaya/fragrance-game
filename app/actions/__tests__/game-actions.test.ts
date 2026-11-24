@@ -1060,7 +1060,7 @@ describe("game-actions", () => {
               case "daily_challenges": {
                 chain["single"] = vi.fn().mockResolvedValue({
                   data: {
-                    challenge_date: "2026-02-12",
+                    grace_deadline_at_utc: "2026-02-13T00:00:00Z",
                     perfume_id: "answer-f47ac10b-58cc-4372-a567-0e02b2c3d479",
                   },
                   error: null,
