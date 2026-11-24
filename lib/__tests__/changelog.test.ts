@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
-import { parseChangelog } from "../changelog";
+import { CHANGELOG, parseChangelog } from "../changelog";
 
 const entry = {
   date: "2026-11-24",
@@ -31,5 +33,17 @@ describe("parseChangelog", () => {
       /"date"/,
     );
     expect(() => parseChangelog([])).toThrow(/too_small/);
+  });
+});
+
+describe("CHANGELOG", () => {
+  it("is the parsed lib/changelog.json, newest version first and on the version in package.json", () => {
+    const { version } = JSON.parse(readFileSync("package.json", "utf8")) as {
+      version: string;
+    };
+    expect(CHANGELOG).toEqual(
+      parseChangelog(JSON.parse(readFileSync("lib/changelog.json", "utf8"))),
+    );
+    expect(CHANGELOG[0]?.version).toBe(version);
   });
 });

@@ -44,6 +44,7 @@
     "language": "Język",
     "stats": "Statystyki",
     "archive": "Archiwum",
+    "whatsNew": "Co nowego",
     "about": "O projekcie",
     "appearance": "Wygląd",
     "wideLayout": "Szeroki układ",
@@ -80,6 +81,13 @@
     "magnifique": "Magnifique!",
     "answerWas": "Odpowiedź to...",
     "by": "Marka:"
+  },
+  "WhatsNewModal": {
+    "title": "Co nowego",
+    "description": "Najnowsze zmiany w grze, od najnowszej.",
+    "ariaClose": "Zamknij",
+    "empty": "Na razie nic nowego. Zmiany ważne dla graczy pojawią się tutaj.",
+    "version": "Wersja {version}"
   },
   "HelpModal": {
     "title": "Jak grać",

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import changelog from "./changelog.json";
+
 /** The version as written in package.json and in the git tags (without the leading v). */
 export const VERSION_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
@@ -27,3 +29,6 @@ export type ChangelogEntry = z.infer<typeof entrySchema>;
 export function parseChangelog(raw: unknown): ChangelogEntry[] {
   return changelogSchema.parse(raw);
 }
+
+/** The change list of this build, newest version first; its first entry is the version being played. */
+export const CHANGELOG = parseChangelog(changelog);
