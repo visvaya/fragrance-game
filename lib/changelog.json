@@ -1,6 +1,11 @@
 [
   {
     "date": "2026-11-24",
+    "notes": [],
+    "version": "0.10.1"
+  },
+  {
+    "date": "2026-11-24",
     "notes": [
       {
         "en": "The menu has a new \"What's new\" item. It lists the latest changes to the game and shows which version you are playing.",
