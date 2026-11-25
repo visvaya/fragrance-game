@@ -10,7 +10,7 @@ BEGIN;
 -- supabase test db installs pgTAP for the run; switch to postgres for this transaction.
 SET LOCAL ROLE postgres;
 SET LOCAL search_path = public, extensions;
-SELECT plan(17);
+SELECT plan(18);
 
 -- ============================================================
 -- FUNCTION SIGNATURE
@@ -105,6 +105,14 @@ SELECT is(
   (SELECT name FROM public.search_perfumes_unaccent_v2('Blood Orange & Basil', 1)),
   'Blood Orange & Basil',
   'the exact name typed with & ranks first'
+);
+
+SELECT ok(
+  EXISTS (
+    SELECT 1 FROM public.search_perfumes_unaccent_v2('Blood Orange and Basil', 60)
+    WHERE name = 'Blood Orange & Basil' AND brand_name = '4711'
+  ),
+  'a name with & typed with "and" instead finds that perfume'
 );
 
 SELECT ok(
