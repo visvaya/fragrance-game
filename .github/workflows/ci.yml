@@ -38,7 +38,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm typecheck
+      # typecheck runs next typegen, which loads next.config.ts; route types need no image host.
+      - name: Type check
+        env:
+          SKIP_ENV_VALIDATION: "1"
+        run: pnpm typecheck
       # The title of the change, read live: a rerun of this job after a rename sees the new one, but a
       # rename starts no run by itself, so rerun "Quality checks" after renaming. On main it is the subject
       # of the squashed commit, which is the pull request title.
