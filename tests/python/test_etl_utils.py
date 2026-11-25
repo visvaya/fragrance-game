@@ -160,6 +160,8 @@ def test_restore_variant_takes_the_variant_from_the_source_address(
         ("Body Intense", "Eau de Parfum", PARFUMO + "Burberry/Body_Intense"),
         ("Ange ou Démon", "Eau de Toilette Tendre", PARFUMO + "Givenchy/Ange_ou_Demon_Tendre"),
         ("Trésor", "Elixir de Parfum", PARFUMO + "Lancome/Tresor_Elixir"),
+        # Partly known: which field the rest belongs to is unclear, so it is left for review.
+        ("Body", "Eau de Parfum Intense", PARFUMO + "Burberry/Body_Intense_Extreme"),
         # Not a Parfumo address.
         ("Body", "Eau de Parfum", "https://example.com/Body_Intense"),
         ("Body", "Eau de Parfum", None),

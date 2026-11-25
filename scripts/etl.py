@@ -133,9 +133,10 @@ def restore_variant(name: str, concentration: str, year: int, url: Any) -> tuple
         rest.pop()
     if not rest or any(word not in VARIANT_WORDS for word in rest):
         return name, concentration
-    # "Ange ou Demon", "Eau de Toilette Tendre" at ".../Ange_ou_Demon_Tendre" lost nothing.
+    # "Ange ou Demon", "Eau de Toilette Tendre" at ".../Ange_ou_Demon_Tendre" lost nothing; when
+    # only some of the words are already there, where the rest belongs is unclear.
     known = {form for word in _words(f"{name} {concentration}") for form in _address_forms(word)}
-    if all(word in known for word in rest):
+    if any(word in known for word in rest):
         return name, concentration
     variant = " ".join(VARIANT_WORDS[word] for word in rest)
     if joins_concentration:
