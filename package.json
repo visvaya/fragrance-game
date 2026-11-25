@@ -1,6 +1,6 @@
 {
   "name": "eauxle",
-  "version": "0.10.3",
+  "version": "0.10.5",
   "private": true,
   "description": "A daily puzzle for perfume lovers inspired by Wordle. Guess the mystery perfume from evolving clues like bottle, notes, brand, and year.",
   "keywords": [
