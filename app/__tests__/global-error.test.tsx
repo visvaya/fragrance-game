@@ -31,12 +31,12 @@ beforeEach(() => {
 });
 
 describe("GlobalError page", () => {
-  it("renders Polish text and lang for a Polish path", () => {
+  it("renders Polish text and lang for a Polish path", async () => {
     mockPathname.value = "/pl/some/page";
     renderError();
 
     expect(
-      screen.getByRole("heading", {
+      await screen.findByRole("heading", {
         level: 1,
         name: plMessages.GlobalError.title,
       }),
@@ -49,23 +49,26 @@ describe("GlobalError page", () => {
     ).toBe("/pl");
   });
 
-  it.each(["/en/x", "/", "/de/x"])("renders English text for %s", (path) => {
-    mockPathname.value = path;
-    renderError();
+  it.each(["/en/x", "/", "/de/x"])(
+    "renders English text for %s",
+    async (path) => {
+      mockPathname.value = path;
+      renderError();
 
-    expect(
-      screen.getByRole("heading", {
-        level: 1,
-        name: enMessages.GlobalError.title,
-      }),
-    ).toBeTruthy();
-    expect(document.documentElement.lang).toBe("en");
-    expect(
-      screen
-        .getByRole("link", { name: enMessages.GlobalError.backToGame })
-        .getAttribute("href"),
-    ).toBe("/en");
-  });
+      expect(
+        await screen.findByRole("heading", {
+          level: 1,
+          name: enMessages.GlobalError.title,
+        }),
+      ).toBeTruthy();
+      expect(document.documentElement.lang).toBe("en");
+      expect(
+        screen
+          .getByRole("link", { name: enMessages.GlobalError.backToGame })
+          .getAttribute("href"),
+      ).toBe("/en");
+    },
+  );
 
   it("calls reset from the retry button", async () => {
     mockPathname.value = "/en";
@@ -73,7 +76,7 @@ describe("GlobalError page", () => {
     renderError(reset);
 
     await userEvent.click(
-      screen.getByRole("button", { name: enMessages.GlobalError.retry }),
+      await screen.findByRole("button", { name: enMessages.GlobalError.retry }),
     );
 
     expect(reset).toHaveBeenCalledTimes(1);
