@@ -1,4 +1,3 @@
-import { createNavigation } from "next-intl/navigation";
 import { defineRouting } from "next-intl/routing";
 
 export const routing = defineRouting({
@@ -18,5 +17,3 @@ export const localeNames: Record<string, string> = {
   en: "English",
   pl: "Polski",
 };
-
-export const { usePathname, useRouter } = createNavigation(routing);

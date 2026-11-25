@@ -21,12 +21,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-vi.mock("@/i18n/routing", () => ({
-  Link: function MockLink({ children }: { children: React.ReactNode }) {
-    return <>{children}</>;
-  },
-  localeNames: { en: "English", pl: "Polski" },
-  routing: { defaultLocale: "pl", locales: ["en", "pl"] },
+vi.mock("@/i18n/navigation", () => ({
   usePathname: () => "/en",
   useRouter: () => ({
     back: vi.fn(),

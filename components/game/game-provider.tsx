@@ -20,7 +20,7 @@ import {
   type StartGameResponse,
 } from "@/app/actions/game-actions";
 import { captureAnalyticsEvent } from "@/components/providers/posthog-provider";
-import { useRouter } from "@/i18n/routing";
+import { useRouter } from "@/i18n/navigation";
 import { shouldReloadOnAuthChange } from "@/lib/auth/auth-change-reload";
 import { MAX_GUESSES } from "@/lib/constants";
 import {

@@ -22,8 +22,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-vi.mock("@/i18n/routing", () => ({
-  routing: { defaultLocale: "pl", locales: ["en", "pl"] },
+vi.mock("@/i18n/navigation", () => ({
   usePathname: () => "/en",
   useRouter: () => ({
     back: vi.fn(),
