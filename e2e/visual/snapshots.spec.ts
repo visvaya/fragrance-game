@@ -1,11 +1,22 @@
-/* eslint-disable playwright/no-networkidle -- snapshot tests require networkidle to ensure all assets are loaded before capture */
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+
+/** Waits for the page to render and for its web fonts and images to finish loading. */
+async function waitForAssets(page: Page): Promise<void> {
+  await expect(page.locator("main")).toBeVisible();
+  await page.evaluate(async () => document.fonts.ready);
+  await expect
+    .poll(async () =>
+      page.evaluate(() =>
+        [...document.images].every((image) => image.complete),
+      ),
+    )
+    .toBe(true);
+}
 
 test.describe("Visual Regression - Core Pages @visual", () => {
   test("Landing Page snapshot", async ({ page }) => {
     await page.goto("/en");
-    // Wait for fonts/images
-    await page.waitForLoadState("networkidle");
+    await waitForAssets(page);
     await expect(page).toHaveScreenshot("landing-page.png", {
       fullPage: true,
       maxDiffPixelRatio: 0.1,
@@ -15,7 +26,7 @@ test.describe("Visual Regression - Core Pages @visual", () => {
 
   test("Game Page initial state snapshot", async ({ page }) => {
     await page.goto("/en");
-    await page.waitForLoadState("networkidle");
+    await waitForAssets(page);
     // We might have a dynamic daily perfume, so we might want to mask some parts
     // or just check the general layout
     await expect(page).toHaveScreenshot("game-page-initial.png", {
