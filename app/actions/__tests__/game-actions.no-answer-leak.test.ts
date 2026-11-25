@@ -94,7 +94,12 @@ const PUBLIC_CHALLENGE = {
   grace_deadline_at_utc: "2099-01-01T00:00:00Z",
   id: CHALLENGE_ID,
   mode: "daily",
-  snapshot_metadata: {},
+  // Some early challenges stored the answer in their snapshot; the cron now stores the difficulty.
+  snapshot_metadata: {
+    brand: "Zyxwvut Maison",
+    name: "Secret Answer",
+    xsolve: 0.9,
+  },
 };
 
 const ACTIVE_SESSION = {
@@ -229,6 +234,8 @@ describe("game responses never contain the unrevealed answer", () => {
     useClients(null);
     const result = await getDailyChallengeSSR("2026-10-03");
     expect(result).not.toBeNull();
+    expect(result).not.toHaveProperty("snapshot_metadata");
+    expect(result?.xsolve).toBe(0.9);
     expect(result?.revealed.brand).toBe(BRAND_LEVEL_1);
     expect(JSON.stringify(result)).not.toMatch(LEAK_PATTERN);
   });
@@ -237,6 +244,8 @@ describe("game responses never contain the unrevealed answer", () => {
     useClients(null);
     const result = await getDailyChallenge();
     expect(result).not.toBeNull();
+    expect(result).not.toHaveProperty("snapshot_metadata");
+    expect(result?.xsolve).toBe(0.9);
     expect(result?.revealed.brand).toBe(BRAND_LEVEL_1);
     expect(JSON.stringify(result)).not.toMatch(LEAK_PATTERN);
   });
@@ -273,8 +282,9 @@ describe("game responses never contain the unrevealed answer", () => {
 });
 
 describe("getDailyChallengeSSR cache key", () => {
-  it("uses a key that does not reuse entries cached with the full answer", () => {
-    expect(cacheKeys).toContainEqual(["daily-challenge-ssr-v2"]);
+  it("uses a key that does not reuse entries cached with the full answer or the snapshot", () => {
+    expect(cacheKeys).toContainEqual(["daily-challenge-ssr-v3"]);
     expect(cacheKeys).not.toContainEqual(["daily-challenge-ssr"]);
+    expect(cacheKeys).not.toContainEqual(["daily-challenge-ssr-v2"]);
   });
 });

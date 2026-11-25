@@ -7,7 +7,7 @@ BEGIN;
 -- supabase test db installs pgTAP for the run; switch to postgres for this transaction.
 SET LOCAL ROLE postgres;
 SET LOCAL search_path = public, extensions;
-SELECT plan(9);
+SELECT plan(10);
 
 SELECT has_function('public', 'pick_daily_perfume', ARRAY['date'], 'pick_daily_perfume(date) exists');
 SELECT ok(NOT (SELECT prosecdef FROM pg_proc WHERE oid = 'public.pick_daily_perfume(date)'::regprocedure),
@@ -41,6 +41,16 @@ SELECT p.id, md5(p.source_record_slug),
   'a/' || md5(p.source_record_slug) || '/' || md5(p.source_record_slug || '6') || '.avif'
 FROM public.perfumes AS p
 WHERE p.source_record_slug LIKE 'pgtap-pick-%' AND p.source_record_slug <> 'pgtap-pick-no-assets';
+
+-- Without the probes the draws below would check only production rows and could pass vacuously.
+SELECT is(
+  (SELECT count(*) FROM public.perfumes AS p
+   LEFT JOIN public.perfume_assets AS pa ON pa.perfume_id = p.id
+   WHERE p.source_record_slug LIKE 'pgtap-pick-%'
+     AND (pa.perfume_id IS NOT NULL OR p.source_record_slug = 'pgtap-pick-no-assets')),
+  7::bigint,
+  'the seven probe perfumes exist, each with assets except the image-less one'
+);
 
 SELECT is((SELECT count(*) FROM public.pick_daily_perfume('9999-01-01')), 1::bigint,
   'a draw returns one perfume');

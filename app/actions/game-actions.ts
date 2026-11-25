@@ -62,7 +62,6 @@ export type DailyChallenge = {
   mode: string;
   /** Level-1 clues computed on the server (no guesses yet). */
   revealed: RevealedClues;
-  snapshot_metadata: Record<string, unknown>;
   /** Difficulty score of the answer, used for the score multiplier. */
   xsolve: number;
 };
@@ -399,7 +398,9 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
   // CRITICAL: xsolve must be present for difficulty calculation
   // The daily cron draws only perfumes with a score (pick_daily_perfume) and stores it with the
   // challenge, but we validate defensively to catch any manual insertions or bugs.
-  const xsolve = challengeXsolve(data.snapshot_metadata, perfume.xsolve_score);
+  // The snapshot stays on the server: some early challenges stored the answer in it.
+  const { snapshot_metadata: snapshot, ...challenge } = data;
+  const xsolve = challengeXsolve(snapshot, perfume.xsolve_score);
   if (xsolve == null) {
     throw new Error(
       `Perfume ${perfume.name} (ID: ${perfumeId}) has no xsolve_score. ` +
@@ -408,7 +409,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
   }
 
   return {
-    ...data,
+    ...challenge,
     id,
     revealed: buildSessionClues(toClueAnswer(perfume), NEW_SESSION, []),
     xsolve,
@@ -1148,20 +1149,19 @@ export const getDailyChallengeSSR = unstable_cache(
       .single()) as { data: Omit<AnswerPerfumeRow, "name"> | null };
 
     if (!perfume) return null;
-    const xsolve = challengeXsolve(
-      data.snapshot_metadata,
-      perfume.xsolve_score,
-    );
+    const { snapshot_metadata: snapshot, ...challenge } = data;
+    const xsolve = challengeXsolve(snapshot, perfume.xsolve_score);
     if (xsolve == null) return null;
 
     return {
-      ...data,
+      ...challenge,
       id,
       revealed: buildSessionClues(toClueAnswer(perfume), NEW_SESSION, []),
       xsolve,
     };
   },
-  ["daily-challenge-ssr-v2"],
+  // v3: entries cached under v2 still carry the snapshot.
+  ["daily-challenge-ssr-v3"],
   { revalidate: 86_400, tags: ["daily-challenge"] },
 );
 

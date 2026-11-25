@@ -10,15 +10,13 @@ import {
   type GuessHistoryItem,
   type StoredGuess,
 } from "@/lib/game/guess-history";
-import { challengeXsolve } from "@/lib/game/challenge-snapshot";
 import { createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
-/** Answer of a challenge: the clue source plus data used for scoring. */
+/** Answer of a challenge: the clue source and the answer perfume. */
 export type ChallengeAnswer = {
   clue: ClueAnswer;
   perfumeId: string;
-  xsolve: number | null;
 };
 
 /** Columns of the answer perfume that clues and scoring read. */
@@ -42,7 +40,7 @@ export async function fetchChallengeAnswer(
   const adminSupabase = createAdminClient();
   const { data: challenge } = await adminSupabase
     .from("daily_challenges")
-    .select("perfume_id, snapshot_metadata")
+    .select("perfume_id")
     .eq("id", challengeId)
     .limit(1)
     .single();
@@ -51,17 +49,16 @@ export async function fetchChallengeAnswer(
   const { data: perfume } = (await adminSupabase
     .from("perfumes")
     .select(
-      "name, release_year, gender, is_linear, xsolve_score, top_notes, middle_notes, base_notes, perfumers, brands(name)",
+      "name, release_year, gender, is_linear, top_notes, middle_notes, base_notes, perfumers, brands(name)",
     )
     .eq("id", challenge.perfume_id)
     .limit(1)
-    .single()) as { data: AnswerPerfumeRow | null };
+    .single()) as { data: Omit<AnswerPerfumeRow, "xsolve_score"> | null };
   if (!perfume) return null;
 
   return {
     clue: toClueAnswer(perfume),
     perfumeId: challenge.perfume_id,
-    xsolve: challengeXsolve(challenge.snapshot_metadata, perfume.xsolve_score),
   };
 }
 
