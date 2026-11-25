@@ -1,9 +1,11 @@
 import argparse
 import hashlib
+import json
 import logging
 import os
 import re
 import sys
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -25,6 +27,7 @@ logger = logging.getLogger(__name__)
 XSOLVE_MODEL_VERSION = 1
 BATCH_SIZE = 100
 ELIGIBLE_MIN_RATINGS = 400
+KEPT_FIELDS = ["Brand", "Name", "Concentration", "Release Year", "Rating Count"]
 LOOKUP_PAGE_SIZE = 1000  # PostgREST returns at most 1000 rows per request
 
 # UTF-8 text decoded as CP1250 somewhere upstream: an i with circumflex arrives as U+0102 U+00AE
@@ -98,6 +101,21 @@ def _fetch_pages(table: str, columns: str) -> list[dict[str, Any]]:
 # jscpd:ignore-end
 
 
+def catalog_version(source: bytes) -> str:
+    """Identifies the source file an import run read."""
+    return "sha256:" + hashlib.sha256(source).hexdigest()
+
+
+def find_duplicates(df: pd.DataFrame) -> "list[tuple[pd.Series[Any], pd.Series[Any]]]":
+    """(kept, dropped) row pairs that keep-first deduplication by strict fingerprint resolves."""
+    ranked = df.sort_values("Rating Count", ascending=False)
+    dropped = ranked[ranked.duplicated("fingerprint_strict", keep="first")]
+    kept = ranked.drop_duplicates("fingerprint_strict", keep="first").set_index(
+        "fingerprint_strict", drop=False
+    )
+    return [(kept.loc[row["fingerprint_strict"]], row) for _, row in dropped.iterrows()]
+
+
 class EtlPipeline:
     def __init__(self, csv_path: str):
         self.csv_path = csv_path
@@ -108,6 +126,8 @@ class EtlPipeline:
             "manufacturers": {},
         }
         self.failed_records = 0
+        self.catalog_version = ""
+        self.duplicates: list[tuple[pd.Series[Any], pd.Series[Any]]] = []
 
     def normalize_text(self, text: Any) -> str:
         """Lowercase, strip, single internal spaces."""
@@ -193,6 +213,8 @@ class EtlPipeline:
         # 5. Deduplication (Group by fingerprint_strict)
         logger.info("Deduplicating...")
         initial_len = len(self.df)
+        self.catalog_version = catalog_version(Path(self.csv_path).read_bytes())
+        self.duplicates = find_duplicates(self.df)
 
         # Key Aggregation Logic:
         # - Rating Count: max
@@ -523,8 +545,66 @@ class EtlPipeline:
             for row in _fetch_pages(table, f"id, {col}"):
                 self.db_cache[table][self.normalize_text(row[col])] = row["id"]
 
+    def _record_import(self) -> None:
+        """Store the run and the duplicates that keep-first deduplication dropped."""
+        try:
+            run: Any = (
+                supabase.table("import_runs")
+                .insert({"catalog_version": self.catalog_version})
+                .execute()
+                .data
+            )
+            run_id = run[0]["id"]
+        except Exception as e:
+            raise RuntimeError(f"Could not record the import run: {e}") from e
+
+        recorded = 0
+        for start in range(0, len(self.duplicates), BATCH_SIZE):
+            batch = self.duplicates[start : start + BATCH_SIZE]
+            try:
+                raw_rows: Any = (
+                    supabase.table("raw_import_rows")
+                    .insert(
+                        [
+                            {
+                                "import_run_id": run_id,
+                                "brand_raw": dropped["Brand"],
+                                "name_raw": dropped["Name"],
+                                "concentration_raw": dropped["Concentration"],
+                                "release_year": int(dropped["Release Year"]),
+                                "fp_strict": dropped["fingerprint_strict"],
+                                "fp_loose": dropped["fingerprint_loose"],
+                                "raw_json": json.loads(dropped.to_json()),
+                            }
+                            for _, dropped in batch
+                        ]
+                    )
+                    .execute()
+                    .data
+                )
+                supabase.table("import_conflicts").insert(
+                    [
+                        {
+                            "import_run_id": run_id,
+                            "raw_row_id": raw["id"],
+                            "conflict_type": "duplicate_strict_fingerprint",
+                            "details": {
+                                **json.loads(kept[KEPT_FIELDS].to_json()),
+                                "dropped_rating_count": int(dropped["Rating Count"]),
+                            },
+                        }
+                        for raw, (kept, dropped) in zip(raw_rows, batch, strict=True)
+                    ]
+                ).execute()
+                recorded += len(batch)
+            except Exception as e:
+                logger.error(f"Recording duplicate conflicts failed: {e}")
+                self.failed_records += len(batch)
+        logger.info(f"Import run {run_id}: recorded {recorded} duplicate conflicts.")
+
     def sync_to_supabase(self) -> None:
         logger.info("Syncing to Supabase...")
+        self._record_import()
         self.prepopulate_cache()
 
         records_to_upsert: list[dict[str, Any]] = []
