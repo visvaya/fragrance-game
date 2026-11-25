@@ -1,8 +1,10 @@
-/* eslint-disable playwright/no-wait-for-timeout -- touch interaction tests require explicit waits for animation and gesture completion */
 import { existsSync } from "node:fs";
 import path from "node:path";
 
 import { test, expect, devices } from "@playwright/test";
+
+import { fillAndSearch } from "../support/autocomplete";
+import { expectHydrated } from "../support/hydration";
 
 // Pre-authenticated session from globalSetup – skips signInAnonymously() + Turnstile captcha.
 // Without this the Turnstile SDK (external Cloudflare JS) can crash the mobile browser context.
@@ -38,11 +40,11 @@ test.describe("Mobile Touch Interactions - Android", () => {
     );
 
     // Use tap() instead of click() for mobile
+    await expectHydrated(input);
     await input.tap();
-    await input.fill("Cha");
 
-    // Wait for autocomplete suggestions
-    await page.waitForTimeout(1000);
+    // Wait for the autocomplete search to be answered
+    await fillAndSearch(page, input, "Cha");
 
     const suggestionsList = page.locator('button[class*="text-left text-sm"]');
     const count = await suggestionsList.count();
@@ -72,8 +74,7 @@ test.describe("Mobile Touch Interactions - Android", () => {
       await page.goto("/en");
 
       // Wait for page to load
-      await expect(page.locator("main")).toBeVisible();
-      await page.waitForTimeout(2000);
+      await expectHydrated(page.locator("main"));
 
       // WCAG 2.1: Touch targets should be at least 48x48px
       const buttons = await page.getByRole("button").all();
@@ -224,11 +225,11 @@ test.describe("Mobile Touch Interactions - Android", () => {
       );
 
       // Tap to focus
+      await expectHydrated(input);
       await input.tap();
 
-      // Type query
-      await input.fill("Chan");
-      await page.waitForTimeout(1000);
+      // Type query and wait for the autocomplete search to be answered
+      await fillAndSearch(page, input, "Chan");
 
       const suggestionsList = page.locator(
         'button[class*="text-left text-sm"]',
