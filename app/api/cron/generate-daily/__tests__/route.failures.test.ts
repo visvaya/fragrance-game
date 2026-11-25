@@ -19,8 +19,8 @@ vi.mock("@sentry/nextjs", () => ({ captureException }));
  * A chainable query builder that records every call; awaiting it asks
  * `resolveQuery(table, calls)` for the response.
  */
-function makeQuery(table: string): unknown {
-  const query = { calls: [] as unknown[][], table };
+function makeQuery(table: string, calls: unknown[][] = []): unknown {
+  const query = { calls, table };
   queries.push(query);
   const builder: unknown = new Proxy(
     {},
@@ -47,12 +47,17 @@ function makeQuery(table: string): unknown {
 }
 
 vi.mock("@/lib/supabase/server", () => ({
-  createAdminClient: () => ({ from: (table: string) => makeQuery(table) }),
+  createAdminClient: () => ({
+    from: (table: string) => makeQuery(table),
+    rpc: (fn: string, args: unknown) => makeQuery(fn, [["rpc", args]]),
+  }),
 }));
 
 import { GET } from "../route";
 
 const PERFUME_ID = "11111111-1111-4111-8111-111111111111";
+const PICK = "pick_daily_perfume";
+const PICKED = { perfume_id: PERFUME_ID, xsolve_score: 0.42 };
 
 const firstSelect = (calls: unknown[][]): unknown =>
   calls.find(([method]) => method === "select")?.[1];
@@ -61,21 +66,11 @@ const isInsert = (calls: unknown[][]): boolean =>
 
 /** Responses of a healthy database where no challenge exists yet. */
 function healthyResponse(table: string, calls: unknown[][]): unknown {
-  if (table === "perfume_assets") {
-    return { data: [{ perfume_id: PERFUME_ID }], error: null };
-  }
+  if (table === PICK) return { data: PICKED, error: null };
   if (isInsert(calls)) return { data: { id: "new-challenge" }, error: null };
-  switch (firstSelect(calls)) {
-    case "id, challenge_number, perfume_id": {
-      return { data: null, error: null };
-    }
-    case "perfume_id": {
-      return { data: [], error: null };
-    }
-    default: {
-      return { data: { challenge_number: 7 }, error: null };
-    }
-  }
+  return firstSelect(calls) === "id, challenge_number, perfume_id"
+    ? { data: null, error: null }
+    : { data: { challenge_number: 7 }, error: null };
 }
 
 const callCron = async () =>
@@ -87,6 +82,21 @@ const callCron = async () =>
 
 const inserted = () =>
   queries.filter((query) => isInsert(query.calls)).map((query) => query.table);
+const insertedRows = () =>
+  queries.flatMap((query) =>
+    query.calls.filter(([method]) => method === "insert").map(([, row]) => row),
+  );
+const pickArgs = () =>
+  queries
+    .filter((query) => query.table === PICK)
+    .map((query) => query.calls[0]?.[1]);
+
+/** The UTC date `days` days before now, as the route computes the exclusion window. */
+const daysAgo = (days: number): string => {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() - days);
+  return date.toISOString().slice(0, 10);
+};
 
 describe("generate-daily cron failures", () => {
   beforeEach(() => {
@@ -103,6 +113,66 @@ describe("generate-daily cron failures", () => {
     expect(captureException).not.toHaveBeenCalled();
   });
 
+  it("stores the difficulty the puzzle was published with", async () => {
+    await callCron();
+
+    expect(insertedRows()).toEqual([
+      expect.objectContaining({
+        perfume_id: PERFUME_ID,
+        snapshot_metadata: { xsolve: 0.42 },
+      }),
+      expect.objectContaining({ snapshot_metadata: { xsolve: 0.42 } }),
+    ]);
+  });
+
+  it("picks outside the last 30 days, then outside the last 7 when the pool is exhausted", async () => {
+    vi.useFakeTimers({
+      now: new Date("2026-03-10T00:00:05Z"),
+      toFake: ["Date"],
+    });
+    resolveQuery.mockImplementation((table: string, calls: unknown[][]) =>
+      table === PICK
+        ? {
+            data: pickArgs().length % 2 === 1 ? null : PICKED,
+            error: null,
+          }
+        : healthyResponse(table, calls),
+    );
+
+    try {
+      const response = await callCron();
+
+      expect(response.status).toBe(200);
+      expect(pickArgs()).toEqual([
+        { exclude_since: "2026-02-08" },
+        { exclude_since: "2026-03-03" },
+        { exclude_since: "2026-02-08" },
+        { exclude_since: "2026-03-03" },
+      ]);
+      expect(inserted()).toEqual(["daily_challenges", "daily_challenges"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("fails without inserting when no perfume is eligible", async () => {
+    resolveQuery.mockImplementation((table: string, calls: unknown[][]) =>
+      table === PICK
+        ? { data: null, error: null }
+        : healthyResponse(table, calls),
+    );
+
+    const response = await callCron();
+
+    expect(response.status).toBe(500);
+    expect(pickArgs()).toEqual([
+      { exclude_since: daysAgo(30) },
+      { exclude_since: daysAgo(7) },
+    ]);
+    expect(inserted()).toEqual([]);
+    expect(captureException).toHaveBeenCalledOnce();
+  });
+
   it("fails and reports when the existing-challenge lookup errors", async () => {
     resolveQuery.mockImplementation((table: string, calls: unknown[][]) =>
       firstSelect(calls) === "id, challenge_number, perfume_id"
@@ -117,9 +187,9 @@ describe("generate-daily cron failures", () => {
     expect(captureException).toHaveBeenCalledOnce();
   });
 
-  it("fails instead of ignoring recent puzzles when the exclusion list errors", async () => {
+  it("fails instead of picking at random when the perfume pick errors", async () => {
     resolveQuery.mockImplementation((table: string, calls: unknown[][]) =>
-      table === "daily_challenges" && firstSelect(calls) === "perfume_id"
+      table === PICK
         ? { data: null, error: { message: "timeout" } }
         : healthyResponse(table, calls),
     );
@@ -133,7 +203,7 @@ describe("generate-daily cron failures", () => {
 
   it("refreshes the cached puzzle when tomorrow fails after today was saved", async () => {
     resolveQuery.mockImplementation((table: string, calls: unknown[][]) =>
-      table === "perfume_assets" && inserted().length > 0
+      table === PICK && inserted().length > 0
         ? { data: null, error: { message: "timeout" } }
         : healthyResponse(table, calls),
     );
@@ -143,20 +213,5 @@ describe("generate-daily cron failures", () => {
     expect(response.status).toBe(500);
     expect(inserted()).toEqual(["daily_challenges"]);
     expect(revalidateTag).toHaveBeenCalledWith("daily-challenge", {});
-  });
-
-  it("draws only active perfumes with notes and a difficulty score", async () => {
-    await callCron();
-
-    const candidateQuery = queries.find(
-      (query) => query.table === "perfume_assets",
-    );
-    expect(candidateQuery?.calls).toEqual(
-      expect.arrayContaining([
-        ["eq", "perfumes.is_active", true],
-        ["not", "perfumes.xsolve_score", "is", null],
-        ["filter", "perfumes.top_notes", "neq", "{}"],
-      ]),
-    );
   });
 });

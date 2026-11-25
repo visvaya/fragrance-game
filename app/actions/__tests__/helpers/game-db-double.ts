@@ -67,6 +67,8 @@ type AdminOptions = {
   failResultInsert?: boolean;
   /** The session insert fails with this error and writes no row. */
   insertError?: { code: string; message: string };
+  /** `snapshot_metadata` of the challenge row; an empty object when omitted. */
+  snapshot?: Record<string, unknown>;
   /** Row a parallel start stored before the failed insert; the resume lookup then finds it. */
   storedByParallelStart?: Record<string, unknown> | null;
   updateFails?: boolean;
@@ -241,7 +243,11 @@ function adminResolver(db: SharedRows, options: AdminOptions) {
       case "daily_challenges": {
         if (columns === "challenge_date") return readChallengeDate(options);
         return {
-          data: { grace_deadline_at_utc: FAR_DEADLINE, perfume_id: ANSWER_ID },
+          data: {
+            grace_deadline_at_utc: FAR_DEADLINE,
+            perfume_id: ANSWER_ID,
+            snapshot_metadata: options.snapshot ?? {},
+          },
           error: null,
         };
       }

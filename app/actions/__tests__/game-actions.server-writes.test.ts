@@ -108,6 +108,23 @@ describe("game state writes go through the service role", () => {
     ]);
   });
 
+  it("scores a win with the difficulty stored when the puzzle was published", async () => {
+    const writes = useClients({
+      admin: { snapshot: { xsolve: 1 } },
+      session: makeSession(2),
+    });
+
+    await submitGuess(SESSION_ID, ANSWER_ID, NONCE);
+
+    // 490 points for the third attempt, +30% at the stored score 1; the live 0.5 would give 564.
+    expect(writes).toContainEqual(
+      expect.objectContaining({
+        table: "game_results",
+        values: expect.objectContaining({ score: 637, score_raw: 490 }),
+      }),
+    );
+  });
+
   it("records the loss after the final skip", async () => {
     const writes = useClients({ session: makeSession(5) });
 

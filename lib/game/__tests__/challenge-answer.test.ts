@@ -102,7 +102,6 @@ describe("fetchChallengeAnswer", () => {
           perfumers: ["Jacques Polge"],
           release_year: 2001,
           top_notes: ["Bergamot"],
-          xsolve_score: 0.4,
         },
         error: null,
       },
@@ -111,7 +110,6 @@ describe("fetchChallengeAnswer", () => {
     await expect(fetchChallengeAnswer(CHALLENGE_ID)).resolves.toEqual({
       clue: { ...ANSWER, isLinear: true },
       perfumeId: ANSWER_ID,
-      xsolve: 0.4,
     });
   });
 
@@ -129,7 +127,6 @@ describe("fetchChallengeAnswer", () => {
           perfumers: null,
           release_year: null,
           top_notes: null,
-          xsolve_score: null,
         },
         error: null,
       },
@@ -145,7 +142,6 @@ describe("fetchChallengeAnswer", () => {
         year: 0,
       },
       perfumeId: ANSWER_ID,
-      xsolve: null,
     });
   });
 

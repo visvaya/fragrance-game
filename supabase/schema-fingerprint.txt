@@ -313,6 +313,7 @@
 07 function | public.handle_session_delete() returns trigger lang=plpgsql secdef=true vol=v strict=false parallel=u config={"search_path=public, extensions, pg_catalog"} owner=postgres rows=0 cost=100 leakproof=false args= md5=1b533ebc0f539cbb7fccc8688be74907
 07 function | public.handle_session_update() returns trigger lang=plpgsql secdef=true vol=v strict=false parallel=u config={"search_path=public, extensions, pg_catalog"} owner=postgres rows=0 cost=100 leakproof=false args= md5=53346275966fd78e856cb42b497472eb
 07 function | public.normalize_search_text(text) returns text lang=plpgsql secdef=false vol=i strict=true parallel=u config={"search_path=public, extensions, pg_catalog"} owner=postgres rows=0 cost=100 leakproof=false args=input_text text md5=e9d41944d932b1384c212da770181c7f
+07 function | public.pick_daily_perfume(date) returns TABLE(perfume_id uuid, xsolve_score double precision) lang=sql secdef=false vol=v strict=false parallel=u config={"search_path=\"\""} owner=postgres rows=1000 cost=100 leakproof=false args=exclude_since date md5=f312a93b318ef851b54edb294f91dad1
 07 function | public.refresh_autocomplete_cache() returns TABLE(rows_refreshed bigint, refresh_duration_ms numeric) lang=plpgsql secdef=true vol=v strict=false parallel=u config={"search_path=public, extensions"} owner=postgres rows=1000 cost=100 leakproof=false args= md5=5ebd3bb57c1ec7b714e4da60cd522342
 07 function | public.search_perfumes_unaccent_v2(text,integer) returns TABLE(id uuid, name text, year integer, brand_name text, concentration text) lang=plpgsql secdef=true vol=s strict=false parallel=u config={"search_path=public, extensions, pg_catalog"} owner=postgres rows=1000 cost=100 leakproof=false args=search_query text, limit_count integer DEFAULT 60 md5=987fb55a2914c9fd8b4ee29c7a06909d
 07 function | public.slugify(text) returns text lang=plpgsql secdef=false vol=i strict=false parallel=u config={search_path=public} owner=postgres rows=0 cost=100 leakproof=false args=text_input text md5=ec22e60abd3ce3e493c66da46b7feda8
@@ -351,6 +352,7 @@
 10 acl | function public.normalize_search_text(text) anon=EXECUTE
 10 acl | function public.normalize_search_text(text) authenticated=EXECUTE
 10 acl | function public.normalize_search_text(text) service_role=EXECUTE
+10 acl | function public.pick_daily_perfume(date) service_role=EXECUTE
 10 acl | function public.refresh_autocomplete_cache() service_role=EXECUTE
 10 acl | function public.search_perfumes_unaccent_v2(text,integer) service_role=EXECUTE
 10 acl | function public.slugify(text) PUBLIC=EXECUTE
