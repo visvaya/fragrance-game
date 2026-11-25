@@ -2,7 +2,7 @@
 -- Run: supabase test db
 --
 -- Verifies search_perfumes_unaccent_v2 behavior:
--- minimum query length, return shape, no SQL injection.
+-- minimum query length, return shape, no SQL injection, queries normalized like the cache.
 -- Requires perfume data to be seeded (won't pass on empty DB).
 
 BEGIN;
@@ -10,7 +10,7 @@ BEGIN;
 -- supabase test db installs pgTAP for the run; switch to postgres for this transaction.
 SET LOCAL ROLE postgres;
 SET LOCAL search_path = public, extensions;
-SELECT plan(12);
+SELECT plan(17);
 
 -- ============================================================
 -- FUNCTION SIGNATURE
@@ -84,6 +84,46 @@ SELECT ok(
 SELECT ok(
   (SELECT COUNT(*) FROM public.search_perfumes_unaccent_v2('<script>alert(1)</script>', 10)) >= 0,
   'XSS payload in search does not error'
+);
+
+-- ============================================================
+-- BEHAVIOR: the query is normalized like the cache columns
+-- ============================================================
+-- normalize_search_text strips punctuation such as & ' and the degree sign from name_norm and
+-- brand_name_concat, so a name typed as written must be normalized the same way to match.
+-- Uses catalogue rows present on production (the job runs against it).
+
+SELECT ok(
+  EXISTS (
+    SELECT 1 FROM public.search_perfumes_unaccent_v2('Blood Orange & Basil', 60)
+    WHERE name = 'Blood Orange & Basil' AND brand_name = '4711'
+  ),
+  'a name typed with & ("Blood Orange & Basil") finds that perfume'
+);
+
+SELECT is(
+  (SELECT name FROM public.search_perfumes_unaccent_v2('Blood Orange & Basil', 1)),
+  'Blood Orange & Basil',
+  'the exact name typed with & ranks first'
+);
+
+SELECT ok(
+  EXISTS (
+    SELECT 1 FROM public.search_perfumes_unaccent_v2($$N°5 L'Eau$$, 60)
+    WHERE name = $$N°5 L'Eau$$ AND brand_name = 'Chanel'
+  ),
+  $$a name typed with a degree sign and an apostrophe ("N°5 L'Eau") finds that perfume$$
+);
+
+SELECT set_eq(
+  $$SELECT * FROM public.search_perfumes_unaccent_v2('dior ', 10000)$$,
+  $$SELECT * FROM public.search_perfumes_unaccent_v2('dior', 10000)$$,
+  'a trailing space does not change the results ("dior " is one word)'
+);
+
+SELECT ok(
+  (SELECT COUNT(*) FROM public.search_perfumes_unaccent_v2('?!.&', 10)) = 0,
+  'a query of punctuation only returns 0 results'
 );
 
 -- ============================================================
