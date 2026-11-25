@@ -1,4 +1,3 @@
-/* eslint-disable playwright/no-wait-for-timeout -- memory tests require explicit waits to allow GC and heap stabilization */
 import { test, expect, type Page } from "@playwright/test";
 
 const RELOAD_COUNT = 5;
@@ -6,8 +5,14 @@ const RELOAD_COUNT = 5;
 const MAX_HEAP_GROWTH_FACTOR = 3;
 const LOAD_BUDGET_MS = 3000;
 
-/** Reads the used JS heap size; `performance.memory` exists only in Chromium. */
+/**
+ * Reads the used JS heap size after a forced garbage collection, so the figure counts retained
+ * memory only; `performance.memory` exists only in Chromium.
+ */
 async function readUsedHeapBytes(page: Page): Promise<number | undefined> {
+  const session = await page.context().newCDPSession(page);
+  await session.send("HeapProfiler.collectGarbage");
+  await session.detach();
   return page.evaluate(
     () =>
       (globalThis.performance as { memory?: { usedJSHeapSize: number } }).memory
@@ -37,8 +42,6 @@ test.describe("Performance & Memory Audit", () => {
     for (let i = 0; i < RELOAD_COUNT; i++) {
       await page.reload();
       await expect(page.locator("main")).toBeVisible();
-      // Give the garbage collector time to settle between loads.
-      await page.waitForTimeout(1000);
     }
 
     const finalHeap = await readUsedHeapBytes(page);

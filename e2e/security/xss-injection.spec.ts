@@ -1,8 +1,10 @@
-/* eslint-disable playwright/no-wait-for-timeout -- XSS security tests require explicit waits for async DOM mutations after injection */
 import { existsSync } from "node:fs";
 import path from "node:path";
 
 import { test, expect, type Locator, type Page } from "@playwright/test";
+
+import { fillAndSearch } from "../support/autocomplete";
+import { expectHydrated } from "../support/hydration";
 
 // Pre-authenticated session – skips signInAnonymously() + Turnstile captcha.
 // Without this the game shows "No puzzle today" because auth takes >10s in headless mode.
@@ -30,6 +32,7 @@ async function openGameInput(page: Page): Promise<Locator> {
     await closedMessage.isVisible(),
     "Game is closed for this player today.",
   );
+  await expectHydrated(input);
   return input;
 }
 
@@ -41,9 +44,6 @@ test.describe("XSS Injection Prevention", () => {
 
     const maliciousInput = '<script>alert("XSS")</script>';
 
-    await input.fill(maliciousInput);
-    await expect(input).toHaveValue(maliciousInput);
-
     const dialogs: string[] = [];
     page.on("dialog", (dialog) => {
       dialogs.push(dialog.message());
@@ -52,8 +52,11 @@ test.describe("XSS Injection Prevention", () => {
       });
     });
 
+    await fillAndSearch(page, input, maliciousInput);
+    await expect(input).toHaveValue(maliciousInput);
+
     await input.press("Enter");
-    await page.waitForTimeout(1000);
+    await expect(input).toHaveValue(maliciousInput);
 
     expect(dialogs).toHaveLength(0);
   });
@@ -81,8 +84,7 @@ test.describe("XSS Injection Prevention", () => {
     ];
 
     for (const payload of xssPayloads) {
-      await input.fill(payload);
-      await page.waitForTimeout(500);
+      await fillAndSearch(page, input, payload);
 
       const suggestions = page.locator('button[class*="text-left text-sm"]');
       for (const suggestion of await suggestions.all()) {
@@ -124,7 +126,7 @@ test.describe("XSS Injection Prevention", () => {
 
     for (const url of maliciousUrls) {
       await page.goto(url);
-      await page.waitForTimeout(1000);
+      await expect(page.locator("main")).toBeVisible();
       expect(dialogs).toHaveLength(0);
       const pageTitle = await page.title();
       expect(pageTitle).toBeTruthy();
@@ -134,13 +136,13 @@ test.describe("XSS Injection Prevention", () => {
   test("should sanitize perfume data from database", async ({ page }) => {
     const input = await openGameInput(page);
 
-    await input.fill("Chanel");
-    await page.waitForTimeout(1000);
+    await fillAndSearch(page, input, "Chanel");
 
     const suggestions = page.locator('button[class*="text-left text-sm"]');
     await expect(suggestions.first()).toBeVisible();
     await suggestions.first().click();
-    await page.waitForTimeout(2000);
+    // The guess is done once the input is cleared after the server action.
+    await expect(input).toHaveValue("");
 
     await expect(page.locator("main")).toBeVisible();
     await expect(page.locator("main")).not.toContainText("<script");
@@ -169,14 +171,12 @@ test.describe("Input Validation Security", () => {
   }) => {
     const input = await openGameInput(page);
 
-    await input.fill("x");
-    await page.waitForTimeout(1000);
+    await fillAndSearch(page, input, "x");
 
     const suggestions = page.locator('button[class*="text-left text-sm"]');
     await expect(suggestions).toHaveCount(0);
 
-    await input.fill("xy");
-    await page.waitForTimeout(1000);
+    await fillAndSearch(page, input, "xy");
 
     await expect(suggestions).toHaveCount(0);
   });

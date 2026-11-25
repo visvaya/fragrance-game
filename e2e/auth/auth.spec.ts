@@ -1,6 +1,8 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+
+import { expectHydrated } from "../support/hydration";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -48,21 +50,6 @@ test.afterAll(async () => {
   }
 });
 
-/**
- * Waits until React has hydrated the element: it is in the server HTML before its handlers exist,
- * so an early click on a form button would submit the form natively and reload the page. React
- * marks a hydrated element with a `__reactFiber` property.
- */
-async function waitUntilHydrated(page: Page, selector: string): Promise<void> {
-  await page.waitForFunction((css) => {
-    const element = document.querySelector(css);
-    return (
-      element !== null &&
-      Object.keys(element).some((key) => key.startsWith("__reactFiber"))
-    );
-  }, selector);
-}
-
 // Traces, screenshots and videos are uploaded as a public artifact; keep them off for this spec so
 // nothing it handles (the service role key, the test user's session) can end up in one.
 test.use({ screenshot: "off", trace: "off", video: "off" });
@@ -103,7 +90,7 @@ test("Login and Logout", async ({ page }) => {
   );
 
   await page.goto("/auth/login");
-  await waitUntilHydrated(page, 'form button[type="submit"]');
+  await expectHydrated(page.locator('form button[type="submit"]').first());
   // With a Turnstile site key the form also needs a captcha token before it submits. The nightly
   // job sets no site key, so the form has no widget and there is no token to wait for here.
 
@@ -133,7 +120,7 @@ test("Login and Logout", async ({ page }) => {
   await signOutButton.click();
   await reloaded;
 
-  await waitUntilHydrated(page, 'button[aria-label="Menu"]');
+  await expectHydrated(menuButton);
 
   // Sign In button should reappear in the menu
   await menuButton.click();
