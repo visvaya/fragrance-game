@@ -32,7 +32,7 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "lint:markdown": "markdownlint-cli2 \"**/*.md\"",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "start": "next start",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage",

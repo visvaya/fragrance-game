@@ -4,9 +4,11 @@ import {
   type DailyAnswer,
   fetchDailyAnswer,
 } from "../support/admin";
+import { inputIcon, isServerAction } from "../support/autocomplete";
 import { expect, test } from "../support/fresh-player";
+import { expectHydrated } from "../support/hydration";
 
-import type { Page, Request } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 const NO_RESULTS_TEXT = /No results found/i;
 
@@ -20,40 +22,13 @@ async function todaysAnswer(): Promise<DailyAnswer> {
   );
 }
 
-/**
- * Returns the autocomplete input once React has hydrated it. The input is in the server HTML,
- * so it is visible before its handlers exist; text typed then is reset by hydration and starts
- * no search. React marks a hydrated element with a `__reactFiber` property.
- */
-async function hydratedInput(page: Page) {
-  const input = page.getByTestId("game-input");
-  await expect(input).toBeVisible({ timeout: 15_000 });
-  await expect
-    .poll(
-      async () =>
-        input.evaluate((element) =>
-          Object.keys(element).some((key) => key.startsWith("__reactFiber")),
-        ),
-      { timeout: 15_000 },
-    )
-    .toBe(true);
-  return input;
-}
-
 /** Opens the game and returns the autocomplete input once it is ready for typing. */
 async function openGame(page: Page) {
   await page.goto("/en");
-  return hydratedInput(page);
-}
-
-/** Autocomplete icon state: search, loading, error or wrong. */
-function inputIcon(page: Page) {
-  return page.getByTestId("input-icon");
-}
-
-/** A server action call: a POST to the page carrying the `next-action` header. */
-function isServerAction(request: Request): boolean {
-  return request.method() === "POST" && "next-action" in request.headers();
+  const input = page.getByTestId("game-input");
+  await expect(input).toBeVisible({ timeout: 15_000 });
+  await expectHydrated(input);
+  return input;
 }
 
 /** Answers every server action call with a 500 and lets other requests through. */
