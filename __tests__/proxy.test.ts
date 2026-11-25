@@ -49,7 +49,7 @@ vi.mock("next-intl/middleware", () => ({
 
 vi.mock("@/lib/env", () => ({ env: mockEnv }));
 
-vi.mock("@/i18n/routing", () => ({
+vi.mock("@/i18n/routing-config", () => ({
   routing: {},
 }));
 

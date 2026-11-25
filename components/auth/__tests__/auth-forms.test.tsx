@@ -27,7 +27,7 @@ vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({ auth: mockAuth }),
 }));
 vi.mock("@/lib/public-env", () => ({ publicEnv: mockPublicEnv }));
-vi.mock("@/i18n/navigation", () => ({ useRouter: () => mockRouter }));
+vi.mock("@/i18n/routing", () => ({ useRouter: () => mockRouter }));
 vi.mock("@/app/actions/security-actions", () => ({
   validatePasswordSafety: mockSafety,
 }));

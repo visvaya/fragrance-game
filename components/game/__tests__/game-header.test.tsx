@@ -30,9 +30,6 @@ vi.mock("@/hooks/use-scroll-direction", () => ({
 vi.mock("@/i18n/routing", () => ({
   localeNames: { en: "English", pl: "Polski" },
   routing: { defaultLocale: "en", locales: ["en", "pl"] },
-}));
-
-vi.mock("@/i18n/navigation", () => ({
   usePathname: () => "/en",
   useRouter: () => ({
     back: vi.fn(),

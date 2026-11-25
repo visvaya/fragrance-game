@@ -23,8 +23,7 @@ import { toast } from "sonner";
 
 import { useEscapeKey } from "@/hooks/use-escape-key";
 import { useScrollDirection } from "@/hooks/use-scroll-direction";
-import { usePathname, useRouter } from "@/i18n/navigation";
-import { routing, localeNames } from "@/i18n/routing";
+import { usePathname, useRouter, routing, localeNames } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
 import { useUIPreferences } from "./contexts";
@@ -150,6 +149,8 @@ export function GameHeader() {
     }
   }, [showHelpHint, isInputFocused]);
 
+  const currentLang = locale.toUpperCase();
+
   // Disable all tooltips when any dropdown/menu is open to prevent UI overlap
   const anyDropdownOpen = modals.menuOpen || modals.langOpen;
 
@@ -254,7 +255,7 @@ export function GameHeader() {
                   }))
                 }
               >
-                {locale.toUpperCase()}
+                {currentLang}
                 <ChevronDown className="size-3" />
               </button>
             </GameTooltip>
@@ -334,7 +335,7 @@ export function GameHeader() {
               >
                 <div className="flex items-center gap-3">
                   <span className="shrink-0 font-sans text-xs font-semibold text-muted-foreground uppercase">
-                    {locale.toUpperCase()}
+                    {currentLang}
                   </span>
                   {t("language")}
                 </div>

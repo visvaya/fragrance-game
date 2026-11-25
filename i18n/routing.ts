@@ -1,12 +1,8 @@
-import { defineRouting } from "next-intl/routing";
+import { createNavigation } from "next-intl/navigation";
 
-export const routing = defineRouting({
-  // hreflang comes from the page metadata and the sitemap; the middleware's Link header pointed
-  // x-default at "/" and was also sent with 404 responses.
-  alternateLinks: false,
-  defaultLocale: "en",
-  locales: ["en", "pl"],
-});
+import { routing } from "./routing-config";
+
+export { routing } from "./routing-config";
 
 /**
  * Display names for supported locales.
@@ -17,3 +13,5 @@ export const localeNames: Record<string, string> = {
   en: "English",
   pl: "Polski",
 };
+
+export const { usePathname, useRouter } = createNavigation(routing);
