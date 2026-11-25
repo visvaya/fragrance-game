@@ -1,40 +1,69 @@
+// @vitest-environment node
 /**
- * Daily Challenge Generation Algorithm - Integration Tests
+ * The generate-daily cron against a real database: the route, `pick_daily_perfume` and the table
+ * constraints together. The suite deletes every challenge, asset, perfume, brand and concentration,
+ * so it runs only against a local Supabase stack and refuses any other host.
  *
- * SETUP REQUIRED:
- * These tests require a test Supabase database with seed data.
- *
- * Option 1: Development Branch (Recommended)
- * - Create a dev branch: pnpm supabase branches create test-cron
- * - Set TEST_SUPABASE_URL and TEST_SUPABASE_ANON_KEY in .env.test
- *
- * Option 2: Separate Test Project
- * - Create test project via Supabase dashboard
- * - Run migrations on test project
- * - Configure .env.test with test credentials
- *
- * To run: pnpm vitest run app/api/cron/generate-daily/__tests__/algorithm.integration.test.ts
+ * Start the local stack (`supabase start`), then run with its API URL and service role key:
+ * TEST_SUPABASE_URL=http://127.0.0.1:54321 TEST_SUPABASE_SERVICE_ROLE_KEY=<key> \
+ *   pnpm vitest run app/api/cron/generate-daily/__tests__/algorithm.integration.test.ts
  */
 
 import { randomBytes } from "node:crypto";
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { NextRequest } from "next/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createAdminClient } from "@/lib/supabase/server";
+import type { Database, TablesInsert } from "@/types/supabase";
 
-import type { Database } from "@/types/supabase";
-import type { SupabaseClient } from "@supabase/supabase-js";
+// eslint-disable-next-line no-restricted-properties -- integration test environment check
+const testEnv = process.env;
+const {
+  TEST_SUPABASE_SERVICE_ROLE_KEY: TEST_KEY = "",
+  TEST_SUPABASE_URL: TEST_URL = "",
+} = testEnv;
+const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost"]);
 
-const randomHex = (): string => randomBytes(16).toString("hex");
+/** A service role client for the local stack; any other host would have its tables wiped. */
+const localClient = (): SupabaseClient<Database> => {
+  const { hostname } = new URL(TEST_URL);
+  if (!LOCAL_HOSTS.has(hostname)) {
+    throw new Error(
+      `TEST_SUPABASE_URL must point to a local stack, got host ${hostname}`,
+    );
+  }
+  return createClient<Database>(TEST_URL, TEST_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+};
 
-// perfumes.unique_slug is NOT NULL, and the set_unique_slug trigger overwrites whatever an insert
-// passes; the generated types do not know the trigger, so inserts pass this placeholder.
-const SLUG_SET_BY_TRIGGER = "set-by-trigger";
+const db = vi.hoisted(() => ({ client: undefined as unknown }));
+vi.mock("@/lib/supabase/server", () => ({
+  createAdminClient: () => db.client,
+}));
+vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
 
-/** Asset id and six distinct step keys that satisfy the perfume_assets CHECK constraints. */
-const validAssetKeys = () => {
-  const assetId = randomHex();
-  const key = () => `a/${assetId}/${randomHex()}.avif`;
+const { GET } = await import("../route");
+
+const runCron = async () => {
+  const response = await GET(
+    new NextRequest("http://localhost/api/cron/generate-daily", {
+      headers: { authorization: "Bearer test-cron-secret" },
+    }),
+  );
+  return { body: (await response.json()) as unknown, status: response.status };
+};
+
+const isoDate = (daysFromToday: number): string => {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + daysFromToday);
+  return date.toISOString().slice(0, 10);
+};
+
+const assetKeys = () => {
+  const assetId = randomBytes(16).toString("hex");
+  const key = () => `a/${assetId}/${randomBytes(16).toString("hex")}.avif`;
   return {
     asset_random_id: assetId,
     image_key_step_1: key(),
@@ -46,557 +75,183 @@ const validAssetKeys = () => {
   };
 };
 
-// Skip all tests if test database not configured
-const TEST_DB_CONFIGURED =
-  // eslint-disable-next-line no-restricted-properties -- integration test environment check
-  process.env.TEST_SUPABASE_URL && process.env.TEST_SUPABASE_SERVICE_ROLE_KEY;
-
-describe.skipIf(!TEST_DB_CONFIGURED)(
-  "Daily Challenge Generation Algorithm",
+describe.skipIf(!TEST_URL || !TEST_KEY)(
+  "generate-daily on a local database",
   () => {
     let supabase: SupabaseClient<Database>;
-    let testBrandId: string;
-    let testConcentrationId: string;
+    let brandId: string;
+
+    /** Inserts a perfume (eligible unless overridden) and, unless `withAssets` is false, its images. */
+    const addPerfume = async (
+      name: string,
+      overrides: Partial<TablesInsert<"perfumes">> = {},
+      withAssets = true,
+    ): Promise<string> => {
+      const { data, error } = await supabase
+        .from("perfumes")
+        .insert({
+          brand_id: brandId,
+          is_active: true,
+          is_uncertain: false,
+          name,
+          source_record_slug: name,
+          top_notes: ["Bergamot"],
+          // The set_unique_slug trigger overwrites this; the generated types do not know it.
+          unique_slug: "set-by-trigger",
+          xsolve_score: 0.42,
+          ...overrides,
+        })
+        .select("id")
+        .single();
+      if (error) throw new Error(`Seeding ${name} failed: ${error.message}`);
+      if (withAssets) {
+        const assets = await supabase
+          .from("perfume_assets")
+          .insert({ ...assetKeys(), perfume_id: data.id });
+        if (assets.error)
+          throw new Error(`Seeding assets failed: ${assets.error.message}`);
+      }
+      return data.id;
+    };
+
+    const addChallenge = async (
+      perfumeId: string,
+      daysFromToday: number,
+      number: number,
+    ) => {
+      const date = isoDate(daysFromToday);
+      const { error } = await supabase.from("daily_challenges").insert({
+        challenge_date: date,
+        challenge_number: number,
+        grace_deadline_at_utc: `${date}T23:59:59.999Z`,
+        mode: "standard",
+        perfume_id: perfumeId,
+        seed_hash: `test-${number}`,
+        snapshot_metadata: {},
+      });
+      if (error) throw new Error(`Seeding challenge failed: ${error.message}`);
+    };
+
+    const challengesFrom = async (daysFromToday: number) => {
+      const { data, error } = await supabase
+        .from("daily_challenges")
+        .select(
+          "challenge_date, challenge_number, perfume_id, snapshot_metadata",
+        )
+        .gte("challenge_date", isoDate(daysFromToday))
+        .order("challenge_date")
+        .limit(10);
+      if (error) throw new Error(error.message);
+      return data;
+    };
 
     beforeEach(async () => {
-      // Use test database admin client
-      supabase = createAdminClient();
-
-      // Clean up test data before each test
-      await supabase.from("daily_challenges").delete().neq("id", "");
-      await supabase.from("perfume_assets").delete().neq("perfume_id", "");
-      await supabase.from("perfumes").delete().neq("id", "");
-      await supabase.from("brands").delete().neq("id", "");
-      await supabase.from("concentrations").delete().neq("id", "");
-
-      // Seed dependency tables
-      const { data: brand } = await supabase
+      supabase = localClient();
+      db.client = supabase;
+      for (const table of [
+        "daily_challenges",
+        "perfume_assets",
+        "perfumes",
+        "brands",
+      ] as const) {
+        const column = table === "perfume_assets" ? "perfume_id" : "id";
+        const { error } = await supabase
+          .from(table)
+          .delete()
+          .not(column, "is", null);
+        if (error)
+          throw new Error(`Clearing ${table} failed: ${error.message}`);
+      }
+      const { data, error } = await supabase
         .from("brands")
         .insert({ name: "Test Brand", slug: "test-brand" })
-        .select()
+        .select("id")
         .single();
-      const { data: concentration } = await supabase
-        .from("concentrations")
-        .insert({ name: "Eau de Parfum", slug: "edp" })
-        .select()
-        .single();
-
-      if (!brand || !concentration)
-        throw new Error("Failed to seed dependencies");
-      testBrandId = brand.id;
-      testConcentrationId = concentration.id;
+      if (error) throw new Error(`Seeding the brand failed: ${error.message}`);
+      brandId = data.id;
     });
 
-    describe("30-day exclusion pool", () => {
-      it("should select perfume NOT in last 30 days", async () => {
-        // Seed test data: Create some perfumes
-        const { data: perfume1 } = await supabase
-          .from("perfumes")
-          .insert({
-            brand_id: testBrandId,
-            concentration_id: testConcentrationId,
-            gender: "unisex",
-            is_uncertain: false,
-            name: "Test Perfume 1",
-            release_year: 2020,
-            source_record_slug: "test-perfume-1",
-            unique_slug: SLUG_SET_BY_TRIGGER,
-          })
-          .select()
-          .single();
+    it("creates today's and tomorrow's puzzles from eligible perfumes only", async () => {
+      const eligible = [
+        await addPerfume("eligible-a"),
+        await addPerfume("eligible-b"),
+      ];
+      await addPerfume("uncertain", { is_uncertain: true });
+      await addPerfume("inactive", { is_active: false });
+      await addPerfume("no-score", { xsolve_score: null });
+      await addPerfume("no-top-notes", { top_notes: [] });
+      await addPerfume("no-images", {}, false);
 
-        const { data: perfume2 } = await supabase
-          .from("perfumes")
-          .insert({
-            brand_id: testBrandId,
-            concentration_id: testConcentrationId,
-            gender: "unisex",
-            is_uncertain: false,
-            name: "Test Perfume 2",
-            release_year: 2021,
-            source_record_slug: "test-perfume-2",
-            unique_slug: SLUG_SET_BY_TRIGGER,
-          })
-          .select()
-          .single();
+      const run = await runCron();
 
-        expect(perfume1).toBeDefined();
-        expect(perfume2).toBeDefined();
-
-        if (!perfume1 || !perfume2) {
-          throw new Error("Failed to seed test perfumes");
-        }
-
-        // Create assets for both perfumes
-        await supabase.from("perfume_assets").insert([
-          {
-            ...validAssetKeys(),
-            perfume_id: perfume1.id,
-          },
-          {
-            ...validAssetKeys(),
-            perfume_id: perfume2.id,
-          },
-        ]);
-
-        // Mark perfume1 as used in last 30 days
-        const usedDate = new Date();
-        usedDate.setUTCDate(usedDate.getUTCDate() - 15); // 15 days ago
-
-        await supabase.from("daily_challenges").insert({
-          challenge_date: usedDate.toISOString().slice(0, 10),
-          challenge_number: 1,
-          grace_deadline_at_utc: usedDate.toISOString(),
-          mode: "standard",
-          perfume_id: perfume1.id,
-          seed_hash: "test-hash-1",
-          snapshot_metadata: {},
-        });
-
-        // Generate challenge for today
-        const { data: candidates } = await supabase
-          .from("perfume_assets")
-          .select("perfume_id, perfumes!inner(is_uncertain)")
-          .not("image_key_step_1", "is", null)
-          .eq("perfumes.is_uncertain", false);
-
-        expect(candidates).toBeDefined();
-        expect(candidates!.length).toBeGreaterThan(0);
-
-        // Verify perfume1 would be excluded by checking recent challenges
-        const { data: recentChallenges } = await supabase
-          .from("daily_challenges")
-          .select("perfume_id")
-          .gte(
-            "challenge_date",
-            new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-              .toISOString()
-              .split("T")[0],
-          );
-
-        const excludeIds = recentChallenges?.map((c) => c.perfume_id) ?? [];
-        expect(excludeIds).toContain(perfume1.id);
-        expect(excludeIds).not.toContain(perfume2.id);
-      });
-
-      it("should handle empty exclusion list (first challenge ever)", async () => {
-        // Ensure no challenges exist
-        await supabase.from("daily_challenges").delete().neq("id", "");
-
-        // Create a test perfume with assets
-        const { data: perfume } = await supabase
-          .from("perfumes")
-          .insert({
-            brand_id: testBrandId,
-            concentration_id: testConcentrationId,
-            gender: "unisex",
-            is_uncertain: false,
-            name: "First Perfume",
-            release_year: 2020,
-            source_record_slug: "first-perfume",
-            unique_slug: SLUG_SET_BY_TRIGGER,
-          })
-          .select()
-          .single();
-
-        expect(perfume).toBeDefined();
-
-        if (!perfume) {
-          throw new Error("Failed to seed test perfume");
-        }
-
-        await supabase.from("perfume_assets").insert({
-          ...validAssetKeys(),
-          perfume_id: perfume.id,
-        });
-
-        // Query should work with empty exclusion
-        const { data: candidates } = await supabase
-          .from("perfume_assets")
-          .select("perfume_id, perfumes!inner(is_uncertain)")
-          .not("image_key_step_1", "is", null)
-          .eq("perfumes.is_uncertain", false);
-
-        expect(candidates).toBeDefined();
-        expect(candidates!.length).toBeGreaterThan(0);
-        expect(candidates!.some((c) => c.perfume_id === perfume.id)).toBe(true);
-      });
+      expect(run.status).toBe(200);
+      const created = await challengesFrom(0);
+      expect(
+        created.map((c) => [c.challenge_date, c.challenge_number]),
+      ).toEqual([
+        [isoDate(0), 1],
+        [isoDate(1), 2],
+      ]);
+      expect(new Set(created.map((c) => c.perfume_id))).toEqual(
+        new Set(eligible),
+      );
+      expect(created.map((c) => c.snapshot_metadata)).toEqual([
+        { xsolve: 0.42 },
+        { xsolve: 0.42 },
+      ]);
     });
 
-    describe("7-day fallback pool", () => {
-      it("should fallback to 7-day exclusion when 30-day pool exhausted", async () => {
-        // This test requires having exactly 2 perfumes:
-        // - One used 10 days ago (excluded from 30-day, included in 7-day fallback)
-        // - One used 35 days ago (included in both pools)
+    it("leaves existing puzzles alone on a second run", async () => {
+      await addPerfume("eligible-a");
+      await addPerfume("eligible-b");
+      await addPerfume("eligible-c");
+      await runCron();
+      const before = await challengesFrom(0);
 
-        const { data: perfumeOld } = await supabase
-          .from("perfumes")
-          .insert({
-            brand_id: testBrandId,
-            concentration_id: testConcentrationId,
-            gender: "unisex",
-            is_uncertain: false,
-            name: "Old Perfume",
-            release_year: 2015,
-            source_record_slug: "old-perfume",
-            unique_slug: SLUG_SET_BY_TRIGGER,
-          })
-          .select()
-          .single();
+      const run = await runCron();
 
-        const { data: perfumeRecent } = await supabase
-          .from("perfumes")
-          .insert({
-            brand_id: testBrandId,
-            concentration_id: testConcentrationId,
-            gender: "unisex",
-            is_uncertain: false,
-            name: "Recent Perfume",
-            release_year: 2023,
-            source_record_slug: "recent-perfume",
-            unique_slug: SLUG_SET_BY_TRIGGER,
-          })
-          .select()
-          .single();
-
-        expect(perfumeOld).toBeDefined();
-        expect(perfumeRecent).toBeDefined();
-
-        if (!perfumeOld || !perfumeRecent) {
-          throw new Error("Failed to seed test perfumes");
-        }
-
-        // Create assets
-        await supabase.from("perfume_assets").insert([
-          {
-            ...validAssetKeys(),
-            perfume_id: perfumeOld.id,
-          },
-          {
-            ...validAssetKeys(),
-            perfume_id: perfumeRecent.id,
-          },
-        ]);
-
-        // Mark perfumeRecent as used 10 days ago
-        const date10DaysAgo = new Date();
-        date10DaysAgo.setUTCDate(date10DaysAgo.getUTCDate() - 10);
-
-        await supabase.from("daily_challenges").insert({
-          challenge_date: date10DaysAgo.toISOString().slice(0, 10),
-          challenge_number: 1,
-          grace_deadline_at_utc: date10DaysAgo.toISOString(),
-          mode: "standard",
-          perfume_id: perfumeRecent.id,
-          seed_hash: "test-hash-recent",
-          snapshot_metadata: {},
-        });
-
-        // 7-day exclusion query
-        const shortExclusionDate = new Date();
-        shortExclusionDate.setUTCDate(shortExclusionDate.getUTCDate() - 7);
-
-        const { data: recent7 } = await supabase
-          .from("daily_challenges")
-          .select("perfume_id")
-          .gte(
-            "challenge_date",
-            shortExclusionDate.toISOString().split("T")[0],
-          );
-
-        const excludeIds7 = recent7?.map((c) => c.perfume_id) ?? [];
-
-        // perfumeRecent should NOT be in 7-day exclusion (used 10 days ago)
-        expect(excludeIds7).not.toContain(perfumeRecent.id);
+      expect(run.body).toMatchObject({
+        results: [{ status: "exists" }, { status: "exists" }],
       });
+      expect(await challengesFrom(0)).toEqual(before);
     });
 
-    describe("challenge number sequencing", () => {
-      it("should increment challenge_number sequentially", async () => {
-        const { data: perfume } = await supabase
-          .from("perfumes")
-          .insert({
-            brand_id: testBrandId,
-            concentration_id: testConcentrationId,
-            gender: "unisex",
-            is_uncertain: false,
-            name: "Sequence Perfume",
-            release_year: 2020,
-            source_record_slug: "sequence-perfume",
-            unique_slug: SLUG_SET_BY_TRIGGER,
-          })
-          .select()
-          .single();
+    it("numbers new puzzles after the highest existing number", async () => {
+      const used = await addPerfume("used-long-ago");
+      await addPerfume("eligible-a");
+      await addPerfume("eligible-b");
+      await addChallenge(used, -60, 41);
 
-        expect(perfume).toBeDefined();
+      await runCron();
 
-        if (!perfume) {
-          throw new Error("Failed to seed test perfume");
-        }
-
-        await supabase.from("perfume_assets").insert({
-          ...validAssetKeys(),
-          perfume_id: perfume.id,
-        });
-
-        // Create first challenge
-        const { data: challenge1 } = await supabase
-          .from("daily_challenges")
-          .insert({
-            challenge_date: "2026-02-14",
-            challenge_number: 1,
-            grace_deadline_at_utc: "2026-02-14T23:59:59Z",
-            mode: "standard",
-            perfume_id: perfume.id,
-            seed_hash: "seq-hash-2",
-            snapshot_metadata: {},
-          })
-          .select()
-          .single();
-
-        expect(challenge1?.challenge_number).toBe(1);
-
-        // Get max challenge number
-        const { data: maxChallenge } = await supabase
-          .from("daily_challenges")
-          .select("challenge_number")
-          .order("challenge_number", { ascending: false })
-          .limit(1)
-          .single();
-
-        const nextNumber = (maxChallenge?.challenge_number ?? 0) + 1;
-        expect(nextNumber).toBe(2);
-      });
-
-      it("should start at 1 when no challenges exist", async () => {
-        await supabase.from("daily_challenges").delete().neq("id", "");
-
-        const { data: maxChallenge } = await supabase
-          .from("daily_challenges")
-          .select("challenge_number")
-          .order("challenge_number", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        const nextNumber = (maxChallenge?.challenge_number ?? 0) + 1;
-        expect(nextNumber).toBe(1);
-      });
+      const created = await challengesFrom(0);
+      expect(created.map((c) => c.challenge_number)).toEqual([42, 43]);
     });
 
-    describe("date handling", () => {
-      it("should format challenge_date as YYYY-MM-DD", () => {
-        const date = new Date("2026-02-14T10:30:00Z");
-        const dateString = date.toISOString().split("T")[0];
+    it("falls back to the 7-day window when the 30-day pool is empty", async () => {
+      const usedTenDaysAgo = await addPerfume("used-ten-days-ago");
+      const usedTwentyDaysAgo = await addPerfume("used-twenty-days-ago");
+      await addChallenge(usedTwentyDaysAgo, -20, 1);
+      await addChallenge(usedTenDaysAgo, -10, 2);
 
-        expect(dateString).toBe("2026-02-14");
-        expect(dateString).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      });
+      const run = await runCron();
 
-      it("should handle UTC midnight correctly", () => {
-        const midnight = new Date("2026-02-14T00:00:00Z");
-        const dateString = midnight.toISOString().split("T")[0];
-
-        expect(dateString).toBe("2026-02-14");
-
-        // One second before midnight (previous day)
-        const beforeMidnight = new Date("2026-02-13T23:59:59Z");
-        const beforeString = beforeMidnight.toISOString().split("T")[0];
-
-        expect(beforeString).toBe("2026-02-13");
-      });
-
-      it("should set grace_deadline_at_utc to end of day", () => {
-        const dateString = "2026-02-14";
-        const deadline = new Date(dateString);
-        deadline.setUTCHours(23, 59, 59, 999);
-
-        const isoString = deadline.toISOString();
-
-        expect(isoString).toContain("23:59:59");
-        expect(isoString.startsWith("2026-02-14")).toBe(true);
-      });
+      expect(run.status).toBe(200);
+      const created = await challengesFrom(0);
+      expect(created).toHaveLength(2);
+      expect(new Set(created.map((c) => c.perfume_id))).toEqual(
+        new Set([usedTenDaysAgo, usedTwentyDaysAgo]),
+      );
     });
 
-    describe("asset validation", () => {
-      it("should only select perfumes with image assets", async () => {
-        const { data: perfumeWithAsset } = await supabase
-          .from("perfumes")
-          .insert({
-            brand_id: testBrandId,
-            concentration_id: testConcentrationId,
-            gender: "unisex",
-            is_uncertain: false,
-            name: "With Asset",
-            release_year: 2020,
-            source_record_slug: "with-asset",
-            unique_slug: SLUG_SET_BY_TRIGGER,
-          })
-          .select()
-          .single();
+    it("fails without inserting when no perfume is left in the 7-day window", async () => {
+      const usedYesterday = await addPerfume("used-yesterday");
+      await addChallenge(usedYesterday, -1, 1);
 
-        const { data: perfumeWithoutAsset } = await supabase
-          .from("perfumes")
-          .insert({
-            brand_id: testBrandId,
-            concentration_id: testConcentrationId,
-            gender: "unisex",
-            is_uncertain: false,
-            name: "Without Asset",
-            release_year: 2021,
-            source_record_slug: "without-asset",
-            unique_slug: SLUG_SET_BY_TRIGGER,
-          })
-          .select()
-          .single();
+      const run = await runCron();
 
-        expect(perfumeWithAsset).toBeDefined();
-        expect(perfumeWithoutAsset).toBeDefined();
-
-        if (!perfumeWithAsset || !perfumeWithoutAsset) {
-          throw new Error("Failed to seed test perfumes");
-        }
-
-        // Only create asset for first perfume
-        await supabase.from("perfume_assets").insert({
-          ...validAssetKeys(),
-          perfume_id: perfumeWithAsset.id,
-        });
-
-        // Query with asset requirement
-        const { data: candidates } = await supabase
-          .from("perfume_assets")
-          .select("perfume_id, perfumes!inner(is_uncertain)")
-          .not("image_key_step_1", "is", null)
-          .eq("perfumes.is_uncertain", false);
-
-        const candidateIds = candidates?.map((c) => c.perfume_id) ?? [];
-
-        expect(candidateIds).toContain(perfumeWithAsset.id);
-        expect(candidateIds).not.toContain(perfumeWithoutAsset.id);
-      });
-
-      it("should exclude uncertain perfumes", async () => {
-        const { data: certainPerfume } = await supabase
-          .from("perfumes")
-          .insert({
-            brand_id: testBrandId,
-            concentration_id: testConcentrationId,
-            gender: "unisex",
-            is_uncertain: false,
-            name: "Certain Perfume",
-            release_year: 2020,
-            source_record_slug: "certain-perfume",
-            unique_slug: SLUG_SET_BY_TRIGGER,
-          })
-          .select()
-          .single();
-
-        const { data: uncertainPerfume } = await supabase
-          .from("perfumes")
-          .insert({
-            brand_id: testBrandId,
-            concentration_id: testConcentrationId,
-            gender: "unisex",
-            is_uncertain: true,
-            name: "Uncertain Perfume",
-            release_year: 2021,
-            source_record_slug: "uncertain-perfume",
-            unique_slug: SLUG_SET_BY_TRIGGER,
-          })
-          .select()
-          .single();
-
-        expect(certainPerfume).toBeDefined();
-        expect(uncertainPerfume).toBeDefined();
-
-        if (!certainPerfume || !uncertainPerfume) {
-          throw new Error("Failed to seed test perfumes");
-        }
-
-        // Create assets for both
-        await supabase.from("perfume_assets").insert([
-          {
-            ...validAssetKeys(),
-            perfume_id: certainPerfume.id,
-          },
-          {
-            ...validAssetKeys(),
-            perfume_id: uncertainPerfume.id,
-          },
-        ]);
-
-        // Query excluding uncertain
-        const { data: candidates } = await supabase
-          .from("perfume_assets")
-          .select("perfume_id, perfumes!inner(is_uncertain)")
-          .not("image_key_step_1", "is", null)
-          .eq("perfumes.is_uncertain", false);
-
-        const candidateIds = candidates?.map((c) => c.perfume_id) ?? [];
-
-        expect(candidateIds).toContain(certainPerfume.id);
-        expect(candidateIds).not.toContain(uncertainPerfume.id);
-      });
-    });
-
-    describe("duplicate prevention", () => {
-      it("should not create duplicate challenges for same date", async () => {
-        const { data: perfume } = await supabase
-          .from("perfumes")
-          .insert({
-            brand_id: testBrandId,
-            concentration_id: testConcentrationId,
-            gender: "unisex",
-            is_uncertain: false,
-            name: "Duplicate Perfume",
-            release_year: 2020,
-            source_record_slug: "duplicate-perfume",
-            unique_slug: SLUG_SET_BY_TRIGGER,
-          })
-          .select()
-          .single();
-
-        expect(perfume).toBeDefined();
-
-        if (!perfume) {
-          throw new Error("Failed to seed test perfume");
-        }
-
-        await supabase.from("perfume_assets").insert({
-          ...validAssetKeys(),
-          perfume_id: perfume.id,
-        });
-
-        const dateString = "2026-02-14";
-
-        // Create first challenge
-        const { data: challenge1 } = await supabase
-          .from("daily_challenges")
-          .insert({
-            challenge_date: dateString,
-            challenge_number: 1,
-            grace_deadline_at_utc: "2026-02-14T23:59:59Z",
-            mode: "standard",
-            perfume_id: perfume.id,
-            seed_hash: "dup-hash",
-            snapshot_metadata: {},
-          })
-          .select()
-          .single();
-
-        expect(challenge1).toBeDefined();
-
-        // Try to create duplicate (should be handled by unique constraint or query check)
-        const { data: existing } = await supabase
-          .from("daily_challenges")
-          .select("id, challenge_number, perfume_id")
-          .eq("challenge_date", dateString)
-          .limit(1)
-          .single();
-
-        expect(existing).toBeDefined();
-        expect(existing?.id).toBe(challenge1?.id);
-      });
+      expect(run.status).toBe(500);
+      expect(await challengesFrom(0)).toEqual([]);
     });
   },
 );
