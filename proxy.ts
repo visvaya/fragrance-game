@@ -7,7 +7,7 @@ import createMiddleware from "next-intl/middleware";
 import { env } from "@/lib/env";
 import { resolveAssetsHost } from "@/lib/game/asset-url";
 
-import { routing } from "./i18n/routing";
+import { routing } from "./i18n/routing-config";
 
 const redis = Redis.fromEnv();
 
