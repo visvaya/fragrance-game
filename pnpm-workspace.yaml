@@ -18,7 +18,7 @@ minimumReleaseAgeStrict: true
 # tools that read only one document (dependency graphs, SBOM generators) take for the whole file.
 pmOnFail: ignore
 
-# pnpm 11 reads allowBuilds; pnpm 9/10 (Vercel picks pnpm from lockfileVersion) read onlyBuiltDependencies.
+# Packages whose install scripts may run.
 allowBuilds:
   "@parcel/watcher": true
   "@playwright/browser-chromium": true
@@ -32,21 +32,6 @@ allowBuilds:
   "unix-dgram": true
   "unrs-resolver": true
 
-onlyBuiltDependencies:
-  - "@parcel/watcher"
-  - "@playwright/browser-chromium"
-  - "@sentry/cli"
-  - "@swc/core"
-  - core-js
-  - esbuild
-  - protobufjs
-  - sharp
-  - supabase
-  - unix-dgram
-  - unrs-resolver
-
-# pnpm 11 ignores the "pnpm" field in package.json; pnpm 10+ reads these from here.
-# The copy in package.json stays for pnpm 9. Keep both in sync.
 overrides:
   "minimatch@>=10.0.0 <10.2.1": ">=10.2.1"
   "rollup@>=4.0.0 <4.59.0": ">=4.59.0"

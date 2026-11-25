@@ -67,6 +67,7 @@ def test_etl_counts_a_perfume_whose_brand_could_not_be_stored() -> None:
         }
     )
     saved: list[dict[str, Any]] = []
+    pipeline._record_import = MagicMock()
     pipeline.prepopulate_cache = MagicMock()
     pipeline._batch_upsert = saved.extend
 
@@ -140,3 +141,103 @@ def test_etl_prepopulates_every_lookup_row_past_the_response_cap() -> None:
 
     assert len(pipeline.db_cache["brands"]) == 2500
     assert pipeline.db_cache["brands"]["brand 2499"] == "id-2499"
+
+
+def _duplicates_frame(counts: list[int]) -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "Brand": ["B"] * len(counts),
+            "Name": ["N"] * len(counts),
+            "Concentration": ["EDP"] * len(counts),
+            "Release Year": [2020] * len(counts),
+            "Rating Count": counts,
+            "fingerprint_strict": ["same"] * len(counts),
+            "fingerprint_loose": ["loose"] * len(counts),
+        }
+    )
+
+
+def test_find_duplicates_keeps_the_row_with_most_ratings() -> None:
+    pairs = etl.find_duplicates(_duplicates_frame([5, 50]))
+
+    assert [(kept["Rating Count"], dropped["Rating Count"]) for kept, dropped in pairs] == [(50, 5)]
+
+
+def test_find_duplicates_is_empty_without_duplicates() -> None:
+    frame = _duplicates_frame([5, 50])
+    frame["fingerprint_strict"] = ["a", "b"]
+
+    assert etl.find_duplicates(frame) == []
+
+
+def test_find_duplicates_reports_each_dropped_row_of_a_three_way_duplicate() -> None:
+    pairs = etl.find_duplicates(_duplicates_frame([5, 50, 20]))
+
+    assert [(kept["Rating Count"], dropped["Rating Count"]) for kept, dropped in pairs] == [
+        (50, 20),
+        (50, 5),
+    ]
+
+
+def test_catalog_version_is_the_sha256_of_the_source() -> None:
+    assert etl.catalog_version(b"abc") == (
+        "sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    )
+
+
+def _recording_pipeline(counts: list[int]) -> Any:
+    pipeline = etl.EtlPipeline("dummy.csv")
+    pipeline.catalog_version = "sha256:x"
+    pipeline.duplicates = etl.find_duplicates(_duplicates_frame(counts))
+    return pipeline
+
+
+def test_record_import_links_raw_rows_and_conflicts_to_the_run() -> None:
+    pipeline = _recording_pipeline([5, 50, 20])
+    with patch.object(etl, "supabase") as client:
+        tables = {
+            name: MagicMock() for name in ("import_runs", "raw_import_rows", "import_conflicts")
+        }
+        client.table.side_effect = tables.__getitem__
+        tables["import_runs"].insert.return_value.execute.return_value.data = [{"id": "run-1"}]
+        tables["raw_import_rows"].insert.return_value.execute.return_value.data = [
+            {"id": "raw-1"},
+            {"id": "raw-2"},
+        ]
+        pipeline._record_import()
+
+    tables["import_runs"].insert.assert_called_once_with({"catalog_version": "sha256:x"})
+    raw_rows = tables["raw_import_rows"].insert.call_args.args[0]
+    assert {row["import_run_id"] for row in raw_rows} == {"run-1"}
+    assert [row["raw_json"]["Rating Count"] for row in raw_rows] == [20, 5]
+    conflicts = tables["import_conflicts"].insert.call_args.args[0]
+    assert [(c["import_run_id"], c["raw_row_id"]) for c in conflicts] == [
+        ("run-1", "raw-1"),
+        ("run-1", "raw-2"),
+    ]
+    assert conflicts[0]["conflict_type"] == "duplicate_strict_fingerprint"
+    assert conflicts[0]["details"]["Rating Count"] == 50
+    assert conflicts[0]["details"]["dropped_rating_count"] == 20
+    assert pipeline.failed_records == 0
+
+
+def test_record_import_stops_when_the_run_cannot_be_stored() -> None:
+    pipeline = _recording_pipeline([5, 50])
+    with patch.object(etl, "supabase") as client:
+        client.table.return_value.insert.return_value.execute.side_effect = RuntimeError("denied")
+        with pytest.raises(RuntimeError, match="Could not record the import run"):
+            pipeline._record_import()
+
+
+def test_record_import_counts_conflicts_that_could_not_be_stored() -> None:
+    pipeline = _recording_pipeline([5, 50, 20])
+    with patch.object(etl, "supabase") as client:
+        tables = {
+            name: MagicMock() for name in ("import_runs", "raw_import_rows", "import_conflicts")
+        }
+        client.table.side_effect = tables.__getitem__
+        tables["import_runs"].insert.return_value.execute.return_value.data = [{"id": "run-1"}]
+        tables["raw_import_rows"].insert.return_value.execute.side_effect = RuntimeError("denied")
+        pipeline._record_import()
+
+    assert pipeline.failed_records == 2
