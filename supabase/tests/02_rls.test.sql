@@ -205,17 +205,19 @@ SELECT ok(
 );
 
 -- ============================================================
--- anon CAN SELECT from public views
+-- client roles have no access to the public views (read by the server with service_role)
 -- ============================================================
 
 SELECT ok(
-  has_table_privilege('anon', 'public.perfumes_public', 'SELECT'),
-  'anon can SELECT from perfumes_public view'
+  NOT has_table_privilege('anon', 'public.perfumes_public', 'SELECT,INSERT,UPDATE,DELETE')
+  AND NOT has_table_privilege('authenticated', 'public.perfumes_public', 'SELECT,INSERT,UPDATE,DELETE'),
+  'client roles have no privileges on perfumes_public view'
 );
 
 SELECT ok(
-  has_table_privilege('anon', 'public.daily_challenges_public', 'SELECT'),
-  'anon can SELECT from daily_challenges_public view'
+  NOT has_table_privilege('anon', 'public.daily_challenges_public', 'SELECT,INSERT,UPDATE,DELETE')
+  AND NOT has_table_privilege('authenticated', 'public.daily_challenges_public', 'SELECT,INSERT,UPDATE,DELETE'),
+  'client roles have no privileges on daily_challenges_public view'
 );
 
 -- ============================================================

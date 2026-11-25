@@ -371,8 +371,6 @@
 10 acl | relation daily_challenges_challenge_number_seq anon=SELECT
 10 acl | relation daily_challenges_challenge_number_seq authenticated=SELECT
 10 acl | relation daily_challenges_challenge_number_seq service_role=SELECT,UPDATE,USAGE
-10 acl | relation daily_challenges_public anon=SELECT
-10 acl | relation daily_challenges_public authenticated=SELECT
 10 acl | relation daily_challenges_public service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
 10 acl | relation game_results authenticated=SELECT
 10 acl | relation game_results service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
@@ -389,8 +387,6 @@
 10 acl | relation perfume_assets service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
 10 acl | relation perfume_autocomplete_cache service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
 10 acl | relation perfumes service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
-10 acl | relation perfumes_public anon=SELECT
-10 acl | relation perfumes_public authenticated=SELECT
 10 acl | relation perfumes_public service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
 10 acl | relation player_auth_links service_role=DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
 10 acl | relation player_streaks authenticated=SELECT

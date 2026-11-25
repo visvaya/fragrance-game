@@ -367,6 +367,13 @@
   },
   "NotFound": {
     "title": "404: nie znaleziono strony",
-    "description": "Strona, której szukasz, nie istnieje."
+    "description": "Strona, której szukasz, nie istnieje.",
+    "backToGame": "Wróć do dzisiejszej gry"
+  },
+  "GlobalError": {
+    "title": "Coś poszło nie tak",
+    "description": "Nieoczekiwany błąd przerwał grę. Spróbuj ponownie albo wróć do dzisiejszej gry.",
+    "retry": "Spróbuj ponownie",
+    "backToGame": "Wróć do dzisiejszej gry"
   }
 }
