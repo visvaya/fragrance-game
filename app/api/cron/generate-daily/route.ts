@@ -5,16 +5,10 @@ import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 
 import { env } from "@/lib/env";
+import type { ChallengeSnapshot } from "@/lib/game/challenge-snapshot";
 import { createAdminClient } from "@/lib/supabase/server";
 
 import type { TablesInsert } from "@/types/supabase";
-
-// One challenge per date: the exclusion windows (30 and 7 days) plus pre-generated days stay far
-// below this.
-const RECENT_CHALLENGES_LIMIT = 100;
-// The whole candidate pool is fetched and one perfume picked at random. PostgREST caps a response
-// at 1000 rows anyway; a larger pool needs the random pick in SQL, or some perfumes never come up.
-const CANDIDATE_POOL_LIMIT = 1000;
 
 /**
  * Vercel Cron Job: Generate Daily Challenge
@@ -102,34 +96,17 @@ async function ensureChallenge(
 
   console.warn(`[CRON] Generating missing challenge for ${dateString}...`);
 
-  // 2-3. Candidates outside the last 30 days; if the pool is exhausted, outside the last 7.
-  const primary = await fetchCandidates(
-    supabase,
-    await fetchRecentPerfumeIds(supabase, 30),
-  );
-  if (primary.length === 0) {
+  // 2-4. A perfume not used in the last 30 days; if the pool is exhausted, in the last 7.
+  const primary = await pickPerfume(supabase, 30);
+  if (!primary) {
     console.warn(
       `[CRON] Pool exhausted for ${dateString}. Retrying with 7-day exclusion.`,
     );
   }
-  const candidates =
-    primary.length > 0
-      ? primary
-      : await fetchCandidates(
-          supabase,
-          await fetchRecentPerfumeIds(supabase, 7),
-        );
+  const selected = primary ?? (await pickPerfume(supabase, 7));
 
-  if (candidates.length === 0) {
-    throw new Error(`No eligible perfumes found for ${dateString}.`);
-  }
-
-  // 4. Random Selection
-  const randomBuffer = new Uint32Array(1);
-  crypto.getRandomValues(randomBuffer);
-  const selected = candidates[(randomBuffer[0] ?? 0) % candidates.length];
   if (!selected) {
-    throw new Error(`Random pick out of range for ${dateString}.`);
+    throw new Error(`No eligible perfumes found for ${dateString}.`);
   }
 
   // 5. Get Next Challenge Number
@@ -156,7 +133,10 @@ async function ensureChallenge(
     mode: "standard",
     perfume_id: selected.perfume_id,
     seed_hash: `auto-${Date.now()}`,
-    snapshot_metadata: {},
+    // The difficulty the puzzle is published with, so a later catalogue import cannot rescore it.
+    snapshot_metadata: {
+      xsolve: selected.xsolve_score,
+    } satisfies ChallengeSnapshot,
   } satisfies TablesInsert<"daily_challenges">;
 
   const queryResult5 = await supabase
@@ -184,64 +164,29 @@ async function ensureChallenge(
   };
 }
 
-const PerfumeIdRows = z.array(z.object({ perfume_id: z.string() }));
+const PickedPerfume = z
+  .object({ perfume_id: z.string(), xsolve_score: z.number() })
+  .nullable();
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** Perfumes used by challenges dated within the last `days` days (future dates included). */
-async function fetchRecentPerfumeIds(
+/**
+ * One eligible perfume drawn at random in the database (`pick_daily_perfume`), skipping perfumes
+ * used by challenges dated within the last `days` days (future dates included); null when none is
+ * left. The draw runs in SQL because a PostgREST response stops at 1000 rows.
+ */
+async function pickPerfume(
   supabase: ReturnType<typeof createAdminClient>,
   days: number,
-): Promise<string[]> {
+) {
   const since = new Date();
   since.setUTCDate(since.getUTCDate() - days);
   const result = (await supabase
-    .from("daily_challenges")
-    .select("perfume_id")
-    .gte("challenge_date", since.toISOString().slice(0, 10))
-    .limit(RECENT_CHALLENGES_LIMIT)) as {
-    data: unknown;
-    error: { message: string } | null;
-  };
-  // An unreadable exclusion list would silently allow a recent repeat.
+    .rpc("pick_daily_perfume", {
+      exclude_since: z.iso.date().parse(since.toISOString().slice(0, 10)),
+    })
+    .maybeSingle()) as { data: unknown; error: { message: string } | null };
+  // A failed draw must not fall through to the shorter exclusion window.
   if (result.error) {
-    throw new Error(`Recent challenges lookup failed: ${result.error.message}`);
+    throw new Error(`Perfume pick failed: ${result.error.message}`);
   }
-  // Defense-in-depth: only UUIDs go into the filter string below.
-  return PerfumeIdRows.parse(result.data ?? [])
-    .map((challenge) => challenge.perfume_id)
-    .filter((id) => UUID_PATTERN.test(id));
-}
-
-/**
- * Perfumes eligible for a puzzle: published images, verified, active, with a difficulty score
- * (the game cannot load a puzzle without it) and with notes (only `top_notes` needs checking:
- * linear perfumes keep their flat list there, and no perfume has middle or base notes alone).
- */
-async function fetchCandidates(
-  supabase: ReturnType<typeof createAdminClient>,
-  excludeIds: string[],
-): Promise<{ perfume_id: string }[]> {
-  const baseQuery = supabase
-    .from("perfume_assets")
-    .select("perfume_id, perfumes!inner(is_uncertain)")
-    .not("image_key_step_1", "is", null)
-    .eq("perfumes.is_uncertain", false)
-    .eq("perfumes.is_active", true)
-    .not("perfumes.xsolve_score", "is", null)
-    .filter("perfumes.top_notes", "neq", "{}")
-    .limit(CANDIDATE_POOL_LIMIT);
-  const query =
-    excludeIds.length > 0
-      ? baseQuery.not("perfume_id", "in", `(${excludeIds.join(",")})`)
-      : baseQuery;
-  const result = (await query) as {
-    data: unknown;
-    error: { message: string } | null;
-  };
-  if (result.error) {
-    throw new Error(`Candidate lookup failed: ${result.error.message}`);
-  }
-  return PerfumeIdRows.parse(result.data ?? []);
+  return PickedPerfume.parse(result.data);
 }

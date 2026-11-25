@@ -820,6 +820,13 @@ export type Database = {
         Returns: Json;
       };
       normalize_search_text: { Args: { input_text: string }; Returns: string };
+      pick_daily_perfume: {
+        Args: { exclude_since: string };
+        Returns: {
+          perfume_id: string;
+          xsolve_score: number;
+        }[];
+      };
       refresh_autocomplete_cache: {
         Args: never;
         Returns: {

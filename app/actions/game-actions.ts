@@ -37,6 +37,7 @@ import {
   mapPerfumeDetails,
 } from "@/lib/game/guess-history";
 import { gameResultValues } from "@/lib/game/game-result";
+import { challengeXsolve } from "@/lib/game/challenge-snapshot";
 import { calculateBaseScore, calculateFinalScore } from "@/lib/game/scoring";
 import {
   insertGameSession,
@@ -238,14 +239,19 @@ async function beginMove(
 }
 
 const challengeTimingSchema = z
-  .object({ grace_deadline_at_utc: z.string(), perfume_id: z.string() })
+  .object({
+    grace_deadline_at_utc: z.string(),
+    perfume_id: z.string(),
+    // Parsed by challengeXsolve, which treats a missing snapshot as an old challenge.
+    snapshot_metadata: z.unknown().optional(),
+  })
   .nullable();
 
-/** Perfume and grace deadline of a challenge, read with the service-role client; null when missing. */
+/** Perfume, grace deadline and snapshot of a challenge, read with the service-role client; null when missing. */
 async function fetchChallengeTiming(challengeId: string) {
   const { data } = await createAdminClient()
     .from("daily_challenges")
-    .select("perfume_id, grace_deadline_at_utc")
+    .select("perfume_id, grace_deadline_at_utc, snapshot_metadata")
     .eq("id", challengeId)
     .single();
   return challengeTimingSchema.parse(data);
@@ -390,10 +396,11 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     throw new Error("Perfume not found for challenge");
   }
 
-  // CRITICAL: xsolve_score must be present for difficulty calculation
-  // The daily cron draws only perfumes with a score (generate-daily route, fetchCandidates),
-  // but we validate defensively to catch any manual insertions or bugs.
-  if (perfume.xsolve_score == null) {
+  // CRITICAL: xsolve must be present for difficulty calculation
+  // The daily cron draws only perfumes with a score (pick_daily_perfume) and stores it with the
+  // challenge, but we validate defensively to catch any manual insertions or bugs.
+  const xsolve = challengeXsolve(data.snapshot_metadata, perfume.xsolve_score);
+  if (xsolve == null) {
     throw new Error(
       `Perfume ${perfume.name} (ID: ${perfumeId}) has no xsolve_score. ` +
         "Only perfumes with calculated difficulty scores can be used in challenges.",
@@ -404,7 +411,7 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
     ...data,
     id,
     revealed: buildSessionClues(toClueAnswer(perfume), NEW_SESSION, []),
-    xsolve: perfume.xsolve_score,
+    xsolve,
   };
 }
 
@@ -871,7 +878,11 @@ export async function submitGuess(
       .eq("id", challenge.perfume_id)
       .single()) as { data: { xsolve_score: number } | null };
 
-    const xScore = targetPerfume?.xsolve_score ?? 0;
+    const xScore =
+      challengeXsolve(
+        challenge.snapshot_metadata,
+        targetPerfume?.xsolve_score ?? null,
+      ) ?? 0;
     const baseScore = isCorrect ? calculateBaseScore(nextAttempts) : 0;
     const score = isCorrect ? calculateFinalScore(baseScore, xScore) : 0;
 
@@ -1136,13 +1147,18 @@ export const getDailyChallengeSSR = unstable_cache(
       .eq("id", perfumeId)
       .single()) as { data: Omit<AnswerPerfumeRow, "name"> | null };
 
-    if (perfume?.xsolve_score == null) return null;
+    if (!perfume) return null;
+    const xsolve = challengeXsolve(
+      data.snapshot_metadata,
+      perfume.xsolve_score,
+    );
+    if (xsolve == null) return null;
 
     return {
       ...data,
       id,
       revealed: buildSessionClues(toClueAnswer(perfume), NEW_SESSION, []),
-      xsolve: perfume.xsolve_score,
+      xsolve,
     };
   },
   ["daily-challenge-ssr-v2"],

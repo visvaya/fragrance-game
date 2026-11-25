@@ -149,6 +149,20 @@ describe("fetchChallengeAnswer", () => {
     });
   });
 
+  it("scores with the difficulty stored when the challenge was published", async () => {
+    mockAdmin({
+      daily_challenges: {
+        data: { perfume_id: ANSWER_ID, snapshot_metadata: { xsolve: 0.7 } },
+        error: null,
+      },
+      perfumes: { data: { name: "X", xsolve_score: 0.4 }, error: null },
+    });
+
+    const answer = await fetchChallengeAnswer(CHALLENGE_ID);
+
+    expect(answer?.xsolve).toBe(0.7);
+  });
+
   it("returns null when the challenge is missing", async () => {
     mockAdmin({ daily_challenges: { data: null, error: null } });
     await expect(fetchChallengeAnswer(CHALLENGE_ID)).resolves.toBeNull();

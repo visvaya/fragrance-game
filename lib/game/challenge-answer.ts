@@ -10,6 +10,7 @@ import {
   type GuessHistoryItem,
   type StoredGuess,
 } from "@/lib/game/guess-history";
+import { challengeXsolve } from "@/lib/game/challenge-snapshot";
 import { createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
@@ -41,7 +42,7 @@ export async function fetchChallengeAnswer(
   const adminSupabase = createAdminClient();
   const { data: challenge } = await adminSupabase
     .from("daily_challenges")
-    .select("perfume_id")
+    .select("perfume_id, snapshot_metadata")
     .eq("id", challengeId)
     .limit(1)
     .single();
@@ -60,7 +61,7 @@ export async function fetchChallengeAnswer(
   return {
     clue: toClueAnswer(perfume),
     perfumeId: challenge.perfume_id,
-    xsolve: perfume.xsolve_score,
+    xsolve: challengeXsolve(challenge.snapshot_metadata, perfume.xsolve_score),
   };
 }
 

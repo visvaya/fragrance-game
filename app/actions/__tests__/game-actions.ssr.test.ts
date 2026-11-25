@@ -210,56 +210,62 @@ describe("getDailyChallengeSSR", () => {
     expect(result).toBeNull();
   });
 
-  it("returns full challenge on success", async () => {
-    let callCount = 0;
-    vi.mocked(createAdminClient).mockReturnValue({
-      from: vi.fn().mockImplementation(() => {
-        callCount++;
-        if (callCount === 1) {
+  it.each([
+    { expected: 80, snapshot: {}, source: "the live score" },
+    { expected: 0.3, snapshot: { xsolve: 0.3 }, source: "the stored score" },
+  ])(
+    "returns full challenge on success, scored by $source",
+    async ({ expected, snapshot }) => {
+      let callCount = 0;
+      vi.mocked(createAdminClient).mockReturnValue({
+        from: vi.fn().mockImplementation(() => {
+          callCount++;
+          if (callCount === 1) {
+            return makeChain({
+              data: {
+                challenge_date: TODAY,
+                grace_deadline_at_utc: "2026-04-02T00:00:00Z",
+                id: VALID_CHALLENGE_ID,
+                mode: "daily",
+                snapshot_metadata: snapshot,
+              },
+              error: null,
+            });
+          }
+          if (callCount === 2) {
+            return makeChain({
+              data: { perfume_id: VALID_PERFUME_ID },
+              error: null,
+            });
+          }
           return makeChain({
             data: {
-              challenge_date: TODAY,
-              grace_deadline_at_utc: "2026-04-02T00:00:00Z",
-              id: VALID_CHALLENGE_ID,
-              mode: "daily",
-              snapshot_metadata: {},
+              base_notes: ["Vanilla"],
+              brands: { name: "Dior" },
+              concentrations: { name: "EDP" },
+              gender: "Male",
+              is_linear: false,
+              middle_notes: ["Rose"],
+              perfumers: ["Creator"],
+              release_year: 2015,
+              top_notes: ["Bergamot"],
+              xsolve_score: 80,
             },
             error: null,
           });
-        }
-        if (callCount === 2) {
-          return makeChain({
-            data: { perfume_id: VALID_PERFUME_ID },
-            error: null,
-          });
-        }
-        return makeChain({
-          data: {
-            base_notes: ["Vanilla"],
-            brands: { name: "Dior" },
-            concentrations: { name: "EDP" },
-            gender: "Male",
-            is_linear: false,
-            middle_notes: ["Rose"],
-            perfumers: ["Creator"],
-            release_year: 2015,
-            top_notes: ["Bergamot"],
-            xsolve_score: 80,
-          },
-          error: null,
-        });
-      }),
-    } as never);
+        }),
+      } as never);
 
-    const result = await getDailyChallengeSSR(TODAY);
+      const result = await getDailyChallengeSSR(TODAY);
 
-    expect(result).not.toBeNull();
-    expect(result).not.toHaveProperty("clues");
-    expect(JSON.stringify(result)).not.toMatch(/Dior|Bergamot|2015/);
-    expect(result?.revealed.brand).toBe("?????");
-    expect(result?.revealed.gender).toBeNull();
-    expect(result?.xsolve).toBe(80);
-  });
+      expect(result).not.toBeNull();
+      expect(result).not.toHaveProperty("clues");
+      expect(JSON.stringify(result)).not.toMatch(/Dior|Bergamot|2015/);
+      expect(result?.revealed.brand).toBe("?????");
+      expect(result?.revealed.gender).toBeNull();
+      expect(result?.xsolve).toBe(expected);
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------
