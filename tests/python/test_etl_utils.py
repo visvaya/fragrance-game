@@ -256,6 +256,9 @@ def test_restore_broken_name_rebuilds_a_spreadsheet_error_from_the_address(
         # A number in the name, or one outside 1900-2099, is not a year.
         ("1902 Coton", 0, PARFUMO + "Berdoues/1902-coton", 0),
         ("Bleu", 0, PARFUMO + "Brand/Bleu_1234", 0),
+        # A number after "No." is part of the name ("Green Tea No. 1900").
+        ("Green Tea No.", 0, PARFUMO + "C_O_Bigelow/Green_Tea_No_1900", 0),
+        ("Rose N°", 0, PARFUMO + "Brand/Rose_N_1925", 0),
         # The name does not open the address.
         ("Other", 0, PARFUMO + "Brand/Something_2015", 0),
         ("Bleu", 0, None, 0),

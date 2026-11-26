@@ -167,7 +167,8 @@ def year_from_address(name: str, year: int, url: Any) -> int:
     source file.
     """
     words = _address_words(url) if year <= 0 else None
-    if not words:
+    # A number after "No." or "#" is part of the name ("Green Tea No. 1900").
+    if not words or re.search(r"(\bN[or]\.?|N" + chr(0xB0) + r"|#)\s*$", name):
         return year
     address = [word.lower() for word in words]
     after_name = _match_words(address, _words(name), 0)

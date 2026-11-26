@@ -1,4 +1,4 @@
--- Give 249 perfumes the release year their source address holds.
+-- Give 248 perfumes the release year their source address holds.
 --
 -- Yearly limited editions ("Flowerbomb Limited Edition", "1 Million Collector's Edition") carry
 -- their year only at the end of the Parfumo address; the source year field is empty. The ETL now
@@ -149,7 +149,6 @@ FROM (
     ('boadicea the victorious-glistening-unknown-0', 2010),
     ('my perfumes-gold-unknown-0', 1993),
     ('kiehl''s-grapefruit-unknown-0', 1976),
-    ('c.o. bigelow-green tea no.-unknown-0', 1900),
     (U&'guerlain-habit rouge \00E9dition limit\00E9e-unknown-0', 2001),
     ('ensar oud-hainan-oud oil-0', 2005),
     ('jesus del pozo-halloween limited edition-unknown-0', 2005),
