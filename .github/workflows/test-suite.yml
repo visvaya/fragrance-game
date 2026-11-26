@@ -50,7 +50,7 @@ jobs:
     name: Playwright Smoke
     # Needs the Upstash secrets (rate limits), which Dependabot PRs do not receive; a skipped job
     # counts as passing for branch protection. Run it manually before merging such a PR.
-    # The database is a local stack built from the migrations and the seed.
+    # The database is a local stack built from the migrations and the seed, except on main.
     if: github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -88,8 +88,23 @@ jobs:
         run: |
           echo "GUEST_TICKET_SECRET=$(openssl rand -base64 48)" >> "$GITHUB_ENV"
           echo "CRON_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+      # Pull requests test on a local stack. A push to main gates the production deployment (Vercel
+      # Deployment Checks), so there the trusted code runs against the production database.
       # The documented local path after checkout; zizmor's $/ form is not in GitHub's docs yet.
       - uses: ./.github/actions/local-supabase # zizmor: ignore[self-repository]
+        if: github.event_name != 'push'
+      - name: Use the production database
+        if: github.event_name == 'push'
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$SUPABASE_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+          } >> "$GITHUB_ENV"
       - name: Build application
         # Caches saved before the data cache was excluded still restore one with production rows.
         run: |
