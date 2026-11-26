@@ -21,9 +21,9 @@ concurrency:
 
 jobs:
   fast-tests:
-    # The unit tests run once, with coverage, in ci.yml; this job runs only the RLS tests, against
-    # a local stack built from the migrations and the seed (the nightly integration-tests.yml run
-    # repeats them on production).
+    # The unit tests run once, with coverage, in ci.yml; this job runs the RLS tests and the daily
+    # challenge generation suite against a local stack built from the migrations and the seed (the
+    # nightly integration-tests.yml run repeats the RLS tests on production).
     name: RLS integration tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -45,6 +45,12 @@ jobs:
       - uses: ./.github/actions/local-supabase # zizmor: ignore[self-repository]
       - name: Run the RLS tests
         run: pnpm exec vitest run lib/supabase/__tests__/rls-security.test.ts
+      # Last: the suite empties the catalogue and challenge tables of the local stack.
+      - name: Run the daily challenge generation suite
+        env:
+          TEST_SUPABASE_URL: ${{ env.NEXT_PUBLIC_SUPABASE_URL }}
+          TEST_SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: pnpm exec vitest run app/api/cron/generate-daily/__tests__/algorithm.integration.test.ts
 
   playwright-e2e:
     name: Playwright Smoke
