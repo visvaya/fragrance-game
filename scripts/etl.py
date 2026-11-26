@@ -394,7 +394,7 @@ class EtlPipeline:
         self.df.columns = [c.strip() for c in self.df.columns]
 
         # 1b. Repair broken encoding and known misspellings in every text column
-        for column in self.df.select_dtypes(include="object").columns:
+        for column in self.df.select_dtypes(include=["object", "str"]).columns:
             self.df[column] = self.df[column].map(repair_text)
 
         # 2. Basic Conversions
@@ -409,10 +409,14 @@ class EtlPipeline:
         )
 
         # 3. Missing Values
-        self.df["Brand"] = self.df["Brand"].fillna("Unknown")
-        self.df["Name"] = self.df["Name"].fillna("Unknown")
-        self.df["Concentration"] = self.df["Concentration"].fillna(MISSING_CONCENTRATION)
-        self.df["Manufacturer"] = self.df["Manufacturer"].fillna("Unknown")
+        # An empty column is read as numbers; object dtype lets it take the text placeholder.
+        for column, missing in (
+            ("Brand", "Unknown"),
+            ("Name", "Unknown"),
+            ("Concentration", MISSING_CONCENTRATION),
+            ("Manufacturer", "Unknown"),
+        ):
+            self.df[column] = self.df[column].astype(object).fillna(missing)
 
         # 3b. What the source kept only in the address, before fingerprints tell rows apart: names a
         # spreadsheet turned into formula errors, missing years, then variant words dropped from
