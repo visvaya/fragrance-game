@@ -73,8 +73,11 @@ jobs:
       - name: Cache Next.js
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
+          # Build caches only: the data cache (fetch-cache) holds query results such as the daily
+          # puzzle, which belong to the database of the run that wrote them.
           path: |
             ${{ github.workspace }}/.next/cache
+            !${{ github.workspace }}/.next/cache/fetch-cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-
@@ -88,7 +91,10 @@ jobs:
       # The documented local path after checkout; zizmor's $/ form is not in GitHub's docs yet.
       - uses: ./.github/actions/local-supabase # zizmor: ignore[self-repository]
       - name: Build application
-        run: pnpm run build
+        # Caches saved before the data cache was excluded still restore one with production rows.
+        run: |
+          rm -rf .next/cache/fetch-cache
+          pnpm run build
       - name: Get Playwright version
         id: playwright-version
         run: |
