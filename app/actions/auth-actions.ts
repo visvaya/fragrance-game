@@ -7,7 +7,8 @@ import { z } from "zod";
 
 import { MAX_LISTED_SESSIONS } from "@/lib/constants";
 import { checkRateLimit } from "@/lib/redis";
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getRequestUser } from "@/lib/supabase/request-user";
 
 /**
  * Revokes all sessions for the current authenticated user.
@@ -20,11 +21,7 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 export async function revokeAllSessions(): Promise<
   { error: string } | { success: true }
 > {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  const { error: userError, supabase, user } = await getRequestUser();
 
   if (userError || !user) {
     return { error: "Not authenticated" };
@@ -52,10 +49,7 @@ export async function getSessions(): Promise<
     user_id: string;
   }[]
 > {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getRequestUser();
 
   if (!user) {
     return [];
@@ -83,12 +77,8 @@ export async function revokeSession(
   sessionId: string,
 ): Promise<{ error: string; success: false } | { success: true }> {
   z.uuid().parse(sessionId);
-  const supabase = await createClient();
+  const { supabase, user: currentUser } = await getRequestUser();
   const adminSupabase = createAdminClient();
-
-  const {
-    data: { user: currentUser },
-  } = await supabase.auth.getUser();
 
   if (!currentUser) {
     return { error: "Unauthorized", success: false };

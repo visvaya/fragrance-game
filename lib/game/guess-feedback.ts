@@ -52,6 +52,24 @@ export function cleanNote(note: string | null | undefined): string {
 
 type NotePyramid = { base: string[]; heart: string[]; top: string[] };
 
+/** The note columns of a perfume row; a missing level is null. */
+type NoteColumns = {
+  base_notes: string[] | null;
+  middle_notes: string[] | null;
+  top_notes: string[] | null;
+};
+
+/**
+ * The note pyramid of a perfume row (the "middle" column is the heart), with a missing level as
+ * an empty list.
+ * @param row - Row with the three note columns.
+ */
+export const notePyramidOf = (row: NoteColumns): NotePyramid => ({
+  base: row.base_notes ?? [],
+  heart: row.middle_notes ?? [],
+  top: row.top_notes ?? [],
+});
+
 /** The cleaned note names of all pyramid levels together. */
 const noteSet = (notes: NotePyramid) =>
   new Set(
@@ -158,16 +176,8 @@ export function calculateFeedback(
     brandMatch: guessedPerfume.brand_id === answerPerfume.brand_id,
     genderMatch: isGenderMatch(guessedPerfume.gender, answerPerfume.gender),
     notesMatch: calculateNotesMatch(
-      {
-        base: guessedPerfume.base_notes ?? [],
-        heart: guessedPerfume.middle_notes ?? [],
-        top: guessedPerfume.top_notes ?? [],
-      },
-      {
-        base: answerPerfume.base_notes ?? [],
-        heart: answerPerfume.middle_notes ?? [],
-        top: answerPerfume.top_notes ?? [],
-      },
+      notePyramidOf(guessedPerfume),
+      notePyramidOf(answerPerfume),
     ),
     perfumerMatch: calculatePerfumerMatch(
       guessedPerfume.perfumers ?? null,

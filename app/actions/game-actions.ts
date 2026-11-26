@@ -49,7 +49,8 @@ import {
 } from "@/lib/game/session-writes";
 import { isRateLimitError } from "@/lib/rate-limit-error";
 import { checkRateLimit } from "@/lib/redis";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient, type createClient } from "@/lib/supabase/server";
+import { getRequestUser } from "@/lib/supabase/request-user";
 
 import type { TablesUpdate } from "@/types/supabase";
 
@@ -171,11 +172,7 @@ async function requireUser(
   unauthorizedLog: string,
   logContext: Record<string, string>,
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  const { error: userError, supabase, user } = await getRequestUser();
 
   if (!user) {
     console.error(unauthorizedLog, { ...logContext, userError });
@@ -325,13 +322,9 @@ export async function getDailyChallenge(): Promise<DailyChallenge | null> {
   // daily_challenges_public is a security_invoker view and anon/authenticated have no
   // SELECT on daily_challenges (migration 20260331000003), so server actions read the
   // view through the service-role client. The user client stays for auth only.
-  const supabase = await createClient();
-
   // Rate limiting
   try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { user } = await getRequestUser();
     await (user
       ? checkRateLimit("getDailyChallenge", user.id)
       : checkRateLimit("getDailyChallenge_anon", await getClientIp()));
@@ -1206,7 +1199,7 @@ export const getDailyStep1ImageUrl = unstable_cache(
  * Fetches the player's existing game session for today's challenge at SSR time.
  *
  * Security model:
- * - Uses createClient() which reads auth cookies from the incoming request –
+ * - Uses getRequestUser(), whose client reads auth cookies from the incoming request –
  *   only the authenticated user's own sessions are accessible (Supabase RLS).
  * - Does NOT expose answer data (name/concentration) unless game is already over.
  * - Returns null for unauthenticated users – GameProvider falls back to
@@ -1223,10 +1216,7 @@ export async function getPlayerDailySession(
 ): Promise<StartGameResponse | null> {
   z.uuid().parse(challengeId);
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { user } = await getRequestUser();
 
     // Not authenticated – client-side anonymous auth flow will handle this
     if (!user) return null;

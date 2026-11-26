@@ -10,7 +10,8 @@ import {
   readGuestTicket,
 } from "@/lib/auth/guest-ticket-cookie";
 import { checkRateLimit } from "@/lib/redis";
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getRequestUser } from "@/lib/supabase/request-user";
 
 /** Postgres "invalid parameter value": the transfer can never succeed for this ticket. */
 const INVALID_INPUT_CODE = "22023";
@@ -25,10 +26,7 @@ const previewSchema = z.object({
 
 /** Returns the signed-in, non-anonymous account id, or null. */
 async function getAccountId(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user } = await getRequestUser();
   if (!user || user.is_anonymous === true) {
     return null;
   }
