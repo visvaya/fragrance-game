@@ -6,6 +6,7 @@ import {
   relevanceScore,
   remaskSuggestions,
   selectSuggestions,
+  showsBrand,
   toSuggestions,
 } from "@/lib/game/suggestions";
 import { maskYear } from "@/lib/utils/brand-masking";
@@ -39,6 +40,21 @@ describe("relevanceScore", () => {
   });
 });
 
+describe("showsBrand", () => {
+  it("hides the brand only when the name is it or starts with it as a word", () => {
+    const shown = toSuggestions(
+      [
+        row({ id: "a", name: "Dior Homme" }),
+        row({ id: "b", name: "Dior" }),
+        row({ id: "c", name: "Diorissimo" }),
+        row({ brand_name: "Azzaro", id: "d", name: "Couture Azzaro" }),
+      ],
+      5,
+    ).map((item) => showsBrand(item));
+    expect(shown).toEqual([false, false, true, true]);
+  });
+});
+
 describe("toSuggestions", () => {
   it("masks the year by attempt and builds the display name", () => {
     const [suggestion] = toSuggestions([row()], 2);
@@ -61,6 +77,35 @@ describe("toSuggestions", () => {
       1,
     );
     expect(suggestions.map((item) => item.year)).toEqual(["2015", "2018"]);
+  });
+
+  it("treats a concentration written into the name as the same variant", () => {
+    const suggestions = toSuggestions(
+      [
+        row({
+          concentration: "Parfum",
+          id: "a",
+          name: "Dior Homme",
+          year: 2014,
+        }),
+        row({
+          concentration: null,
+          id: "b",
+          name: "Dior Homme Parfum",
+          year: 2024,
+        }),
+      ],
+      1,
+    );
+    expect(suggestions.map((item) => item.year)).toEqual(["2014", "2024"]);
+  });
+
+  it("leaves the brand out of the display name when the name starts with it", () => {
+    const [suggestion] = toSuggestions(
+      [row({ name: "Dior Homme Sport", year: null })],
+      5,
+    );
+    expect(suggestion?.display_name).toBe("Dior Homme Sport EDT");
   });
 
   it("leaves out a missing concentration and year", () => {
@@ -106,6 +151,36 @@ describe("rankSuggestions and selectSuggestions", () => {
     expect(
       rankSuggestions(suggestions, "ford").map((item) => item.perfume_id),
     ).toEqual(["b", "c", "a"]);
+  });
+
+  it("keeps variants of one name together, ordered by year", () => {
+    const suggestions = toSuggestions(
+      [
+        row({
+          concentration: null,
+          id: "a",
+          name: "Dior Homme Parfum",
+          year: 2024,
+        }),
+        row({ id: "b", name: "Dior Homme Sport", year: 2008 }),
+        row({
+          concentration: "Parfum",
+          id: "c",
+          name: "Dior Homme",
+          year: 2014,
+        }),
+        row({
+          concentration: null,
+          id: "d",
+          name: "Dior Homme Parfum",
+          year: null,
+        }),
+      ],
+      5,
+    );
+    expect(
+      rankSuggestions(suggestions, "dior homme").map((item) => item.perfume_id),
+    ).toEqual(["c", "a", "d", "b"]);
   });
 
   it("drops irrelevant suggestions, or keeps all when none is relevant", () => {
