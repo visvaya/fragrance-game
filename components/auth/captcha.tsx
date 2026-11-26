@@ -11,6 +11,7 @@ import {
   turnstileErrorKind,
 } from "@/lib/auth/turnstile-error";
 import { publicEnv } from "@/lib/public-env";
+import { cn } from "@/lib/utils";
 
 import { CaptchaLoader } from "./captcha-loader";
 
@@ -27,8 +28,8 @@ type CaptchaProperties = Readonly<{
 
 /**
  * Captcha component using Cloudflare Turnstile.
- * Automatically adapts the theme (light/dark) to application settings. A visible widget has a
- * loading placeholder in its place until it has drawn itself, so the form shows no empty gap.
+ * Automatically adapts the theme (light/dark) to application settings. A visible widget is
+ * drawn over a loading placeholder of its size, so the form shows no empty gap meanwhile.
  */
 export function Captcha({
   appearance = "always",
@@ -59,10 +60,18 @@ export function Captcha({
   }
 
   return (
-    // eslint-disable-next-line eauxle/restricted-syntax -- Cloudflare Turnstile documented minimum height is 65px (fixed hardware constraint)
-    <div className="relative flex min-h-[65px] w-full justify-center py-2">
-      {appearance === "always" && !isLoaded ? (
-        <div className="absolute inset-x-0 top-2">
+    <div
+      className={cn(
+        "relative flex w-full justify-center",
+        // An invisible widget takes no room until Cloudflare shows it; a visible one keeps
+        // Turnstile's documented minimum height of 65 px.
+        appearance === "always" && "min-h-[65px] py-2",
+      )}
+    >
+      {appearance === "always" ? (
+        // Under the widget: Cloudflare's opaque frame covers it once painted. Hidden from
+        // assistive technology once the widget exists, which then speaks for itself.
+        <div aria-hidden={isLoaded} className="absolute inset-x-0 top-2">
           <CaptchaLoader />
         </div>
       ) : null}
@@ -76,6 +85,7 @@ export function Captcha({
               scriptOptions: { onError: () => onFail("blocked") },
             }
           : {})}
+        className="relative"
         onSuccess={onVerify}
         onWidgetLoad={() => {
           setIsLoaded(true);

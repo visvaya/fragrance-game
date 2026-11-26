@@ -26,8 +26,10 @@ export function turnstileErrorKind(
   // extensions and open developer tools are the usual causes, retry is allowed.
   if (code.startsWith("300") || code.startsWith("600")) return "challenge";
   if (code === "200500") return "blocked";
-  if (code === "110600" || code === "200100") return "clock";
-  if (code === "110620") return "timeout";
+  // 200100 is a wrong clock (or an intermediary's cache); 110600 may be a wrong clock or a
+  // check that took too long, so it gets the neutral "took too long" advice.
+  if (code === "200100") return "clock";
+  if (code === "110600" || code === "110620") return "timeout";
   if (code.startsWith("1101") || code.startsWith("1102")) return "config";
   if (code.startsWith("4000")) return "config";
   return "unknown";

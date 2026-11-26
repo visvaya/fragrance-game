@@ -119,7 +119,12 @@ export function AuthCaptchaModal({
           </div>
         ) : (
           // Narrow side padding: the widget is 300 px wide and must fit a 375 px phone.
-          <div className="flex justify-center py-4">
+          <div
+            className={cn(
+              "flex justify-center",
+              (widgetVisible || stage === "interactive") && "py-4",
+            )}
+          >
             <Captcha
               appearance={widgetVisible ? "always" : "interaction-only"}
               onBeforeInteractive={onNeedsAttention}

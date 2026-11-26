@@ -35,18 +35,23 @@ vi.mock("@marsidev/react-turnstile", () => ({
 }));
 
 describe("Captcha", () => {
-  it("holds the widget's place with a loading status until the widget has drawn", async () => {
+  it("keeps the placeholder under the widget, which covers it once painted", async () => {
     const onWidgetLoad = vi.fn();
     render(<Captcha onVerify={vi.fn()} onWidgetLoad={onWidgetLoad} />);
     expect(screen.getByRole("status")).toHaveTextContent(
       "Auth.register.captchaLoading",
     );
 
+    // Turnstile reports the widget as created before its frame has painted, so the
+    // placeholder stays in place; only assistive technology stops reading it.
     await userEvent.click(
       screen.getByRole("button", { name: "widget-loaded" }),
     );
 
     expect(screen.queryByRole("status")).toBeNull();
+    expect(
+      screen.getByText("Auth.register.captchaLoading"),
+    ).toBeInTheDocument();
     expect(onWidgetLoad).toHaveBeenCalledOnce();
   });
 

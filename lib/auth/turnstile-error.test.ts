@@ -7,7 +7,7 @@ describe("turnstileErrorKind", () => {
     ["600010", "challenge"],
     ["300030", "challenge"],
     ["200500", "blocked"],
-    ["110600", "clock"],
+    ["110600", "timeout"],
     ["200100", "clock"],
     ["110620", "timeout"],
     ["110100", "config"],

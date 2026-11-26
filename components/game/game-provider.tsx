@@ -277,6 +277,8 @@ export function GameProvider({
     if (signInInFlight.current) return;
     signInInFlight.current = true;
     reportCaptchaVerified(captchaStartedAt, captcha.stage);
+    // Closed before the sign-in, so a timer of a waiting stage cannot open it during a slow one.
+    captchaDispatch({ type: "close" });
     const result = await signInWithToken(token);
     signInInFlight.current = false;
 
@@ -290,7 +292,6 @@ export function GameProvider({
       return;
     }
 
-    captchaDispatch({ type: "close" });
     if (result.user) setUser(result.user);
     // The player is signed in now: a failure from here on is a start-up error, not a failed
     // verification, so it is logged like initGame's and the dialog stays closed.

@@ -300,6 +300,27 @@ describe("GameProvider anonymous sign-in for a new visitor", () => {
     expect(screen.queryByRole("alertdialog")).toBeNull();
   });
 
+  it("keeps the dialog closed during a slow sign-in after the token", async () => {
+    signInAnonymously.mockImplementation(
+      async () =>
+        new Promise((resolve) => {
+          setTimeout(() => resolve({ error: null }), 1500);
+        }),
+    );
+    const user = userEvent.setup();
+    renderProvider();
+
+    await user.click(await findTurnstile("needs-interaction"));
+    await clickTurnstile(user, "turnstile-solved");
+    // Past the delay of the "attention" stage, with the sign-in still running.
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    await waitFor(() => {
+      expect(screen.getByTestId("daily-brand")).toHaveTextContent("Ch___l");
+    });
+  });
+
   it("asks again with the dialog visible when the sign-in is rejected", async () => {
     signInAnonymously.mockResolvedValueOnce({
       error: { message: "captcha protection: request disallowed" },
