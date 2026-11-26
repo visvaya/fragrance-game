@@ -77,6 +77,26 @@ def test_repair_text_keeps_correct_text_and_non_strings() -> None:
     assert etl_module.repair_text(None) is None
 
 
+@pytest.mark.parametrize(
+    ("broken", "fixed"),
+    [
+        # The source writes an e with a macron where the name has an e with an acute accent.
+        ("Estēe Lauder", "Estée Lauder"),
+        ("Very Estēe", "Very Estée"),
+        ("Azurēe Soleil", "Azurée Soleil"),
+        ("Olympēa Intense", "Olympéa Intense"),
+        ("Mētāl Eau de Mētāl", "Métal Eau de Métal"),
+        ("Volkswagen - Mémoire de Pētrole", "Volkswagen - Mémoire de Pétrole"),
+        # A spreadsheet read the Lush name "25:43" as a time of day.
+        ("25:43:00", "25:43"),
+        # Latvian names keep their macrons.
+        ("Art Elēģija", "Art Elēģija"),
+    ],
+)
+def test_repair_text_fixes_names_the_source_misspells(broken: str, fixed: str) -> None:
+    assert etl_module.repair_text(broken) == fixed
+
+
 def test_repair_text_restores_the_see_by_chloe_name() -> None:
     assert etl_module.repair_text("SeeByChlo\u00e9 Si Belle") == "See by Chlo\u00e9 Si Belle"
 
