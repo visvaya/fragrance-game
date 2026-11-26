@@ -39,7 +39,18 @@ _MOJIBAKE_LEADS = "".join(map(chr, (0x102, 0xC3, 0xC4, 0x139, 0xC5, 0xE2)))
 _MOJIBAKE_TAILS = chr(0x80) + "-" + chr(0x2FF) + chr(0x2000) + "-" + chr(0x20FF)
 MOJIBAKE = re.compile(f"[{_MOJIBAKE_LEADS}][{_MOJIBAKE_TAILS}]")
 # Names the source spells differently from the product line.
-NAME_FIXES = {"SeeByChlo" + chr(0xE9): "See by Chlo" + chr(0xE9)}
+E_ACUTE, E_MACRON, A_MACRON = chr(0xE9), chr(0x113), chr(0x101)
+NAME_FIXES = {
+    "SeeByChlo" + E_ACUTE: "See by Chlo" + E_ACUTE,
+    # An e with a macron where the name has an e with an acute accent (2026-11 source file).
+    "Est" + E_MACRON + "e": "Est" + E_ACUTE + "e",
+    "Azur" + E_MACRON + "e": "Azur" + E_ACUTE + "e",
+    "Olymp" + E_MACRON + "a": "Olymp" + E_ACUTE + "a",
+    "M" + E_MACRON + "t" + A_MACRON + "l": "M" + E_ACUTE + "tal",
+    "P" + E_MACRON + "trole": "P" + E_ACUTE + "trole",
+    # A spreadsheet read the Lush name "25:43" as a time of day.
+    "25:43:00": "25:43",
+}
 
 
 def _repair_token(match: re.Match[str]) -> str:
