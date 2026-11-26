@@ -92,6 +92,13 @@ VARIANT_WORDS = {
     "extreme": "Extrême",
     "extrme": "Extrême",
 }
+# One spelling per note and perfumer: guess feedback compares them across perfumes (measured on
+# the 2026-11 catalogue; spellings that differ only in case are already equal there).
+ITEM_SPELLINGS = {
+    "Waterlily": "Water lily",
+    "Nathalie Lawson": "Nathalie Lorson",
+    "Nelly Hachem Ruiz": "Nelly Hachem-Ruiz",
+}
 PARFUMO_PERFUMES = "https://www.parfumo.com/Perfumes/"
 MISSING_CONCENTRATION = "Unknown"
 
@@ -458,8 +465,8 @@ class EtlPipeline:
             return []
         # Split by comma
         items = [s.strip() for s in str(text_blob).split(",") if s.strip()]
-        # Clean each item using the robust cleaner
-        cleaned = [self._clean_note(i) for i in items]
+        # Clean each item using the robust cleaner, then use one spelling per note or person
+        cleaned = [ITEM_SPELLINGS.get(c, c) for c in (self._clean_note(i) for i in items)]
         # Remove empty strings and duplicates while preserving order
         final: list[str] = []
         seen: set[str] = set()
