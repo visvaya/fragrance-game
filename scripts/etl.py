@@ -159,6 +159,27 @@ def restore_broken_name(name: str, concentration: str, year: int, url: Any) -> t
     return rebuilt, 0 if words[0] == str(year) else year
 
 
+def year_from_address(name: str, year: int, url: Any) -> int:
+    """The year that follows the name in the address, when the source has none.
+
+    Yearly limited editions ("Flowerbomb Limited Edition") carry their year only in the address;
+    without it they share one key and deduplication keeps one of them. 562 rows in the 2026-11
+    source file.
+    """
+    words = _address_words(url) if year <= 0 else None
+    # A number after "No." or "#" is part of the name ("Green Tea No. 1900").
+    if not words or re.search(r"(\bN[or]\.?|N" + chr(0xB0) + r"|#)\s*$", name):
+        return year
+    address = [word.lower() for word in words]
+    after_name = _match_words(address, _words(name), 0)
+    if after_name is None or after_name >= len(address):
+        return year
+    token = address[after_name]
+    if len(token) == 4 and token.isdigit() and 1900 <= int(token) <= 2099:
+        return int(token)
+    return year
+
+
 def restore_variant(name: str, concentration: str, year: int, url: Any) -> tuple[str, str]:
     """Name and concentration with the variant word(s) the source kept only in the address.
 
@@ -335,7 +356,8 @@ class EtlPipeline:
         self.df["Manufacturer"] = self.df["Manufacturer"].fillna("Unknown")
 
         # 3b. What the source kept only in the address, before fingerprints tell rows apart: names a
-        # spreadsheet turned into formula errors, then variant words dropped from the name
+        # spreadsheet turned into formula errors, missing years, then variant words dropped from
+        # the name
         names, concentrations, years = [], [], []
         for name, concentration, year, url in zip(
             self.df["Name"],
@@ -345,6 +367,7 @@ class EtlPipeline:
             strict=True,
         ):
             name, year = restore_broken_name(name, concentration, year, url)
+            year = year_from_address(name, year, url)
             name, concentration = restore_variant(name, concentration, year, url)
             names.append(name)
             concentrations.append(concentration)
