@@ -50,7 +50,11 @@ NAME_FIXES = {
     "P" + E_MACRON + "trole": "P" + E_ACUTE + "trole",
     # A spreadsheet read the Lush name "25:43" as a time of day.
     "25:43:00": "25:43",
+    # The Possets name "3:5:8" read as a time (owner review 2026-11-26).
+    "03:05:08": "3:5:8",
 }
+# Brands the source lists under a former name (exact names only; owner review 2026-11-26).
+BRAND_RENAMES = {"Hamidi": "Hamidi Oud & Perfumes"}
 
 
 def _repair_token(match: re.Match[str]) -> str:
@@ -396,6 +400,7 @@ class EtlPipeline:
         # 1b. Repair broken encoding and known misspellings in every text column
         for column in self.df.select_dtypes(include=["object", "str"]).columns:
             self.df[column] = self.df[column].map(repair_text)
+        self.df["Brand"] = self.df["Brand"].replace(BRAND_RENAMES)
 
         # 2. Basic Conversions
         self.df["Release Year"] = (
