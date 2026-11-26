@@ -43,10 +43,10 @@ vi.mock("../google-auth-button", () => ({
 vi.mock("next/dynamic", () => ({
   default: () =>
     function CaptchaStub({
-      onUnavailable,
+      onFail,
       onVerify,
     }: {
-      onUnavailable?: () => void;
+      onFail?: (kind: string) => void;
       onVerify: (token: string) => void;
     }) {
       return (
@@ -54,8 +54,11 @@ vi.mock("next/dynamic", () => ({
           <button onClick={() => onVerify("captcha-token")} type="button">
             captcha
           </button>
-          <button onClick={onUnavailable} type="button">
+          <button onClick={() => onFail?.("blocked")} type="button">
             captcha script failed
+          </button>
+          <button onClick={() => onFail?.("challenge")} type="button">
+            captcha challenge failed
           </button>
         </>
       );
@@ -267,11 +270,24 @@ describe("LoginForm", () => {
       );
 
       expect(screen.getByRole("alert")).toHaveTextContent(
-        "Auth.register.captchaFailed",
+        "Auth.captchaErrors.blocked",
       );
       expect(
         screen.queryByRole("button", { name: "captcha" }),
       ).not.toBeInTheDocument();
+    });
+
+    it("says why the check failed and keeps the widget for another try", async () => {
+      render(<LoginForm />);
+      await userEvent.click(
+        screen.getByRole("button", { name: "captcha challenge failed" }),
+      );
+
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Auth.captchaErrors.challenge",
+      );
+      await userEvent.click(screen.getByRole("button", { name: "captcha" }));
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
 
     it("needs a new captcha token after a rejected sign-in", async () => {
@@ -321,6 +337,10 @@ describe("LoginForm", () => {
 });
 
 describe("RegisterForm", () => {
+  beforeEach(() => {
+    mockPublicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
+  });
+
   async function fill(password: string, confirmPassword = password) {
     await userEvent.type(
       screen.getByLabelText("Auth.register.emailLabel"),
@@ -390,6 +410,27 @@ describe("RegisterForm", () => {
         password: STRONG_PASSWORD,
       }),
     );
+  });
+
+  it("needs a new captcha token after a rejected sign-up", async () => {
+    mockAuth.signUp.mockResolvedValue({ error: { message: "rejected" } });
+    render(<RegisterForm />);
+    await fill(STRONG_PASSWORD);
+    await userEvent.click(screen.getByRole("button", { name: "captcha" }));
+    const submit = screen.getByRole("button", { name: "Auth.register.submit" });
+    await userEvent.click(submit);
+    await waitFor(() => {
+      expect(mockAuth.signUp).toHaveBeenCalledTimes(1);
+    });
+
+    await userEvent.click(submit);
+
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledWith(
+        "Auth.register.captchaError",
+      );
+    });
+    expect(mockAuth.signUp).toHaveBeenCalledTimes(1);
   });
 
   it("rejects a common password reported by the server", async () => {
@@ -597,7 +638,7 @@ describe("ForgotPasswordForm", () => {
       );
 
       expect(screen.getByRole("alert")).toHaveTextContent(
-        "Auth.register.captchaFailed",
+        "Auth.captchaErrors.blocked",
       );
     });
 

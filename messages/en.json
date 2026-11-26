@@ -225,6 +225,15 @@
       "loading": "Loading...",
       "captchaKeyMissing": "Error: Captcha Site Key missing"
     },
+    "captchaErrors": {
+      "challenge": "Cloudflare could not confirm this browser. A private window, an extension that blocks ads or tracking, or open developer tools usually cause this. Try a regular window, then reload the page.",
+      "blocked": "The Cloudflare check could not load. Check that an ad blocker, a VPN or the network is not blocking challenges.cloudflare.com, then reload the page.",
+      "clock": "The clock on this device seems to be wrong. Turn on automatic date and time, then reload the page.",
+      "timeout": "The check waited too long for a click. Reload the page to try again.",
+      "config": "Verification is unavailable for now because of a problem on our side. Try again later.",
+      "unsupported": "This browser does not support the Cloudflare check. Try another, up-to-date browser.",
+      "unknown": "The verification did not go through. Reload the page to try again."
+    },
     "login": {
       "title": "Welcome Back",
       "description": "Enter your credentials to sign in",
@@ -268,7 +277,6 @@
       "captchaTitle": "Verification Required",
       "captchaDescription": "Please verify you are human to start the game.",
       "captchaLoading": "Loading verification...",
-      "captchaFailed": "The verification did not go through. Reload the page to try again.",
       "captchaReload": "Reload",
       "invalidFormat": "Invalid password format"
     },

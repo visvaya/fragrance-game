@@ -22,6 +22,7 @@ import {
 import { captureAnalyticsEvent } from "@/components/providers/posthog-provider";
 import { useRouter } from "@/i18n/routing";
 import { shouldReloadOnAuthChange } from "@/lib/auth/auth-change-reload";
+import type { TurnstileErrorKind } from "@/lib/auth/turnstile-error";
 import { MAX_GUESSES } from "@/lib/constants";
 import {
   gameSessionReducer,
@@ -36,6 +37,7 @@ import {
   type AnonymousSignInResult,
 } from "./anonymous-auth";
 import { reportCaptchaVerified } from "./report-captcha-verified";
+import { CAPTCHA_TIMED_STAGES, useCaptchaStage } from "./use-captcha-stage";
 import { whenIdle } from "./when-idle";
 
 import {
@@ -68,8 +70,6 @@ const AuthCaptchaModal = dynamic(
 const AUTH_IDLE_TIMEOUT_MS = 2000;
 /** Sign-in attempts with a fresh Turnstile token before the dialog offers a reload. */
 const MAX_SIGN_IN_ATTEMPTS = 2;
-/** How long the invisible Turnstile check may run before the dialog is shown. */
-const CAPTCHA_PENDING_TIMEOUT_MS = 8000;
 /** Longest the board stays in its loading state while start-up runs. */
 const INIT_SAFETY_TIMEOUT_MS = 15_000;
 
@@ -261,22 +261,14 @@ export function GameProvider({
   const [user, setUser] = useState<User | null>(null);
   /** True when the sign-in gave up: the input drops a guess queued for it. */
   const [authFailed, setAuthFailed] = useState(false);
-  /**
-   * "pending": Turnstile runs invisibly; "waiting": the check is slow and the dialog says so;
-   * "interactive": the dialog shows the widget; "failed": the dialog offers a reload.
-   */
-  const [captchaStage, setCaptchaStage] = useState<
-    "none" | "pending" | "waiting" | "interactive" | "failed"
-  >("none");
-  // A new key remounts the widget for a fresh token after a rejected sign-in.
-  const [captchaAttempt, setCaptchaAttempt] = useState(0);
+  const [captcha, captchaDispatch] = useCaptchaStage();
   // Turnstile can deliver a second token (refresh) while a sign-in is still in flight.
   const signInInFlight = useRef(false);
   // Start of the Turnstile check; cleared once reported, so the duration is sent once per page.
   const captchaStartedAt = useRef<number | null>(null);
 
-  const failAuth = () => {
-    setCaptchaStage("failed");
+  const failAuth = (kind: TurnstileErrorKind) => {
+    captchaDispatch({ kind, type: "fail" });
     setAuthFailed(true);
     setLoading(false);
   };
@@ -284,22 +276,21 @@ export function GameProvider({
   const handleCaptchaVerify = async (token: string) => {
     if (signInInFlight.current) return;
     signInInFlight.current = true;
-    reportCaptchaVerified(captchaStartedAt, captchaStage);
+    reportCaptchaVerified(captchaStartedAt, captcha.stage);
     const result = await signInWithToken(token);
     signInInFlight.current = false;
 
     if (!result.ok) {
       console.error("Anonymous sign-in with captcha failed:", result.message);
-      if (captchaAttempt + 1 >= MAX_SIGN_IN_ATTEMPTS) {
-        failAuth();
+      if (captcha.attempt + 1 >= MAX_SIGN_IN_ATTEMPTS) {
+        failAuth("unknown");
       } else {
-        setCaptchaStage("interactive");
-        setCaptchaAttempt((attempt) => attempt + 1);
+        captchaDispatch({ type: "ask-again" });
       }
       return;
     }
 
-    setCaptchaStage("none");
+    captchaDispatch({ type: "close" });
     if (result.user) setUser(result.user);
     // The player is signed in now: a failure from here on is a start-up error, not a failed
     // verification, so it is logged like initGame's and the dialog stays closed.
@@ -327,17 +318,16 @@ export function GameProvider({
     }
   };
 
-  // The invisible check normally ends within seconds; if it does not, show the dialog with a
-  // loading note so the player sees what is happening instead of a game that silently waits.
+  // Moves the dialog on from a stage that only waits (see CAPTCHA_TIMED_STAGES).
+  const captchaStage = captcha.stage;
   useEffect(() => {
-    if (captchaStage !== "pending") return;
+    if (captchaStage !== "pending" && captchaStage !== "attention") return;
     const timer = setTimeout(
-      () =>
-        setCaptchaStage((stage) => (stage === "pending" ? "waiting" : stage)),
-      CAPTCHA_PENDING_TIMEOUT_MS,
+      () => captchaDispatch({ from: captchaStage, type: "elapsed" }),
+      CAPTCHA_TIMED_STAGES[captchaStage].delayMs,
     );
     return () => clearTimeout(timer);
-  }, [captchaStage]);
+  }, [captchaDispatch, captchaStage]);
 
   // auth listener for real-time updates (login/logout)
   const router = useRouter();
@@ -441,7 +431,7 @@ export function GameProvider({
           // gets one and handleCaptchaVerify signs in and finishes the initialization.
           awaitingCaptcha.current = true;
           captchaStartedAt.current = performance.now();
-          setCaptchaStage("pending");
+          captchaDispatch({ type: "start" });
           return;
         } else {
           const result = await measureAnonAuth(async () =>
@@ -468,8 +458,8 @@ export function GameProvider({
       }
     };
     return whenIdle(() => void initGame(), AUTH_IDLE_TIMEOUT_MS);
-    // initGame is defined inside this effect and only needs to run once on mount
-  }, [initialChallenge]);
+    // initGame is defined inside this effect and only needs to run once on mount; the dispatch is stable
+  }, [captchaDispatch, initialChallenge]);
 
   // Merge dynamic image into the daily perfume object.
   // useMemo keeps the reference stable so GameStateProvider and GameActionsProvider
@@ -509,23 +499,23 @@ export function GameProvider({
             keyboard and assistive technology, as aria-modal promises. */}
         <div
           className="contents"
-          inert={captchaStage !== "none" && captchaStage !== "pending"}
+          inert={
+            captchaStage !== "none" &&
+            captchaStage !== "pending" &&
+            captchaStage !== "attention"
+          }
         >
           {children}
         </div>
         {captchaStage === "none" ? null : (
           <AuthCaptchaModal
-            key={captchaAttempt}
-            onNeedsAttention={() =>
-              setCaptchaStage((stage) =>
-                stage === "failed" ? stage : "interactive",
-              )
-            }
-            onUnavailable={failAuth}
+            failure={captcha.failure}
+            key={captcha.attempt}
+            onFail={failAuth}
+            onNeedsAttention={() => captchaDispatch({ type: "attention" })}
             onVerify={(token) => void handleCaptchaVerify(token)}
-            onWidgetError={failAuth}
             stage={captchaStage}
-            widgetVisible={captchaAttempt > 0}
+            widgetVisible={captcha.attempt > 0}
           />
         )}
         <MigrationModal />

@@ -15,9 +15,12 @@ vi.mock("../captcha", () => ({
 
 const messages = {
   Auth: {
+    captchaErrors: {
+      challenge: "Try a regular window.",
+      unknown: "The verification did not go through.",
+    },
     register: {
       captchaDescription: "Please verify you are human.",
-      captchaFailed: "The verification did not go through.",
       captchaLoading: "Loading verification...",
       captchaReload: "Reload",
       captchaTitle: "Verification Required",
@@ -25,14 +28,22 @@ const messages = {
   },
 };
 
-function renderModal(stage: "pending" | "waiting" | "interactive" | "failed") {
+type Stage = "pending" | "attention" | "waiting" | "interactive" | "failed";
+
+function renderModal(
+  stage: Stage,
+  overrides: {
+    failure?: "challenge" | "unknown";
+    widgetVisible?: boolean;
+  } = {},
+) {
   const props = {
+    failure: overrides.failure ?? ("unknown" as const),
+    onFail: vi.fn(),
     onNeedsAttention: vi.fn(),
-    onUnavailable: vi.fn(),
     onVerify: vi.fn(),
-    onWidgetError: vi.fn(),
     stage,
-    widgetVisible: false,
+    widgetVisible: overrides.widgetVisible ?? false,
   };
   const view = render(
     <NextIntlClientProvider locale="en" messages={messages}>
@@ -87,5 +98,25 @@ describe("AuthCaptchaModal", () => {
       screen.getByRole("button", { name: "widget-loaded" }),
     );
     expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("leaves the loading status to a visible widget's own placeholder", () => {
+    renderModal("interactive", { widgetVisible: true });
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("stays hidden while Cloudflare's request for a click may still pass on its own", () => {
+    document.body.style.overflow = "auto";
+    renderModal("attention");
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(document.body.style.overflow).toBe("auto");
+  });
+
+  it("says why the check failed", () => {
+    renderModal("failed", { failure: "challenge" });
+    expect(screen.getByRole("alertdialog")).toHaveTextContent(
+      "Try a regular window.",
+    );
+    expect(screen.getByRole("button", { name: "Reload" })).toBeInTheDocument();
   });
 });

@@ -24,62 +24,78 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import type { TurnstileErrorKind } from "@/lib/auth/turnstile-error";
 import { publicEnv } from "@/lib/public-env";
 import { cn } from "@/lib/utils";
 
+import { CaptchaLoader } from "./captcha-loader";
 import { GoogleAuthButton } from "./google-auth-button";
 
-const CaptchaLoader = () => {
-  const t = useTranslations("Auth.register");
-  return (
-    <div className="flex h-[4.0625rem] animate-pulse items-center justify-center rounded bg-muted/20 text-xs text-muted-foreground">
-      {t("captchaLoading")}
-    </div>
-  );
-};
-
 /** Turnstile widget, loaded on demand so its script stays out of the first form bundle. */
-export const Captcha = dynamic(
+const Captcha = dynamic(
   async () => import("./captcha").then((m) => m.Captcha),
   {
-    loading: () => <CaptchaLoader />,
+    loading: () => (
+      <div className="py-2">
+        <CaptchaLoader />
+      </div>
+    ),
     ssr: false,
   },
 );
+
+/** Failures after which the widget cannot work on this page: only the advice is shown. */
+const WIDGET_GONE: ReadonlySet<TurnstileErrorKind> = new Set([
+  "blocked",
+  "unsupported",
+]);
 
 /**
  * Turnstile state of an auth form. `widget` is the widget, or null without a site key (local
  * setups without captcha: the request then goes without a token). `isMissing` is true while a
  * required token has not arrived. A token works once, so `reset` clears it and mounts a new widget.
- * When the Turnstile script cannot load, the widget gives way to the reload advice.
+ * A failed check shows its reason under the widget; when the widget cannot work at all (script
+ * blocked, browser unsupported), the reason takes its place.
  */
 export function useCaptcha() {
-  const t = useTranslations("Auth.register");
+  const t = useTranslations("Auth.captchaErrors");
   const [token, setToken] = useState<string | null>(null);
-  const [isUnavailable, setIsUnavailable] = useState(false);
+  const [failure, setFailure] = useState<TurnstileErrorKind | null>(null);
   const [attempt, setAttempt] = useState(0);
   const hasCaptcha = Boolean(publicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
+  const reason = failure ? (
+    <p className="text-sm text-destructive" role="alert">
+      {t(failure)}
+    </p>
+  ) : null;
 
   return {
     isMissing: hasCaptcha && token === null,
     reset: () => {
       setToken(null);
+      setFailure(null);
       setAttempt((count) => count + 1);
     },
     token,
     widget: hasCaptcha ? (
-      isUnavailable ? (
-        <p className="text-sm text-destructive" role="alert">
-          {t("captchaFailed")}
-        </p>
+      failure && WIDGET_GONE.has(failure) ? (
+        reason
       ) : (
-        <Captcha
-          key={attempt}
-          onError={() => setToken(null)}
-          onExpire={() => setToken(null)}
-          onUnavailable={() => setIsUnavailable(true)}
-          onVerify={setToken}
-        />
+        <>
+          <Captcha
+            key={attempt}
+            onExpire={() => setToken(null)}
+            onFail={(kind) => {
+              setToken(null);
+              setFailure(kind);
+            }}
+            onVerify={(value) => {
+              setToken(value);
+              setFailure(null);
+            }}
+          />
+          {reason}
+        </>
       )
     ) : null,
   };

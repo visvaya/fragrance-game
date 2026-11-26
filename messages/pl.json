@@ -225,6 +225,15 @@
       "loading": "Ładowanie...",
       "captchaKeyMissing": "Błąd: brak klucza witryny Captcha"
     },
+    "captchaErrors": {
+      "challenge": "Cloudflare nie potwierdził tej przeglądarki. Zwykle przeszkadza okno prywatne, rozszerzenie blokujące reklamy lub śledzenie albo otwarte narzędzia deweloperskie. Spróbuj w zwykłym oknie, potem odśwież stronę.",
+      "blocked": "Nie udało się wczytać weryfikacji Cloudflare. Sprawdź, czy bloker reklam, VPN albo sieć nie blokuje challenges.cloudflare.com, potem odśwież stronę.",
+      "clock": "Zegar tego urządzenia jest chyba ustawiony źle. Włącz automatyczną datę i godzinę, potem odśwież stronę.",
+      "timeout": "Weryfikacja zbyt długo czekała na kliknięcie. Odśwież stronę, aby spróbować ponownie.",
+      "config": "Weryfikacja jest chwilowo niedostępna z powodu błędu po naszej stronie. Spróbuj ponownie później.",
+      "unsupported": "Ta przeglądarka nie obsługuje weryfikacji Cloudflare. Spróbuj w innej, aktualnej przeglądarce.",
+      "unknown": "Weryfikacja się nie powiodła. Odśwież stronę, aby spróbować ponownie."
+    },
     "login": {
       "title": "Witaj ponownie",
       "description": "Wpisz swoje dane, aby się zalogować",
@@ -268,7 +277,6 @@
       "captchaTitle": "Wymagana weryfikacja",
       "captchaDescription": "Potwierdź, że jesteś człowiekiem, aby rozpocząć grę.",
       "captchaLoading": "Ładowanie weryfikacji...",
-      "captchaFailed": "Weryfikacja się nie powiodła. Odśwież stronę, aby spróbować ponownie.",
       "captchaReload": "Odśwież",
       "invalidFormat": "Nieprawidłowy format hasła"
     },
