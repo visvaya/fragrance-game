@@ -2,9 +2,10 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-function loadEnvLocal(): Record<string, string> {
+// Production values live in .env.remote.local; .env.local points at the local stack.
+function loadRemoteEnv(): Record<string, string> {
   try {
-    const content = readFileSync(path.resolve(process.cwd(), ".env.local"), "utf8");
+    const content = readFileSync(path.resolve(process.cwd(), ".env.remote.local"), "utf8");
     const entries = content.split("\n").flatMap((line): [string, string][] => {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#")) return [];
@@ -20,13 +21,13 @@ function loadEnvLocal(): Record<string, string> {
   }
 }
 
-const env = loadEnvLocal();
+const env = loadRemoteEnv();
 // A standalone script: lib/env validates the whole app environment, which this one variable does not need.
 const projectId = process.env.SUPABASE_PROJECT_ID ?? env["SUPABASE_PROJECT_ID"];
 
 if (!projectId || projectId === "-") {
   console.error(
-    "Error: SUPABASE_PROJECT_ID not set. Add it to .env.local:\n  SUPABASE_PROJECT_ID=your-project-id",
+    "Error: SUPABASE_PROJECT_ID not set. Add it to .env.remote.local:\n  SUPABASE_PROJECT_ID=your-project-id",
   );
   process.exit(1);
 }

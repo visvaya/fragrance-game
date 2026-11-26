@@ -21,6 +21,7 @@ supabase/.temp/
 
 # Environment & secrets
 .env.local
+.env.remote.local
 .env
 .sentryrc
 

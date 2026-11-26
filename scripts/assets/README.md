@@ -40,7 +40,10 @@ Each perfume asset lives under `a/<32 hex asset id>/` and each step file has its
 32 random hex characters (`.avif`): every step file has an unguessable name, and the server hands
 out only the current step, so one step's URL reveals nothing about the others.
 
-## Environment (`fragrance-webapp/.env.local`)
+## Environment (`fragrance-webapp/.env.remote.local`)
+
+The pipeline writes to production, so it reads `.env.remote.local`, not `.env.local` (which
+points at the local Supabase stack).
 
 Required:
 
@@ -62,7 +65,7 @@ Use an R2 API token limited to object read and write on this one bucket.
 ## Re-keying existing assets
 
 `scripts/assets/rekey_assets.py` moves published images to new keys in the format above. Run the
-commands in this order (each reads `.env.local`):
+commands in this order (each reads `.env.remote.local`):
 
 1. `backup --out DIR` downloads every object under `a/` into an empty `DIR` and writes
    `DIR/manifest.json` with the SHA-256 and size of each object.
