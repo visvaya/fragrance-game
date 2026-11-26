@@ -46,7 +46,10 @@ test.describe("Mobile Touch Interactions - Android", () => {
     // Wait for the autocomplete search to be answered
     await fillAndSearch(page, input, "Cha");
 
-    const suggestionsList = page.locator('button[class*="text-left text-sm"]');
+    // Enabled ones only: a perfume this player already guessed is listed but disabled.
+    const suggestionsList = page.locator(
+      'button[class*="text-left text-sm"]:not([disabled])',
+    );
     const count = await suggestionsList.count();
 
     // If suggestions appear, verify they're tappable
