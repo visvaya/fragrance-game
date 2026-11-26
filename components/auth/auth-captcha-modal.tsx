@@ -6,7 +6,10 @@ import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
-import type { CaptchaStage } from "@/components/game/use-captcha-stage";
+import {
+  CAPTCHA_DIALOG_TIMING,
+  type CaptchaStage,
+} from "@/components/game/use-captcha-stage";
 import type { TurnstileErrorKind } from "@/lib/auth/turnstile-error";
 import { useScrollLock } from "@/lib/hooks/use-scroll-lock";
 import { cn } from "@/lib/utils";
@@ -14,6 +17,11 @@ import { cn } from "@/lib/utils";
 import { Captcha } from "./captcha";
 
 type AuthCaptchaModalProperties = {
+  /**
+   * Set while the dialog closes: how long it stays before fading out, so a dialog shown just
+   * before the token came does not vanish in a blink.
+   */
+  readonly closingHoldMs: number | null;
   /** Why the check failed, shown in the "failed" stage. */
   readonly failure: TurnstileErrorKind;
   /**
@@ -41,6 +49,7 @@ type AuthCaptchaModalProperties = {
  * while hidden so neither the pointer nor the keyboard reaches it.
  */
 export function AuthCaptchaModal({
+  closingHoldMs,
   failure,
   onFail,
   onNeedsAttention,
@@ -51,6 +60,8 @@ export function AuthCaptchaModal({
   const t = useTranslations("Auth.register");
   const tError = useTranslations("Auth.captchaErrors");
   const isVisible = stage !== "pending" && stage !== "attention";
+  // A closing dialog still shows for its hold, then fades, but takes no more input.
+  const isOpen = isVisible && closingHoldMs === null;
   const [widgetLoaded, setWidgetLoaded] = useState(false);
   useScrollLock(isVisible);
   // A visible widget shows its own placeholder until it loads.
@@ -60,19 +71,23 @@ export function AuthCaptchaModal({
 
   return (
     <div
-      aria-hidden={!isVisible}
+      aria-hidden={!isOpen}
       className={cn(
-        "fixed inset-0 z-50 flex items-center justify-center p-4",
-        isVisible
-          ? "bg-black/50 backdrop-blur-sm"
-          : "pointer-events-none opacity-0",
+        "fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity motion-reduce:transition-none",
+        isVisible && "bg-black/50 backdrop-blur-sm",
+        !isOpen && "pointer-events-none opacity-0",
       )}
-      inert={!isVisible}
+      data-testid="captcha-overlay"
+      inert={!isOpen}
+      style={{
+        transitionDelay: `${closingHoldMs ?? 0}ms`,
+        transitionDuration: `${CAPTCHA_DIALOG_TIMING.fadeMs}ms`,
+      }}
     >
       <div
         aria-describedby="anonymous-captcha-description"
         aria-labelledby="anonymous-captcha-title"
-        aria-modal={isVisible}
+        aria-modal={isOpen}
         className="w-full max-w-md rounded-md border panel-border bg-background px-4 py-6 panel-shadow outline-none sm:px-6"
         // Moves focus into the dialog when it appears or changes stage (unless focus is already
         // inside, such as in the widget) and gives it back to the page element that had it

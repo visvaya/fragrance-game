@@ -33,11 +33,16 @@ import { publicEnv } from "@/lib/public-env";
 import { getSupabaseClient } from "@/lib/supabase/get-client";
 
 import {
+  measureAnonAuth,
   signInAnonymousPlayer,
-  type AnonymousSignInResult,
+  signInWithToken,
 } from "./anonymous-auth";
 import { reportCaptchaVerified } from "./report-captcha-verified";
-import { CAPTCHA_TIMED_STAGES, useCaptchaStage } from "./use-captcha-stage";
+import {
+  CAPTCHA_DIALOG_TIMING,
+  CAPTCHA_TIMED_STAGES,
+  useCaptchaStage,
+} from "./use-captcha-stage";
 import { whenIdle } from "./when-idle";
 
 import {
@@ -72,26 +77,6 @@ const AUTH_IDLE_TIMEOUT_MS = 2000;
 const MAX_SIGN_IN_ATTEMPTS = 2;
 /** Longest the board stays in its loading state while start-up runs. */
 const INIT_SAFETY_TIMEOUT_MS = 15_000;
-
-/**
- * Runs the anonymous sign-in and records it as the "eauxle.anon_auth" measure, which
- * e2e/performance/auth-waterfall.spec.ts budgets.
- * @param signIn - The sign-in request.
- * @returns The sign-in result.
- */
-async function measureAnonAuth<T>(signIn: () => Promise<T>): Promise<T> {
-  performance.mark("eauxle:anon_auth_start");
-  try {
-    return await signIn();
-  } finally {
-    performance.mark("eauxle:anon_auth_end");
-    performance.measure(
-      "eauxle.anon_auth",
-      "eauxle:anon_auth_start",
-      "eauxle:anon_auth_end",
-    );
-  }
-}
 
 /**
  * Fire-and-forget: updates Sentry user identity once start-up work is done, so the SDK is not
@@ -210,22 +195,6 @@ async function finishInit(
 }
 
 /**
- * Signs in with a Turnstile token; a thrown error becomes a rejected result.
- * @param token - Turnstile token.
- * @returns The sign-in result.
- */
-async function signInWithToken(token: string): Promise<AnonymousSignInResult> {
-  try {
-    const supabase = await getSupabaseClient();
-    return await measureAnonAuth(async () =>
-      signInAnonymousPlayer(supabase, token),
-    );
-  } catch (error) {
-    return { message: String(error), ok: false };
-  }
-}
-
-/**
  * GameProvider - Main orchestrator that manages state and coordinates contexts
  * All state lives here as single source of truth
  * Contexts receive state and the dispatch function as props
@@ -268,7 +237,7 @@ export function GameProvider({
   const captchaStartedAt = useRef<number | null>(null);
 
   const failAuth = (kind: TurnstileErrorKind) => {
-    captchaDispatch({ kind, type: "fail" });
+    captchaDispatch({ at: performance.now(), kind, type: "fail" });
     setAuthFailed(true);
     setLoading(false);
   };
@@ -278,7 +247,7 @@ export function GameProvider({
     signInInFlight.current = true;
     reportCaptchaVerified(captchaStartedAt, captcha.stage);
     // Closed before the sign-in, so a timer of a waiting stage cannot open it during a slow one.
-    captchaDispatch({ type: "close" });
+    captchaDispatch({ at: performance.now(), type: "close" });
     const result = await signInWithToken(token);
     signInInFlight.current = false;
 
@@ -287,7 +256,7 @@ export function GameProvider({
       if (captcha.attempt + 1 >= MAX_SIGN_IN_ATTEMPTS) {
         failAuth("unknown");
       } else {
-        captchaDispatch({ type: "ask-again" });
+        captchaDispatch({ at: performance.now(), type: "ask-again" });
       }
       return;
     }
@@ -319,16 +288,29 @@ export function GameProvider({
     }
   };
 
-  // Moves the dialog on from a stage that only waits (see CAPTCHA_TIMED_STAGES).
-  const captchaStage = captcha.stage;
+  // Moves the dialog on from a stage that only waits (see CAPTCHA_TIMED_STAGES), and removes
+  // a closing dialog once it has stayed its shortest time and faded out.
+  const { closingHoldMs, stage: captchaStage } = captcha;
   useEffect(() => {
+    if (closingHoldMs !== null) {
+      const timer = setTimeout(
+        () => captchaDispatch({ type: "closed" }),
+        closingHoldMs + CAPTCHA_DIALOG_TIMING.fadeMs,
+      );
+      return () => clearTimeout(timer);
+    }
     if (captchaStage !== "pending" && captchaStage !== "attention") return;
     const timer = setTimeout(
-      () => captchaDispatch({ from: captchaStage, type: "elapsed" }),
+      () =>
+        captchaDispatch({
+          at: performance.now(),
+          from: captchaStage,
+          type: "elapsed",
+        }),
       CAPTCHA_TIMED_STAGES[captchaStage].delayMs,
     );
     return () => clearTimeout(timer);
-  }, [captchaDispatch, captchaStage]);
+  }, [captchaDispatch, captchaStage, closingHoldMs]);
 
   // auth listener for real-time updates (login/logout)
   const router = useRouter();
@@ -510,10 +492,13 @@ export function GameProvider({
         </div>
         {captchaStage === "none" ? null : (
           <AuthCaptchaModal
+            closingHoldMs={closingHoldMs}
             failure={captcha.failure}
             key={captcha.attempt}
             onFail={failAuth}
-            onNeedsAttention={() => captchaDispatch({ type: "attention" })}
+            onNeedsAttention={() =>
+              captchaDispatch({ at: performance.now(), type: "attention" })
+            }
             onVerify={(token) => void handleCaptchaVerify(token)}
             stage={captchaStage}
             widgetVisible={captcha.attempt > 0}

@@ -300,6 +300,27 @@ describe("GameProvider anonymous sign-in for a new visitor", () => {
     expect(screen.queryByRole("alertdialog")).toBeNull();
   });
 
+  it("keeps a dialog shown just before the token in view for a moment", async () => {
+    const user = userEvent.setup();
+    renderProvider();
+
+    await user.click(await findTurnstile("needs-interaction"));
+    await screen.findByRole("alertdialog", {}, { timeout: 3000 });
+    await clickTurnstile(user, "turnstile-solved");
+
+    // Closing: still drawn, no longer taking input, gone after its shortest time and fade.
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(
+      screen.getByRole("alertdialog", { hidden: true }),
+    ).toBeInTheDocument();
+    await waitFor(
+      () => {
+        expect(screen.queryByRole("alertdialog", { hidden: true })).toBeNull();
+      },
+      { timeout: 3000 },
+    );
+  });
+
   it("keeps the dialog closed during a slow sign-in after the token", async () => {
     signInAnonymously.mockImplementation(
       async () =>
