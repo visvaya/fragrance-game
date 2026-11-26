@@ -8,6 +8,7 @@ import {
   getYearDirection,
   getYearMatch,
   type PerfumeForFeedback,
+  notePyramidOf,
 } from "@/lib/game/guess-feedback";
 
 const NO_NOTES = { base: [], heart: [], top: [] };
@@ -63,6 +64,18 @@ describe("calculateNotesMatch", () => {
 
   it("is 0 when neither perfume has notes", () => {
     expect(calculateNotesMatch(NO_NOTES, NO_NOTES)).toBe(0);
+  });
+});
+
+describe("notePyramidOf", () => {
+  it("reads the middle column as the heart and a missing level as empty", () => {
+    expect(
+      notePyramidOf({
+        base_notes: ["musk"],
+        middle_notes: null,
+        top_notes: ["bergamot"],
+      }),
+    ).toEqual({ base: ["musk"], heart: [], top: ["bergamot"] });
   });
 });
 

@@ -5,16 +5,12 @@ import { getTranslations } from "next-intl/server";
 import { revokeSession } from "@/app/actions/auth-actions";
 import { SessionCard, type Session } from "@/components/auth/session-card";
 import { MAX_LISTED_SESSIONS } from "@/lib/constants";
-import { createClient } from "@/lib/supabase/server";
+import { getRequestUser } from "@/lib/supabase/request-user";
 
 /** Displays all active sessions for the authenticated user with option to revoke each. */
 export default async function SessionsPage() {
-  const supabase = await createClient();
+  const { supabase, user } = await getRequestUser();
   const t = await getTranslations("Sessions");
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   if (!user) {
     redirect("/auth/login");

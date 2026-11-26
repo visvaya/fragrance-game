@@ -8,6 +8,7 @@ import {
 import {
   getYearDirection,
   getYearMatch,
+  notePyramidOf,
   type AttemptFeedback,
 } from "@/lib/game/guess-feedback";
 
@@ -77,11 +78,7 @@ export function toClueAnswer(perfume: ClueSourceRow): ClueAnswer {
     brand: perfume.brands?.name ?? UNKNOWN_VALUE,
     gender: perfume.gender || UNKNOWN_VALUE,
     isLinear: perfume.is_linear ?? false,
-    notes: {
-      base: perfume.base_notes ?? [],
-      heart: perfume.middle_notes ?? [],
-      top: perfume.top_notes ?? [],
-    },
+    notes: notePyramidOf(perfume),
     perfumers: perfume.perfumers ?? [],
     year: perfume.release_year ?? 0,
   };

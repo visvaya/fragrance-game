@@ -15,7 +15,8 @@ import {
   selectSuggestions,
   toSuggestions,
 } from "@/lib/game/suggestions";
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getRequestUser } from "@/lib/supabase/request-user";
 import { normalizeText } from "@/lib/utils";
 import { autocompleteSchema } from "@/lib/validations/game.schema";
 
@@ -89,10 +90,7 @@ export async function searchPerfumes(
   }
 
   // 4. Cache miss – auth + rate limit
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user } = await getRequestUser();
 
   await applyRateLimit(user);
 
