@@ -110,6 +110,36 @@ def _match_words(address: list[str], words: list[str], start: int) -> int | None
     return at
 
 
+# A spreadsheet turned some names into formula errors (Polish and English Excel spell them
+# differently); the Parfumo address still holds the name. 27 rows in the 2026-11 source file.
+SPREADSHEET_ERRORS = {"#NAZWA?", "#NAME?"}
+
+
+def restore_broken_name(name: str, concentration: str, year: int, url: Any) -> tuple[str, int]:
+    """Name rebuilt from the address when the source holds a spreadsheet error, and the year.
+
+    The concentration is dropped from the address words, words in lower case get a capital, and a
+    year equal to the number the name starts with (copied from the name, "1902") becomes unknown.
+    Accents the address dropped stay lost.
+    """
+    if name not in SPREADSHEET_ERRORS:
+        return name, year
+    if not isinstance(url, str) or not url.startswith(PARFUMO_PERFUMES):
+        return name, year
+    words = _words(unquote(url.rstrip("/").rsplit("/", 1)[-1]))
+    if concentration and concentration != MISSING_CONCENTRATION:
+        drop = [word.lower() for word in _words(concentration)]
+        lower = [word.lower() for word in words]
+        for start in range(len(words) - len(drop) + 1):
+            if lower[start : start + len(drop)] == drop:
+                words = words[:start] + words[start + len(drop) :]
+                break
+    if not words:
+        return name, year
+    rebuilt = " ".join(word if word != word.lower() else word.capitalize() for word in words)
+    return rebuilt, 0 if words[0] == str(year) else year
+
+
 def restore_variant(name: str, concentration: str, year: int, url: Any) -> tuple[str, str]:
     """Name and concentration with the variant word(s) the source kept only in the address.
 
@@ -283,6 +313,20 @@ class EtlPipeline:
         self.df["Name"] = self.df["Name"].fillna("Unknown")
         self.df["Concentration"] = self.df["Concentration"].fillna(MISSING_CONCENTRATION)
         self.df["Manufacturer"] = self.df["Manufacturer"].fillna("Unknown")
+
+        # 3a. Names a spreadsheet turned into formula errors, rebuilt from the address
+        rebuilt = [
+            restore_broken_name(name, concentration, year, url)
+            for name, concentration, year, url in zip(
+                self.df["Name"],
+                self.df["Concentration"],
+                self.df["Release Year"],
+                self.df["URL"],
+                strict=True,
+            )
+        ]
+        self.df["Name"] = [name for name, _ in rebuilt]
+        self.df["Release Year"] = [year for _, year in rebuilt]
 
         # 3b. Variant words the source kept only in the address, before fingerprints tell rows apart
         restored = [
