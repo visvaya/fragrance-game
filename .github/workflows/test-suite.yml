@@ -52,6 +52,9 @@ jobs:
     # counts as passing for branch protection. Run it manually before merging such a PR.
     # The database is a local stack built from the migrations and the seed, except on main.
     if: github.event.pull_request.user.login != 'dependabot[bot]'
+    # The production database secrets live in the production-ci environment, which only main can
+    # use; other runs take no environment and test on the local stack.
+    environment: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'production-ci' || '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: fast-tests
@@ -157,9 +160,11 @@ jobs:
 
   pgtap:
     name: pgTAP (schema + RLS + search)
-    # Needs repository secrets, which Dependabot PRs do not receive; a skipped job
-    # counts as passing for branch protection. Run it manually before merging such a PR.
-    if: github.event.pull_request.user.login != 'dependabot[bot]'
+    # Checks the production database after each merge. Pull requests run the same pgTAP files on
+    # a database built from the migrations ("Database from migrations"), and the nightly
+    # "Production schema drift" compares production with the migrations.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production-ci
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # One run at a time across all branches: the Supabase CLI resets the password of its login

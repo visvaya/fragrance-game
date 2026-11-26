@@ -95,10 +95,11 @@ jobs:
 
   supabase-advisors:
     name: Supabase Security Advisor
-    # Needs repository secrets, which Dependabot PRs do not receive; a skipped job
-    # counts as passing for branch protection. The advisor checks the database, not
-    # dependencies, so a dependency update loses nothing here.
-    if: github.event.pull_request.user.login != 'dependabot[bot]'
+    # Checks the production project, not the code, so it runs only on main (after merges and on
+    # the schedule), where the production-ci environment provides the account token. Pull requests
+    # lint the schema with splinter in "Database from migrations".
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    environment: production-ci
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

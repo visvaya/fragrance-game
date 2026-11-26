@@ -19,6 +19,8 @@ permissions:
 jobs:
   fingerprint:
     name: Production schema fingerprint
+    # Production secrets come from the production-ci environment, which only main can use.
+    environment: production-ci
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
