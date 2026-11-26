@@ -1,23 +1,24 @@
 -- Local seed: runs after the migrations on a local database (config.toml [db.seed]).
 -- A minimal catalogue so the search function and the slug trigger have rows to work on; the real
--- catalogue comes from the ETL.
+-- catalogue comes from the ETL. Perfume ids derive from the source slug, so every local database has
+-- the same ids: test runs that share one Redis cache then serve each other valid ids.
 
 INSERT INTO public.concentrations (name, slug) VALUES ('Eau de Parfum', 'edp');
 INSERT INTO public.brands (name, slug) VALUES ('Chanel', 'chanel');
-INSERT INTO public.perfumes (brand_id, name, source_record_slug, release_year, concentration_id)
-SELECT b.id, 'Coco Mademoiselle', 'chanel-coco-mademoiselle-edp', 2001, c.id
+INSERT INTO public.perfumes (id, brand_id, name, source_record_slug, release_year, concentration_id)
+SELECT md5('chanel-coco-mademoiselle-edp')::uuid, b.id, 'Coco Mademoiselle', 'chanel-coco-mademoiselle-edp', 2001, c.id
 FROM public.brands b, public.concentrations c
 WHERE b.slug = 'chanel' AND c.slug = 'edp';
 
 -- Names with characters the search normalizer strips (03_search_function.test.sql); both exist in
 -- the production catalogue too.
 INSERT INTO public.brands (name, slug) VALUES ('4711', '4711');
-INSERT INTO public.perfumes (brand_id, name, source_record_slug, release_year, concentration_id)
-SELECT b.id, 'Blood Orange & Basil', '4711-blood-orange-basil-edp', 2015, c.id
+INSERT INTO public.perfumes (id, brand_id, name, source_record_slug, release_year, concentration_id)
+SELECT md5('4711-blood-orange-basil-edp')::uuid, b.id, 'Blood Orange & Basil', '4711-blood-orange-basil-edp', 2015, c.id
 FROM public.brands b, public.concentrations c
 WHERE b.slug = '4711' AND c.slug = 'edp';
-INSERT INTO public.perfumes (brand_id, name, source_record_slug, release_year, concentration_id)
-SELECT b.id, 'N°5 L''Eau', 'chanel-n5-leau-edp', 2016, c.id
+INSERT INTO public.perfumes (id, brand_id, name, source_record_slug, release_year, concentration_id)
+SELECT md5('chanel-n5-leau-edp')::uuid, b.id, 'N°5 L''Eau', 'chanel-n5-leau-edp', 2016, c.id
 FROM public.brands b, public.concentrations c
 WHERE b.slug = 'chanel' AND c.slug = 'edp';
 
@@ -32,9 +33,9 @@ INSERT INTO public.brands (name, slug) VALUES
   ('Lune Pâle', 'lune-pale'), ('Hollin & Reed', 'hollin-reed'), ('Casa Velluto', 'casa-velluto'),
   ('Nordvik', 'nordvik'), ('Ambrette Studio', 'ambrette-studio');
 
-INSERT INTO public.perfumes (brand_id, name, source_record_slug, release_year, concentration_id,
-  gender, is_linear, xsolve_score, top_notes, middle_notes, base_notes, perfumers)
-SELECT b.id, w.adjectives[i % 16 + 1] || ' ' || w.nouns[(i / 16) % 15 + 1], 'synthetic-' || i,
+INSERT INTO public.perfumes (id, brand_id, name, source_record_slug, release_year,
+  concentration_id, gender, is_linear, xsolve_score, top_notes, middle_notes, base_notes, perfumers)
+SELECT md5('synthetic-' || i)::uuid, b.id, w.adjectives[i % 16 + 1] || ' ' || w.nouns[(i / 16) % 15 + 1], 'synthetic-' || i,
   1960 + (i * 37) % 65, c.id, w.genders[(i * 7) % 3 + 1], i % 12 = 5,
   ((i * 7919) % 1000) / 1000.0,
   -- A linear perfume keeps one flat list in top_notes, as the ETL stores it.

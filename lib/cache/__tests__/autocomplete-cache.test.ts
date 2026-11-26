@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockGet, mockSet } = vi.hoisted(() => ({
+const { mockEnv, mockGet, mockSet } = vi.hoisted(() => ({
+  mockEnv: { NEXT_PUBLIC_SUPABASE_URL: "https://db.example.test" },
   mockGet: vi.fn(),
   mockSet: vi.fn(),
 }));
+
+vi.mock("@/lib/env", () => ({ env: mockEnv }));
 
 vi.mock("@/lib/redis", () => ({
   redis: { get: mockGet, set: mockSet },
@@ -44,6 +47,20 @@ const mockSuggestions: PerfumeSuggestion[] = [
 describe("autocomplete-cache", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockEnv.NEXT_PUBLIC_SUPABASE_URL = "https://db.example.test";
+  });
+
+  it("keeps the results of two databases apart", async () => {
+    // Perfume ids belong to one database: a local test stack sharing the production Redis must
+    // not read or write the production entries.
+    mockGet.mockResolvedValue(null);
+    mockEnv.NEXT_PUBLIC_SUPABASE_URL = "http://127.0.0.1:54321";
+
+    await getCachedAutocomplete("chanel", 10);
+
+    expect(mockGet).toHaveBeenCalledWith(
+      "autocomplete:v3:127.0.0.1:54321:chanel:10",
+    );
   });
 
   describe("getCachedAutocomplete", () => {
@@ -76,7 +93,9 @@ describe("autocomplete-cache", () => {
 
       await getCachedAutocomplete("CHANEL", 10);
 
-      expect(mockGet).toHaveBeenCalledWith("autocomplete:v2:chanel:10");
+      expect(mockGet).toHaveBeenCalledWith(
+        "autocomplete:v3:db.example.test:chanel:10",
+      );
     });
 
     it("normalizes query by trimming whitespace", async () => {
@@ -84,7 +103,9 @@ describe("autocomplete-cache", () => {
 
       await getCachedAutocomplete("  rose  ", 5);
 
-      expect(mockGet).toHaveBeenCalledWith("autocomplete:v2:rose:5");
+      expect(mockGet).toHaveBeenCalledWith(
+        "autocomplete:v3:db.example.test:rose:5",
+      );
     });
 
     it("includes limit in cache key", async () => {
@@ -92,7 +113,9 @@ describe("autocomplete-cache", () => {
 
       await getCachedAutocomplete("oud", 20);
 
-      expect(mockGet).toHaveBeenCalledWith("autocomplete:v2:oud:20");
+      expect(mockGet).toHaveBeenCalledWith(
+        "autocomplete:v3:db.example.test:oud:20",
+      );
     });
   });
 
@@ -103,7 +126,7 @@ describe("autocomplete-cache", () => {
       await setCachedAutocomplete("chanel", 10, mockSuggestions);
 
       expect(mockSet).toHaveBeenCalledWith(
-        "autocomplete:v2:chanel:10",
+        "autocomplete:v3:db.example.test:chanel:10",
         mockSuggestions,
         { ex: 300 },
       );
@@ -131,7 +154,7 @@ describe("autocomplete-cache", () => {
       await setCachedAutocomplete("JASMINE", 5, mockSuggestions);
 
       expect(mockSet).toHaveBeenCalledWith(
-        "autocomplete:v2:jasmine:5",
+        "autocomplete:v3:db.example.test:jasmine:5",
         mockSuggestions,
         expect.anything(),
       );

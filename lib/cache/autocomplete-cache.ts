@@ -1,15 +1,19 @@
 /**
  * Redis-based caching layer for autocomplete results
  *
- * Cache key format: autocomplete:v2:{query}:{limit}
+ * Cache key format: autocomplete:v3:{database host}:{query}:{limit}
  * TTL: 300 seconds (dataset changes once daily via cron)
+ *
+ * The database host scopes the key because the results hold perfume ids of one database: a test
+ * run on a local database that shares the production Redis must not swap ids with production.
  */
 
+import { env } from "@/lib/env";
 import { redis } from "@/lib/redis";
 
 import type { PerfumeSuggestion } from "@/lib/types/game";
 
-const CACHE_PREFIX = "autocomplete:v2";
+const CACHE_PREFIX = "autocomplete:v3";
 const CACHE_TTL = 300; // seconds – perfume dataset refreshes once daily
 
 /**
@@ -20,7 +24,8 @@ const CACHE_TTL = 300; // seconds – perfume dataset refreshes once daily
  */
 function getCacheKey(query: string, limit: number): string {
   const normalizedQuery = query.toLowerCase().trim();
-  return `${CACHE_PREFIX}:${normalizedQuery}:${limit}`;
+  const database = new URL(env.NEXT_PUBLIC_SUPABASE_URL).host;
+  return `${CACHE_PREFIX}:${database}:${normalizedQuery}:${limit}`;
 }
 
 /**
