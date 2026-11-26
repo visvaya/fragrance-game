@@ -33,11 +33,13 @@ type Stage = "pending" | "attention" | "waiting" | "interactive" | "failed";
 function renderModal(
   stage: Stage,
   overrides: {
+    closingHoldMs?: number;
     failure?: "challenge" | "unknown";
     widgetVisible?: boolean;
   } = {},
 ) {
   const props = {
+    closingHoldMs: overrides.closingHoldMs ?? null,
     failure: overrides.failure ?? ("unknown" as const),
     onFail: vi.fn(),
     onNeedsAttention: vi.fn(),
@@ -110,6 +112,20 @@ describe("AuthCaptchaModal", () => {
     renderModal("attention");
     expect(screen.queryByRole("alertdialog")).toBeNull();
     expect(document.body.style.overflow).toBe("auto");
+  });
+
+  it("stays in view for its hold while closing, then fades, taking no more input", () => {
+    renderModal("waiting", { closingHoldMs: 900 });
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    const overlay = screen.getByTestId("captcha-overlay");
+    expect(overlay).toHaveAttribute(
+      "style",
+      expect.stringContaining("transition-delay: 900ms"),
+    );
+    expect(overlay).toHaveAttribute("inert");
+    expect(screen.getByRole("alertdialog", { hidden: true })).toHaveTextContent(
+      "Loading verification...",
+    );
   });
 
   it("says why the check failed", () => {

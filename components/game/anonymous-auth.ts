@@ -1,4 +1,5 @@
 import type { createClient as CreateClientType } from "@/lib/supabase/client";
+import { getSupabaseClient } from "@/lib/supabase/get-client";
 import type { User } from "@supabase/supabase-js";
 
 type SupabaseClient = ReturnType<typeof CreateClientType>;
@@ -53,4 +54,42 @@ export async function signInAnonymousPlayer(
     console.warn("[anonymous-auth] Session not readable after the sign-in.");
   }
   return { ok: true, user };
+}
+
+/**
+ * Runs the anonymous sign-in and records it as the "eauxle.anon_auth" measure, which
+ * e2e/performance/auth-waterfall.spec.ts budgets.
+ * @param signIn - The sign-in request.
+ * @returns The sign-in result.
+ */
+export async function measureAnonAuth<T>(signIn: () => Promise<T>): Promise<T> {
+  performance.mark("eauxle:anon_auth_start");
+  try {
+    return await signIn();
+  } finally {
+    performance.mark("eauxle:anon_auth_end");
+    performance.measure(
+      "eauxle.anon_auth",
+      "eauxle:anon_auth_start",
+      "eauxle:anon_auth_end",
+    );
+  }
+}
+
+/**
+ * Signs in with a Turnstile token; a thrown error becomes a rejected result.
+ * @param token - Turnstile token.
+ * @returns The sign-in result.
+ */
+export async function signInWithToken(
+  token: string,
+): Promise<AnonymousSignInResult> {
+  try {
+    const supabase = await getSupabaseClient();
+    return await measureAnonAuth(async () =>
+      signInAnonymousPlayer(supabase, token),
+    );
+  } catch (error) {
+    return { message: String(error), ok: false };
+  }
 }
