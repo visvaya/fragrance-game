@@ -14,6 +14,7 @@ import {
 } from "@/app/actions/autocomplete";
 import { useMountTransition } from "@/hooks/use-mount-transition";
 import { MASK_CHAR, BULLET_CHAR } from "@/lib/constants";
+import { showsBrand } from "@/lib/game/suggestions";
 import { useMountEffect } from "@/lib/hooks/use-mount-effect";
 import { cn, normalizeText } from "@/lib/utils";
 
@@ -777,14 +778,16 @@ export function GameInput() {
                     role="option"
                   >
                     <span className="flex flex-wrap items-baseline gap-x-1 text-foreground">
-                      {/* Brand Revealed */}
-                      <span className="text-foreground">
-                        {perfume.brand_masked}
-                      </span>
-
-                      <span className="text-muted-foreground/30">
-                        {BULLET_CHAR}
-                      </span>
+                      {showsBrand(perfume) ? (
+                        <>
+                          <span className="text-foreground">
+                            {perfume.brand_masked}
+                          </span>
+                          <span className="text-muted-foreground/30">
+                            {BULLET_CHAR}
+                          </span>
+                        </>
+                      ) : null}
 
                       {/* Name with highlighting */}
                       <span

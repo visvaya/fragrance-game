@@ -516,6 +516,21 @@ describe("GameInput", () => {
         { timeout: 2000 },
       );
     });
+
+    it("does not repeat the brand when the name starts with it", async () => {
+      mockSearchPerfumes.mockResolvedValue([
+        makeSuggestion({ name: "Dior Homme", name_norm: "dior homme" }),
+      ]);
+      renderGameInput();
+
+      const input = screen.getByTestId("game-input");
+      const user = userEvent.setup();
+      await user.click(input);
+      await user.type(input, "homme");
+
+      const option = await screen.findByRole("option", {}, { timeout: 2000 });
+      expect(option.textContent).toMatch(/^Dior Homme/);
+    });
   });
 
   describe("keyboard navigation", () => {

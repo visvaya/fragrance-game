@@ -15,12 +15,17 @@ export type FragranceRow = {
 const DEFAULT_LIMIT = 10;
 const EXACT_MATCH_LIMIT = 30;
 
-/** Perfumes that differ only by year share this key; their years stay visible to tell them apart. */
-const variantKey = (
-  brand: string,
-  name: string,
-  concentration: string | null | undefined,
-): string => `${brand}|${name}|${concentration ?? ""}`.toLowerCase();
+/**
+ * Perfumes that differ only by year share this key; their years stay visible to tell them
+ * apart. The concentration joins the name, so "Dior Homme" (Parfum) and "Dior Homme Parfum"
+ * count as one name.
+ */
+const variantKey = ({
+  brand_norm,
+  concentration,
+  name,
+}: Pick<PerfumeSuggestion, "brand_norm" | "concentration" | "name">): string =>
+  `${brand_norm}|${normalizeText([name, concentration].filter(Boolean).join(" "))}`;
 
 function countVariants(keys: string[]): Map<string, number> {
   const counts = new Map<string, number>();
@@ -39,15 +44,24 @@ function shownYear(
     : maskYear(year ?? null, attemptsCount);
 }
 
-function displayName(
-  brand: string,
-  name: string,
-  concentration: string | null | undefined,
-  year: string | null,
-): string {
-  const concentrationSuffix = concentration ? ` ${concentration}` : "";
+/**
+ * Whether the brand is shown next to the name: not when the name is the brand or starts
+ * with it as a word ("Dior Homme" by Dior), which would repeat it.
+ * @param suggestion - Suggestion with normalized brand and name.
+ */
+export const showsBrand = (
+  suggestion: Pick<PerfumeSuggestion, "brand_norm" | "name_norm">,
+): boolean =>
+  suggestion.name_norm !== suggestion.brand_norm &&
+  !suggestion.name_norm.startsWith(`${suggestion.brand_norm} `);
+
+function displayName(item: PerfumeSuggestion, year: string | null): string {
+  const brandPrefix = showsBrand(item) ? `${item.brand_masked} - ` : "";
+  const concentrationSuffix = item.concentration
+    ? ` ${item.concentration}`
+    : "";
   const yearSuffix = year ? ` (${year})` : "";
-  return `${brand} - ${name}${concentrationSuffix}${yearSuffix}`;
+  return `${brandPrefix}${item.name}${concentrationSuffix}${yearSuffix}`;
 }
 
 /**
@@ -107,43 +121,42 @@ export function remaskSuggestions(
   cached: PerfumeSuggestion[],
   attemptsCount: number,
 ): PerfumeSuggestion[] {
-  const variants = countVariants(
-    cached.map((item) =>
-      variantKey(item.brand_masked, item.name, item.concentration),
-    ),
-  );
+  const variants = countVariants(cached.map((item) => variantKey(item)));
   return cached.map((item) => {
-    const hasVariants =
-      (variants.get(
-        variantKey(item.brand_masked, item.name, item.concentration),
-      ) ?? 0) > 1;
+    const hasVariants = (variants.get(variantKey(item)) ?? 0) > 1;
     const year = shownYear(item.raw_year, hasVariants, attemptsCount);
     return {
       ...item,
-      display_name: displayName(
-        item.brand_masked,
-        item.name,
-        item.concentration,
-        year,
-      ),
+      display_name: displayName(item, year),
       year,
     };
   });
 }
 
+/** Sort position of a year: unknown years go last. */
+const yearOrder = (year: number | null): number =>
+  year ?? Number.MAX_SAFE_INTEGER;
+
 /**
  * Sorts suggestions by relevance to the query, best first; equal scores keep their order.
+ * Variants of one name then stand together at the place of the best of them, ordered by
+ * year (unknown last), so the player sees that there is more than one.
  * @param suggestions - Suggestions to sort.
  * @param normalizedQuery - Query after `normalizeText`.
  */
-export const rankSuggestions = (
+export function rankSuggestions(
   suggestions: PerfumeSuggestion[],
   normalizedQuery: string,
-): PerfumeSuggestion[] =>
-  suggestions.toSorted(
+): PerfumeSuggestion[] {
+  const byRelevance = suggestions.toSorted(
     (a, b) =>
       relevanceScore(b, normalizedQuery) - relevanceScore(a, normalizedQuery),
   );
+  const groups = Map.groupBy(byRelevance, (item) => variantKey(item));
+  return [...groups.values()].flatMap((group) =>
+    group.toSorted((a, b) => yearOrder(a.raw_year) - yearOrder(b.raw_year)),
+  );
+}
 
 /**
  * The suggestions shown to the player: the relevant ones (all ranked ones when none is
@@ -177,21 +190,10 @@ export function selectSuggestions(
   // Extend the cut to the end of the group of the last included suggestion.
   const lastIncluded = candidates[DEFAULT_LIMIT - 1];
   if (!lastIncluded) return candidates;
-  const lastKey = variantKey(
-    lastIncluded.brand_masked,
-    lastIncluded.name,
-    lastIncluded.concentration,
-  );
+  const lastKey = variantKey(lastIncluded);
   const firstMismatchIndex = candidates
     .slice(DEFAULT_LIMIT)
-    .findIndex(
-      (candidate) =>
-        variantKey(
-          candidate.brand_masked,
-          candidate.name,
-          candidate.concentration,
-        ) !== lastKey,
-    );
+    .findIndex((candidate) => variantKey(candidate) !== lastKey);
   return candidates.slice(
     0,
     firstMismatchIndex === -1
