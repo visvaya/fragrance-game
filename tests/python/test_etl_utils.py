@@ -179,6 +179,64 @@ def test_restore_variant_treats_an_unknown_concentration_as_none() -> None:
     assert etl_module.restore_variant("Body", "Unknown", 0, url) == ("Body Intense", "Unknown")
 
 
+@pytest.mark.parametrize(
+    ("concentration", "year", "url", "expected"),
+    [
+        # The concentration inside the address is not part of the name; the year the spreadsheet
+        # copied from the name ("1902") is not the release year.
+        (
+            "Eau de Cologne",
+            1902,
+            PARFUMO + "Berdoues/1902_Eau_de_Cologne_Tradition_Gingembre_Vert",
+            ("1902 Tradition Gingembre Vert", 0),
+        ),
+        (
+            "Hair Perfume",
+            1996,
+            PARFUMO + "Byredo/1996-inez-vinoodh-hair-perfume",
+            ("1996 Inez Vinoodh", 0),
+        ),
+        (
+            "Solid Perfume",
+            1948,
+            PARFUMO + "Sweet_Anthem/1948__Beginnings_Solid_Perfume",
+            ("1948 Beginnings", 0),
+        ),
+        (
+            "Unknown",
+            2022,
+            PARFUMO + "M__Asam/2022-magnificent-magnolia",
+            ("2022 Magnificent Magnolia", 0),
+        ),
+        # No number at the start: the year stays.
+        ("Unknown", 2018, PARFUMO + "AlexandreJ/_E_2", ("E 2", 2018)),
+    ],
+)
+def test_restore_broken_name_rebuilds_a_spreadsheet_error_from_the_address(
+    concentration: str, year: int, url: str, expected: tuple[str, int]
+) -> None:
+    assert etl_module.restore_broken_name("#NAZWA?", concentration, year, url) == expected
+    assert etl_module.restore_broken_name("#NAME?", concentration, year, url) == expected
+
+
+def test_restore_broken_name_keeps_real_names_and_rows_without_an_address() -> None:
+    url = PARFUMO + "Berdoues/1902_Eau_de_Cologne_Tradition_Violette"
+
+    assert etl_module.restore_broken_name("Violette", "Eau de Cologne", 1902, url) == (
+        "Violette",
+        1902,
+    )
+    # An address that ends at the brand holds no perfume name.
+    assert etl_module.restore_broken_name("#NAZWA?", "Unknown", 1902, PARFUMO + "Berdoues/") == (
+        "#NAZWA?",
+        1902,
+    )
+    assert etl_module.restore_broken_name("#NAZWA?", "Eau de Cologne", 1902, None) == (
+        "#NAZWA?",
+        1902,
+    )
+
+
 def test_load_keeps_a_variant_the_source_named_like_its_base(tmp_path: Path) -> None:
     source = tmp_path / "source.csv"
     source.write_text(
@@ -193,6 +251,27 @@ def test_load_keeps_a_variant_the_source_named_like_its_base(tmp_path: Path) -> 
 
     assert sorted(pipeline.df["Name"]) == ["Body", "Body Intense"]
     assert pipeline.duplicates == []
+
+
+def test_load_keeps_spreadsheet_errors_apart(tmp_path: Path) -> None:
+    source = tmp_path / "source.csv"
+    row = (
+        "#NAZWA?;Berdoues;1902;Eau de Cologne;7,1;{};;"
+        + PARFUMO
+        + "Berdoues/1902_Eau_de_Cologne_{}\n"
+    )
+    source.write_text(
+        "Name;Brand;Release Year;Concentration;Rating Value;Rating Count;Manufacturer;URL\n"
+        + row.format(29, "Tonique")
+        + row.format(14, "Violette"),
+        encoding="utf-8",
+    )
+    pipeline = EtlPipeline(str(source))
+
+    pipeline.load_and_clean_data()
+
+    assert sorted(pipeline.df["Name"]) == ["1902 Tonique", "1902 Violette"]
+    assert list(pipeline.df["Release Year"]) == [0, 0]
 
 
 def _lookup_client(selects: list[list[dict[str, str]]], insert: object) -> MagicMock:

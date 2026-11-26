@@ -97,6 +97,16 @@ def _address_forms(word: str) -> set[str]:
     return {form for form in (folded, dropped) if form}
 
 
+def _address_words(url: Any) -> list[str] | None:
+    """Words of the perfume part of a Parfumo address (.../Perfumes/<brand>/<perfume>), or None."""
+    if not isinstance(url, str) or not url.startswith(PARFUMO_PERFUMES):
+        return None
+    parts = url[len(PARFUMO_PERFUMES) :].strip("/").split("/")
+    if len(parts) < 2:
+        return None
+    return _words(unquote(parts[-1]))
+
+
 def _match_words(address: list[str], words: list[str], start: int) -> int | None:
     """Position after `words` matched in order from `start`, or None."""
     at = start
@@ -110,15 +120,44 @@ def _match_words(address: list[str], words: list[str], start: int) -> int | None
     return at
 
 
+# A spreadsheet turned some names into formula errors (Polish and English Excel spell them
+# differently); the Parfumo address still holds the name. 27 rows in the 2026-11 source file.
+SPREADSHEET_ERRORS = {"#NAZWA?", "#NAME?"}
+
+
+def restore_broken_name(name: str, concentration: str, year: int, url: Any) -> tuple[str, int]:
+    """Name rebuilt from the address when the source holds a spreadsheet error, and the year.
+
+    The concentration is dropped from the address words, words in lower case get a capital, and a
+    year equal to the number the name starts with (copied from the name, "1902") becomes unknown.
+    Accents the address dropped stay lost.
+    """
+    words = _address_words(url) if name in SPREADSHEET_ERRORS else None
+    if not words:
+        return name, year
+    if concentration and concentration != MISSING_CONCENTRATION:
+        drop = [word.lower() for word in _words(concentration)]
+        lower = [word.lower() for word in words]
+        for start in range(len(words) - len(drop) + 1):
+            if lower[start : start + len(drop)] == drop:
+                words = words[:start] + words[start + len(drop) :]
+                break
+    if not words:
+        return name, year
+    rebuilt = " ".join(word if word != word.lower() else word.capitalize() for word in words)
+    return rebuilt, 0 if words[0] == str(year) else year
+
+
 def restore_variant(name: str, concentration: str, year: int, url: Any) -> tuple[str, str]:
     """Name and concentration with the variant word(s) the source kept only in the address.
 
     The variant joins the concentration when it follows the concentration in the address
     ("Eau de Toilette Intense"), otherwise the name ("Body Intense").
     """
-    if not isinstance(url, str) or not url.startswith(PARFUMO_PERFUMES):
+    words = _address_words(url)
+    if words is None:
         return name, concentration
-    address = [word.lower() for word in _words(unquote(url.rstrip("/").rsplit("/", 1)[-1]))]
+    address = [word.lower() for word in words]
     after_name = _match_words(address, _words(name), 0)
     if after_name is None:
         return name, concentration
@@ -284,19 +323,24 @@ class EtlPipeline:
         self.df["Concentration"] = self.df["Concentration"].fillna(MISSING_CONCENTRATION)
         self.df["Manufacturer"] = self.df["Manufacturer"].fillna("Unknown")
 
-        # 3b. Variant words the source kept only in the address, before fingerprints tell rows apart
-        restored = [
-            restore_variant(name, concentration, year, url)
-            for name, concentration, year, url in zip(
-                self.df["Name"],
-                self.df["Concentration"],
-                self.df["Release Year"],
-                self.df["URL"],
-                strict=True,
-            )
-        ]
-        self.df["Name"] = [name for name, _ in restored]
-        self.df["Concentration"] = [concentration for _, concentration in restored]
+        # 3b. What the source kept only in the address, before fingerprints tell rows apart: names a
+        # spreadsheet turned into formula errors, then variant words dropped from the name
+        names, concentrations, years = [], [], []
+        for name, concentration, year, url in zip(
+            self.df["Name"],
+            self.df["Concentration"],
+            self.df["Release Year"],
+            self.df["URL"],
+            strict=True,
+        ):
+            name, year = restore_broken_name(name, concentration, year, url)
+            name, concentration = restore_variant(name, concentration, year, url)
+            names.append(name)
+            concentrations.append(concentration)
+            years.append(year)
+        self.df["Name"] = names
+        self.df["Concentration"] = concentrations
+        self.df["Release Year"] = years
 
         # 4. Generate Fingerprints
         logger.info("Generating fingerprints...")
