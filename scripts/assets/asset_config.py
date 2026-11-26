@@ -58,16 +58,16 @@ def _resolve_dir(env_name: str) -> Path:
 
 
 def load_env() -> None:
-    """Load fragrance-webapp/.env.local into the process environment when it exists."""
+    """Load fragrance-webapp/.env.remote.local (production R2 and Supabase) when it exists."""
     from dotenv import load_dotenv  # imported lazily so pure tests need no third-party packages
 
-    env_file = WEBAPP_ROOT / ".env.local"
+    env_file = WEBAPP_ROOT / ".env.remote.local"
     if env_file.exists():
         load_dotenv(env_file, override=False)
 
 
 def local_dirs() -> LocalDirs:
-    """Local pipeline directories; each can be overridden in .env.local."""
+    """Local pipeline directories; each can be overridden in .env.remote.local."""
     return LocalDirs(
         originals=_resolve_dir("ASSET_ORIGINALS_DIR"),
         preprocessed=_resolve_dir("ASSET_PREPROCESSED_DIR"),

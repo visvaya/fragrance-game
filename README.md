@@ -27,13 +27,15 @@ Fewer attempts give a higher score; harder perfumes earn a bonus.
 ### Requirements
 
 - Node.js and pnpm in the versions set by `engines` and `packageManager` in `package.json`
-- A Supabase project (database, auth) and an Upstash Redis instance (rate limiting)
+- Docker for the local Supabase stack (database, auth) and an Upstash Redis instance (rate limiting)
 
 ### Setup
 
 ```bash
 pnpm install
 cp .env.example .env.local   # fill in the values; lib/env.ts validates them at startup
+pnpm supabase:start          # local stack from supabase/migrations and supabase/seed.sql
+pnpm exec supabase status -o env | pnpm env:local   # point .env.local at it
 pnpm dev                     # http://localhost:3000
 ```
 

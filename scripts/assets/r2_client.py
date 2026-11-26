@@ -1,4 +1,4 @@
-"""Clients for the image pipeline: R2 (S3 API) and Supabase, configured from .env.local."""
+"""Clients for the image pipeline: R2 (S3 API) and Supabase, configured from .env.remote.local."""
 
 from __future__ import annotations
 
