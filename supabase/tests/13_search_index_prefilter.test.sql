@@ -22,7 +22,8 @@ SELECT ok(
   'search_perfumes_unaccent_v2 sets the trigram thresholds its prefilters rely on'
 );
 
--- Definition before 20261120010000, without the % and <% prefilters.
+-- Definition before 20261120010000, without the % and <% prefilters, plus the filter on products
+-- that are not perfumes that both sides share since 20261126020000.
 CREATE FUNCTION pg_temp.search_reference(search_query text, limit_count integer)
  RETURNS TABLE(id uuid, name text, year integer, brand_name text, concentration text)
  LANGUAGE plpgsql STABLE
@@ -75,7 +76,12 @@ BEGIN
       END AS p8
     FROM perfume_autocomplete_cache c
     WHERE
-      CASE
+      -- Products that are not perfumes, left out since 20261126020000 (not a prefilter).
+      NOT EXISTS (
+        SELECT 1 FROM concentrations k
+        WHERE k.name = c.concentration_name AND NOT k.is_perfume
+      )
+      AND CASE
         WHEN NOT is_multiword THEN (
           c.name_norm ILIKE '%' || search_norm || '%'
           OR c.brand_norm ILIKE '%' || search_norm || '%'
