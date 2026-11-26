@@ -265,6 +265,58 @@ def _fetch_pages(table: str, columns: str) -> list[dict[str, Any]]:
 # jscpd:ignore-end
 
 
+def _catalogue_key(
+    brand: Any, name: Any, concentration: Any, year: Any
+) -> tuple[str, str, str, int]:
+    """The upsert key (brand, name, concentration, year), compared the way the import matches it."""
+
+    def text(value: Any) -> str:
+        return re.sub(r"\s+", " ", value.lower().strip()) if isinstance(value, str) else ""
+
+    # The import finds a concentration label by its slug too ("After-Shave Lotion" is the stored
+    # "After Shave Lotion"), so labels compare by slug.
+    concentration_slug = re.sub(r"[^a-z0-9]+", "-", text(concentration)).strip("-")
+    return (
+        text(brand),
+        text(name),
+        "" if concentration_slug == MISSING_CONCENTRATION.lower() else concentration_slug,
+        int(year) if year else 0,
+    )
+
+
+def compare_with_stored(
+    source: list[dict[str, Any]], stored: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """What an import would add, and which stored rows no source row matches any more.
+
+    `source` rows have brand, name, concentration and year as the import would write them;
+    `stored` rows are perfumes as read from the database, with id, is_active and is_uncertain.
+    """
+    source_keys = {
+        _catalogue_key(r["brand"], r["name"], r["concentration"], r["year"]) for r in source
+    }
+    stored_keys = {
+        _catalogue_key(r["brand"], r["name"], r["concentration"], r["year"]) for r in stored
+    }
+    new = [
+        r
+        for r in source
+        if _catalogue_key(r["brand"], r["name"], r["concentration"], r["year"]) not in stored_keys
+    ]
+    unmatched = [
+        r
+        for r in stored
+        if _catalogue_key(r["brand"], r["name"], r["concentration"], r["year"]) not in source_keys
+    ]
+    return {
+        "matched": len(source_keys & stored_keys),
+        "new": new,
+        "unmatched_stored": unmatched,
+        "unmatched_stored_active": sum(1 for r in unmatched if r["is_active"]),
+        "unmatched_stored_certain": sum(1 for r in unmatched if not r["is_uncertain"]),
+    }
+
+
 def catalog_version(source: bytes) -> str:
     """Identifies the source file an import run read."""
     return "sha256:" + hashlib.sha256(source).hexdigest()
@@ -909,6 +961,45 @@ class EtlPipeline:
             logger.error(f"Batch upsert failed: {e}")
             self.failed_records += len(records)
 
+    def dry_run(self, report_path: str) -> dict[str, int]:
+        """Compare the source with the stored catalogue and write a JSON report; writes no row."""
+        self.load_and_clean_data()
+        columns = (
+            "id, name, release_year, is_active, is_uncertain, brands(name), concentrations(name)"
+        )
+        stored = [
+            {
+                "id": row["id"],
+                "brand": (row.get("brands") or {}).get("name"),
+                "name": row["name"],
+                "concentration": (row.get("concentrations") or {}).get("name"),
+                "year": row["release_year"],
+                "is_active": row["is_active"],
+                "is_uncertain": row["is_uncertain"],
+            }
+            for row in _fetch_pages("perfumes", columns)
+        ]
+        source = [
+            {"brand": brand, "name": name, "concentration": concentration, "year": int(year)}
+            for brand, name, concentration, year in zip(
+                self.df["Brand"],
+                self.df["Name"],
+                self.df["Concentration"],
+                self.df["Release Year"],
+                strict=True,
+            )
+        ]
+        report = compare_with_stored(source, stored)
+        summary = {
+            key: len(value) if isinstance(value, list) else value for key, value in report.items()
+        }
+        Path(report_path).write_text(
+            json.dumps({"summary": summary, **report}, ensure_ascii=False, indent=1, default=str),
+            encoding="utf-8",
+        )
+        logger.info(f"Dry run, nothing written to the database: {summary}")
+        return summary
+
     def run(self) -> None:
         self.load_and_clean_data()
         self.calculate_xsolve_score()
@@ -923,4 +1014,14 @@ if __name__ == "__main__":
     # The source file is not part of this repository; its location is given on every run.
     parser = argparse.ArgumentParser(description="Import the perfume source file into Supabase.")
     parser.add_argument("csv_path", help="semicolon-separated source file with a header row")
-    EtlPipeline(parser.parse_args().csv_path).run()
+    parser.add_argument(
+        "--dry-run",
+        metavar="REPORT",
+        help="compare the source with the database and write a JSON report; writes nothing",
+    )
+    args = parser.parse_args()
+    pipeline = EtlPipeline(args.csv_path)
+    if args.dry_run:
+        pipeline.dry_run(args.dry_run)
+    else:
+        pipeline.run()
