@@ -1,6 +1,7 @@
 import os
 import sys
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -399,3 +400,107 @@ def test_lookup_raises_when_the_row_cannot_be_found_or_created(etl: EtlPipeline)
     client = _lookup_client([[], []], RuntimeError("down"))
     with patch.object(etl_module, "supabase", client), pytest.raises(LookupError):
         etl._get_or_create_lookup("brands", "name", "Hermes")
+
+
+def test_dry_run_writes_a_report_and_nothing_to_the_database(tmp_path: Path) -> None:
+    source = tmp_path / "source.csv"
+    source.write_text(
+        "Name;Brand;Release Year;Concentration;Rating Value;Rating Count;Manufacturer;URL\n"
+        f"Sauvage;Dior;2015;Eau de Toilette;7,1;900;;{PARFUMO}Dior/Sauvage\n",
+        encoding="utf-8",
+    )
+    stored = [
+        {
+            "id": "x",
+            "name": "Fahrenheit",
+            "release_year": 1988,
+            "is_active": True,
+            "is_uncertain": True,
+            "brands": {"name": "Dior"},
+            "concentrations": None,
+        },
+    ]
+    client = MagicMock()
+    report_path = tmp_path / "report.json"
+    with (
+        patch.object(etl_module, "_fetch_pages", return_value=stored),
+        patch.object(etl_module, "supabase", client),
+    ):
+        summary = EtlPipeline(str(source)).dry_run(str(report_path))
+
+    assert summary == {
+        "matched": 0,
+        "new": 1,
+        "unmatched_stored": 1,
+        "unmatched_stored_active": 1,
+        "unmatched_stored_certain": 0,
+    }
+    assert '"Fahrenheit"' in report_path.read_text(encoding="utf-8")
+    client.table.assert_not_called()
+
+
+def test_compare_with_stored_lists_new_and_unmatched_rows() -> None:
+    source = [
+        {"brand": "Dior", "name": "Sauvage", "concentration": "Eau de Toilette", "year": 2015},
+        {"brand": "Chanel", "name": "N°5", "concentration": "Unknown", "year": 0},
+        {
+            "brand": "Burberry",
+            "name": "Body Intense",
+            "concentration": "Eau de Parfum",
+            "year": 2011,
+        },
+        # The import finds a label by its slug too, so spellings that share one match.
+        {
+            "brand": "Dior",
+            "name": "Fahrenheit",
+            "concentration": "After-Shave Lotion",
+            "year": 1988,
+        },
+    ]
+    stored: list[dict[str, Any]] = [
+        {
+            "id": "d",
+            "brand": "Dior",
+            "name": "Fahrenheit",
+            "concentration": "After Shave Lotion",
+            "year": 1988,
+            "is_active": True,
+            "is_uncertain": True,
+        },
+        # Same key: case and spacing do not matter, a missing concentration or year is None.
+        {
+            "id": "a",
+            "brand": " dior ",
+            "name": "SAUVAGE",
+            "concentration": "Eau de Toilette",
+            "year": 2015,
+            "is_active": True,
+            "is_uncertain": False,
+        },
+        {
+            "id": "b",
+            "brand": "Chanel",
+            "name": "N°5",
+            "concentration": None,
+            "year": None,
+            "is_active": True,
+            "is_uncertain": False,
+        },
+        # The source no longer has this one.
+        {
+            "id": "c",
+            "brand": "Burberry",
+            "name": "Body",
+            "concentration": "Eau de Parfum",
+            "year": 2011,
+            "is_active": True,
+            "is_uncertain": True,
+        },
+    ]
+
+    report = etl_module.compare_with_stored(source, stored)
+
+    assert report["matched"] == 3
+    assert [row["name"] for row in report["new"]] == ["Body Intense"]
+    assert [row["id"] for row in report["unmatched_stored"]] == ["c"]
+    assert report["unmatched_stored_certain"] == 0
