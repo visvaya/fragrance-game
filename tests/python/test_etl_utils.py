@@ -311,6 +311,24 @@ def test_load_keeps_a_variant_the_source_named_like_its_base(tmp_path: Path) -> 
     assert pipeline.duplicates == []
 
 
+@pytest.mark.filterwarnings("error")
+def test_load_repairs_text_without_pandas_deprecations(tmp_path: Path) -> None:
+    # pandas 4 stops selecting text columns as "object"; the repair must still reach them.
+    source = tmp_path / "source.csv"
+    broken = "Eau Fra" + chr(0x102) + chr(0xAE) + "che"
+    source.write_text(
+        "Name;Brand;Release Year;Concentration;Rating Value;Rating Count;Manufacturer;URL\n"
+        f"Sauvage;Dior;2015;{broken};7,1;900;;{PARFUMO}Dior/Sauvage\n",
+        encoding="utf-8",
+    )
+    pipeline = EtlPipeline(str(source))
+
+    pipeline.load_and_clean_data()
+
+    assert list(pipeline.df["Concentration"]) == ["Eau Fra" + chr(0xEE) + "che"]
+    assert list(pipeline.df["Manufacturer"]) == ["Unknown"]
+
+
 def test_load_keeps_spreadsheet_errors_apart(tmp_path: Path) -> None:
     source = tmp_path / "source.csv"
     row = (
