@@ -124,6 +124,43 @@ def test_etl_saves_one_row_per_database_key() -> None:
     assert [record["fingerprint_strict"] for record in saved] == ["a"]
 
 
+def test_etl_keeps_a_hidden_row_hidden() -> None:
+    # A row hidden in the database (a copy of a puzzle answer) must not come back with an import.
+    pipeline = etl.EtlPipeline("dummy.csv")
+    pipeline.df = pd.DataFrame(
+        {
+            "Brand": ["4711", "4711"],
+            "Name": ["Acqua Colonia Blood Orange & Basil", "Blood Orange & Basil"],
+            "Concentration": ["Eau de Cologne", "Eau de Cologne"],
+            "Manufacturer": ["Unknown", "Unknown"],
+            "Release Year": [0, 2010],
+            "Gender": ["Unisex", "Unisex"],
+            "Top Notes": ["", "Blood orange"],
+            "Middle Notes": ["", ""],
+            "Base Notes": ["", ""],
+            "Perfumers": ["", ""],
+            "xsolve_score": [0.5, 0.5],
+            "is_active": [True, True],
+            "Is Uncertain": [True, False],
+            "Is Linear": [False, False],
+            "fingerprint_strict": ["a", "b"],
+            "fingerprint_loose": ["c", "d"],
+        }
+    )
+    saved: list[dict[str, Any]] = []
+    pipeline._record_import = MagicMock()
+    pipeline.prepopulate_cache = MagicMock()
+    pipeline._batch_upsert = saved.extend
+    lookups = {"brands": "brand-4711", "concentrations": "conc-edc", "manufacturers": None}
+    pipeline._get_or_create_lookup = MagicMock(side_effect=lambda table, *_a, **_k: lookups[table])
+    hidden = etl._catalogue_key("4711", "Acqua Colonia Blood Orange & Basil", "Eau de Cologne", 0)
+    pipeline._hidden_keys = MagicMock(return_value={hidden})
+
+    pipeline.sync_to_supabase()
+
+    assert [record["is_active"] for record in saved] == [False, True]
+
+
 def test_process_file_reports_an_unreadable_illustration(tmp_path: Path) -> None:
     broken = tmp_path / f"{PERFUME}.png"
     broken.write_bytes(b"not an image")
