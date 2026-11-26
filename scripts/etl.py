@@ -314,33 +314,24 @@ class EtlPipeline:
         self.df["Concentration"] = self.df["Concentration"].fillna(MISSING_CONCENTRATION)
         self.df["Manufacturer"] = self.df["Manufacturer"].fillna("Unknown")
 
-        # 3a. Names a spreadsheet turned into formula errors, rebuilt from the address
-        rebuilt = [
-            restore_broken_name(name, concentration, year, url)
-            for name, concentration, year, url in zip(
-                self.df["Name"],
-                self.df["Concentration"],
-                self.df["Release Year"],
-                self.df["URL"],
-                strict=True,
-            )
-        ]
-        self.df["Name"] = [name for name, _ in rebuilt]
-        self.df["Release Year"] = [year for _, year in rebuilt]
-
-        # 3b. Variant words the source kept only in the address, before fingerprints tell rows apart
-        restored = [
-            restore_variant(name, concentration, year, url)
-            for name, concentration, year, url in zip(
-                self.df["Name"],
-                self.df["Concentration"],
-                self.df["Release Year"],
-                self.df["URL"],
-                strict=True,
-            )
-        ]
-        self.df["Name"] = [name for name, _ in restored]
-        self.df["Concentration"] = [concentration for _, concentration in restored]
+        # 3b. What the source kept only in the address, before fingerprints tell rows apart: names a
+        # spreadsheet turned into formula errors, then variant words dropped from the name
+        names, concentrations, years = [], [], []
+        for name, concentration, year, url in zip(
+            self.df["Name"],
+            self.df["Concentration"],
+            self.df["Release Year"],
+            self.df["URL"],
+            strict=True,
+        ):
+            name, year = restore_broken_name(name, concentration, year, url)
+            name, concentration = restore_variant(name, concentration, year, url)
+            names.append(name)
+            concentrations.append(concentration)
+            years.append(year)
+        self.df["Name"] = names
+        self.df["Concentration"] = concentrations
+        self.df["Release Year"] = years
 
         # 4. Generate Fingerprints
         logger.info("Generating fingerprints...")
