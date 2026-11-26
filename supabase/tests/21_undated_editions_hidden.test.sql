@@ -15,6 +15,8 @@ SELECT is(
     JOIN brands AS b ON b.id = p.brand_id
     WHERE p.is_active
       AND p.release_year IS NULL
+      -- "Cherry Blossom" Parfum without a year is a source row of its own and stays.
+      AND p.concentration_id IS NULL
       AND (b.name, p.name) IN (
         ('Guerlain', 'Cherry Blossom'),
         ('Jean Paul Gaultier', 'Classique Pride Edition'),
