@@ -53,16 +53,19 @@ export type Database = {
       concentrations: {
         Row: {
           id: string;
+          is_perfume: boolean;
           name: string;
           slug: string;
         };
         Insert: {
           id?: string;
+          is_perfume?: boolean;
           name: string;
           slug: string;
         };
         Update: {
           id?: string;
+          is_perfume?: boolean;
           name?: string;
           slug?: string;
         };
