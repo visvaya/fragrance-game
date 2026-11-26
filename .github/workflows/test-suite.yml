@@ -21,18 +21,14 @@ concurrency:
 
 jobs:
   fast-tests:
-    # The unit tests run once, with coverage, in ci.yml; this job runs only the RLS tests against
-    # the production database (read-only), which need the repository secrets.
+    # The unit tests run once, with coverage, in ci.yml; this job runs only the RLS tests, against
+    # a local stack built from the migrations and the seed (the nightly integration-tests.yml run
+    # repeats them on production).
     name: RLS integration tests
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
-      # RLS security tests are read-only (SELECT only) – safe to run against production DB.
-      # Dependabot PRs get no repository secrets, so the RLS tests skip there.
-      VITEST_INTEGRATION: ${{ github.event.pull_request.user.login != 'dependabot[bot]' }}
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      VITEST_INTEGRATION: "true"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -45,25 +41,30 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      # The documented local path after checkout; zizmor's $/ form is not in GitHub's docs yet.
+      - uses: ./.github/actions/local-supabase # zizmor: ignore[self-repository]
       - name: Run the RLS tests
         run: pnpm exec vitest run lib/supabase/__tests__/rls-security.test.ts
 
   playwright-e2e:
     name: Playwright Smoke
-    # Needs repository secrets, which Dependabot PRs do not receive; a skipped job
+    # Needs the Upstash secrets (rate limits), which Dependabot PRs do not receive; a skipped job
     # counts as passing for branch protection. Run it manually before merging such a PR.
+    # The database is a local stack built from the migrations and the seed, except on main. Redis
+    # stays the production Upstash: @upstash/ratelimit sends Lua scripts with an Upstash-only flag
+    # (allow-key-locking) that a plain Redis rejects. Autocomplete cache keys carry the database
+    # host, so local and production entries stay apart.
     if: github.event.pull_request.user.login != 'dependabot[bot]'
+    # The production database secrets live in the production-ci environment, which only main can
+    # use; other runs take no environment and test on the local stack.
+    environment: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'production-ci' || '' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     needs: fast-tests
     env:
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
       UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
       NEXT_PUBLIC_ASSETS_HOST: ${{ secrets.NEXT_PUBLIC_ASSETS_HOST }}
-      CRON_SECRET: ${{ secrets.CRON_SECRET }}
       NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -78,27 +79,43 @@ jobs:
       - name: Cache Next.js
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
+          # Build caches only: the data cache (fetch-cache) holds query results such as the daily
+          # puzzle, which belong to the database of the run that wrote them.
           path: |
             ${{ github.workspace }}/.next/cache
+            !${{ github.workspace }}/.next/cache/fetch-cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       # Random per run: the app only needs some valid value, and no production secret reaches PR code.
-      - name: Generate a per-run guest ticket secret
-        run: echo "GUEST_TICKET_SECRET=$(openssl rand -base64 48)" >> "$GITHUB_ENV"
-      - name: Build application
-        run: pnpm run build
+      - name: Generate per-run guest ticket and cron secrets
+        run: |
+          echo "GUEST_TICKET_SECRET=$(openssl rand -base64 48)" >> "$GITHUB_ENV"
+          echo "CRON_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+      # Pull requests test on a local stack. A push to main gates the production deployment (Vercel
+      # Deployment Checks), so there the trusted code runs against the production database.
+      # The documented local path after checkout; zizmor's $/ form is not in GitHub's docs yet.
+      - uses: ./.github/actions/local-supabase # zizmor: ignore[self-repository]
+        if: github.event_name != 'push' || github.ref != 'refs/heads/main'
+      - name: Use the production database
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          NEXT_PUBLIC_ASSETS_HOST: ${{ secrets.NEXT_PUBLIC_ASSETS_HOST }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
-          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
-          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$SUPABASE_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+          } >> "$GITHUB_ENV"
+      - name: Build application
+        # Caches saved before the data cache was excluded still restore one with production rows.
+        run: |
+          rm -rf .next/cache/fetch-cache
+          pnpm run build
       - name: Get Playwright version
         id: playwright-version
         run: |
@@ -146,9 +163,11 @@ jobs:
 
   pgtap:
     name: pgTAP (schema + RLS + search)
-    # Needs repository secrets, which Dependabot PRs do not receive; a skipped job
-    # counts as passing for branch protection. Run it manually before merging such a PR.
-    if: github.event.pull_request.user.login != 'dependabot[bot]'
+    # Checks the production database after each merge. Pull requests run the same pgTAP files on
+    # a database built from the migrations ("Database from migrations"), and the nightly
+    # "Production schema drift" compares production with the migrations.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production-ci
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # One run at a time across all branches: the Supabase CLI resets the password of its login

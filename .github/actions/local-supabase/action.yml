@@ -1,0 +1,25 @@
+name: Local Supabase stack
+description: >-
+  Starts a Supabase stack built from supabase/migrations and supabase/seed.sql on the runner and
+  exports its URL and keys under the names the app reads, so tests never need production keys.
+runs:
+  using: composite
+  steps:
+    - name: Start the local stack
+      shell: bash
+      # Database, auth, REST API and gateway only: the app and its tests call nothing else.
+      run: pnpm exec supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,storage-api,mailpit,postgres-meta,supavisor
+    - name: Export the stack's URL and keys
+      shell: bash
+      # The keys belong to this throwaway stack and open nothing outside the runner.
+      run: |
+        set -euo pipefail
+        pnpm exec supabase status -o env > "$RUNNER_TEMP/supabase.env"
+        set -a
+        . "$RUNNER_TEMP/supabase.env"
+        set +a
+        {
+          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+        } >> "$GITHUB_ENV"

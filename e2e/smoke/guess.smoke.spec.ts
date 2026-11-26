@@ -14,6 +14,9 @@ const AUTH_FILE_GAMEFLOW = path.join(
   "user-gameflow.json",
 );
 test.use({ storageState: AUTH_FILE_GAMEFLOW });
+const SEEDED_STACK = ["127.0.0.1", "localhost"].includes(
+  new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://unset").hostname,
+);
 
 test("A player can make a guess @smoke", async ({ page }) => {
   test.setTimeout(60_000);
@@ -29,6 +32,11 @@ test("A player can make a guess @smoke", async ({ page }) => {
     "text=/No puzzle today|Come back tomorrow|Brak puzzli|Wróć jutro/i",
   );
   await expect(input.or(noPuzzle).first()).toBeVisible({ timeout: 15_000 });
+  // The local stack's seed always has today's puzzle, so there a missing one is a failure.
+  expect(
+    SEEDED_STACK && (await noPuzzle.isVisible()),
+    "the seeded puzzle for today is missing",
+  ).toBe(false);
   test.skip(
     await noPuzzle.isVisible(),
     "No puzzle for today; nothing to guess.",
