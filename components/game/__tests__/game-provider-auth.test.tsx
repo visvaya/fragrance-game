@@ -76,19 +76,17 @@ vi.mock("@/components/auth/captcha", () => ({
   Captcha: ({
     appearance,
     onBeforeInteractive,
-    onError,
-    onUnavailable,
+    onFail,
     onVerify,
   }: {
     appearance: string;
     onBeforeInteractive: () => void;
-    onError: () => void;
-    onUnavailable: () => void;
+    onFail: (kind: string) => void;
     onVerify: (token: string) => void;
   }) => (
     <>
       <span data-testid="turnstile-appearance">{appearance}</span>
-      <button onClick={() => onError()} type="button">
+      <button onClick={() => onFail("challenge")} type="button">
         turnstile-error
       </button>
       <button onClick={() => onBeforeInteractive()} type="button">
@@ -97,7 +95,7 @@ vi.mock("@/components/auth/captcha", () => ({
       <button onClick={() => onVerify("turnstile-token")} type="button">
         turnstile-solved
       </button>
-      <button onClick={() => onUnavailable()} type="button">
+      <button onClick={() => onFail("blocked")} type="button">
         turnstile-unavailable
       </button>
     </>
@@ -106,9 +104,13 @@ vi.mock("@/components/auth/captcha", () => ({
 
 const messages = {
   Auth: {
+    captchaErrors: {
+      blocked: "The Cloudflare check could not load.",
+      challenge: "Cloudflare could not confirm this browser.",
+      unknown: "The verification did not go through.",
+    },
     register: {
       captchaDescription: "Please verify you are human.",
-      captchaFailed: "The verification did not go through.",
       captchaReload: "Reload",
       captchaTitle: "Verification Required",
     },
@@ -274,10 +276,49 @@ describe("GameProvider anonymous sign-in for a new visitor", () => {
     expect(screen.queryByRole("alertdialog")).toBeNull();
 
     await user.click(needsInteraction);
+    // The dialog waits a moment in case the check passes on its own.
+    expect(screen.queryByRole("alertdialog")).toBeNull();
 
-    expect(screen.getByRole("alertdialog")).toHaveTextContent(
-      "Verification Required",
+    expect(
+      await screen.findByRole("alertdialog", {}, { timeout: 3000 }),
+    ).toHaveTextContent("Verification Required");
+  });
+
+  it("never shows the dialog when the token comes soon after the request for a click", async () => {
+    const user = userEvent.setup();
+    renderProvider();
+
+    await user.click(await findTurnstile("needs-interaction"));
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    await clickTurnstile(user, "turnstile-solved");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("daily-brand")).toHaveTextContent("Ch___l");
+    });
+    // Past the delay the dialog would have shown by now.
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+  });
+
+  it("keeps the dialog closed during a slow sign-in after the token", async () => {
+    signInAnonymously.mockImplementation(
+      async () =>
+        new Promise((resolve) => {
+          setTimeout(() => resolve({ error: null }), 1500);
+        }),
     );
+    const user = userEvent.setup();
+    renderProvider();
+
+    await user.click(await findTurnstile("needs-interaction"));
+    await clickTurnstile(user, "turnstile-solved");
+    // Past the delay of the "attention" stage, with the sign-in still running.
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    await waitFor(() => {
+      expect(screen.getByTestId("daily-brand")).toHaveTextContent("Ch___l");
+    });
   });
 
   it("asks again with the dialog visible when the sign-in is rejected", async () => {
@@ -324,6 +365,9 @@ describe("GameProvider anonymous sign-in for a new visitor", () => {
       screen.queryByRole("button", { hidden: true, name: "turnstile-solved" }),
     ).toBeNull();
     expect(signInAnonymously).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("alertdialog")).toHaveTextContent(
+      "The verification did not go through.",
+    );
     expect(screen.getByTestId("auth")).toHaveTextContent("waiting failed");
   });
 
@@ -334,7 +378,7 @@ describe("GameProvider anonymous sign-in for a new visitor", () => {
     await clickTurnstile(user, "turnstile-error");
 
     expect(await screen.findByRole("alertdialog")).toHaveTextContent(
-      "The verification did not go through.",
+      "Cloudflare could not confirm this browser.",
     );
     expect(screen.getByRole("button", { name: "Reload" })).toBeInTheDocument();
     expect(signInAnonymously).not.toHaveBeenCalled();
@@ -347,7 +391,7 @@ describe("GameProvider anonymous sign-in for a new visitor", () => {
     await clickTurnstile(user, "turnstile-unavailable");
 
     expect(await screen.findByRole("alertdialog")).toHaveTextContent(
-      "The verification did not go through.",
+      "The Cloudflare check could not load.",
     );
     expect(screen.getByTestId("auth")).toHaveTextContent("waiting failed");
     expect(signInAnonymously).not.toHaveBeenCalled();

@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
@@ -15,7 +13,6 @@ import {
   acceptPassword,
   AuthCard,
   AuthForm,
-  Captcha,
   GoogleSignIn,
   strongPasswordSchema,
   SubmitButton,
@@ -23,6 +20,7 @@ import {
   TextField,
   showProviderError,
   useAuthSubmit,
+  useCaptcha,
 } from "./auth-form-parts";
 import { PasswordStrength } from "./password-strength";
 
@@ -42,7 +40,7 @@ export function RegisterForm({
   onSuccess,
 }: RegisterFormProperties) {
   const { isLoading, submit } = useAuthSubmit();
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const captcha = useCaptcha();
   const router = useRouter();
   const supabase = createClient();
   const t = useTranslations("Auth.register");
@@ -74,7 +72,7 @@ export function RegisterForm({
   // jscpd:ignore-end
 
   async function onSubmit(data: RegisterFormValues) {
-    if (!captchaToken) {
+    if (captcha.isMissing) {
       toast.error(t("captchaError"));
       return;
     }
@@ -86,11 +84,13 @@ export function RegisterForm({
       const { error } = await supabase.auth.signUp({
         email: data.email,
         options: {
-          captchaToken,
+          ...(captcha.token ? { captchaToken: captcha.token } : {}),
           emailRedirectTo: `${globalThis.location.origin}/api/auth/callback`,
         },
         password: data.password,
       });
+      // A token works once: a second attempt after an error needs a new one.
+      captcha.reset();
 
       if (showProviderError(t("unexpectedError"), error)) return;
 
@@ -136,11 +136,7 @@ export function RegisterForm({
 
         <PasswordStrength password={form.watch("password")} />
 
-        <Captcha
-          onError={() => setCaptchaToken(null)}
-          onExpire={() => setCaptchaToken(null)}
-          onVerify={(token) => setCaptchaToken(token)}
-        />
+        {captcha.widget}
 
         <SubmitButton isLoading={isLoading}>{t("submit")}</SubmitButton>
       </AuthForm>
