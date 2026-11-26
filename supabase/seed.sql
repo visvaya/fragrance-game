@@ -22,6 +22,17 @@ SELECT md5('chanel-n5-leau-edp')::uuid, b.id, 'N°5 L''Eau', 'chanel-n5-leau-edp
 FROM public.brands b, public.concentrations c
 WHERE b.slug = 'chanel' AND c.slug = 'edp';
 
+-- Brands the e2e loss flow guesses one by one (e2e/game-completion.spec.ts), each with one invented
+-- perfume. Without notes or a difficulty score they never become a puzzle.
+INSERT INTO public.brands (name, slug) VALUES
+  ('Dior', 'dior'), ('Gucci', 'gucci'), ('Versace', 'versace'), ('Prada', 'prada'),
+  ('Hermès', 'hermes');
+INSERT INTO public.perfumes (id, brand_id, name, source_record_slug, release_year, concentration_id)
+SELECT md5(b.slug || '-seed-accord-edp')::uuid, b.id, 'Seed Accord', b.slug || '-seed-accord-edp',
+  2010, c.id
+FROM public.brands AS b, public.concentrations AS c
+WHERE b.slug IN ('dior', 'gucci', 'versace', 'prada', 'hermes') AND c.slug = 'edp';
+
 -- A synthetic catalogue large enough to play on: the source data is private, so CI and a fresh
 -- local stack get invented brands, names and perfumers with common note names. Every value follows
 -- from the row number, so each reset builds the same rows.
