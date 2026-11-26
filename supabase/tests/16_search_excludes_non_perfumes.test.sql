@@ -7,11 +7,22 @@ BEGIN;
 -- supabase test db installs pgTAP for the run; switch to postgres for this transaction.
 SET LOCAL ROLE postgres;
 SET LOCAL search_path = public, extensions;
-SELECT plan(2);
+SELECT plan(3);
 
 SELECT has_column(
   'public', 'concentrations', 'is_perfume',
   'concentrations mark the labels that are not perfumes'
+);
+
+SELECT is(
+  (
+    SELECT count(*)::int
+    FROM concentrations
+    WHERE name IN ('Hair Mist', 'After Shave', 'Solid Perfume', 'Cream Perfume', 'Gel Perfume')
+      AND is_perfume
+  ),
+  0,
+  'aftershave, hair mist, solid, cream and gel labels are not perfumes (20261126030000)'
 );
 
 SELECT is(
@@ -23,7 +34,7 @@ SELECT is(
     WHERE NOT k.is_perfume
   ),
   0,
-  'autocomplete suggests no aftershave, body or hair product'
+  'autocomplete suggests no aftershave, body or hair product, nor a solid, cream or gel perfume'
 );
 
 SELECT * FROM finish();

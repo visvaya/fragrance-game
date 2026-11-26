@@ -713,6 +713,9 @@ class EtlPipeline:
         self.prepopulate_cache()
 
         records_to_upsert: list[dict[str, Any]] = []
+        # Spellings of one label can resolve to one concentration row, so two source rows may share
+        # the upsert key; one statement must not touch a row twice. Rows come most-rated first.
+        saved_keys: set[tuple[Any, ...]] = set()
 
         for _, row in tqdm(self.df.iterrows(), total=len(self.df), desc="Processing Rows"):
             # 1. Resolve Dependencies (None means the source has no value)
@@ -781,6 +784,11 @@ class EtlPipeline:
                 )[:250],
             }
 
+            key = (brand_id, row["Name"], conc_id, perfume_data["release_year"])
+            if key in saved_keys:
+                logger.warning(f"Skipping {row['Brand']} {row['Name']}: same key as a saved row")
+                continue
+            saved_keys.add(key)
             records_to_upsert.append(perfume_data)
 
             # Batch Insert/Upsert

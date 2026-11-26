@@ -88,6 +88,42 @@ def test_etl_counts_a_perfume_whose_brand_could_not_be_stored() -> None:
     assert [record["name"] for record in saved] == ["P2"]
 
 
+def test_etl_saves_one_row_per_database_key() -> None:
+    # Two spellings of one label resolve to the same concentration row, so both rows would share
+    # the upsert key; one batch must not touch a row twice.
+    pipeline = etl.EtlPipeline("dummy.csv")
+    pipeline.df = pd.DataFrame(
+        {
+            "Brand": ["Dior", "Dior"],
+            "Name": ["Dior Homme", "Dior Homme"],
+            "Concentration": ["Lotion Après-Rasage", "Lotion Après Rasage"],
+            "Manufacturer": ["Unknown", "Unknown"],
+            "Release Year": [2020, 2020],
+            "Gender": ["Male", "Male"],
+            "Top Notes": ["Iris", "Iris"],
+            "Middle Notes": ["", ""],
+            "Base Notes": ["", ""],
+            "Perfumers": ["", ""],
+            "xsolve_score": [0.5, 0.5],
+            "is_active": [True, True],
+            "Is Uncertain": [True, True],
+            "Is Linear": [False, False],
+            "fingerprint_strict": ["a", "b"],
+            "fingerprint_loose": ["c", "c"],
+        }
+    )
+    saved: list[dict[str, Any]] = []
+    pipeline._record_import = MagicMock()
+    pipeline.prepopulate_cache = MagicMock()
+    pipeline._batch_upsert = saved.extend
+    lookups = {"brands": "brand-dior", "concentrations": "conc-aftershave", "manufacturers": None}
+    pipeline._get_or_create_lookup = MagicMock(side_effect=lambda table, *_a, **_k: lookups[table])
+
+    pipeline.sync_to_supabase()
+
+    assert [record["fingerprint_strict"] for record in saved] == ["a"]
+
+
 def test_process_file_reports_an_unreadable_illustration(tmp_path: Path) -> None:
     broken = tmp_path / f"{PERFUME}.png"
     broken.write_bytes(b"not an image")
