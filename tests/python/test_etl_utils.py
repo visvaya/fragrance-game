@@ -231,6 +231,18 @@ def test_lookup_refetches_after_a_failed_insert(etl: EtlPipeline) -> None:
         assert etl._get_or_create_lookup("brands", "name", "Guerlain") == "id-3"
 
 
+def test_lookup_reuses_a_row_whose_slug_matches(etl: EtlPipeline) -> None:
+    # "Lotion Après Rasage" slugifies like the stored "Lotion Après-Rasage"; inserting it would
+    # break the unique slug.
+    client = _lookup_client([[], [{"id": "id-4"}]], MagicMock(data=[{"id": "unused"}]))
+    with patch.object(etl_module, "supabase", client):
+        lookup = etl._get_or_create_lookup(
+            "concentrations", "name", "Lotion Après Rasage", has_slug=True
+        )
+        assert lookup == "id-4"
+    client.table.return_value.insert.assert_not_called()
+
+
 def test_lookup_raises_when_the_row_cannot_be_found_or_created(etl: EtlPipeline) -> None:
     client = _lookup_client([[], []], RuntimeError("down"))
     with patch.object(etl_module, "supabase", client), pytest.raises(LookupError):

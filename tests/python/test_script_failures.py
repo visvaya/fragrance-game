@@ -73,7 +73,10 @@ def test_etl_counts_a_perfume_whose_brand_could_not_be_stored() -> None:
 
     with patch.object(etl, "supabase") as client:
         brands = client.table.return_value
+        # "Broken": by name and by slug, then both again after the refused insert.
         brands.select.return_value.eq.return_value.limit.return_value.execute.side_effect = [
+            MagicMock(data=[]),
+            MagicMock(data=[]),
             MagicMock(data=[]),
             MagicMock(data=[]),
             MagicMock(data=[{"id": "brand-good"}]),

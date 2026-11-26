@@ -606,10 +606,15 @@ class EtlPipeline:
 
         def find_existing() -> str | None:
             res = supabase.table(table).select("id").eq(column, value).limit(1).execute()
-            if uuid := _first_id(res.data):
+            uuid = _first_id(res.data)
+            # Names that differ only in accents or punctuation share a slug, which is unique.
+            if not uuid and has_slug:
+                slug = self.slugify(value)
+                res = supabase.table(table).select("id").eq("slug", slug).limit(1).execute()
+                uuid = _first_id(res.data)
+            if uuid:
                 self.db_cache[table][norm_val] = uuid
-                return uuid
-            return None
+            return uuid
 
         # Try finding in DB
         if uuid := find_existing():
