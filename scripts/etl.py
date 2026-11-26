@@ -848,6 +848,7 @@ class EtlPipeline:
         logger.info("Syncing to Supabase...")
         self._record_import()
         self.prepopulate_cache()
+        hidden = self._hidden_keys()
 
         records_to_upsert: list[dict[str, Any]] = []
         # Spellings of one label can resolve to one concentration row, so two source rows may share
@@ -899,7 +900,11 @@ class EtlPipeline:
                 if pd.notnull(row["xsolve_score"])
                 else None,
                 "xsolve_model_version": XSOLVE_MODEL_VERSION,
-                "is_active": bool(row["is_active"]),
+                "is_active": bool(row["is_active"])
+                and _catalogue_key(
+                    row["Brand"], row["Name"], row["Concentration"], row["Release Year"]
+                )
+                not in hidden,
                 # CRITICAL: the daily cron draws only perfumes with is_uncertain = false
                 "is_uncertain": str(row["Is Uncertain"]).lower() == "true"
                 if pd.notnull(row["Is Uncertain"])
@@ -961,13 +966,12 @@ class EtlPipeline:
             logger.error(f"Batch upsert failed: {e}")
             self.failed_records += len(records)
 
-    def dry_run(self, report_path: str) -> dict[str, int]:
-        """Compare the source with the stored catalogue and write a JSON report; writes no row."""
-        self.load_and_clean_data()
+    def _stored_perfumes(self) -> list[dict[str, Any]]:
+        """Stored perfumes with the fields of the import key, read page by page."""
         columns = (
             "id, name, release_year, is_active, is_uncertain, brands(name), concentrations(name)"
         )
-        stored = [
+        return [
             {
                 "id": row["id"],
                 "brand": (row.get("brands") or {}).get("name"),
@@ -979,6 +983,19 @@ class EtlPipeline:
             }
             for row in _fetch_pages("perfumes", columns)
         ]
+
+    def _hidden_keys(self) -> set[tuple[str, str, str, int]]:
+        """Keys of stored rows someone hid (is_active false); an import keeps them hidden."""
+        return {
+            _catalogue_key(r["brand"], r["name"], r["concentration"], r["year"])
+            for r in self._stored_perfumes()
+            if not r["is_active"]
+        }
+
+    def dry_run(self, report_path: str) -> dict[str, int]:
+        """Compare the source with the stored catalogue and write a JSON report; writes no row."""
+        self.load_and_clean_data()
+        stored = self._stored_perfumes()
         source = [
             {"brand": brand, "name": name, "concentration": concentration, "year": int(year)}
             for brand, name, concentration, year in zip(
