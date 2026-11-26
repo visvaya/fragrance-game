@@ -48,7 +48,7 @@
     "supabase:start": "pnpm supabase start",
     "supabase:stop": "pnpm supabase stop",
     "supabase:reset": "pnpm supabase db reset",
-    "supabase:types": "tsx scripts/gen-supabase-types.ts",
+    "supabase:types": "supabase gen types typescript --schema public > types/supabase.ts && oxfmt types/supabase.ts",
     "env:local": "tsx scripts/local-env.ts",
     "supabase:advisors": "supabase db advisors --remote --type security --fail-on error",
     "supabase:db-lint": "pnpm supabase db lint --remote",

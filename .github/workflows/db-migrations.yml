@@ -3,8 +3,9 @@ name: Database from migrations
 # Builds an empty local database from supabase/migrations and seed.sql, without secrets or access to
 # production. Migrations changed by the event are linted with Squawk first (.squawk.toml); PL/pgSQL
 # functions are checked statically (supabase/checks/plpgsql-functions.sql); its schema fingerprint
-# must equal production's, kept in supabase/schema-fingerprint.txt; then the pgTAP suite and the auth
-# trigger check (supabase/checks) run against it.
+# must equal production's, kept in supabase/schema-fingerprint.txt; types/supabase.ts must equal the
+# types generated from it; then the pgTAP suite and the auth trigger check (supabase/checks) run
+# against it.
 on:
   pull_request:
     branches: [main]
@@ -72,6 +73,12 @@ jobs:
           psql "$LOCAL_DB_URL" -X -q -A -t -v ON_ERROR_STOP=1 -f supabase/schema-fingerprint.sql > "$RUNNER_TEMP/schema-fingerprint.txt"
           md5sum supabase/schema-fingerprint.txt "$RUNNER_TEMP/schema-fingerprint.txt"
           diff -u supabase/schema-fingerprint.txt "$RUNNER_TEMP/schema-fingerprint.txt"
+      - name: Compare the generated types with types/supabase.ts
+        # Types come from the database built from the migrations, so a migration without
+        # regenerated types (pnpm supabase:types) fails here instead of in the app.
+        run: |
+          pnpm supabase:types
+          git diff --exit-code -- types/supabase.ts
       - name: Run pgTAP tests on the local database
         run: pnpm exec supabase test db
       - name: Check the auth triggers on the local database

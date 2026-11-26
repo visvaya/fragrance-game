@@ -7,11 +7,6 @@ export type Json =
   | Json[];
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.1";
-  };
   public: {
     Tables: {
       app_admins: {
@@ -19,6 +14,7 @@ export type Database = {
           created_at: string | null;
           user_id: string;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string | null;
           user_id: string;
@@ -36,6 +32,7 @@ export type Database = {
           name: string;
           slug: string;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string | null;
           id?: string;
@@ -57,6 +54,7 @@ export type Database = {
           name: string;
           slug: string;
         };
+        ComputedFields: never;
         Insert: {
           id?: string;
           is_perfume?: boolean;
@@ -81,9 +79,10 @@ export type Database = {
           mode: string | null;
           perfume_id: string;
           seed_hash: string;
-          snapshot_metadata: Json;
+          snapshot_metadata: NonNullable<Json>;
           snapshot_schema_version: number;
         };
+        ComputedFields: never;
         Insert: {
           challenge_date: string;
           challenge_number?: number;
@@ -93,7 +92,7 @@ export type Database = {
           mode?: string | null;
           perfume_id: string;
           seed_hash: string;
-          snapshot_metadata: Json;
+          snapshot_metadata: NonNullable<Json>;
           snapshot_schema_version?: number;
         };
         Update: {
@@ -105,7 +104,7 @@ export type Database = {
           mode?: string | null;
           perfume_id?: string;
           seed_hash?: string;
-          snapshot_metadata?: Json;
+          snapshot_metadata?: NonNullable<Json>;
           snapshot_schema_version?: number;
         };
         Relationships: [
@@ -148,6 +147,7 @@ export type Database = {
           status: string | null;
           time_seconds: number;
         };
+        ComputedFields: never;
         Insert: {
           attempts: number;
           challenge_id: string;
@@ -222,6 +222,7 @@ export type Database = {
           start_time: string | null;
           status: string | null;
         };
+        ComputedFields: never;
         Insert: {
           attempts_count?: number | null;
           challenge_id: string;
@@ -279,6 +280,7 @@ export type Database = {
           raw_row_id: string;
           resolved: boolean | null;
         };
+        ComputedFields: never;
         Insert: {
           conflict_type: string;
           details?: Json | null;
@@ -318,6 +320,7 @@ export type Database = {
           created_at: string;
           id: string;
         };
+        ComputedFields: never;
         Insert: {
           catalog_version: string;
           created_at?: string;
@@ -335,6 +338,7 @@ export type Database = {
           id: string;
           name: string;
         };
+        ComputedFields: never;
         Insert: {
           id?: string;
           name: string;
@@ -357,6 +361,7 @@ export type Database = {
           takedown_status: string | null;
           version: number;
         };
+        ComputedFields: never;
         Insert: {
           id?: string;
           license_status?: string | null;
@@ -416,6 +421,7 @@ export type Database = {
           perfume_id: string;
           updated_at: string | null;
         };
+        ComputedFields: never;
         Insert: {
           asset_random_id: string;
           created_at?: string | null;
@@ -490,6 +496,7 @@ export type Database = {
           xsolve_model_version: number | null;
           xsolve_score: number | null;
         };
+        ComputedFields: never;
         Insert: {
           base_notes?: string[] | null;
           brand_id: string;
@@ -571,6 +578,7 @@ export type Database = {
           player_id: string;
           revoked_at: string | null;
         };
+        ComputedFields: never;
         Insert: {
           auth_user_id: string;
           linked_at?: string;
@@ -603,6 +611,7 @@ export type Database = {
           player_id: string;
           updated_at: string | null;
         };
+        ComputedFields: never;
         Insert: {
           best_streak?: number;
           current_streak?: number;
@@ -637,6 +646,7 @@ export type Database = {
           id: string;
           last_seen_at: string | null;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string;
           id?: string;
@@ -662,6 +672,7 @@ export type Database = {
           raw_json: Json | null;
           release_year: number | null;
         };
+        ComputedFields: never;
         Insert: {
           brand_raw?: string | null;
           concentration_raw?: string | null;
@@ -707,6 +718,7 @@ export type Database = {
           session_token_hash: string | null;
           user_id: string;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string | null;
           device_info?: Json | null;
@@ -733,12 +745,13 @@ export type Database = {
     Views: {
       daily_challenges_public: {
         Row: {
-          challenge_date: string | null;
-          grace_deadline_at_utc: string | null;
-          id: string | null;
+          challenge_date: string;
+          grace_deadline_at_utc: string;
+          id: string;
           mode: string | null;
-          snapshot_metadata: Json | null;
+          snapshot_metadata: NonNullable<Json>;
         };
+        ComputedFields: never;
         Insert: {
           challenge_date?: string | null;
           grace_deadline_at_utc?: string | null;
@@ -757,39 +770,41 @@ export type Database = {
       };
       perfume_autocomplete_cache: {
         Row: {
-          brand_name: string | null;
+          brand_name: string;
           brand_name_concat: string | null;
           brand_norm: string | null;
           brand_phonetic: string | null;
           concentration_name: string | null;
           concentration_rank: number | null;
-          name: string | null;
+          name: string;
           name_brand_concat: string | null;
           name_length: number | null;
           name_norm: string | null;
           name_phonetic: string | null;
-          perfume_id: string | null;
+          perfume_id: string;
           release_year: number | null;
         };
+        ComputedFields: never;
         Relationships: [];
       };
       perfumes_public: {
         Row: {
-          brand_id: string | null;
-          brand_name: string | null;
+          brand_id: string;
+          brand_name: string;
           concentration_id: string | null;
           concentration_name: string | null;
-          games_played: number | null;
+          games_played: number;
           gender: string | null;
-          id: string | null;
+          id: string;
           is_linear: boolean | null;
           is_uncertain: boolean | null;
           manufacturer_id: string | null;
-          name: string | null;
+          name: string;
           release_year: number | null;
           solve_rate: number | null;
-          unique_slug: string | null;
+          unique_slug: string;
         };
+        ComputedFields: never;
         Relationships: [
           {
             foreignKeyName: "perfumes_brand_id_fkey";
@@ -831,7 +846,7 @@ export type Database = {
         }[];
       };
       refresh_autocomplete_cache: {
-        Args: never;
+        Args: Record<PropertyKey, never>;
         Returns: {
           refresh_duration_ms: number;
           rows_refreshed: number;
