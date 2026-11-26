@@ -48,9 +48,12 @@ jobs:
 
   playwright-e2e:
     name: Playwright Smoke
-    # Needs the Upstash secrets (rate limits), which Dependabot PRs do not receive; a skipped job
-    # counts as passing for branch protection. Run it manually before merging such a PR.
-    # The database is a local stack built from the migrations and the seed, except on main.
+    # Needs the asset host and PostHog key secrets, which Dependabot PRs do not receive; a skipped
+    # job counts as passing for branch protection. Run it manually before merging such a PR.
+    # The database and Redis are local (a stack built from the migrations and the seed, and Redis
+    # behind an Upstash-compatible REST proxy), except on main. Production Redis must not see a
+    # local database: its autocomplete cache keys hold only the query, so perfume ids from one
+    # database would reach players or runs of another.
     if: github.event.pull_request.user.login != 'dependabot[bot]'
     # The production database secrets live in the production-ci environment, which only main can
     # use; other runs take no environment and test on the local stack.
@@ -58,9 +61,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: fast-tests
+    services:
+      redis:
+        image: redis:7.4.12-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
+      redis-rest:
+        # Upstash's REST API in front of the redis service, for @upstash/redis.
+        image: hiett/serverless-redis-http:0.0.10@sha256:65128347949bca511e448fd7238780d624573d74c22b79155a7563db19e9b678
+        env:
+          SRH_MODE: env
+          SRH_TOKEN: local-redis-token
+          SRH_CONNECTION_STRING: redis://redis:6379
+        ports:
+          - 8079:80
     env:
-      UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
-      UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+      UPSTASH_REDIS_REST_URL: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.UPSTASH_REDIS_REST_URL || 'http://localhost:8079' }}
+      UPSTASH_REDIS_REST_TOKEN: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.UPSTASH_REDIS_REST_TOKEN || 'local-redis-token' }}
       NEXT_PUBLIC_ASSETS_HOST: ${{ secrets.NEXT_PUBLIC_ASSETS_HOST }}
       NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
     steps:
