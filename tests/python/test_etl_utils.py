@@ -239,6 +239,32 @@ def test_restore_broken_name_rebuilds_a_spreadsheet_error_from_the_address(
     assert etl_module.restore_broken_name("#NAME?", concentration, year, url) == expected
 
 
+@pytest.mark.parametrize(
+    ("name", "year", "url", "expected"),
+    [
+        # Yearly editions carry the year only in the address.
+        (
+            "Flowerbomb Limited Edition",
+            0,
+            PARFUMO + "Viktor_Rolf/Flowerbomb_Limited_Edition_2015",
+            2015,
+        ),
+        ("212 Splash", 0, PARFUMO + "Carolina_Herrera/212_Splash_2008", 2008),
+        ("Sì", 0, PARFUMO + "Giorgio_Armani/si-2014-eau-de-parfum-intense", 2014),
+        # A known year stays.
+        ("212 Splash", 2007, PARFUMO + "Carolina_Herrera/212_Splash_2008", 2007),
+        # A number in the name, or one outside 1900-2099, is not a year.
+        ("1902 Coton", 0, PARFUMO + "Berdoues/1902-coton", 0),
+        ("Bleu", 0, PARFUMO + "Brand/Bleu_1234", 0),
+        # The name does not open the address.
+        ("Other", 0, PARFUMO + "Brand/Something_2015", 0),
+        ("Bleu", 0, None, 0),
+    ],
+)
+def test_year_from_address(name: str, year: int, url: object, expected: int) -> None:
+    assert etl_module.year_from_address(name, year, url) == expected
+
+
 def test_restore_broken_name_keeps_real_names_and_rows_without_an_address() -> None:
     url = PARFUMO + "Berdoues/1902_Eau_de_Cologne_Tradition_Violette"
 
@@ -292,6 +318,22 @@ def test_load_keeps_spreadsheet_errors_apart(tmp_path: Path) -> None:
 
     assert sorted(pipeline.df["Name"]) == ["1902 Tonique", "1902 Violette"]
     assert list(pipeline.df["Release Year"]) == [0, 0]
+
+
+def test_load_keeps_yearly_editions_apart(tmp_path: Path) -> None:
+    row = "Flowerbomb Limited Edition;Viktor & Rolf;;;7,1;{};;" + PARFUMO + "Viktor_Rolf/F_{}\n"
+    source = tmp_path / "source.csv"
+    source.write_text(
+        "Name;Brand;Release Year;Concentration;Rating Value;Rating Count;Manufacturer;URL\n"
+        + row.format(40, "2015").replace("/F_", "/Flowerbomb_Limited_Edition_")
+        + row.format(30, "2018").replace("/F_", "/Flowerbomb_Limited_Edition_"),
+        encoding="utf-8",
+    )
+    pipeline = EtlPipeline(str(source))
+
+    pipeline.load_and_clean_data()
+
+    assert sorted(pipeline.df["Release Year"]) == [2015, 2018]
 
 
 def _lookup_client(selects: list[list[dict[str, str]]], insert: object) -> MagicMock:
