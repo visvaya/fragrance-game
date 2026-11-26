@@ -2,7 +2,8 @@ name: Production schema drift
 
 # Every change to the production schema goes through supabase/migrations/, so production's
 # schema fingerprint must equal supabase/schema-fingerprint.txt. This nightly run catches a
-# change made outside migrations (for example in the dashboard). Read-only query.
+# change made outside migrations (for example in the dashboard). Read-only query. It also checks
+# that the service versions in supabase/.temp match production.
 on:
   schedule:
     - cron: "15 3 * * *"
@@ -44,3 +45,7 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: pnpm db:fingerprint
+      - name: Compare production service versions with the committed ones
+        # supabase link rewrites these files with production's versions; local stacks and CI start
+        # the same images, so a change here means updating the committed files.
+        run: git diff --exit-code -- supabase/.temp/postgres-version supabase/.temp/gotrue-version supabase/.temp/rest-version
