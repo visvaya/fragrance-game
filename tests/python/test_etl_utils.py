@@ -49,6 +49,14 @@ def test_clean_note(etl: EtlPipeline) -> None:
     assert etl._clean_note("  Fleur de Sel (Absolute) ™  ") == "Fleur de Sel"
 
 
+def test_list_items_use_one_spelling(etl: EtlPipeline) -> None:
+    # The game compares notes and perfumers across guesses: one spelling per note or person.
+    assert etl._extract_list_cleaned("Waterlily, Rose") == ["Water lily", "Rose"]
+    assert etl._extract_list_cleaned("Nathalie Lawson") == ["Nathalie Lorson"]
+    assert etl._extract_list_cleaned("Nelly Hachem Ruiz") == ["Nelly Hachem-Ruiz"]
+    assert etl._extract_list_cleaned("Water lily, Waterlily") == ["Water lily"]
+
+
 def test_generate_fingerprint_strict(etl: EtlPipeline) -> None:
     fp1 = etl.generate_fingerprint_strict("Chanel", "N°5", "EDP", 1921)
     fp2 = etl.generate_fingerprint_strict(" CHANEL ", " n°5 ", " edp ", "1921.0")
