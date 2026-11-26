@@ -1,5 +1,6 @@
 import os
 import sys
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -78,6 +79,120 @@ def test_repair_text_keeps_correct_text_and_non_strings() -> None:
 
 def test_repair_text_restores_the_see_by_chloe_name() -> None:
     assert etl_module.repair_text("SeeByChlo\u00e9 Si Belle") == "See by Chlo\u00e9 Si Belle"
+
+
+PARFUMO = "https://www.parfumo.com/Perfumes/"
+
+
+@pytest.mark.parametrize(
+    ("name", "concentration", "year", "url", "expected"),
+    [
+        # The variant follows the concentration in the address: it belongs to the concentration.
+        (
+            "Azzaro pour Homme",
+            "Eau de Toilette",
+            1992,
+            PARFUMO + "Azzaro/Azzaro_pour_Homme_Eau_de_Toilette_Intense",
+            ("Azzaro pour Homme", "Eau de Toilette Intense"),
+        ),
+        (
+            "Libre",
+            "Eau de Parfum",
+            2020,
+            PARFUMO + "Yves_Saint_Laurent/libre-eau-de-parfum-intense",
+            ("Libre", "Eau de Parfum Intense"),
+        ),
+        (
+            "L'Interdit",
+            "Eau de Parfum",
+            2021,
+            PARFUMO + "Givenchy/l-interdit-eau-de-parfum-rouge",
+            ("L'Interdit", "Eau de Parfum Rouge"),
+        ),
+        # Accents dropped or folded in the address still match the name.
+        (
+            "Allure Homme Édition Blanche",
+            "Eau de Toilette",
+            2008,
+            PARFUMO + "Chanel/Allure_Homme_Edition_Blanche_Eau_de_Toilette_Concentree",
+            ("Allure Homme Édition Blanche", "Eau de Toilette Concentrée"),
+        ),
+        # No concentration in the address: the variant belongs to the name.
+        (
+            "Body",
+            "Eau de Parfum",
+            2011,
+            PARFUMO + "Burberry/Body_Intense",
+            ("Body Intense", "Eau de Parfum"),
+        ),
+        # The address may repeat the year before the concentration.
+        (
+            "Sì",
+            "Eau de Parfum",
+            2014,
+            PARFUMO + "Giorgio_Armani/si-2014-eau-de-parfum-intense",
+            ("Sì", "Eau de Parfum Intense"),
+        ),
+    ],
+)
+def test_restore_variant_takes_the_variant_from_the_source_address(
+    name: str, concentration: str, year: int, url: str, expected: tuple[str, str]
+) -> None:
+    assert etl_module.restore_variant(name, concentration, year, url) == expected
+
+
+@pytest.mark.parametrize(
+    ("name", "concentration", "url"),
+    [
+        # Nothing after the name and concentration.
+        ("Body", "Eau de Parfum", PARFUMO + "Burberry/Body"),
+        # A translated concentration is not a variant.
+        ("Aromatics Elixir", "Parfum", PARFUMO + "Clinique/Aromatics_Elixir_Perfume"),
+        # Words that are not known variants, or a reordered name, stay for manual review.
+        ("Boss Man", "Eau de Toilette", PARFUMO + "Hugo_Boss/Boss_Orange_Man"),
+        (
+            "Colonia Oud",
+            "Eau de Cologne",
+            PARFUMO + "Acqua_di_Parma/Colonia_Oud_Colonia_Intensa_Oud",
+        ),
+        ("Glow", "", PARFUMO + "Jennifer_Lopez/Glow_by_J_Lo"),
+        # The variant is already part of the name or of the concentration.
+        ("Body Intense", "Eau de Parfum", PARFUMO + "Burberry/Body_Intense"),
+        ("Ange ou Démon", "Eau de Toilette Tendre", PARFUMO + "Givenchy/Ange_ou_Demon_Tendre"),
+        ("Trésor", "Elixir de Parfum", PARFUMO + "Lancome/Tresor_Elixir"),
+        # Partly known: which field the rest belongs to is unclear, so it is left for review.
+        ("Body", "Eau de Parfum Intense", PARFUMO + "Burberry/Body_Intense_Extreme"),
+        # Not a Parfumo address.
+        ("Body", "Eau de Parfum", "https://example.com/Body_Intense"),
+        ("Body", "Eau de Parfum", None),
+    ],
+)
+def test_restore_variant_keeps_rows_without_a_known_trailing_variant(
+    name: str, concentration: str, url: object
+) -> None:
+    assert etl_module.restore_variant(name, concentration, 2011, url) == (name, concentration)
+
+
+def test_restore_variant_treats_an_unknown_concentration_as_none() -> None:
+    url = PARFUMO + "Burberry/Body_Intense"
+
+    assert etl_module.restore_variant("Body", "Unknown", 0, url) == ("Body Intense", "Unknown")
+
+
+def test_load_keeps_a_variant_the_source_named_like_its_base(tmp_path: Path) -> None:
+    source = tmp_path / "source.csv"
+    source.write_text(
+        "Name;Brand;Release Year;Concentration;Rating Value;Rating Count;Manufacturer;URL\n"
+        f"Body;Burberry;2011;Eau de Parfum;7,1;900;;{PARFUMO}Burberry/Body\n"
+        f"Body;Burberry;2011;Eau de Parfum;7,4;300;;{PARFUMO}Burberry/Body_Intense\n",
+        encoding="utf-8",
+    )
+    pipeline = EtlPipeline(str(source))
+
+    pipeline.load_and_clean_data()
+
+    assert sorted(pipeline.df["Name"]) == ["Body", "Body Intense"]
+    assert pipeline.duplicates == []
 
 
 def _lookup_client(selects: list[list[dict[str, str]]], insert: object) -> MagicMock:

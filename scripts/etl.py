@@ -5,8 +5,10 @@ import logging
 import os
 import re
 import sys
+import unicodedata
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
 
 import numpy as np
 import pandas as pd
@@ -56,6 +58,90 @@ def repair_text(value: Any) -> Any:
     for wrong, right in NAME_FIXES.items():
         repaired = repaired.replace(wrong, right)
     return repaired
+
+
+# The source drops some variant words from Name and Concentration but keeps them at the end of
+# the Parfumo address (".../Azzaro_pour_Homme_Eau_de_Toilette_Intense" is named "Azzaro pour
+# Homme", "Eau de Toilette"). Address word -> display spelling; older addresses drop accented
+# letters ("Extrme"), newer ones fold them ("extreme"). Only words seen as a trailing variant in
+# the 2026-11 source file; anything else at the end of an address is left for manual review.
+VARIANT_WORDS = {
+    "intense": "Intense",
+    "intensa": "Intensa",
+    "concentree": "Concentrée",
+    "fraiche": "Fraîche",
+    "frache": "Fraîche",
+    "legere": "Légère",
+    "lgre": "Légère",
+    "absolue": "Absolue",
+    "elixir": "Elixir",
+    "tendre": "Tendre",
+    "poudree": "Poudrée",
+    "rouge": "Rouge",
+    "extreme": "Extrême",
+    "extrme": "Extrême",
+}
+PARFUMO_PERFUMES = "https://www.parfumo.com/Perfumes/"
+MISSING_CONCENTRATION = "Unknown"
+
+
+def _words(text: str) -> list[str]:
+    return [word for word in re.split(r"[\W_]+", text) if word]
+
+
+def _address_forms(word: str) -> set[str]:
+    """How a name word can appear in an address: accents folded or accented letters dropped."""
+    lower = word.lower()
+    folded = "".join(c for c in unicodedata.normalize("NFD", lower) if not unicodedata.combining(c))
+    dropped = "".join(c for c in lower if c.isascii())
+    return {form for form in (folded, dropped) if form}
+
+
+def _match_words(address: list[str], words: list[str], start: int) -> int | None:
+    """Position after `words` matched in order from `start`, or None."""
+    at = start
+    for word in words:
+        forms = _address_forms(word)
+        if not forms:
+            continue
+        if at >= len(address) or address[at] not in forms:
+            return None
+        at += 1
+    return at
+
+
+def restore_variant(name: str, concentration: str, year: int, url: Any) -> tuple[str, str]:
+    """Name and concentration with the variant word(s) the source kept only in the address.
+
+    The variant joins the concentration when it follows the concentration in the address
+    ("Eau de Toilette Intense"), otherwise the name ("Body Intense").
+    """
+    if not isinstance(url, str) or not url.startswith(PARFUMO_PERFUMES):
+        return name, concentration
+    address = [word.lower() for word in _words(unquote(url.rstrip("/").rsplit("/", 1)[-1]))]
+    after_name = _match_words(address, _words(name), 0)
+    if after_name is None:
+        return name, concentration
+    if year > 0 and after_name < len(address) and address[after_name] == str(year):
+        after_name += 1
+    after_concentration = None
+    if concentration and concentration != MISSING_CONCENTRATION:
+        after_concentration = _match_words(address, _words(concentration), after_name)
+    joins_concentration = after_concentration is not None and after_concentration > after_name
+    rest = address[after_concentration if joins_concentration else after_name :]
+    while rest and rest[-1].isdigit():
+        rest.pop()
+    if not rest or any(word not in VARIANT_WORDS for word in rest):
+        return name, concentration
+    # "Ange ou Demon", "Eau de Toilette Tendre" at ".../Ange_ou_Demon_Tendre" lost nothing; when
+    # only some of the words are already there, where the rest belongs is unclear.
+    known = {form for word in _words(f"{name} {concentration}") for form in _address_forms(word)}
+    if any(word in known for word in rest):
+        return name, concentration
+    variant = " ".join(VARIANT_WORDS[word] for word in rest)
+    if joins_concentration:
+        return name, f"{concentration} {variant}"
+    return f"{name} {variant}", concentration
 
 
 # Load Environment Variables
@@ -195,8 +281,22 @@ class EtlPipeline:
         # 3. Missing Values
         self.df["Brand"] = self.df["Brand"].fillna("Unknown")
         self.df["Name"] = self.df["Name"].fillna("Unknown")
-        self.df["Concentration"] = self.df["Concentration"].fillna("Unknown")
+        self.df["Concentration"] = self.df["Concentration"].fillna(MISSING_CONCENTRATION)
         self.df["Manufacturer"] = self.df["Manufacturer"].fillna("Unknown")
+
+        # 3b. Variant words the source kept only in the address, before fingerprints tell rows apart
+        restored = [
+            restore_variant(name, concentration, year, url)
+            for name, concentration, year, url in zip(
+                self.df["Name"],
+                self.df["Concentration"],
+                self.df["Release Year"],
+                self.df["URL"],
+                strict=True,
+            )
+        ]
+        self.df["Name"] = [name for name, _ in restored]
+        self.df["Concentration"] = [concentration for _, concentration in restored]
 
         # 4. Generate Fingerprints
         logger.info("Generating fingerprints...")
