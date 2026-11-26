@@ -98,6 +98,8 @@ def test_repair_text_keeps_correct_text_and_non_strings() -> None:
         ("Volkswagen - Mémoire de Pētrole", "Volkswagen - Mémoire de Pétrole"),
         # A spreadsheet read the Lush name "25:43" as a time of day.
         ("25:43:00", "25:43"),
+        # The Possets name "3:5:8" (owner review 2026-11-26).
+        ("03:05:08", "3:5:8"),
         # Latvian names keep their macrons.
         ("Art Elēģija", "Art Elēģija"),
     ],
@@ -309,6 +311,22 @@ def test_load_keeps_a_variant_the_source_named_like_its_base(tmp_path: Path) -> 
 
     assert sorted(pipeline.df["Name"]) == ["Body", "Body Intense"]
     assert pipeline.duplicates == []
+
+
+def test_load_uses_the_current_name_of_a_renamed_brand(tmp_path: Path) -> None:
+    source = tmp_path / "source.csv"
+    source.write_text(
+        "Name;Brand;Release Year;Concentration;Rating Value;Rating Count;Manufacturer;URL\n"
+        f"Admire;Hamidi;;;7,1;9;;{PARFUMO}hamidi/admire\n"
+        f"Abaq;Hamidi Oud & Perfumes;;;7,1;9;;{PARFUMO}Hamidi_Oud__Perfumes/abaq\n",
+        encoding="utf-8",
+    )
+    pipeline = EtlPipeline(str(source))
+
+    pipeline.load_and_clean_data()
+
+    # Exact names only: the current name is not renamed again.
+    assert set(pipeline.df["Brand"]) == {"Hamidi Oud & Perfumes"}
 
 
 @pytest.mark.filterwarnings("error")
