@@ -97,6 +97,16 @@ def _address_forms(word: str) -> set[str]:
     return {form for form in (folded, dropped) if form}
 
 
+def _address_words(url: Any) -> list[str] | None:
+    """Words of the perfume part of a Parfumo address (.../Perfumes/<brand>/<perfume>), or None."""
+    if not isinstance(url, str) or not url.startswith(PARFUMO_PERFUMES):
+        return None
+    parts = url[len(PARFUMO_PERFUMES) :].strip("/").split("/")
+    if len(parts) < 2:
+        return None
+    return _words(unquote(parts[-1]))
+
+
 def _match_words(address: list[str], words: list[str], start: int) -> int | None:
     """Position after `words` matched in order from `start`, or None."""
     at = start
@@ -122,11 +132,9 @@ def restore_broken_name(name: str, concentration: str, year: int, url: Any) -> t
     year equal to the number the name starts with (copied from the name, "1902") becomes unknown.
     Accents the address dropped stay lost.
     """
-    if name not in SPREADSHEET_ERRORS:
+    words = _address_words(url) if name in SPREADSHEET_ERRORS else None
+    if not words:
         return name, year
-    if not isinstance(url, str) or not url.startswith(PARFUMO_PERFUMES):
-        return name, year
-    words = _words(unquote(url.rstrip("/").rsplit("/", 1)[-1]))
     if concentration and concentration != MISSING_CONCENTRATION:
         drop = [word.lower() for word in _words(concentration)]
         lower = [word.lower() for word in words]
@@ -146,9 +154,10 @@ def restore_variant(name: str, concentration: str, year: int, url: Any) -> tuple
     The variant joins the concentration when it follows the concentration in the address
     ("Eau de Toilette Intense"), otherwise the name ("Body Intense").
     """
-    if not isinstance(url, str) or not url.startswith(PARFUMO_PERFUMES):
+    words = _address_words(url)
+    if words is None:
         return name, concentration
-    address = [word.lower() for word in _words(unquote(url.rstrip("/").rsplit("/", 1)[-1]))]
+    address = [word.lower() for word in words]
     after_name = _match_words(address, _words(name), 0)
     if after_name is None:
         return name, concentration

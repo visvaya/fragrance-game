@@ -226,6 +226,11 @@ def test_restore_broken_name_keeps_real_names_and_rows_without_an_address() -> N
         "Violette",
         1902,
     )
+    # An address that ends at the brand holds no perfume name.
+    assert etl_module.restore_broken_name("#NAZWA?", "Unknown", 1902, PARFUMO + "Berdoues/") == (
+        "#NAZWA?",
+        1902,
+    )
     assert etl_module.restore_broken_name("#NAZWA?", "Eau de Cologne", 1902, None) == (
         "#NAZWA?",
         1902,
