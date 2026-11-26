@@ -97,13 +97,23 @@ export function wouldLoseRemoteValues(envText: string, remoteFileExists: boolean
   return url !== undefined && url !== "" && !isLocalUrl(url) && !remoteFileExists;
 }
 
+// Read without checking first, so the file cannot change between the check and the read.
+function readIfPresent(file: string): string {
+  try {
+    return readFileSync(file, "utf8");
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return "";
+    throw error;
+  }
+}
+
 function main(): void {
   const stack = parseStatusEnv(readFileSync(0, "utf8"));
   if (!stack.ok) {
     console.error(`Error: ${stack.error}. Pipe in: supabase status -o env`);
     process.exit(2);
   }
-  const envText = existsSync(ENV_FILE) ? readFileSync(ENV_FILE, "utf8") : "";
+  const envText = readIfPresent(ENV_FILE);
   if (wouldLoseRemoteValues(envText, existsSync(REMOTE_ENV_FILE))) {
     console.error(
       `Error: ${ENV_FILE} points at a remote Supabase project. Copy it to ${REMOTE_ENV_FILE} first, then run this again.`,
