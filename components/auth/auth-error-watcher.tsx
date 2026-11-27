@@ -6,7 +6,7 @@ import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 /**
  * Component that watches for Supabase Auth errors in the URL.

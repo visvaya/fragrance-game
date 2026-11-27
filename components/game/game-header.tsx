@@ -19,7 +19,7 @@ import {
   Type,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 import { useEscapeKey } from "@/hooks/use-escape-key";
 import { useScrollDirection } from "@/hooks/use-scroll-direction";

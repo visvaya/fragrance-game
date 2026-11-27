@@ -4,7 +4,7 @@ import { useId, useRef, useState } from "react";
 
 import { Check, Loader2, SkipForward, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 import { useMountEffect } from "@/lib/hooks/use-mount-effect";
 import { cn } from "@/lib/utils";

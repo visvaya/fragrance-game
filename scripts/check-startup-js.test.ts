@@ -32,6 +32,15 @@ describe("startup JS budget", () => {
     expect(startupProblem(measureStartup(noStartup, []), 10_000)).toMatch(/No start-up JS found/);
   });
 
+  it("finds a forbidden package when directory sources end with a slash, as next analyze writes them", () => {
+    const nested: AnalyzeData = {
+      ...data,
+      chunk_parts: [{ compressed_size: 100, output_file_index: 0, source_index: 3 }],
+      sources: [{ path: "[project]/" }, { parent_source_index: 0, path: "node_modules/" }, { parent_source_index: 1, path: "zod/" }, { parent_source_index: 2, path: "index.js" }],
+    };
+    expect(measureStartup(nested, ["zod"]).forbiddenPaths).toEqual(["[project]/node_modules/zod/index.js"]);
+  });
+
   it("fails on a forbidden package in a start-up chunk", () => {
     const withZod = { ...data, chunk_groups: [{ kind: "render_dependent", output_file_indices: [0, 1] }] };
     const measured = measureStartup(withZod, ["zod"]);

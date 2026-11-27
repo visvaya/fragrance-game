@@ -11,7 +11,7 @@ import type {
   SubmitHandler,
   UseFormReturn,
 } from "react-hook-form";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import * as z from "zod";
 
 import { Button } from "@/components/ui/button";

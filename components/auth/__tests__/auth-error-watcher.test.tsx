@@ -15,7 +15,7 @@ vi.mock("next-intl", () => ({
   useTranslations: (namespace: string) => (key: string) =>
     `${namespace}.${key}`,
 }));
-vi.mock("sonner", () => ({ toast: mockToast }));
+vi.mock("@/lib/toast", () => ({ toast: mockToast }));
 
 beforeEach(() => {
   vi.clearAllMocks();
