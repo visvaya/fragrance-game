@@ -6,7 +6,7 @@ import { useState, useRef, useEffect, useId, useMemo, useReducer } from "react";
 
 import { Search, Loader2, X, ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 import {
   searchPerfumes,

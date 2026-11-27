@@ -56,7 +56,7 @@ vi.mock("next/dynamic", () => ({
       : () => null,
 }));
 
-vi.mock("sonner", () => ({
+vi.mock("@/lib/toast", () => ({
   toast: { error: vi.fn(), info: vi.fn(), warning: vi.fn() },
 }));
 

@@ -56,7 +56,7 @@ vi.mock("web-haptics/react", () => ({
 }));
 
 // Mock sonner toasts
-vi.mock("sonner", () => ({
+vi.mock("@/lib/toast", () => ({
   toast: {
     error: mockToastError,
     warning: mockToastWarning,

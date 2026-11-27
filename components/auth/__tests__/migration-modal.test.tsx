@@ -38,7 +38,7 @@ vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => key,
 }));
 
-vi.mock("sonner", () => ({ toast: mockToast }));
+vi.mock("@/lib/toast", () => ({ toast: mockToast }));
 
 const registered = { id: "user-1", is_anonymous: false };
 const anonymous = { id: "anon-1", is_anonymous: true };

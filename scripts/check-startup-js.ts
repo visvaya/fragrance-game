@@ -7,11 +7,12 @@ import { isMainModule } from "./is-main";
 
 /**
  * Compressed bytes of start-up JS for `/[locale]`, rounded up to the next 5 KB: 343681 on 2026-11-21, then about 347200
- * after the menu's sign-out item moved (2026-11-24, raise approved by the owner).
+ * after the menu's sign-out item moved (2026-11-24, raise approved by the owner), 340308 after sonner left start-up
+ * (2026-11-27).
  */
-const MAX_STARTUP_JS_BYTES = 350_000;
+const MAX_STARTUP_JS_BYTES = 345_000;
 /** Packages that must load after start-up, through a dynamic `import()`. */
-const FORBIDDEN_AT_STARTUP = ["zod", "@sentry/", "posthog-js", "@supabase/"];
+const FORBIDDEN_AT_STARTUP = ["zod", "@sentry/", "posthog-js", "@supabase/", "sonner/"];
 const ANALYZE_PATH = ".next/diagnostics/analyze/data/[locale]/analyze.data";
 
 /** The parts of the `analyze.data` JSON this check reads. */
@@ -37,7 +38,10 @@ function sourcePath(data: AnalyzeData, index: number): string {
   const source = data.sources[index];
   if (source === undefined) return "";
   const parent = source.parent_source_index;
-  return parent == null ? source.path : `${sourcePath(data, parent)}/${source.path}`;
+  if (parent == null) return source.path;
+  // Directory sources end with a slash ("node_modules/"), so join without doubling it.
+  const parentPath = sourcePath(data, parent);
+  return parentPath.endsWith("/") ? `${parentPath}${source.path}` : `${parentPath}/${source.path}`;
 }
 
 /**

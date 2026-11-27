@@ -36,7 +36,7 @@ vi.mock("next-intl", () => ({
   useTranslations: (namespace: string) => (key: string) =>
     `${namespace}.${key}`,
 }));
-vi.mock("sonner", () => ({ toast: mockToast }));
+vi.mock("@/lib/toast", () => ({ toast: mockToast }));
 vi.mock("../google-auth-button", () => ({
   GoogleAuthButton: () => <button type="button">google</button>,
 }));

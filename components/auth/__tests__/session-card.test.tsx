@@ -8,7 +8,7 @@ const { mockToast } = vi.hoisted(() => ({
   mockToast: { error: vi.fn(), success: vi.fn() },
 }));
 
-vi.mock("sonner", () => ({ toast: mockToast }));
+vi.mock("@/lib/toast", () => ({ toast: mockToast }));
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => (key === "code" ? "en" : key),
