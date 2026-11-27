@@ -167,6 +167,93 @@ jobs:
             smoke-test-failure.png
           retention-days: 30
 
+  base-code-new-schema:
+    name: Base code on the new schema
+    # Migrations reach production before the pull request is merged, so the deployed code meets the
+    # new schema first. When a pull request changes supabase/migrations, this job starts a local
+    # stack from the pull request's migrations and seed and runs the base branch's smoke tests
+    # against the base branch's build. Other pull requests stop after the first step.
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # No needs: it reports on its own even when a migration also breaks the new code's tests.
+    env:
+      UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+      UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+      NEXT_PUBLIC_ASSETS_HOST: ${{ secrets.NEXT_PUBLIC_ASSETS_HOST }}
+      NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check for changed migrations
+        id: changed
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          # Through a file, so a failing git diff stops the step instead of reading as "no changes".
+          git diff --name-only "$BASE_SHA" HEAD -- supabase/migrations > "$RUNNER_TEMP/migrations"
+          if [ -s "$RUNNER_TEMP/migrations" ]; then
+            echo "any=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No changed migrations."
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.changed.outputs.any == 'true'
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        if: steps.changed.outputs.any == 'true'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.changed.outputs.any == 'true'
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          cache: "pnpm"
+      - name: Install dependencies
+        if: steps.changed.outputs.any == 'true'
+        run: pnpm install --frozen-lockfile
+      - name: Generate per-run guest ticket and cron secrets
+        if: steps.changed.outputs.any == 'true'
+        run: |
+          echo "GUEST_TICKET_SECRET=$(openssl rand -base64 48)" >> "$GITHUB_ENV"
+          echo "CRON_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+      # The pull request's migrations and seed, from the workspace root.
+      - uses: ./.github/actions/local-supabase # zizmor: ignore[self-repository]
+        if: steps.changed.outputs.any == 'true'
+      - name: Build the base branch
+        if: steps.changed.outputs.any == 'true'
+        working-directory: base
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run build
+      - name: Install Playwright Chromium
+        if: steps.changed.outputs.any == 'true'
+        working-directory: base
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run the base branch's smoke tests
+        if: steps.changed.outputs.any == 'true'
+        working-directory: base
+        run: pnpm exec playwright test --project=smoke
+      # Artifacts are public and not masked like logs: upload only what passed the secret scan.
+      - name: Scan the artifact for secrets
+        id: secret-scan
+        if: always() && steps.changed.outputs.any == 'true'
+        working-directory: base
+        run: .github/scripts/scan-artifacts.sh playwright-report test-results
+      - name: Upload Playwright Report
+        if: always() && steps.secret-scan.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report-base-code
+          path: |
+            base/playwright-report/
+            base/test-results/
+          retention-days: 30
+
   pgtap:
     name: pgTAP (schema + RLS + search)
     # Checks the production database after each merge. Pull requests run the same pgTAP files on
