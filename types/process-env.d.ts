@@ -20,6 +20,7 @@ declare namespace NodeJS {
     NEXT_PUBLIC_SUPABASE_ANON_KEY?: string;
     NEXT_PUBLIC_SUPABASE_URL?: string;
     NEXT_PUBLIC_TURNSTILE_SITE_KEY?: string;
+    NEXT_PUBLIC_VERCEL_ENV?: string;
     NEXT_RUNTIME?: string;
     PLAYWRIGHT_TRACE?: string;
     SENTRY_ORG?: string;

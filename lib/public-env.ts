@@ -14,4 +14,6 @@ export const publicEnv = {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+  // Set by Vercel at build time (preview or production); unset on other hosts.
+  NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV,
 } as const;

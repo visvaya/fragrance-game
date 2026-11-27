@@ -11,10 +11,26 @@ vi.mock("@sentry/nextjs", () => sentry);
 
 import { scrubEvent } from "./sentry-scrub";
 import {
+  isClientSentryEnabled,
   reportClientError,
   setClientUser,
   startSentryClient,
 } from "./sentry-client";
+
+describe("isClientSentryEnabled", () => {
+  it("reports from production builds", () => {
+    expect(isClientSentryEnabled("production", "production")).toBe(true);
+  });
+
+  it("reports when no deployment environment is set, as on a self-hosted server", () => {
+    expect(isClientSentryEnabled("production", undefined)).toBe(true);
+  });
+
+  it("stays off on preview deployments and in development", () => {
+    expect(isClientSentryEnabled("production", "preview")).toBe(false);
+    expect(isClientSentryEnabled("development", undefined)).toBe(false);
+  });
+});
 
 describe("startSentryClient", () => {
   beforeEach(() => {
