@@ -14,7 +14,12 @@
 .mypy_cache/
 .pytest_cache/
 .coverage
-supabase/.temp/
+# Written by `supabase link`. The service versions are kept, so local stacks and CI run the same
+# Postgres, GoTrue and PostgREST as production; the nightly drift job checks them.
+supabase/.temp/*
+!supabase/.temp/postgres-version
+!supabase/.temp/gotrue-version
+!supabase/.temp/rest-version
 
 # TypeScript
 *.tsbuildinfo
